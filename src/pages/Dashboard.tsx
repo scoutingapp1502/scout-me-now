@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import PersonalProfile from "@/components/dashboard/PersonalProfile";
+import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [activeSection, setActiveSection] = useState("profile");
+  const [playerName, setPlayerName] = useState("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -22,28 +25,42 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("player_profiles")
+      .select("first_name, last_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+      });
+  }, [user]);
 
   if (!user) return null;
 
+  const renderSection = () => {
+    switch (activeSection) {
+      case "profile": return <PersonalProfile userId={user.id} />;
+      case "players": return <PlaceholderSection title="PLAYERS" />;
+      case "stats": return <PlaceholderSection title="STATS" />;
+      case "scouters": return <PlaceholderSection title="SCOUTERS" />;
+      case "agents": return <PlaceholderSection title="AGENTS" />;
+      case "clubs": return <PlaceholderSection title="CLUBS" />;
+      default: return <PersonalProfile userId={user.id} />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="bg-pitch border-b border-primary/20">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <span className="font-display text-2xl text-primary-foreground">⚽ FOOTBALLSCOUT</span>
-          <Button variant="ghost" onClick={handleLogout} className="text-primary-foreground hover:text-primary">
-            <LogOut className="h-4 w-4 mr-2" /> Deconectare
-          </Button>
-        </div>
-      </nav>
-      <div className="container mx-auto px-4 py-12 text-center">
-        <h1 className="font-display text-4xl text-foreground mb-4">BINE AI VENIT!</h1>
-        <p className="text-muted-foreground font-body">
-          Ești autentificat ca {user.email}. Dashboard-ul complet va fi implementat în curând.
-        </p>
-      </div>
+    <div className="flex min-h-screen bg-background dark">
+      <DashboardSidebar
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        playerName={playerName}
+      />
+      <main className="flex-1 p-8 overflow-y-auto">
+        {renderSection()}
+      </main>
     </div>
   );
 };
