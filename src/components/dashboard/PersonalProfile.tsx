@@ -138,7 +138,7 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
           backgroundSize: '30px 30px'
         }} />
-        <div className="relative flex items-end gap-6 p-8">
+        <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 p-4 sm:p-8">
           {/* Avatar */}
           <div className="relative group">
             <div className="w-28 h-28 rounded-xl border-2 border-primary overflow-hidden bg-muted">
@@ -159,18 +159,18 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
           </div>
 
           {/* Name & basic info */}
-          <div className="flex-1 pb-2">
+          <div className="flex-1 pb-2 text-center sm:text-left w-full">
             {editing ? (
-              <div className="flex gap-3 mb-2">
-                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder="Prenume" className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-2xl h-auto py-1" />
-                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder="Nume" className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-2xl h-auto py-1" />
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-2">
+                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder="Prenume" className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-xl sm:text-2xl h-auto py-1" />
+                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder="Nume" className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-xl sm:text-2xl h-auto py-1" />
               </div>
             ) : (
-              <h1 className="font-display text-4xl text-primary-foreground tracking-wide">
+              <h1 className="font-display text-2xl sm:text-4xl text-primary-foreground tracking-wide">
                 {profile?.first_name} {profile?.last_name}
               </h1>
             )}
-            <div className="flex items-center gap-4 text-primary-foreground/70 text-sm font-body mt-1 flex-wrap">
+            <div className="flex items-center justify-center sm:justify-start gap-3 sm:gap-4 text-primary-foreground/70 text-xs sm:text-sm font-body mt-1 flex-wrap">
               {form.position && (
                 <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-semibold">
                   ⊕ {form.position}
@@ -222,13 +222,13 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             <CardHeader><CardTitle className="font-display text-xl">STATISTICI</CardTitle></CardHeader>
             <CardContent>
               {editing ? (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div><Label className="font-body text-xs">Goluri</Label><Input type="number" value={form.goals ?? 0} onChange={(e) => updateForm("goals", parseInt(e.target.value) || 0)} /></div>
                   <div><Label className="font-body text-xs">Assisturi</Label><Input type="number" value={form.assists ?? 0} onChange={(e) => updateForm("assists", parseInt(e.target.value) || 0)} /></div>
                   <div><Label className="font-body text-xs">Meciuri jucate</Label><Input type="number" value={form.matches_played ?? 0} onChange={(e) => updateForm("matches_played", parseInt(e.target.value) || 0)} /></div>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-3 gap-3 sm:gap-4">
                   {[
                     { label: "Goluri", value: profile?.goals ?? 0, icon: "⚽" },
                     { label: "Assisturi", value: profile?.assists ?? 0, icon: "🅰️" },
