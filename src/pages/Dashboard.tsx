@@ -53,7 +53,6 @@ const Dashboard = () => {
     switch (activeSection) {
       case "profile": return <PersonalProfile userId={user.id} />;
       case "players": return <PlaceholderSection title="PLAYERS" />;
-      case "stats": return <PlaceholderSection title="STATS" />;
       case "scouters": return <PlaceholderSection title="SCOUTERS" />;
       case "agents": return <PlaceholderSection title="AGENTS" />;
       case "clubs": return <PlaceholderSection title="CLUBS" />;
