@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Users, BarChart3, Search, Briefcase, Building2, LogOut } from "lucide-react";
+import { User, Users, Search, Briefcase, Building2, LogOut } from "lucide-react";
 
 interface DashboardSidebarProps {
   activeSection: string;
@@ -11,7 +11,6 @@ interface DashboardSidebarProps {
 const sections = [
   { id: "profile", label: "Personal Profile", icon: User },
   { id: "players", label: "Players", icon: Users },
-  { id: "stats", label: "Stats", icon: BarChart3 },
   { id: "scouters", label: "Scouters", icon: Search },
   { id: "agents", label: "Agents", icon: Briefcase },
   { id: "clubs", label: "Clubs", icon: Building2 },

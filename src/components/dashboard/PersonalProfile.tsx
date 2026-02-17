@@ -224,47 +224,47 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             )}
           </div>
 
-          {/* Edit button */}
-          <div className="absolute top-4 right-4">
-            <Button
-              size="sm"
-              onClick={() => editing ? handleSave() : setEditing(true)}
-              disabled={saving}
-              variant={editing ? "default" : "outline"}
-              className={!editing ? "border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10" : ""}
-            >
-              {editing ? (
-                <><Save className="h-4 w-4 mr-1" />{saving ? "..." : "Salvează"}</>
-              ) : (
-                <><Edit2 className="h-4 w-4 mr-1" />Editează</>
-              )}
-            </Button>
-          </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-border bg-card rounded-b-xl">
-        {([
-          { key: "stats" as TabType, label: "Stats" },
-          { key: "profile" as TabType, label: "Profile" },
-          { key: "video" as TabType, label: "Video" },
-        ]).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 sm:flex-none px-6 py-3 font-display text-lg tracking-wide transition-colors relative
-              ${activeTab === tab.key
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-              }`}
+      {/* Tabs + Edit button row */}
+      <div className="flex items-center border-b border-border bg-card rounded-b-xl">
+        <div className="flex flex-1">
+          {([
+            { key: "stats" as TabType, label: "Stats" },
+            { key: "profile" as TabType, label: "Profile" },
+            { key: "video" as TabType, label: "Video" },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 sm:flex-none px-6 py-3 font-display text-lg tracking-wide transition-colors relative
+                ${activeTab === tab.key
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+                }`}
+            >
+              {tab.label}
+              {activeTab === tab.key && (
+                <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-full" />
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="px-4">
+          <Button
+            size="sm"
+            onClick={() => editing ? handleSave() : setEditing(true)}
+            disabled={saving}
+            variant={editing ? "default" : "outline"}
           >
-            {tab.label}
-            {activeTab === tab.key && (
-              <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-full" />
+            {editing ? (
+              <><Save className="h-4 w-4 mr-1" />{saving ? "..." : "Salvează"}</>
+            ) : (
+              <><Edit2 className="h-4 w-4 mr-1" />Editează</>
             )}
-          </button>
-        ))}
+          </Button>
+        </div>
       </div>
 
       {/* Tab content */}
@@ -382,6 +382,43 @@ function StatsTab({ form, profile, editing, updateForm }: {
           </>
         )}
       </div>
+
+      {/* FIFA-style card */}
+      {!editing && (
+        <div className="flex justify-center">
+          <div className="relative w-64 bg-gradient-to-b from-primary/20 to-primary/5 border-2 border-primary/30 rounded-2xl p-5 shadow-lg">
+            {/* Top accent */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-primary rounded-b-full" />
+            
+            {/* Player name */}
+            <div className="text-center mb-4 mt-1">
+              <p className="font-display text-lg text-primary uppercase tracking-wider">
+                {profile?.last_name || "PLAYER"}
+              </p>
+              <p className="text-xs text-muted-foreground font-body">{profile?.position || "—"}</p>
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              {[
+                { label: "VIT", value: (form as any).speed ?? 0 },
+                { label: "DET", value: (form as any).jumping ?? 0 },
+                { label: "REZ", value: (form as any).endurance ?? 0 },
+                { label: "ACC", value: (form as any).acceleration ?? 0 },
+                { label: "APR", value: (form as any).defense ?? 0 },
+              ].map((stat) => (
+                <div key={stat.label} className="flex items-center gap-2">
+                  <span className="font-display text-2xl text-foreground w-10 text-right">{stat.value}</span>
+                  <span className="text-xs text-muted-foreground font-body uppercase tracking-wide">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom accent */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary/50 rounded-t-full" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
