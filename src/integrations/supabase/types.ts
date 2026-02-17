@@ -64,20 +64,25 @@ export type Database = {
       }
       player_profiles: {
         Row: {
+          acceleration: number | null
           agent_email: string | null
           agent_name: string | null
           agent_phone: string | null
           assists: number | null
           bio: string | null
+          career_description: string | null
           created_at: string
           current_team: string | null
           cv_url: string | null
           date_of_birth: string | null
+          defense: number | null
+          endurance: number | null
           first_name: string
           goals: number | null
           height_cm: number | null
           id: string
           instagram_url: string | null
+          jumping: number | null
           last_name: string
           matches_played: number | null
           nationality: string | null
@@ -85,6 +90,7 @@ export type Database = {
           photo_url: string | null
           position: string | null
           preferred_foot: string | null
+          speed: number | null
           tiktok_url: string | null
           twitter_url: string | null
           updated_at: string
@@ -93,20 +99,25 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          acceleration?: number | null
           agent_email?: string | null
           agent_name?: string | null
           agent_phone?: string | null
           assists?: number | null
           bio?: string | null
+          career_description?: string | null
           created_at?: string
           current_team?: string | null
           cv_url?: string | null
           date_of_birth?: string | null
+          defense?: number | null
+          endurance?: number | null
           first_name?: string
           goals?: number | null
           height_cm?: number | null
           id?: string
           instagram_url?: string | null
+          jumping?: number | null
           last_name?: string
           matches_played?: number | null
           nationality?: string | null
@@ -114,6 +125,7 @@ export type Database = {
           photo_url?: string | null
           position?: string | null
           preferred_foot?: string | null
+          speed?: number | null
           tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string
@@ -122,20 +134,25 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          acceleration?: number | null
           agent_email?: string | null
           agent_name?: string | null
           agent_phone?: string | null
           assists?: number | null
           bio?: string | null
+          career_description?: string | null
           created_at?: string
           current_team?: string | null
           cv_url?: string | null
           date_of_birth?: string | null
+          defense?: number | null
+          endurance?: number | null
           first_name?: string
           goals?: number | null
           height_cm?: number | null
           id?: string
           instagram_url?: string | null
+          jumping?: number | null
           last_name?: string
           matches_played?: number | null
           nationality?: string | null
@@ -143,6 +160,7 @@ export type Database = {
           photo_url?: string | null
           position?: string | null
           preferred_foot?: string | null
+          speed?: number | null
           tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string
