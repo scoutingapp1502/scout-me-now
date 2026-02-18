@@ -441,55 +441,6 @@ function ProfileTab({ form, profile, editing, updateForm }: {
 }) {
   return (
     <div className="space-y-6">
-      {/* About */}
-      <div className="bg-card border border-border rounded-xl p-5 sm:p-6">
-        <h3 className="font-display text-xl text-foreground mb-3 uppercase">
-          Despre {profile?.first_name} {profile?.last_name}
-        </h3>
-        {editing ? (
-          <Textarea
-            value={form.career_description || ""}
-            onChange={(e) => updateForm("career_description", e.target.value)}
-            placeholder="Descrie parcursul carierei tale... (fiecare paragraf va apărea ca un punct separat)"
-            rows={8}
-          />
-        ) : (
-          <div className="space-y-0">
-            {(profile?.career_description || "Nicio descriere adăugată.").split("\n").filter(Boolean).map((line, i) => (
-              <div key={i} className="py-3 border-b border-border last:border-b-0">
-                <p className="text-foreground font-body text-sm leading-relaxed">{line}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Achievements / Palmares */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="relative bg-accent px-5 py-3">
-          <h3 className="font-display text-xl text-accent-foreground uppercase">Palmares</h3>
-          <div className="absolute right-0 top-0 w-16 h-full bg-gradient-to-l from-accent/50 to-transparent" />
-        </div>
-        <div className="p-5">
-          {editing ? (
-            <Textarea
-              value={form.palmares || ""}
-              onChange={(e) => updateForm("palmares", e.target.value)}
-              placeholder="Trofee și realizări... (câte un trofeu pe linie)"
-              rows={5}
-            />
-          ) : (
-            <div className="space-y-0">
-              {(profile?.palmares || "Niciun trofeu adăugat.").split("\n").filter(Boolean).map((line, i) => (
-                <div key={i} className="py-3 border-b border-border last:border-b-0">
-                  <p className="text-foreground font-body text-sm font-medium">{line}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Physical + details */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
@@ -541,6 +492,55 @@ function ProfileTab({ form, profile, editing, updateForm }: {
               ) : (
                 <p className="text-muted-foreground">Niciun agent adăugat.</p>
               )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* About */}
+      <div className="bg-card border border-border rounded-xl p-5 sm:p-6">
+        <h3 className="font-display text-xl text-foreground mb-3 uppercase">
+          Despre {profile?.first_name} {profile?.last_name}
+        </h3>
+        {editing ? (
+          <Textarea
+            value={form.career_description || ""}
+            onChange={(e) => updateForm("career_description", e.target.value)}
+            placeholder="Descrie parcursul carierei tale... (fiecare paragraf va apărea ca un punct separat)"
+            rows={8}
+          />
+        ) : (
+          <div className="space-y-0">
+            {(profile?.career_description || "Nicio descriere adăugată.").split("\n").filter(Boolean).map((line, i) => (
+              <div key={i} className="py-3 border-b border-border last:border-b-0">
+                <p className="text-foreground font-body text-sm leading-relaxed">{line}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Achievements / Palmares */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="relative bg-accent px-5 py-3">
+          <h3 className="font-display text-xl text-accent-foreground uppercase">Palmares</h3>
+          <div className="absolute right-0 top-0 w-16 h-full bg-gradient-to-l from-accent/50 to-transparent" />
+        </div>
+        <div className="p-5">
+          {editing ? (
+            <Textarea
+              value={form.palmares || ""}
+              onChange={(e) => updateForm("palmares", e.target.value)}
+              placeholder="Trofee și realizări... (câte un trofeu pe linie)"
+              rows={5}
+            />
+          ) : (
+            <div className="space-y-0">
+              {(profile?.palmares || "Niciun trofeu adăugat.").split("\n").filter(Boolean).map((line, i) => (
+                <div key={i} className="py-3 border-b border-border last:border-b-0">
+                  <p className="text-foreground font-body text-sm font-medium">{line}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>
