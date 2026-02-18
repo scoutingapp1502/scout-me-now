@@ -90,9 +90,7 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
         photoUrl = urlData.publicUrl;
       }
 
-      const { error } = await supabase
-        .from("player_profiles")
-        .update({
+      const payload = {
           first_name: form.first_name,
           last_name: form.last_name,
           bio: form.bio,
@@ -121,8 +119,19 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
           defense: form.defense,
           career_description: form.career_description,
           video_highlights: form.video_highlights,
-        })
-        .eq("user_id", userId);
+        };
+
+      let error;
+      if (profile) {
+        ({ error } = await supabase
+          .from("player_profiles")
+          .update(payload)
+          .eq("user_id", userId));
+      } else {
+        ({ error } = await supabase
+          .from("player_profiles")
+          .insert({ ...payload, user_id: userId }));
+      }
 
       if (error) throw error;
 
