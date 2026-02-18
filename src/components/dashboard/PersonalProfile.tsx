@@ -40,11 +40,22 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
   }, [userId]);
 
   const fetchProfile = async () => {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("player_profiles")
       .select("*")
       .eq("user_id", userId)
       .maybeSingle();
+
+    if (!data && !error) {
+      // Auto-create profile if it doesn't exist
+      const { data: newData, error: insertError } = await supabase
+        .from("player_profiles")
+        .insert({ user_id: userId, first_name: "", last_name: "" })
+        .select("*")
+        .single();
+      if (insertError) console.error(insertError);
+      else data = newData;
+    }
 
     if (data) {
       setProfile(data);
@@ -165,8 +176,10 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
                 <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder="Nume" className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-xl sm:text-2xl h-auto py-1" />
               </div>
             ) : (
-              <h1 className="font-display text-3xl sm:text-5xl text-primary-foreground tracking-wide uppercase">
-                {profile?.first_name} {profile?.last_name}
+            <h1 className="font-display text-3xl sm:text-5xl text-foreground tracking-wide uppercase">
+                {profile?.first_name || profile?.last_name
+                  ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
+                  : "Completează profilul"}
               </h1>
             )}
 
@@ -183,8 +196,8 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
                 <Input value={form.current_team || ""} onChange={(e) => updateForm("current_team", e.target.value)} placeholder="Club actual" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground sm:w-48" />
               </div>
             ) : (
-              <p className="text-primary-foreground/60 font-body text-sm sm:text-base mt-1">
-                {form.position && <span className="text-primary font-semibold">{form.position}</span>}
+              <p className="text-muted-foreground font-body text-sm sm:text-base mt-1">
+                {form.position ? <span className="text-primary font-semibold">{form.position}</span> : <span className="text-muted-foreground italic">Adaugă poziția</span>}
                 {form.current_team && <span> · {form.current_team}</span>}
               </p>
             )}
@@ -192,8 +205,8 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             {/* Social icons */}
             {!editing && (
               <div className="flex items-center justify-center sm:justify-start gap-3 mt-3">
-                {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-primary-foreground/50 hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>}
-                {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-primary-foreground/50 hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>}
+                {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>}
+                {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>}
               </div>
             )}
             {editing && (
@@ -251,18 +264,27 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             </button>
           ))}
         </div>
-        <div className="px-4">
+        <div className="flex items-center gap-2 px-4">
           <Button
-            size="sm"
             onClick={() => editing ? handleSave() : setEditing(true)}
             disabled={saving}
-            variant={editing ? "default" : "outline"}
+            variant={editing ? "default" : "default"}
+            className={editing ? "bg-primary hover:bg-primary/90 text-primary-foreground font-display text-base px-6" : "bg-accent text-accent-foreground hover:bg-accent/90 font-display text-base px-6 shadow-md"}
           >
             {editing ? (
-              <><Save className="h-4 w-4 mr-1" />{saving ? "..." : "Salvează"}</>
+              <><Save className="h-5 w-5 mr-2" />{saving ? "..." : "Salvează"}</>
             ) : (
-              <><Edit2 className="h-4 w-4 mr-1" />Editează</>
+              <><Edit2 className="h-5 w-5 mr-2" />Editează</>
             )}
+          </Button>
+          <Button
+            variant="outline"
+            className="font-display text-base px-6 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            onClick={() => {
+              toast({ title: "Funcționalitate în dezvoltare", description: "Secțiunea de scouter va fi disponibilă în curând." });
+            }}
+          >
+            Sunt Scouter
           </Button>
         </div>
       </div>
