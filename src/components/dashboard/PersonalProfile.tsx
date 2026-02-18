@@ -241,8 +241,8 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
       </div>
 
       {/* Tabs + Edit button row */}
-      <div className="flex items-center border-b border-border bg-card rounded-b-xl">
-        <div className="flex flex-1">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center border-b border-border bg-card rounded-b-xl">
+        <div className="flex flex-1 overflow-x-auto">
           {([
             { key: "stats" as TabType, label: "Stats" },
             { key: "profile" as TabType, label: "Profile" },
@@ -251,7 +251,7 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 sm:flex-none px-6 py-3 font-display text-lg tracking-wide transition-colors relative
+              className={`flex-1 px-4 sm:px-6 py-3 font-display text-base sm:text-lg tracking-wide transition-colors relative whitespace-nowrap
                 ${activeTab === tab.key
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -264,27 +264,17 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 px-4">
+        <div className="flex items-center justify-center sm:justify-end px-4 py-2 sm:py-0">
           <Button
             onClick={() => editing ? handleSave() : setEditing(true)}
             disabled={saving}
-            variant={editing ? "default" : "default"}
-            className={editing ? "bg-primary hover:bg-primary/90 text-primary-foreground font-display text-base px-6" : "bg-accent text-accent-foreground hover:bg-accent/90 font-display text-base px-6 shadow-md"}
+            className={editing ? "bg-primary hover:bg-primary/90 text-primary-foreground font-display text-sm sm:text-base px-4 sm:px-6 w-full sm:w-auto" : "bg-accent text-accent-foreground hover:bg-accent/90 font-display text-sm sm:text-base px-4 sm:px-6 shadow-md w-full sm:w-auto"}
           >
             {editing ? (
-              <><Save className="h-5 w-5 mr-2" />{saving ? "..." : "Salvează"}</>
+              <><Save className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{saving ? "..." : "Salvează"}</>
             ) : (
-              <><Edit2 className="h-5 w-5 mr-2" />Editează</>
+              <><Edit2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />Editează</>
             )}
-          </Button>
-          <Button
-            variant="outline"
-            className="font-display text-base px-6 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            onClick={() => {
-              toast({ title: "Funcționalitate în dezvoltare", description: "Secțiunea de scouter va fi disponibilă în curând." });
-            }}
-          >
-            Sunt Scouter
           </Button>
         </div>
       </div>
