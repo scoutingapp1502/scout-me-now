@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Users, Search, Briefcase, Building2, LogOut } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
+import LanguageToggle from "@/components/LanguageToggle";
 
 interface DashboardSidebarProps {
   activeSection: string;
@@ -8,16 +10,17 @@ interface DashboardSidebarProps {
   playerName?: string;
 }
 
-const sections = [
-  { id: "profile", label: "Personal Profile", icon: User },
-  { id: "players", label: "Players", icon: Users },
-  { id: "scouters", label: "Scouters", icon: Search },
-  { id: "agents", label: "Agents", icon: Briefcase },
-  { id: "clubs", label: "Clubs", icon: Building2 },
-];
-
 const DashboardSidebar = ({ activeSection, onSectionChange, playerName }: DashboardSidebarProps) => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
+
+  const sections = [
+    { id: "profile", label: t.dashboard.sidebar.personalProfile, icon: User },
+    { id: "players", label: t.dashboard.sidebar.players, icon: Users },
+    { id: "scouters", label: t.dashboard.sidebar.scouters, icon: Search },
+    { id: "agents", label: t.dashboard.sidebar.agents, icon: Briefcase },
+    { id: "clubs", label: t.dashboard.sidebar.clubs, icon: Building2 },
+  ];
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -54,13 +57,16 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName }: Dashbo
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-2">
+        <div className="flex justify-center">
+          <LanguageToggle />
+        </div>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/60 hover:text-destructive hover:bg-sidebar-accent font-body text-sm transition-all"
         >
           <LogOut className="h-5 w-5" />
-          Deconectare
+          {t.dashboard.sidebar.logout}
         </button>
       </div>
     </aside>

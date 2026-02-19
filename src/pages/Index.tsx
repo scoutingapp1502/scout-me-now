@@ -1,38 +1,28 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Trophy, Eye, MessageCircle, Users, ChevronRight, Star } from "lucide-react";
-
-const benefits = [
-  {
-    icon: Eye,
-    title: "Vizibilitate Maximă",
-    description: "Profilul tău va fi vizibil pentru sute de scouteri din întreaga lume.",
-  },
-  {
-    icon: MessageCircle,
-    title: "Contact Direct",
-    description: "Scouterii te pot contacta direct prin platformă, fără intermediari.",
-  },
-  {
-    icon: Trophy,
-    title: "Palmares Complet",
-    description: "Prezintă-ți statisticile, highlight-urile video și realizările într-un singur loc.",
-  },
-  {
-    icon: Users,
-    title: "Rețea Profesională",
-    description: "Conectează-te cu profesioniști din industria fotbalului.",
-  },
-];
-
-const stats = [
-  { value: "500+", label: "Jucători Înregistrați" },
-  { value: "120+", label: "Scouteri Activi" },
-  { value: "50+", label: "Transferuri Reușite" },
-  { value: "30+", label: "Țări Acoperite" },
-];
+import { useLanguage } from "@/i18n/LanguageContext";
+import LanguageToggle from "@/components/LanguageToggle";
 
 const Index = () => {
+  const { t } = useLanguage();
+
+  const benefits = [
+    { icon: Eye, title: t.benefits.visibility, description: t.benefits.visibilityDesc },
+    { icon: MessageCircle, title: t.benefits.contact, description: t.benefits.contactDesc },
+    { icon: Trophy, title: t.benefits.palmares, description: t.benefits.palmaresDesc },
+    { icon: Users, title: t.benefits.network, description: t.benefits.networkDesc },
+  ];
+
+  const stats = [
+    { value: "500+", label: t.stats.players },
+    { value: "120+", label: t.stats.scouts },
+    { value: "50+", label: t.stats.transfers },
+    { value: "30+", label: t.stats.countries },
+  ];
+
+  const testimonials = [t.testimonials.t1, t.testimonials.t2, t.testimonials.t3];
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
@@ -47,14 +37,15 @@ const Index = () => {
             </span>
           </Link>
           <div className="flex items-center gap-3">
+            <LanguageToggle />
             <Link to="/auth?tab=login">
               <Button variant="ghost" className="text-primary-foreground hover:text-primary hover:bg-primary-foreground/10">
-                Autentificare
+                {t.nav.auth}
               </Button>
             </Link>
             <Link to="/auth?tab=register">
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
-                Înregistrează-te
+                {t.nav.register}
               </Button>
             </Link>
           </div>
@@ -70,26 +61,25 @@ const Index = () => {
         }} />
         <div className="relative container mx-auto px-4 py-24 md:py-36 text-center">
           <div className="inline-block mb-4 px-4 py-1 rounded-full bg-primary/20 border border-primary/30">
-            <span className="text-primary text-sm font-medium">⚡ Platforma #1 pentru talente din fotbal</span>
+            <span className="text-primary text-sm font-medium">{t.hero.badge}</span>
           </div>
           <h1 className="font-display text-5xl md:text-7xl lg:text-8xl text-primary-foreground mb-6 leading-tight">
-            ARATĂ-ȚI <span className="text-electric">TALENTUL</span>
-            <br />LUMII ÎNTREGI
+            {t.hero.title1} <span className="text-electric">{t.hero.titleHighlight}</span>
+            <br />{t.hero.title2}
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 font-body">
-            Creează-ți profilul complet, adaugă statistici și highlight-uri video, 
-            și fii descoperit de scouteri din toată lumea.
+            {t.hero.subtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/auth?tab=register">
               <Button size="lg" className="bg-electric text-pitch hover:bg-electric/90 font-bold text-lg px-8 py-6 rounded-xl shadow-lg shadow-electric/25">
-                Creează Profilul Gratuit
+                {t.hero.cta}
                 <ChevronRight className="ml-1 h-5 w-5" />
               </Button>
             </Link>
             <Link to="/auth?tab=register&role=scout">
               <Button size="lg" className="bg-electric text-pitch hover:bg-electric/90 font-bold text-lg px-8 py-6 rounded-xl shadow-lg shadow-electric/25">
-                Sunt Scouter
+                {t.hero.ctaScout}
               </Button>
             </Link>
           </div>
@@ -115,10 +105,10 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
             <h2 className="font-display text-4xl md:text-5xl text-foreground mb-3">
-              DE CE <span className="text-primary">FOOTBALLSCOUT</span>?
+              {t.benefits.title} <span className="text-primary">{t.benefits.titleHighlight}</span>?
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto font-body">
-              Tot ce ai nevoie pentru a-ți construi cariera în fotbal, într-un singur loc.
+              {t.benefits.subtitle}
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -139,21 +129,17 @@ const Index = () => {
       <section className="py-20 bg-pitch">
         <div className="container mx-auto px-4">
           <h2 className="font-display text-4xl md:text-5xl text-primary-foreground text-center mb-12">
-            POVEȘTI DE <span className="text-electric">SUCCES</span>
+            {t.testimonials.title} <span className="text-electric">{t.testimonials.titleHighlight}</span>
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { name: "Andrei M.", role: "Atacant, 22 ani", text: "Datorită FootballScout, am fost contactat de 3 cluburi în prima lună!" },
-              { name: "Maria P.", role: "Scouter, Liga 1", text: "Platforma ideală pentru a descoperi talente tinere din toată România." },
-              { name: "Cosmin D.", role: "Mijlocaș, 19 ani", text: "Profilul meu video a fost vizualizat de peste 50 de scouteri." },
-            ].map((t) => (
-              <div key={t.name} className="bg-primary/10 border border-primary/20 rounded-xl p-6">
+            {testimonials.map((tt) => (
+              <div key={tt.name} className="bg-primary/10 border border-primary/20 rounded-xl p-6">
                 <div className="flex gap-1 mb-3">
                   {[1,2,3,4,5].map(i => <Star key={i} className="h-4 w-4 fill-electric text-electric" />)}
                 </div>
-                <p className="text-primary-foreground/90 font-body mb-4 italic">"{t.text}"</p>
-                <p className="text-primary font-semibold font-body">{t.name}</p>
-                <p className="text-primary-foreground/60 text-sm font-body">{t.role}</p>
+                <p className="text-primary-foreground/90 font-body mb-4 italic">"{tt.text}"</p>
+                <p className="text-primary font-semibold font-body">{tt.name}</p>
+                <p className="text-primary-foreground/60 text-sm font-body">{tt.role}</p>
               </div>
             ))}
           </div>
@@ -164,14 +150,14 @@ const Index = () => {
       <section className="py-20 bg-gradient-to-r from-primary to-primary/80">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-display text-4xl md:text-5xl text-primary-foreground mb-4">
-            GATA SĂ ÎNCEPI?
+            {t.cta.title}
           </h2>
           <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto font-body">
-            Creează-ți contul gratuit și începe să fii vizibil pentru scouterii din toată lumea.
+            {t.cta.subtitle}
           </p>
           <Link to="/auth?tab=register">
             <Button size="lg" className="bg-electric text-pitch hover:bg-electric/90 font-bold text-lg px-10 py-6 rounded-xl">
-              Creează Profilul Gratuit
+              {t.hero.cta}
               <ChevronRight className="ml-1 h-5 w-5" />
             </Button>
           </Link>
@@ -186,11 +172,11 @@ const Index = () => {
               <span className="font-display text-xl text-primary-foreground">⚽ FOOTBALLSCOUT</span>
             </div>
             <div className="flex gap-6 text-sm text-muted-foreground font-body">
-              <Link to="/" className="hover:text-primary transition-colors">Acasă</Link>
-              <Link to="/auth?tab=register" className="hover:text-primary transition-colors">Înregistrare</Link>
-              <Link to="/auth?tab=login" className="hover:text-primary transition-colors">Autentificare</Link>
+              <Link to="/" className="hover:text-primary transition-colors">{t.footer.home}</Link>
+              <Link to="/auth?tab=register" className="hover:text-primary transition-colors">{t.footer.register}</Link>
+              <Link to="/auth?tab=login" className="hover:text-primary transition-colors">{t.footer.auth}</Link>
             </div>
-            <p className="text-muted-foreground text-sm font-body">© 2026 FootballScout. Toate drepturile rezervate.</p>
+            <p className="text-muted-foreground text-sm font-body">{t.footer.rights}</p>
           </div>
         </div>
       </footer>
