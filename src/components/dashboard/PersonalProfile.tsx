@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -25,6 +26,7 @@ type TabType = "stats" | "profile" | "video";
 
 const PersonalProfile = ({ userId }: PersonalProfileProps) => {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -135,12 +137,12 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
 
       if (error) throw error;
 
-      toast({ title: "Profil actualizat cu succes!" });
+      toast({ title: t.dashboard.profile.profileUpdated });
       setEditing(false);
       setAvatarFile(null);
       fetchProfile();
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.profile.error, description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -163,7 +165,7 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full text-muted-foreground font-body">Se încarcă...</div>;
+    return <div className="flex items-center justify-center h-full text-muted-foreground font-body">{t.dashboard.profile.loading}</div>;
   }
 
   const photoSrc = avatarPreview || profile?.photo_url;
@@ -181,14 +183,14 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
           <div className="flex-1 text-center sm:text-left order-2 sm:order-1">
             {editing ? (
               <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder="Prenume" className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-xl sm:text-2xl h-auto py-1" />
-                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder="Nume" className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-xl sm:text-2xl h-auto py-1" />
+                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-xl sm:text-2xl h-auto py-1" />
+                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-xl sm:text-2xl h-auto py-1" />
               </div>
             ) : (
             <h1 className="font-display text-3xl sm:text-5xl text-foreground tracking-wide uppercase">
                 {profile?.first_name || profile?.last_name
                   ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
-                  : "Completează profilul"}
+                  : t.dashboard.profile.completeProfile}
               </h1>
             )}
 
@@ -196,17 +198,18 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
               <div className="flex flex-col sm:flex-row gap-2 mt-2">
                 <Select value={form.position || ""} onValueChange={(v) => updateForm("position", v)}>
                   <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground w-full sm:w-48">
+                    <SelectValue placeholder={t.dashboard.profile.position} />
                     <SelectValue placeholder="Poziție" />
                   </SelectTrigger>
                   <SelectContent>
                     {positions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Input value={form.current_team || ""} onChange={(e) => updateForm("current_team", e.target.value)} placeholder="Club actual" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground sm:w-48" />
+                <Input value={form.current_team || ""} onChange={(e) => updateForm("current_team", e.target.value)} placeholder={t.dashboard.profile.currentTeam} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground sm:w-48" />
               </div>
             ) : (
               <p className="text-muted-foreground font-body text-sm sm:text-base mt-1">
-                {form.position ? <span className="text-primary font-semibold">{form.position}</span> : <span className="text-muted-foreground italic">Adaugă poziția</span>}
+                {form.position ? <span className="text-primary font-semibold">{form.position}</span> : <span className="text-muted-foreground italic">{t.dashboard.profile.addPosition}</span>}
                 {form.current_team && <span> · {form.current_team}</span>}
               </p>
             )}
@@ -280,9 +283,9 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             className={editing ? "bg-primary hover:bg-primary/90 text-primary-foreground font-display text-sm sm:text-base px-4 sm:px-6 w-full sm:w-auto" : "bg-accent text-accent-foreground hover:bg-accent/90 font-display text-sm sm:text-base px-4 sm:px-6 shadow-md w-full sm:w-auto"}
           >
             {editing ? (
-              <><Save className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{saving ? "..." : "Salvează"}</>
+              <><Save className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{saving ? "..." : t.dashboard.profile.save}</>
             ) : (
-              <><Edit2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />Editează</>
+              <><Edit2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{t.dashboard.profile.edit}</>
             )}
           </Button>
         </div>
@@ -312,12 +315,13 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
 function StatsTab({ form, profile, editing, updateForm }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void;
 }) {
+  const { t } = useLanguage();
   const stats = [
-    { key: "speed", label: "Viteză", icon: "⚡" },
-    { key: "jumping", label: "Detentă", icon: "🦘" },
-    { key: "endurance", label: "Rezistență", icon: "💪" },
-    { key: "acceleration", label: "Accelerație", icon: "🚀" },
-    { key: "defense", label: "Apărare", icon: "🛡️" },
+    { key: "speed", label: t.dashboard.profile.speed, icon: "⚡" },
+    { key: "jumping", label: t.dashboard.profile.jumping, icon: "🦘" },
+    { key: "endurance", label: t.dashboard.profile.endurance, icon: "💪" },
+    { key: "acceleration", label: t.dashboard.profile.acceleration, icon: "🚀" },
+    { key: "defense", label: t.dashboard.profile.defense, icon: "🛡️" },
   ];
 
   return (
@@ -375,24 +379,24 @@ function StatsTab({ form, profile, editing, updateForm }: {
         {editing ? (
           <>
             <div className="bg-card border border-border rounded-xl p-4">
-              <Label className="font-body text-xs text-muted-foreground">Goluri</Label>
+              <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.goals}</Label>
               <Input type="number" value={form.goals ?? 0} onChange={(e) => updateForm("goals", parseInt(e.target.value) || 0)} className="mt-1" />
             </div>
             <div className="bg-card border border-border rounded-xl p-4">
-              <Label className="font-body text-xs text-muted-foreground">Assisturi</Label>
+              <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.assists}</Label>
               <Input type="number" value={form.assists ?? 0} onChange={(e) => updateForm("assists", parseInt(e.target.value) || 0)} className="mt-1" />
             </div>
             <div className="bg-card border border-border rounded-xl p-4">
-              <Label className="font-body text-xs text-muted-foreground">Meciuri</Label>
+              <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.matches}</Label>
               <Input type="number" value={form.matches_played ?? 0} onChange={(e) => updateForm("matches_played", parseInt(e.target.value) || 0)} className="mt-1" />
             </div>
           </>
         ) : (
           <>
             {[
-              { label: "Goluri", value: profile?.goals ?? 0, icon: "⚽" },
-              { label: "Assisturi", value: profile?.assists ?? 0, icon: "🅰️" },
-              { label: "Meciuri", value: profile?.matches_played ?? 0, icon: "🏟️" },
+              { label: t.dashboard.profile.goals, value: profile?.goals ?? 0, icon: "⚽" },
+              { label: t.dashboard.profile.assists, value: profile?.assists ?? 0, icon: "🅰️" },
+              { label: t.dashboard.profile.matches, value: profile?.matches_played ?? 0, icon: "🏟️" },
             ].map((s) => (
               <div key={s.label} className="bg-card border border-border rounded-xl p-4 text-center">
                 <span className="text-2xl">{s.icon}</span>
@@ -448,47 +452,48 @@ function StatsTab({ form, profile, editing, updateForm }: {
 function ProfileTab({ form, profile, editing, updateForm }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       {/* Physical + details */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-display text-lg text-foreground mb-3 uppercase">Date Fizice</h3>
+          <h3 className="font-display text-lg text-foreground mb-3 uppercase">{t.dashboard.profile.physicalData}</h3>
           {editing ? (
             <div className="space-y-3">
-              <div><Label className="text-xs text-muted-foreground">Înălțime (cm)</Label><Input type="number" value={form.height_cm ?? ""} onChange={(e) => updateForm("height_cm", parseInt(e.target.value) || null)} /></div>
-              <div><Label className="text-xs text-muted-foreground">Greutate (kg)</Label><Input type="number" value={form.weight_kg ?? ""} onChange={(e) => updateForm("weight_kg", parseInt(e.target.value) || null)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="number" value={form.height_cm ?? ""} onChange={(e) => updateForm("height_cm", parseInt(e.target.value) || null)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="number" value={form.weight_kg ?? ""} onChange={(e) => updateForm("weight_kg", parseInt(e.target.value) || null)} /></div>
               <div>
-                <Label className="text-xs text-muted-foreground">Picior preferat</Label>
+                <Label className="text-xs text-muted-foreground">{t.dashboard.profile.preferredFoot}</Label>
                 <Select value={form.preferred_foot || ""} onValueChange={(v) => updateForm("preferred_foot", v)}>
-                  <SelectTrigger><SelectValue placeholder="Selectează" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t.dashboard.profile.selectFoot} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Drept">Drept</SelectItem>
-                    <SelectItem value="Stâng">Stâng</SelectItem>
-                    <SelectItem value="Ambele">Ambele</SelectItem>
+                    <SelectItem value="Drept">{t.dashboard.profile.rightFoot}</SelectItem>
+                    <SelectItem value="Stâng">{t.dashboard.profile.leftFoot}</SelectItem>
+                    <SelectItem value="Ambele">{t.dashboard.profile.bothFeet}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-xs text-muted-foreground">Data nașterii</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} /></div>
-              <div><Label className="text-xs text-muted-foreground">Naționalitate</Label><Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} /></div>
             </div>
           ) : (
             <div className="space-y-3 font-body text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Înălțime</span><span className="text-foreground font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Greutate</span><span className="text-foreground font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Picior preferat</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Naționalitate</span><span className="text-foreground font-semibold">{profile?.nationality || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.height}</span><span className="text-foreground font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.weight}</span><span className="text-foreground font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality || "—"}</span></div>
             </div>
           )}
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-display text-lg text-foreground mb-3 uppercase">Contact Agent</h3>
+          <h3 className="font-display text-lg text-foreground mb-3 uppercase">{t.dashboard.profile.agentContact}</h3>
           {editing ? (
             <div className="space-y-3">
-              <div><Label className="text-xs text-muted-foreground">Nume agent</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} /></div>
-              <div><Label className="text-xs text-muted-foreground">Email</Label><Input value={form.agent_email || ""} onChange={(e) => updateForm("agent_email", e.target.value)} /></div>
-              <div><Label className="text-xs text-muted-foreground">Telefon</Label><Input value={form.agent_phone || ""} onChange={(e) => updateForm("agent_phone", e.target.value)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label><Input value={form.agent_email || ""} onChange={(e) => updateForm("agent_email", e.target.value)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentPhone}</Label><Input value={form.agent_phone || ""} onChange={(e) => updateForm("agent_phone", e.target.value)} /></div>
             </div>
           ) : (
             <div className="font-body text-sm space-y-1">
@@ -499,7 +504,7 @@ function ProfileTab({ form, profile, editing, updateForm }: {
                   {profile.agent_phone && <p className="text-muted-foreground">{profile.agent_phone}</p>}
                 </>
               ) : (
-                <p className="text-muted-foreground">Niciun agent adăugat.</p>
+                <p className="text-muted-foreground">{t.dashboard.profile.noAgent}</p>
               )}
             </div>
           )}
@@ -509,18 +514,18 @@ function ProfileTab({ form, profile, editing, updateForm }: {
       {/* About */}
       <div className="bg-card border border-border rounded-xl p-5 sm:p-6">
         <h3 className="font-display text-xl text-foreground mb-3 uppercase">
-          Despre {profile?.first_name} {profile?.last_name}
+          {t.dashboard.profile.about} {profile?.first_name} {profile?.last_name}
         </h3>
         {editing ? (
           <Textarea
             value={form.career_description || ""}
             onChange={(e) => updateForm("career_description", e.target.value)}
-            placeholder="Descrie parcursul carierei tale... (fiecare paragraf va apărea ca un punct separat)"
+            placeholder={t.dashboard.profile.careerPlaceholder}
             rows={8}
           />
         ) : (
           <div className="space-y-0">
-            {(profile?.career_description || "Nicio descriere adăugată.").split("\n").filter(Boolean).map((line, i) => (
+            {(profile?.career_description || t.dashboard.profile.noDescription).split("\n").filter(Boolean).map((line, i) => (
               <div key={i} className="py-3 border-b border-border last:border-b-0">
                 <p className="text-foreground font-body text-sm leading-relaxed">{line}</p>
               </div>
@@ -532,7 +537,7 @@ function ProfileTab({ form, profile, editing, updateForm }: {
       {/* Achievements / Palmares */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="relative bg-accent px-5 py-3">
-          <h3 className="font-display text-xl text-accent-foreground uppercase">Palmares</h3>
+          <h3 className="font-display text-xl text-accent-foreground uppercase">{t.dashboard.profile.achievements}</h3>
           <div className="absolute right-0 top-0 w-16 h-full bg-gradient-to-l from-accent/50 to-transparent" />
         </div>
         <div className="p-5">
@@ -540,12 +545,12 @@ function ProfileTab({ form, profile, editing, updateForm }: {
             <Textarea
               value={form.palmares || ""}
               onChange={(e) => updateForm("palmares", e.target.value)}
-              placeholder="Trofee și realizări... (câte un trofeu pe linie)"
+              placeholder={t.dashboard.profile.achievementsPlaceholder}
               rows={5}
             />
           ) : (
             <div className="space-y-0">
-              {(profile?.palmares || "Niciun trofeu adăugat.").split("\n").filter(Boolean).map((line, i) => (
+              {(profile?.palmares || t.dashboard.profile.noAchievements).split("\n").filter(Boolean).map((line, i) => (
                 <div key={i} className="py-3 border-b border-border last:border-b-0">
                   <p className="text-foreground font-body text-sm font-medium">{line}</p>
                 </div>
@@ -563,22 +568,23 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean;
   newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void;
 }) {
+  const { t } = useLanguage();
   const videos = editing ? (form.video_highlights || []) : (profile?.video_highlights || []);
 
   return (
     <div className="space-y-4">
       {editing && (
         <div className="bg-card border border-border rounded-xl p-4">
-          <Label className="text-xs text-muted-foreground font-body mb-2 block">Adaugă link video (YouTube, etc.)</Label>
+          <Label className="text-xs text-muted-foreground font-body mb-2 block">{t.dashboard.profile.addVideo}</Label>
           <div className="flex gap-2">
             <Input
               value={newVideoUrl}
               onChange={(e) => setNewVideoUrl(e.target.value)}
-              placeholder="https://youtube.com/watch?v=..."
+              placeholder={t.dashboard.profile.videoPlaceholder}
               className="flex-1"
               onKeyDown={(e) => e.key === "Enter" && addVideoUrl()}
             />
-            <Button onClick={addVideoUrl} size="sm"><Plus className="h-4 w-4 mr-1" />Adaugă</Button>
+            <Button onClick={addVideoUrl} size="sm"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
           </div>
         </div>
       )}
@@ -622,7 +628,7 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
       ) : (
         <div className="bg-card border border-border rounded-xl p-8 text-center">
           <Youtube className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground font-body text-sm">Niciun video adăugat.</p>
+          <p className="text-muted-foreground font-body text-sm">{t.dashboard.profile.noVideos}</p>
         </div>
       )}
     </div>
