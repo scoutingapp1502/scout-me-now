@@ -88,7 +88,7 @@ const Index = () => {
               </Button>
             </Link>
             <Link to="/auth?tab=register&role=scout">
-              <Button size="lg" variant="outline" className="border-primary/50 text-primary-foreground hover:bg-primary/10 font-semibold text-lg px-8 py-6 rounded-xl">
+              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold text-lg px-8 py-6 rounded-xl">
                 Sunt Scouter
               </Button>
             </Link>
