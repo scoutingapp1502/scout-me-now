@@ -147,6 +147,9 @@ export const translations = {
         addBtn: "Adaugă",
         noVideos: "Niciun video adăugat.",
         profileUpdated: "Profil actualizat cu succes!",
+        addNationality: "Adaugă naționalitate",
+        addDob: "Adaugă data nașterii",
+        addSocial: "Adaugă social media",
         error: "Eroare",
       },
       placeholder: {
@@ -296,6 +299,9 @@ export const translations = {
         addBtn: "Add",
         noVideos: "No videos added.",
         profileUpdated: "Profile updated successfully!",
+        addNationality: "Add nationality",
+        addDob: "Add date of birth",
+        addSocial: "Add social media",
         error: "Error",
       },
       placeholder: {

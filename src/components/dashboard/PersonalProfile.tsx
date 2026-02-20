@@ -217,22 +217,17 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             {/* Nationality, DOB & Social icons */}
             {!editing && (
               <div className="flex items-center justify-center sm:justify-start gap-3 mt-3 flex-wrap">
-                {profile?.nationality && (
-                  <span className="flex items-center gap-1 text-muted-foreground text-sm font-body">
-                    <MapPin className="h-4 w-4" />
-                    {profile.nationality}
-                  </span>
-                )}
-                {profile?.date_of_birth && (
-                  <span className="text-muted-foreground text-sm font-body">
-                    🎂 {new Date(profile.date_of_birth).toLocaleDateString()}
-                  </span>
-                )}
-                {(profile?.nationality || profile?.date_of_birth) && (profile?.instagram_url || profile?.twitter_url) && (
-                  <span className="text-muted-foreground/40">|</span>
-                )}
+                <span className="flex items-center gap-1 text-muted-foreground text-sm font-body">
+                  <MapPin className="h-4 w-4" />
+                  {profile?.nationality || <span className="italic">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>}
+                </span>
+                <span className="text-muted-foreground text-sm font-body">
+                  🎂 {profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : <span className="italic">{t.dashboard.profile.addDob || "Adaugă data nașterii"}</span>}
+                </span>
+                <span className="text-muted-foreground/40">|</span>
                 {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>}
                 {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>}
+                {!profile?.instagram_url && !profile?.twitter_url && <span className="text-muted-foreground italic text-sm font-body">{t.dashboard.profile.addSocial || "Adaugă social media"}</span>}
               </div>
             )}
             {editing && (
