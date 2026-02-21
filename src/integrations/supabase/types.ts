@@ -197,37 +197,91 @@ export type Database = {
         }
         Relationships: []
       }
+      scout_experiences: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          location: string | null
+          organization: string
+          role: string
+          skills: string[] | null
+          sort_order: number
+          start_date: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          organization?: string
+          role?: string
+          skills?: string[] | null
+          sort_order?: number
+          start_date?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          organization?: string
+          role?: string
+          skills?: string[] | null
+          sort_order?: number
+          start_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       scout_profiles: {
         Row: {
           bio: string | null
           country: string | null
+          cover_photo_url: string | null
           created_at: string
           first_name: string
           id: string
           last_name: string
           organization: string | null
+          photo_url: string | null
+          skills: string[] | null
+          title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           bio?: string | null
           country?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           first_name?: string
           id?: string
           last_name?: string
           organization?: string | null
+          photo_url?: string | null
+          skills?: string[] | null
+          title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           bio?: string | null
           country?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           first_name?: string
           id?: string
           last_name?: string
           organization?: string | null
+          photo_url?: string | null
+          skills?: string[] | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }

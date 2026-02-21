@@ -8,14 +8,15 @@ interface DashboardSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   playerName?: string;
+  profileLabel?: string;
 }
 
-const DashboardSidebar = ({ activeSection, onSectionChange, playerName }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ activeSection, onSectionChange, playerName, profileLabel }: DashboardSidebarProps) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   const sections = [
-    { id: "profile", label: t.dashboard.sidebar.personalProfile, icon: User },
+    { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
     { id: "players", label: t.dashboard.sidebar.players, icon: Users },
     { id: "scouters", label: t.dashboard.sidebar.scouters, icon: Search },
     { id: "agents", label: t.dashboard.sidebar.agents, icon: Briefcase },
