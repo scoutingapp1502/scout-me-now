@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ScoutProfile = Tables<"scout_profiles">;
 type ScoutExperience = Tables<"scout_experiences">;
+type ScoutPost = Tables<"scout_posts">;
 
 interface ScoutPersonalProfileProps {
   userId: string;
@@ -19,6 +20,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const { toast } = useToast();
   const [profile, setProfile] = useState<ScoutProfile | null>(null);
   const [experiences, setExperiences] = useState<ScoutExperience[]>([]);
+  const [posts, setPosts] = useState<ScoutPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -28,15 +30,21 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [newPostContent, setNewPostContent] = useState("");
+  const [newPostImage, setNewPostImage] = useState<File | null>(null);
+  const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null);
+  const [postingActivity, setPostingActivity] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<"all" | "posts" | "images">("all");
 
   useEffect(() => {
     fetchData();
   }, [userId]);
 
   const fetchData = async () => {
-    const [profileRes, expRes] = await Promise.all([
+    const [profileRes, expRes, postsRes] = await Promise.all([
       supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("scout_experiences").select("*").eq("user_id", userId).order("sort_order", { ascending: true }),
+      supabase.from("scout_posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
     ]);
 
     let data = profileRes.data;
@@ -51,7 +59,50 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
     if (data) { setProfile(data); setForm(data); }
     if (expRes.data) { setExperiences(expRes.data); setExpForms(expRes.data); }
+    if (postsRes.data) { setPosts(postsRes.data); }
     setLoading(false);
+  };
+
+  const handlePostSubmit = async () => {
+    if (!newPostContent.trim()) return;
+    setPostingActivity(true);
+    try {
+      let imageUrl: string | null = null;
+      if (newPostImage) {
+        const ext = newPostImage.name.split(".").pop();
+        const path = `${userId}/post-${Date.now()}.${ext}`;
+        await supabase.storage.from("avatars").upload(path, newPostImage, { upsert: true });
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+        imageUrl = urlData.publicUrl;
+      }
+      const { error } = await supabase.from("scout_posts").insert({
+        user_id: userId,
+        content: newPostContent.trim(),
+        image_url: imageUrl,
+      });
+      if (error) throw error;
+      setNewPostContent("");
+      setNewPostImage(null);
+      setNewPostImagePreview(null);
+      // Refresh posts
+      const { data: refreshed } = await supabase.from("scout_posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+      if (refreshed) setPosts(refreshed);
+      toast({ title: "Postare publicată!" });
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    } finally {
+      setPostingActivity(false);
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    await supabase.from("scout_posts").delete().eq("id", postId);
+    setPosts(prev => prev.filter(p => p.id !== postId));
+  };
+
+  const handlePostImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) { setNewPostImage(file); setNewPostImagePreview(URL.createObjectURL(file)); }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -314,6 +365,143 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
             </div>
           )}
         </div>
+      </div>
+
+      {/* ===== ACTIVITATE ===== */}
+      <div className="bg-card rounded-xl border border-border p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-display text-2xl text-foreground">Activitate</h2>
+        </div>
+        <p className="text-muted-foreground text-sm font-body mb-4">{posts.length} postări</p>
+
+        {/* Filter tabs */}
+        <div className="flex gap-2 mb-5">
+          {([
+            { key: "all" as const, label: "Toate" },
+            { key: "posts" as const, label: "Postări" },
+            { key: "images" as const, label: "Imagini" },
+          ]).map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActivityFilter(tab.key)}
+              className={`px-4 py-1.5 rounded-full text-sm font-body transition-colors border ${
+                activityFilter === tab.key
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* New post form (only for own profile) */}
+        {!readOnly && (
+          <div className="mb-6 border border-border rounded-xl p-4">
+            <div className="flex gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                {photoSrc ? (
+                  <img src={photoSrc} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    <Camera className="h-4 w-4" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <Textarea
+                  value={newPostContent}
+                  onChange={e => setNewPostContent(e.target.value)}
+                  placeholder="Scrie o postare..."
+                  className="bg-transparent border-none text-foreground text-sm min-h-[60px] p-0 resize-none focus-visible:ring-0"
+                />
+                {newPostImagePreview && (
+                  <div className="relative mt-2 inline-block">
+                    <img src={newPostImagePreview} alt="Preview" className="max-h-32 rounded-lg" />
+                    <button onClick={() => { setNewPostImage(null); setNewPostImagePreview(null); }} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">×</button>
+                  </div>
+                )}
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+                  <label className="cursor-pointer text-muted-foreground hover:text-primary transition-colors">
+                    <Image className="h-5 w-5" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handlePostImageChange} />
+                  </label>
+                  <Button
+                    size="sm"
+                    onClick={handlePostSubmit}
+                    disabled={postingActivity || !newPostContent.trim()}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-body"
+                  >
+                    {postingActivity ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-1" />Publică</>}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Posts grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {(activityFilter === "all" ? posts : activityFilter === "images" ? posts.filter(p => p.image_url) : posts.filter(p => !p.image_url)).map(post => (
+            <div key={post.id} className="border border-border rounded-xl overflow-hidden">
+              {/* Post header */}
+              <div className="flex items-start gap-3 p-4 pb-2">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                  {photoSrc ? (
+                    <img src={photoSrc} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      <Camera className="h-4 w-4" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-body font-semibold text-foreground text-sm">
+                    {profile?.first_name} {profile?.last_name}
+                  </p>
+                  <p className="text-muted-foreground text-xs font-body truncate">{profile?.title}</p>
+                  <p className="text-muted-foreground text-xs font-body">
+                    {new Date(post.created_at).toLocaleDateString("ro-RO", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                </div>
+                {!readOnly && (
+                  <button onClick={() => handleDeletePost(post.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Post content */}
+              <div className="px-4 pb-3">
+                <p className="text-foreground/80 font-body text-sm whitespace-pre-line line-clamp-4">{post.content}</p>
+              </div>
+
+              {/* Post image */}
+              {post.image_url && (
+                <div className="w-full">
+                  <img src={post.image_url} alt="" className="w-full object-cover max-h-64" />
+                </div>
+              )}
+
+              {/* Post actions */}
+              <div className="flex items-center justify-around border-t border-border px-4 py-2">
+                <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary text-sm font-body transition-colors py-1.5">
+                  <ThumbsUp className="h-4 w-4" /> Apreciază
+                </button>
+                <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary text-sm font-body transition-colors py-1.5">
+                  <MessageSquare className="h-4 w-4" /> Comentează
+                </button>
+                <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary text-sm font-body transition-colors py-1.5">
+                  <Share2 className="h-4 w-4" /> Distribuie
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {posts.length === 0 && (
+          <p className="text-muted-foreground italic text-sm font-body text-center py-4">Nicio postare încă.</p>
+        )}
       </div>
 
       {/* ===== EXPERIENȚĂ ===== */}
