@@ -308,7 +308,7 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
 
       {/* Tab content */}
       <div className="mt-6">
-        {activeTab === "stats" && <StatsTab form={form} profile={profile} editing={editing} updateForm={updateForm} />}
+        {activeTab === "stats" && <StatsTab form={form} profile={profile} editing={editing} updateForm={updateForm} photoSrc={photoSrc} />}
         {activeTab === "profile" && <ProfileTab form={form} profile={profile} editing={editing} updateForm={updateForm} />}
         {activeTab === "video" && (
           <VideoTab
@@ -327,8 +327,8 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
 };
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editing, updateForm }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void;
+function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; photoSrc?: string | null;
 }) {
   const { t } = useLanguage();
   const stats = [
@@ -341,32 +341,68 @@ function StatsTab({ form, profile, editing, updateForm }: {
 
   return (
     <div className="space-y-6">
-      {/* FIFA-style card - shown first */}
+      {/* FIFA-style card */}
       {!editing && (
         <div className="flex justify-center">
-          <div className="relative w-64 bg-gradient-to-b from-primary/20 to-primary/5 border-2 border-primary/30 rounded-2xl p-5 shadow-lg">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-primary rounded-b-full" />
-            <div className="text-center mb-4 mt-1">
-              <p className="font-display text-lg text-primary uppercase tracking-wider">
-                {profile?.last_name || "PLAYER"}
-              </p>
-              <p className="text-xs text-muted-foreground font-body">{profile?.position || "—"}</p>
+          <div className="relative w-[240px] rounded-xl overflow-hidden shadow-2xl"
+            style={{
+              background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.7) 50%, hsl(var(--primary) / 0.4) 100%)',
+            }}
+          >
+            {/* Top section: Rating + Position on left */}
+            <div className="flex items-start justify-between px-4 pt-4">
+              <div className="flex flex-col items-center">
+                <span className="font-display text-4xl text-primary-foreground leading-none">
+                  {Math.round(
+                    (((form as any).speed ?? 0) + ((form as any).jumping ?? 0) + ((form as any).endurance ?? 0) + ((form as any).acceleration ?? 0) + ((form as any).defense ?? 0)) / 5
+                  )}
+                </span>
+                <span className="font-display text-xs text-primary-foreground/80 uppercase tracking-wider">
+                  {profile?.position ? profile.position.substring(0, 3).toUpperCase() : "CAM"}
+                </span>
+                {profile?.nationality && (
+                  <div className="mt-1 text-xs text-primary-foreground/70">🏳️</div>
+                )}
+              </div>
+              <div className="w-6" />
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+
+            {/* Player photo */}
+            <div className="flex justify-center -mt-1 px-4">
+              <div className="w-[140px] h-[140px] rounded-lg overflow-hidden border-2 border-primary-foreground/20">
+                {photoSrc ? (
+                  <img src={photoSrc} alt="Player" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-primary-foreground/10">
+                    <Camera className="h-10 w-10 text-primary-foreground/40" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Player name */}
+            <div className="text-center mt-2 pb-2 border-b border-primary-foreground/20 mx-4">
+              <p className="font-display text-sm text-primary-foreground uppercase tracking-widest">
+                {profile?.first_name || ""} {profile?.last_name || "PLAYER"}
+              </p>
+            </div>
+
+            {/* Stats grid - 2 columns x 3 rows */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3">
               {[
-                { label: "VIT", value: (form as any).speed ?? 0 },
-                { label: "DET", value: (form as any).jumping ?? 0 },
-                { label: "REZ", value: (form as any).endurance ?? 0 },
-                { label: "ACC", value: (form as any).acceleration ?? 0 },
-                { label: "APR", value: (form as any).defense ?? 0 },
+                { label: "PAC", value: (form as any).speed ?? 0 },
+                { label: "DRI", value: (form as any).jumping ?? 0 },
+                { label: "SHO", value: (form as any).goals ?? 0 },
+                { label: "DEF", value: (form as any).defense ?? 0 },
+                { label: "PAS", value: (form as any).assists ?? 0 },
+                { label: "PHY", value: (form as any).endurance ?? 0 },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center gap-2">
-                  <span className="font-display text-2xl text-foreground w-10 text-right">{stat.value}</span>
-                  <span className="text-xs text-muted-foreground font-body uppercase tracking-wide">{stat.label}</span>
+                  <span className="font-display text-lg text-primary-foreground leading-none">{stat.value}</span>
+                  <span className="text-[10px] text-primary-foreground/70 font-body uppercase tracking-wide">{stat.label}</span>
                 </div>
               ))}
             </div>
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary/50 rounded-t-full" />
           </div>
         </div>
       )}
