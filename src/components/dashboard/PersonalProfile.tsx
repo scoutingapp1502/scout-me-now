@@ -14,6 +14,7 @@ type PlayerProfile = Tables<"player_profiles">;
 
 interface PersonalProfileProps {
   userId: string;
+  readOnly?: boolean;
 }
 
 const positions = [
@@ -24,7 +25,7 @@ const positions = [
 
 type TabType = "stats" | "profile" | "video";
 
-const PersonalProfile = ({ userId }: PersonalProfileProps) => {
+const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { t } = useLanguage();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
@@ -48,8 +49,8 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (!data && !error) {
-      // Auto-create profile if it doesn't exist
+    if (!data && !error && !readOnly) {
+      // Auto-create profile if it doesn't exist (only for own profile)
       const { data: newData, error: insertError } = await supabase
         .from("player_profiles")
         .insert({ user_id: userId, first_name: "", last_name: "" })
@@ -291,19 +292,21 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             </button>
           ))}
         </div>
-        <div className="flex items-center justify-center sm:justify-end px-4 py-2 sm:py-0">
-          <Button
-            onClick={() => editing ? handleSave() : setEditing(true)}
-            disabled={saving}
-            className={editing ? "bg-primary hover:bg-primary/90 text-primary-foreground font-display text-sm sm:text-base px-4 sm:px-6 w-full sm:w-auto" : "bg-accent text-accent-foreground hover:bg-accent/90 font-display text-sm sm:text-base px-4 sm:px-6 shadow-md w-full sm:w-auto"}
-          >
-            {editing ? (
-              <><Save className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{saving ? "..." : t.dashboard.profile.save}</>
-            ) : (
-              <><Edit2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{t.dashboard.profile.edit}</>
-            )}
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center justify-center sm:justify-end px-4 py-2 sm:py-0">
+            <Button
+              onClick={() => editing ? handleSave() : setEditing(true)}
+              disabled={saving}
+              className={editing ? "bg-primary hover:bg-primary/90 text-primary-foreground font-display text-sm sm:text-base px-4 sm:px-6 w-full sm:w-auto" : "bg-accent text-accent-foreground hover:bg-accent/90 font-display text-sm sm:text-base px-4 sm:px-6 shadow-md w-full sm:w-auto"}
+            >
+              {editing ? (
+                <><Save className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{saving ? "..." : t.dashboard.profile.save}</>
+              ) : (
+                <><Edit2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{t.dashboard.profile.edit}</>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Tab content */}

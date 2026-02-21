@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import PersonalProfile from "@/components/dashboard/PersonalProfile";
 
 interface PlayerCard {
   user_id: string;
@@ -27,6 +29,7 @@ const PlayersSection = () => {
   const [players, setPlayers] = useState<PlayerCard[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const { lang } = useLanguage();
 
   useEffect(() => {
@@ -80,6 +83,7 @@ const PlayersSection = () => {
           {filtered.map((player, idx) => (
             <div
               key={player.user_id}
+              onClick={() => setSelectedPlayerId(player.user_id)}
               className="flex items-center bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors cursor-pointer group"
             >
               {/* Photo area with accent color */}
@@ -121,6 +125,18 @@ const PlayersSection = () => {
           ))}
         </div>
       )}
+
+      {/* Player profile dialog */}
+      <Dialog open={!!selectedPlayerId} onOpenChange={(open) => !open && setSelectedPlayerId(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+          <DialogTitle className="sr-only">
+            {lang === "ro" ? "Profil jucător" : "Player profile"}
+          </DialogTitle>
+          {selectedPlayerId && (
+            <PersonalProfile userId={selectedPlayerId} readOnly />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
