@@ -390,12 +390,11 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
             {/* Stats grid - 2 columns x 3 rows */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3">
               {[
-                { label: "PAC", value: (form as any).speed ?? 0 },
-                { label: "DRI", value: (form as any).jumping ?? 0 },
-                { label: "SHO", value: (form as any).goals ?? 0 },
-                { label: "DEF", value: (form as any).defense ?? 0 },
-                { label: "PAS", value: (form as any).assists ?? 0 },
-                { label: "PHY", value: (form as any).endurance ?? 0 },
+                { label: "VIT", value: (form as any).speed ?? 0 },
+                { label: "DET", value: (form as any).jumping ?? 0 },
+                { label: "REZ", value: (form as any).endurance ?? 0 },
+                { label: "ACC", value: (form as any).acceleration ?? 0 },
+                { label: "APR", value: (form as any).defense ?? 0 },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center gap-2">
                   <span className="font-display text-lg text-primary-foreground leading-none">{stat.value}</span>
