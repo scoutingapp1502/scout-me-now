@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2 } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -319,6 +319,7 @@ const PersonalProfile = ({ userId }: PersonalProfileProps) => {
             setNewVideoUrl={setNewVideoUrl}
             addVideoUrl={addVideoUrl}
             removeVideoUrl={removeVideoUrl}
+            updateForm={updateForm}
           />
         )}
       </div>
@@ -608,27 +609,99 @@ function ProfileTab({ form, profile, editing, updateForm }: {
 }
 
 /* ======================== VIDEO TAB ======================== */
-function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl }: {
+function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean;
-  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void;
+  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void;
 }) {
   const { t } = useLanguage();
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
   const videos = editing ? (form.video_highlights || []) : (profile?.video_highlights || []);
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: t.dashboard.profile.error, description: "Format video nesuportat. Folosește MP4, WebM, OGG, MOV, AVI sau MKV.", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 100 * 1024 * 1024) {
+      toast({ title: t.dashboard.profile.error, description: "Fișierul video trebuie să fie mai mic de 100MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}.${ext}`;
+      const path = `${session.user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("player-videos")
+        .upload(path, file, { upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+      const current = form.video_highlights || [];
+      updateForm("video_highlights", [...current, urlData.publicUrl]);
+
+      toast({ title: "Video încărcat cu succes!" });
+    } catch (err: any) {
+      toast({ title: t.dashboard.profile.error, description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      // Reset file input
+      e.target.value = "";
+    }
+  };
+
+  const isUploadedVideo = (url: string) => {
+    return url.includes("player-videos") || url.match(/\.(mp4|webm|ogg|mov|avi|mkv)(\?|$)/i);
+  };
 
   return (
     <div className="space-y-4">
       {editing && (
-        <div className="bg-card border border-border rounded-xl p-4">
-          <Label className="text-xs text-muted-foreground font-body mb-2 block">{t.dashboard.profile.addVideo}</Label>
-          <div className="flex gap-2">
-            <Input
-              value={newVideoUrl}
-              onChange={(e) => setNewVideoUrl(e.target.value)}
-              placeholder={t.dashboard.profile.videoPlaceholder}
-              className="flex-1"
-              onKeyDown={(e) => e.key === "Enter" && addVideoUrl()}
-            />
-            <Button onClick={addVideoUrl} size="sm"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          {/* YouTube link input */}
+          <div>
+            <Label className="text-xs text-muted-foreground font-body mb-2 block">{t.dashboard.profile.addVideo}</Label>
+            <div className="flex gap-2">
+              <Input
+                value={newVideoUrl}
+                onChange={(e) => setNewVideoUrl(e.target.value)}
+                placeholder={t.dashboard.profile.videoPlaceholder}
+                className="flex-1"
+                onKeyDown={(e) => e.key === "Enter" && addVideoUrl()}
+              />
+              <Button onClick={addVideoUrl} size="sm"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
+            </div>
+          </div>
+          {/* File upload */}
+          <div className="flex items-center gap-2">
+            <label className="flex-1">
+              <div className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
+                {uploading ? (
+                  <><Loader2 className="h-5 w-5 text-primary animate-spin" /><span className="text-sm text-muted-foreground font-body">Se încarcă...</span></>
+                ) : (
+                  <><Upload className="h-5 w-5 text-muted-foreground" /><span className="text-sm text-muted-foreground font-body">Încarcă video de pe calculator (MP4, WebM, MOV, max 100MB)</span></>
+                )}
+              </div>
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-msvideo,video/x-matroska"
+                className="hidden"
+                onChange={handleVideoUpload}
+                disabled={uploading}
+              />
+            </label>
           </div>
         </div>
       )}
@@ -637,6 +710,7 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {videos.map((url, i) => {
             const youtubeId = extractYouTubeId(url);
+            const isUploaded = isUploadedVideo(url);
             return (
               <div key={i} className="bg-card border border-border rounded-xl overflow-hidden group relative">
                 {youtubeId ? (
@@ -647,6 +721,15 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
                       className="w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
+                    />
+                  </div>
+                ) : isUploaded ? (
+                  <div className="aspect-video">
+                    <video
+                      src={url}
+                      controls
+                      className="w-full h-full object-contain bg-black"
+                      preload="metadata"
                     />
                   </div>
                 ) : (
