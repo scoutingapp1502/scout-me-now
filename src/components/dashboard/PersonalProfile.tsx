@@ -510,7 +510,7 @@ function ProfileTab({ form, profile, editing, updateForm }: {
               <div>
                 <Label className="text-xs text-muted-foreground">{t.dashboard.profile.preferredFoot}</Label>
                 <Select value={form.preferred_foot || ""} onValueChange={(v) => updateForm("preferred_foot", v)}>
-                  <SelectTrigger><SelectValue placeholder={t.dashboard.profile.selectFoot} /></SelectTrigger>
+                  <SelectTrigger className="text-foreground"><SelectValue placeholder={t.dashboard.profile.selectFoot} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Drept">{t.dashboard.profile.rightFoot}</SelectItem>
                     <SelectItem value="Stâng">{t.dashboard.profile.leftFoot}</SelectItem>
