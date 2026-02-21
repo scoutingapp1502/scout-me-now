@@ -8,7 +8,7 @@ import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import PlayersSection from "@/components/dashboard/PlayersSection";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, Loader2 } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -17,34 +17,47 @@ const Dashboard = () => {
   const [playerName, setPlayerName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<"player" | "scout" | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
   const isMobile = useIsMobile();
 
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchRole = async (userId: string) => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (isMounted && data) {
+        setUserRole(data.role as "player" | "scout");
+      }
+      if (isMounted) setRoleLoading(false);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) navigate("/auth?tab=login");
-      else setUser(session.user);
+      if (!session) {
+        navigate("/auth?tab=login");
+      } else {
+        setUser(session.user);
+        fetchRole(session.user.id);
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate("/auth?tab=login");
-      else setUser(session.user);
+      if (!session) {
+        navigate("/auth?tab=login");
+      } else {
+        setUser(session.user);
+        fetchRole(session.user.id);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
-
-  // Fetch user role
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setUserRole(data.role as "player" | "scout");
-      });
-  }, [user]);
 
   // Fetch display name based on role
   useEffect(() => {
@@ -60,7 +73,13 @@ const Dashboard = () => {
       });
   }, [user, userRole]);
 
-  if (!user) return null;
+  if (!user || roleLoading) {
+    return (
+      <div className="flex min-h-screen bg-background dark items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
@@ -84,7 +103,6 @@ const Dashboard = () => {
     }
   };
 
-  // Sidebar label for first section depends on role
   const sidebarFirstLabel = userRole === "scout" ? "Personal Area" : undefined;
 
   return (
