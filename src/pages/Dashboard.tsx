@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
+import PlayersSection from "@/components/dashboard/PlayersSection";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
@@ -52,7 +53,7 @@ const Dashboard = () => {
   const renderSection = () => {
     switch (activeSection) {
       case "profile": return <PersonalProfile userId={user.id} />;
-      case "players": return <PlaceholderSection title="PLAYERS" />;
+      case "players": return <PlayersSection />;
       case "scouters": return <PlaceholderSection title="SCOUTERS" />;
       case "agents": return <PlaceholderSection title="AGENTS" />;
       case "clubs": return <PlaceholderSection title="CLUBS" />;
