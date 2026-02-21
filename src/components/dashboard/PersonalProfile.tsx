@@ -341,6 +341,37 @@ function StatsTab({ form, profile, editing, updateForm }: {
 
   return (
     <div className="space-y-6">
+      {/* FIFA-style card - shown first */}
+      {!editing && (
+        <div className="flex justify-center">
+          <div className="relative w-64 bg-gradient-to-b from-primary/20 to-primary/5 border-2 border-primary/30 rounded-2xl p-5 shadow-lg">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-primary rounded-b-full" />
+            <div className="text-center mb-4 mt-1">
+              <p className="font-display text-lg text-primary uppercase tracking-wider">
+                {profile?.last_name || "PLAYER"}
+              </p>
+              <p className="text-xs text-muted-foreground font-body">{profile?.position || "—"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              {[
+                { label: "VIT", value: (form as any).speed ?? 0 },
+                { label: "DET", value: (form as any).jumping ?? 0 },
+                { label: "REZ", value: (form as any).endurance ?? 0 },
+                { label: "ACC", value: (form as any).acceleration ?? 0 },
+                { label: "APR", value: (form as any).defense ?? 0 },
+              ].map((stat) => (
+                <div key={stat.label} className="flex items-center gap-2">
+                  <span className="font-display text-2xl text-foreground w-10 text-right">{stat.value}</span>
+                  <span className="text-xs text-muted-foreground font-body uppercase tracking-wide">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary/50 rounded-t-full" />
+          </div>
+        </div>
+      )}
+
+      {/* Stat circles */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {stats.map((stat) => {
           const value = (form as any)[stat.key] ?? 0;
@@ -422,43 +453,6 @@ function StatsTab({ form, profile, editing, updateForm }: {
           </>
         )}
       </div>
-
-      {/* FIFA-style card */}
-      {!editing && (
-        <div className="flex justify-center">
-          <div className="relative w-64 bg-gradient-to-b from-primary/20 to-primary/5 border-2 border-primary/30 rounded-2xl p-5 shadow-lg">
-            {/* Top accent */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-primary rounded-b-full" />
-            
-            {/* Player name */}
-            <div className="text-center mb-4 mt-1">
-              <p className="font-display text-lg text-primary uppercase tracking-wider">
-                {profile?.last_name || "PLAYER"}
-              </p>
-              <p className="text-xs text-muted-foreground font-body">{profile?.position || "—"}</p>
-            </div>
-
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              {[
-                { label: "VIT", value: (form as any).speed ?? 0 },
-                { label: "DET", value: (form as any).jumping ?? 0 },
-                { label: "REZ", value: (form as any).endurance ?? 0 },
-                { label: "ACC", value: (form as any).acceleration ?? 0 },
-                { label: "APR", value: (form as any).defense ?? 0 },
-              ].map((stat) => (
-                <div key={stat.label} className="flex items-center gap-2">
-                  <span className="font-display text-2xl text-foreground w-10 text-right">{stat.value}</span>
-                  <span className="text-xs text-muted-foreground font-body uppercase tracking-wide">{stat.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Bottom accent */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary/50 rounded-t-full" />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
