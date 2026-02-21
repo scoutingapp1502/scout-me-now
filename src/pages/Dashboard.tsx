@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
+import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import PlayersSection from "@/components/dashboard/PlayersSection";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 
 const Dashboard = () => {
@@ -15,6 +16,7 @@ const Dashboard = () => {
   const [activeSection, setActiveSection] = useState("profile");
   const [playerName, setPlayerName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userRole, setUserRole] = useState<"player" | "scout" | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -31,19 +33,43 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Fetch user role
   useEffect(() => {
     if (!user) return;
     supabase
-      .from("player_profiles")
-      .select("first_name, last_name")
+      .from("user_roles")
+      .select("role")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+        if (data) setUserRole(data.role as "player" | "scout");
       });
   }, [user]);
 
-  if (!user) return null;
+  useEffect(() => {
+    if (!user || !userRole) return;
+    if (userRole === "player") {
+      supabase
+        .from("player_profiles")
+        .select("first_name, last_name")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+        });
+    } else {
+      supabase
+        .from("scout_profiles")
+        .select("first_name, last_name")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+        });
+    }
+  }, [user, userRole]);
+
+  if (!user || !userRole) return null;
 
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
@@ -52,12 +78,18 @@ const Dashboard = () => {
 
   const renderSection = () => {
     switch (activeSection) {
-      case "profile": return <PersonalProfile userId={user.id} />;
+      case "profile":
+        return userRole === "scout"
+          ? <ScoutPersonalProfile userId={user.id} />
+          : <PersonalProfile userId={user.id} />;
       case "players": return <PlayersSection />;
       case "scouters": return <PlaceholderSection title="SCOUTERS" />;
       case "agents": return <PlaceholderSection title="AGENTS" />;
       case "clubs": return <PlaceholderSection title="CLUBS" />;
-      default: return <PersonalProfile userId={user.id} />;
+      default:
+        return userRole === "scout"
+          ? <ScoutPersonalProfile userId={user.id} />
+          : <PersonalProfile userId={user.id} />;
     }
   };
 
@@ -71,6 +103,7 @@ const Dashboard = () => {
                 activeSection={activeSection}
                 onSectionChange={handleSectionChange}
                 playerName={playerName}
+                userRole={userRole}
               />
             </SheetContent>
           </Sheet>
@@ -92,6 +125,7 @@ const Dashboard = () => {
             activeSection={activeSection}
             onSectionChange={setActiveSection}
             playerName={playerName}
+            userRole={userRole}
           />
           <main className="flex-1 p-8 overflow-y-auto">
             {renderSection()}
