@@ -128,7 +128,7 @@ const PlayersSection = () => {
 
       {/* Player profile dialog */}
       <Dialog open={!!selectedPlayerId} onOpenChange={(open) => !open && setSelectedPlayerId(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 gap-0 bg-background border-border rounded-xl">
           <DialogTitle className="sr-only">
             {lang === "ro" ? "Profil jucător" : "Player profile"}
           </DialogTitle>
