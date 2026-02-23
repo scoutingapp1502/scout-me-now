@@ -24,16 +24,58 @@ const Dashboard = () => {
   useEffect(() => {
     let isMounted = true;
 
-    const fetchRole = async (userId: string) => {
-      const { data } = await supabase
+    const ensureRoleAndProfile = async (userId: string, userMeta: any) => {
+      // Check if role exists
+      const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
         .maybeSingle();
-      if (isMounted && data) {
-        setUserRole(data.role as "player" | "scout");
+
+      if (roleData) {
+        if (isMounted) {
+          setUserRole(roleData.role as "player" | "scout");
+          setRoleLoading(false);
+        }
+        return;
       }
-      if (isMounted) setRoleLoading(false);
+
+      // Role missing — create from user metadata (set during registration)
+      const metaRole = userMeta?.role as "player" | "scout" | undefined;
+      if (!metaRole) {
+        if (isMounted) setRoleLoading(false);
+        return;
+      }
+
+      // Insert role
+      await supabase.from("user_roles").insert({ user_id: userId, role: metaRole });
+
+      // Insert profile if missing
+      const fullName = (userMeta?.full_name as string) || "";
+      const firstName = fullName.split(" ")[0] || "";
+      const lastName = fullName.split(" ").slice(1).join(" ") || "";
+
+      await supabase.from("profiles").upsert(
+        { user_id: userId, full_name: fullName },
+        { onConflict: "user_id" }
+      );
+
+      if (metaRole === "player") {
+        await supabase.from("player_profiles").upsert(
+          { user_id: userId, first_name: firstName, last_name: lastName },
+          { onConflict: "user_id" }
+        );
+      } else {
+        await supabase.from("scout_profiles").upsert(
+          { user_id: userId, first_name: firstName, last_name: lastName },
+          { onConflict: "user_id" }
+        );
+      }
+
+      if (isMounted) {
+        setUserRole(metaRole);
+        setRoleLoading(false);
+      }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -41,7 +83,7 @@ const Dashboard = () => {
         navigate("/auth?tab=login");
       } else {
         setUser(session.user);
-        fetchRole(session.user.id);
+        ensureRoleAndProfile(session.user.id, session.user.user_metadata);
       }
     });
 
@@ -50,7 +92,7 @@ const Dashboard = () => {
         navigate("/auth?tab=login");
       } else {
         setUser(session.user);
-        fetchRole(session.user.id);
+        ensureRoleAndProfile(session.user.id, session.user.user_metadata);
       }
     });
 
