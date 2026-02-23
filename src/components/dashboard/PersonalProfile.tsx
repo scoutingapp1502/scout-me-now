@@ -401,7 +401,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
             </div>
 
             {/* Stats grid - 2 columns x 3 rows */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 pb-4">
               {[
                 { label: "VIT", value: (form as any).speed ?? 0 },
                 { label: "DET", value: (form as any).jumping ?? 0 },
