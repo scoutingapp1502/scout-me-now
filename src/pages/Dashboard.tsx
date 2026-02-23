@@ -5,6 +5,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
+import ScoutersSection from "@/components/dashboard/ScoutersSection";
 import PlayersSection from "@/components/dashboard/PlayersSection";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -93,7 +94,7 @@ const Dashboard = () => {
           ? <ScoutPersonalProfile userId={user.id} />
           : <PersonalProfile userId={user.id} />;
       case "players": return <PlayersSection />;
-      case "scouters": return <PlaceholderSection title="SCOUTERS" />;
+      case "scouters": return <ScoutersSection />;
       case "agents": return <PlaceholderSection title="AGENTS" />;
       case "clubs": return <PlaceholderSection title="CLUBS" />;
       default:
