@@ -64,6 +64,7 @@ export type Database = {
       }
       player_profiles: {
         Row: {
+          about_documents: string[] | null
           acceleration: number | null
           agent_email: string | null
           agent_name: string | null
@@ -87,6 +88,7 @@ export type Database = {
           matches_played: number | null
           nationality: string | null
           palmares: string | null
+          palmares_documents: string[] | null
           photo_url: string | null
           position: string | null
           preferred_foot: string | null
@@ -99,6 +101,7 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          about_documents?: string[] | null
           acceleration?: number | null
           agent_email?: string | null
           agent_name?: string | null
@@ -122,6 +125,7 @@ export type Database = {
           matches_played?: number | null
           nationality?: string | null
           palmares?: string | null
+          palmares_documents?: string[] | null
           photo_url?: string | null
           position?: string | null
           preferred_foot?: string | null
@@ -134,6 +138,7 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          about_documents?: string[] | null
           acceleration?: number | null
           agent_email?: string | null
           agent_name?: string | null
@@ -157,6 +162,7 @@ export type Database = {
           matches_played?: number | null
           nationality?: string | null
           palmares?: string | null
+          palmares_documents?: string[] | null
           photo_url?: string | null
           position?: string | null
           preferred_foot?: string | null
