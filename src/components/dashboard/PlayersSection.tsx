@@ -128,7 +128,9 @@ const PlayersSection = () => {
 
       {/* Player profile dialog */}
       <Dialog open={!!selectedPlayerId} onOpenChange={(open) => !open && setSelectedPlayerId(null)}>
-        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 gap-0 bg-background border-border rounded-xl">
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-[95vw] max-h-[90vh] sm:max-h-[90vh] h-[100dvh] sm:h-auto overflow-y-auto p-0 gap-0 bg-background border-border sm:rounded-xl rounded-none"
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogTitle className="sr-only">
             {lang === "ro" ? "Profil jucător" : "Player profile"}
           </DialogTitle>

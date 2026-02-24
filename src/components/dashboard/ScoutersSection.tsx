@@ -127,7 +127,9 @@ const ScoutersSection = () => {
 
       {/* Scout profile dialog */}
       <Dialog open={!!selectedScoutId} onOpenChange={(open) => !open && setSelectedScoutId(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-[95vw] max-h-[90vh] sm:max-h-[90vh] h-[100dvh] sm:h-auto overflow-y-auto p-0 gap-0"
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogTitle className="sr-only">
             {lang === "ro" ? "Profil scouter" : "Scout profile"}
           </DialogTitle>
