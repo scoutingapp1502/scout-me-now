@@ -186,11 +186,11 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           <div className="flex-1 text-center sm:text-left order-2 sm:order-1">
             {editing ? (
               <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-xl sm:text-2xl h-auto py-1" />
-                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-sidebar-accent border-sidebar-border text-foreground font-display text-xl sm:text-2xl h-auto py-1" />
+                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-xl sm:text-2xl h-auto py-1" />
+                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-xl sm:text-2xl h-auto py-1" />
               </div>
             ) : (
-            <h1 className="font-display text-3xl sm:text-5xl text-foreground tracking-wide uppercase">
+            <h1 className="font-display text-3xl sm:text-5xl text-white tracking-wide uppercase">
                 {profile?.first_name || profile?.last_name
                   ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
                   : t.dashboard.profile.completeProfile}
@@ -222,21 +222,21 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
               <div className="flex items-center justify-center sm:justify-start gap-6 mt-4 pt-3 border-t border-border/30 flex-wrap">
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
-                  <span className="text-sm font-semibold text-foreground font-body mt-0.5">
+                  <span className="text-sm font-semibold text-white font-body mt-0.5">
                     {profile?.nationality || <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.birthDate}</span>
-                  <span className="text-sm font-semibold text-foreground font-body mt-0.5">
+                  <span className="text-sm font-semibold text-white font-body mt-0.5">
                     {profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addDob || "Adaugă data nașterii"}</span>}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.addSocial || "Rețele de socializare"}</span>
                   <div className="flex items-center gap-2 mt-0.5">
-                    {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>}
-                    {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>}
+                    {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-white hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>}
+                    {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-white hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>}
                     {!profile?.instagram_url && !profile?.twitter_url && <span className="text-muted-foreground italic text-sm font-body font-normal">—</span>}
                   </div>
                 </div>
@@ -484,7 +484,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
                   max={100}
                   value={value}
                   onChange={(e) => updateForm(stat.key, Math.min(100, parseInt(e.target.value) || 0))}
-                  className="text-center text-lg font-display"
+                  className="text-center text-lg font-display text-white"
                 />
               </div>
             );
@@ -498,15 +498,15 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
           <>
             <div className="bg-card border border-border rounded-xl p-4">
               <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.goals}</Label>
-              <Input type="number" value={form.goals ?? 0} onChange={(e) => updateForm("goals", parseInt(e.target.value) || 0)} className="mt-1" />
+              <Input type="number" value={form.goals ?? 0} onChange={(e) => updateForm("goals", parseInt(e.target.value) || 0)} className="mt-1 text-white" />
             </div>
             <div className="bg-card border border-border rounded-xl p-4">
               <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.assists}</Label>
-              <Input type="number" value={form.assists ?? 0} onChange={(e) => updateForm("assists", parseInt(e.target.value) || 0)} className="mt-1" />
+              <Input type="number" value={form.assists ?? 0} onChange={(e) => updateForm("assists", parseInt(e.target.value) || 0)} className="mt-1 text-white" />
             </div>
             <div className="bg-card border border-border rounded-xl p-4">
               <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.matches}</Label>
-              <Input type="number" value={form.matches_played ?? 0} onChange={(e) => updateForm("matches_played", parseInt(e.target.value) || 0)} className="mt-1" />
+              <Input type="number" value={form.matches_played ?? 0} onChange={(e) => updateForm("matches_played", parseInt(e.target.value) || 0)} className="mt-1 text-white" />
             </div>
           </>
         ) : (
@@ -637,12 +637,12 @@ function ProfileTab({ form, profile, editing, updateForm }: {
           <h3 className="font-display text-lg text-foreground mb-3 uppercase">{t.dashboard.profile.physicalData}</h3>
           {editing ? (
             <div className="space-y-3">
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="number" value={form.height_cm ?? ""} onChange={(e) => updateForm("height_cm", parseInt(e.target.value) || null)} /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="number" value={form.weight_kg ?? ""} onChange={(e) => updateForm("weight_kg", parseInt(e.target.value) || null)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="number" value={form.height_cm ?? ""} onChange={(e) => updateForm("height_cm", parseInt(e.target.value) || null)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="number" value={form.weight_kg ?? ""} onChange={(e) => updateForm("weight_kg", parseInt(e.target.value) || null)} className="text-white" /></div>
               <div>
                 <Label className="text-xs text-muted-foreground">{t.dashboard.profile.preferredFoot}</Label>
                 <Select value={form.preferred_foot || ""} onValueChange={(v) => updateForm("preferred_foot", v)}>
-                  <SelectTrigger className="text-foreground"><SelectValue placeholder={t.dashboard.profile.selectFoot} /></SelectTrigger>
+                  <SelectTrigger className="text-white"><SelectValue placeholder={t.dashboard.profile.selectFoot} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Drept">{t.dashboard.profile.rightFoot}</SelectItem>
                     <SelectItem value="Stâng">{t.dashboard.profile.leftFoot}</SelectItem>
@@ -650,8 +650,8 @@ function ProfileTab({ form, profile, editing, updateForm }: {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} className="text-white" /></div>
             </div>
           ) : (
             <div className="space-y-3 font-body text-sm">
@@ -667,9 +667,9 @@ function ProfileTab({ form, profile, editing, updateForm }: {
           <h3 className="font-display text-lg text-foreground mb-3 uppercase">{t.dashboard.profile.agentContact}</h3>
           {editing ? (
             <div className="space-y-3">
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label><Input value={form.agent_email || ""} onChange={(e) => updateForm("agent_email", e.target.value)} /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentPhone}</Label><Input value={form.agent_phone || ""} onChange={(e) => updateForm("agent_phone", e.target.value)} /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label><Input value={form.agent_email || ""} onChange={(e) => updateForm("agent_email", e.target.value)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentPhone}</Label><Input value={form.agent_phone || ""} onChange={(e) => updateForm("agent_phone", e.target.value)} className="text-white" /></div>
             </div>
           ) : (
             <div className="font-body text-sm space-y-1">
@@ -698,6 +698,7 @@ function ProfileTab({ form, profile, editing, updateForm }: {
             onChange={(e) => updateForm("career_description", e.target.value)}
             placeholder={t.dashboard.profile.careerPlaceholder}
             rows={8}
+            className="text-white"
           />
         ) : (
           <div className="space-y-0">
@@ -730,6 +731,7 @@ function ProfileTab({ form, profile, editing, updateForm }: {
               onChange={(e) => updateForm("palmares", e.target.value)}
               placeholder={t.dashboard.profile.achievementsPlaceholder}
               rows={5}
+              className="text-white"
             />
           ) : (
             <div className="space-y-0">
@@ -823,7 +825,7 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
                 value={newVideoUrl}
                 onChange={(e) => setNewVideoUrl(e.target.value)}
                 placeholder={t.dashboard.profile.videoPlaceholder}
-                className="flex-1"
+                className="flex-1 text-white"
                 onKeyDown={(e) => e.key === "Enter" && addVideoUrl()}
               />
               <Button onClick={addVideoUrl} size="sm"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
