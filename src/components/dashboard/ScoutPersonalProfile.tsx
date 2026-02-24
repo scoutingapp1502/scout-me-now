@@ -264,22 +264,22 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
               {editing ? (
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <Input value={form.first_name || ""} onChange={e => updateForm("first_name", e.target.value)} placeholder="Prenume" className="bg-muted border-border text-foreground font-display text-xl h-auto py-1" />
-                    <Input value={form.last_name || ""} onChange={e => updateForm("last_name", e.target.value)} placeholder="Nume" className="bg-muted border-border text-foreground font-display text-xl h-auto py-1" />
+                    <Input value={form.first_name || ""} onChange={e => updateForm("first_name", e.target.value)} placeholder="Prenume" className="bg-muted border-border text-white font-display text-xl h-auto py-1" />
+                    <Input value={form.last_name || ""} onChange={e => updateForm("last_name", e.target.value)} placeholder="Nume" className="bg-muted border-border text-white font-display text-xl h-auto py-1" />
                   </div>
-                  <Input value={form.title || ""} onChange={e => updateForm("title", e.target.value)} placeholder="Titlu (ex: First team scout)" className="bg-muted border-border text-foreground text-sm" />
-                  <Input value={form.organization || ""} onChange={e => updateForm("organization", e.target.value)} placeholder="Organizație" className="bg-muted border-border text-foreground text-sm" />
-                  <Input value={form.country || ""} onChange={e => updateForm("country", e.target.value)} placeholder="Locație (ex: București, România)" className="bg-muted border-border text-foreground text-sm" />
+                  <Input value={form.title || ""} onChange={e => updateForm("title", e.target.value)} placeholder="Titlu (ex: First team scout)" className="bg-muted border-border text-white text-sm" />
+                  <Input value={form.organization || ""} onChange={e => updateForm("organization", e.target.value)} placeholder="Organizație" className="bg-muted border-border text-white text-sm" />
+                  <Input value={form.country || ""} onChange={e => updateForm("country", e.target.value)} placeholder="Locație (ex: București, România)" className="bg-muted border-border text-white text-sm" />
                 </div>
               ) : (
                 <>
-                  <h1 className="font-display text-3xl sm:text-4xl text-foreground tracking-wide">
+                  <h1 className="font-display text-3xl sm:text-4xl text-white tracking-wide">
                     {profile?.first_name || profile?.last_name
                       ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
                       : "Completează profilul"}
                   </h1>
                   {profile?.title && (
-                    <p className="text-foreground/80 font-body text-base mt-1">
+                    <p className="text-white/80 font-body text-base mt-1">
                       {profile.title}
                       {profile.organization && <span> @{profile.organization}</span>}
                     </p>
@@ -332,7 +332,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
             value={form.bio || ""}
             onChange={e => updateForm("bio", e.target.value)}
             placeholder="Descrie-te pe scurt... Ce te motivează? Care este filosofia ta de scouting?"
-            className="bg-muted border-border text-foreground min-h-[120px]"
+            className="bg-muted border-border text-white min-h-[120px]"
           />
         ) : (
           <p className="text-foreground/80 font-body text-sm leading-relaxed whitespace-pre-line">
@@ -351,7 +351,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
               value={(form.skills || []).join(", ")}
               onChange={e => updateForm("skills", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
               placeholder="Recruitment analysis, Scouting, Video analysis... (separate cu virgulă)"
-              className="bg-muted border-border text-foreground text-sm"
+              className="bg-muted border-border text-white text-sm"
             />
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -413,7 +413,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   value={newPostContent}
                   onChange={e => setNewPostContent(e.target.value)}
                   placeholder="Scrie o postare..."
-                  className="bg-transparent border-none text-foreground text-sm min-h-[60px] p-0 resize-none focus-visible:ring-0"
+                  className="bg-transparent border-none text-white text-sm min-h-[60px] p-0 resize-none focus-visible:ring-0"
                 />
                 {newPostImagePreview && (
                   <div className="relative mt-2 inline-block">
@@ -533,23 +533,23 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                 {editing ? (
                   <div className="space-y-2">
                     <div className="flex gap-2">
-                      <Input value={exp.role || ""} onChange={e => updateExp(index, "role", e.target.value)} placeholder="Rol (ex: First team scout)" className="bg-muted border-border text-foreground text-sm flex-1" />
+                      <Input value={exp.role || ""} onChange={e => updateExp(index, "role", e.target.value)} placeholder="Rol (ex: First team scout)" className="bg-muted border-border text-white text-sm flex-1" />
                       <Button variant="ghost" size="icon" onClick={() => removeExperience(index)} className="text-destructive hover:text-destructive/80 flex-shrink-0">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Input value={exp.organization || ""} onChange={e => updateExp(index, "organization", e.target.value)} placeholder="Organizație" className="bg-muted border-border text-foreground text-sm" />
+                    <Input value={exp.organization || ""} onChange={e => updateExp(index, "organization", e.target.value)} placeholder="Organizație" className="bg-muted border-border text-white text-sm" />
                     <div className="flex gap-2">
-                      <Input value={exp.location || ""} onChange={e => updateExp(index, "location", e.target.value)} placeholder="Locație" className="bg-muted border-border text-foreground text-sm" />
-                      <Input value={exp.start_date || ""} onChange={e => updateExp(index, "start_date", e.target.value)} placeholder="Data început (ex: Jan 2023)" className="bg-muted border-border text-foreground text-sm" />
-                      <Input value={exp.end_date || ""} onChange={e => updateExp(index, "end_date", e.target.value)} placeholder="Data sfârșit (sau Prezent)" className="bg-muted border-border text-foreground text-sm" />
+                      <Input value={exp.location || ""} onChange={e => updateExp(index, "location", e.target.value)} placeholder="Locație" className="bg-muted border-border text-white text-sm" />
+                      <Input value={exp.start_date || ""} onChange={e => updateExp(index, "start_date", e.target.value)} placeholder="Data început (ex: Jan 2023)" className="bg-muted border-border text-white text-sm" />
+                      <Input value={exp.end_date || ""} onChange={e => updateExp(index, "end_date", e.target.value)} placeholder="Data sfârșit (sau Prezent)" className="bg-muted border-border text-white text-sm" />
                     </div>
-                    <Textarea value={exp.description || ""} onChange={e => updateExp(index, "description", e.target.value)} placeholder="Descriere activitate..." className="bg-muted border-border text-foreground text-sm min-h-[60px]" />
+                    <Textarea value={exp.description || ""} onChange={e => updateExp(index, "description", e.target.value)} placeholder="Descriere activitate..." className="bg-muted border-border text-white text-sm min-h-[60px]" />
                     <Input
                       value={(exp.skills || []).join(", ")}
                       onChange={e => updateExp(index, "skills", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
                       placeholder="Competențe (separate cu virgulă)"
-                      className="bg-muted border-border text-foreground text-sm"
+                      className="bg-muted border-border text-white text-sm"
                     />
                   </div>
                 ) : (
