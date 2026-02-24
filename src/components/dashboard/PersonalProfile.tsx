@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2 } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -122,6 +122,8 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           defense: form.defense,
           career_description: form.career_description,
           video_highlights: form.video_highlights,
+          about_documents: form.about_documents,
+          palmares_documents: form.palmares_documents,
         };
 
       let error;
@@ -505,11 +507,106 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
   );
 }
 
+/* ======================== DOCUMENT UPLOAD HELPER ======================== */
+function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
+  documents: string[]; onAdd: (url: string) => void; onRemove: (index: number) => void; editing: boolean; label: string;
+}) {
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Eroare", description: "Format nesuportat. Folosește PDF, JPG, PNG sau WebP.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Eroare", description: "Fișierul trebuie să fie mai mic de 10MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${session.user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("player-documents")
+        .upload(path, file, { upsert: false });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
+      onAdd(urlData.publicUrl);
+      toast({ title: "Document încărcat cu succes!" });
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const getFileName = (url: string) => {
+    try {
+      const parts = url.split("/");
+      const raw = parts[parts.length - 1];
+      // Remove timestamp prefix
+      return raw.replace(/^\d+-[a-z0-9]+\./, '').length > 0 ? decodeURIComponent(raw) : raw;
+    } catch { return "Document"; }
+  };
+
+  return (
+    <div className="mt-3">
+      <p className="text-xs text-muted-foreground font-body mb-2">{label}</p>
+      {documents.length > 0 && (
+        <div className="space-y-2 mb-2">
+          {documents.map((url, i) => (
+            <div key={i} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+              <FileText className="h-4 w-4 text-primary shrink-0" />
+              <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground font-body hover:text-primary truncate flex-1">
+                {getFileName(url)}
+              </a>
+              {editing && (
+                <button onClick={() => onRemove(i)} className="text-destructive hover:text-destructive/80 shrink-0">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {editing && (
+        <label className="block">
+          <div className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
+            {uploading ? (
+              <><Loader2 className="h-4 w-4 text-primary animate-spin" /><span className="text-sm text-muted-foreground font-body">Se încarcă...</span></>
+            ) : (
+              <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground font-body">Încarcă document (PDF, JPG, PNG, max 10MB)</span></>
+            )}
+          </div>
+          <input type="file" accept=".pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} disabled={uploading} />
+        </label>
+      )}
+    </div>
+  );
+}
+
 /* ======================== PROFILE TAB ======================== */
 function ProfileTab({ form, profile, editing, updateForm }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void;
 }) {
   const { t } = useLanguage();
+
+  const aboutDocs = editing ? (form.about_documents || []) : (profile?.about_documents || []);
+  const palmaresDocs = editing ? (form.palmares_documents || []) : (profile?.palmares_documents || []);
+
   return (
     <div className="space-y-6">
       {/* Physical + details */}
@@ -589,6 +686,13 @@ function ProfileTab({ form, profile, editing, updateForm }: {
             ))}
           </div>
         )}
+        <DocumentUploader
+          documents={aboutDocs}
+          onAdd={(url) => updateForm("about_documents", [...(form.about_documents || []), url])}
+          onRemove={(i) => updateForm("about_documents", (form.about_documents || []).filter((_, idx) => idx !== i))}
+          editing={editing}
+          label="📄 Documente atestare"
+        />
       </div>
 
       {/* Achievements / Palmares */}
@@ -614,6 +718,13 @@ function ProfileTab({ form, profile, editing, updateForm }: {
               ))}
             </div>
           )}
+          <DocumentUploader
+            documents={palmaresDocs}
+            onAdd={(url) => updateForm("palmares_documents", [...(form.palmares_documents || []), url])}
+            onRemove={(i) => updateForm("palmares_documents", (form.palmares_documents || []).filter((_, idx) => idx !== i))}
+            editing={editing}
+            label="🏆 Documente atestare competiții/trofee"
+          />
         </div>
       </div>
     </div>
