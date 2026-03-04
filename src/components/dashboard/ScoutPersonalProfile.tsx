@@ -217,7 +217,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const skillsArray = form.skills || [];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="w-full max-w-4xl mx-auto space-y-6 px-2 sm:px-0">
       {/* ===== HEADER CARD (LinkedIn-style) ===== */}
       <div className="bg-card rounded-xl overflow-hidden border border-border">
         {/* Cover Photo */}
