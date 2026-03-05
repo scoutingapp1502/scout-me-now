@@ -311,6 +311,9 @@ const PlayersSection = () => {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
+                      captionLayout="dropdown-buttons"
+                      fromYear={1970}
+                      toYear={new Date().getFullYear()}
                       selected={filterDobFrom}
                       onSelect={setFilterDobFrom}
                       disabled={(date) => date > new Date()}
@@ -335,6 +338,9 @@ const PlayersSection = () => {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
+                      captionLayout="dropdown-buttons"
+                      fromYear={1970}
+                      toYear={new Date().getFullYear()}
                       selected={filterDobTo}
                       onSelect={setFilterDobTo}
                       disabled={(date) => date > new Date()}
