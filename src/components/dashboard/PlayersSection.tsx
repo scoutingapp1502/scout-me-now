@@ -227,8 +227,8 @@ const PlayersSection = () => {
 
       {/* Filter panel */}
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          showFilters ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+        className={`overflow-visible transition-all duration-300 ease-in-out ${
+          showFilters ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
         }`}
       >
         <div className="bg-card border border-border rounded-xl p-4 sm:p-5 space-y-4">
@@ -308,7 +308,7 @@ const PlayersSection = () => {
                       {filterDobFrom ? format(filterDobFrom, "dd/MM/yyyy") : <span className="truncate">{tr.dobFrom}</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[60]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                     <Calendar
                       mode="single"
                       captionLayout="dropdown-buttons"
@@ -317,7 +317,6 @@ const PlayersSection = () => {
                       selected={filterDobFrom}
                       onSelect={setFilterDobFrom}
                       disabled={(date) => date > new Date()}
-                      initialFocus
                       className={cn("p-3 pointer-events-auto")}
                     />
                   </PopoverContent>
@@ -335,7 +334,7 @@ const PlayersSection = () => {
                       {filterDobTo ? format(filterDobTo, "dd/MM/yyyy") : <span className="truncate">{tr.dobTo}</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[60]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                     <Calendar
                       mode="single"
                       captionLayout="dropdown-buttons"
@@ -344,7 +343,6 @@ const PlayersSection = () => {
                       selected={filterDobTo}
                       onSelect={setFilterDobTo}
                       disabled={(date) => date > new Date()}
-                      initialFocus
                       className={cn("p-3 pointer-events-auto")}
                     />
                   </PopoverContent>
