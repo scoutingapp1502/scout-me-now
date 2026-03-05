@@ -124,6 +124,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           video_highlights: form.video_highlights,
           about_documents: form.about_documents,
           palmares_documents: form.palmares_documents,
+          sport: (form as any).sport,
         };
 
       let error;
@@ -214,6 +215,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
               <p className="text-muted-foreground font-body text-sm sm:text-base mt-1">
                 {form.position ? <span className="text-primary font-semibold">{form.position}</span> : <span className="text-muted-foreground italic">{t.dashboard.profile.addPosition}</span>}
                 {form.current_team && <span> · {form.current_team}</span>}
+                {(form as any).sport && <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-body uppercase">{(form as any).sport}</span>}
               </p>
             )}
 

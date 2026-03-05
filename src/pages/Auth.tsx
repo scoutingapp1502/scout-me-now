@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [sport, setSport] = useState("football");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -52,7 +54,7 @@ const Auth = () => {
         if (roleError) console.error("Role insert error:", roleError);
         await supabase.from("profiles").insert({ user_id: data.user.id, full_name: fullName });
         if (role === "player") {
-          await supabase.from("player_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "" });
+          await supabase.from("player_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "", sport });
         } else {
           await supabase.from("scout_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "" });
         }
@@ -147,6 +149,27 @@ const Auth = () => {
                     <Label htmlFor="fullName" className="font-body">{t.auth.fullName}</Label>
                     <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.auth.fullNamePlaceholder} required />
                   </div>
+                  {role === "player" && (
+                    <div className="space-y-2">
+                      <Label className="font-body text-sm">{t.auth.sport}</Label>
+                      <Select value={sport} onValueChange={setSport}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={t.auth.selectSport} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="football">{t.auth.sportFootball}</SelectItem>
+                          <SelectItem value="basketball">{t.auth.sportBasketball}</SelectItem>
+                          <SelectItem value="tennis">{t.auth.sportTennis}</SelectItem>
+                          <SelectItem value="handball">{t.auth.sportHandball}</SelectItem>
+                          <SelectItem value="volleyball">{t.auth.sportVolleyball}</SelectItem>
+                          <SelectItem value="rugby">{t.auth.sportRugby}</SelectItem>
+                          <SelectItem value="swimming">{t.auth.sportSwimming}</SelectItem>
+                          <SelectItem value="athletics">{t.auth.sportAthletics}</SelectItem>
+                          <SelectItem value="other">{t.auth.sportOther}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </>
               )}
 
