@@ -1,11 +1,47 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, type DropdownProps } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+
+const DayPickerDropdown = ({ value, onChange, children, ...props }: DropdownProps) => {
+  const options = React.Children.toArray(children)
+    .filter(React.isValidElement)
+    .map((child) => {
+      const option = child as React.ReactElement<{ value: string; children: React.ReactNode }>;
+      return {
+        value: option.props.value,
+        label: String(option.props.children),
+      };
+    });
+
+  return (
+    <Select
+      value={String(value)}
+      onValueChange={(nextValue) =>
+        onChange?.({ target: { value: nextValue } } as React.ChangeEvent<HTMLSelectElement>)
+      }
+    >
+      <SelectTrigger
+        className="h-8 min-w-[108px] rounded-md border-border bg-background px-2 text-sm font-medium"
+        aria-label={props["aria-label"]}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className="max-h-[220px] overflow-y-auto">
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
 
 function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
   const isDropdownCaption = props.captionLayout?.includes("dropdown");
@@ -49,6 +85,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         ...classNames,
       }}
       components={{
+        Dropdown: DayPickerDropdown,
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
       }}
