@@ -393,13 +393,13 @@ const PlayersSection = () => {
             </div>
           </div>
 
-          {/* Active filters + clear */}
-          {activeFilterCount > 0 && (
-            <div className="flex items-center gap-2 pt-3 border-t border-border">
-              <span className="text-xs text-muted-foreground font-body">
-                {filtered.length} {tr.results}
-              </span>
-              <div className="flex-1" />
+          {/* Apply + Clear */}
+          <div className="flex items-center gap-2 pt-3 border-t border-border">
+            <span className="text-xs text-muted-foreground font-body">
+              {filtered.length} {tr.results}
+            </span>
+            <div className="flex-1" />
+            {activeFilterCount > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -409,8 +409,15 @@ const PlayersSection = () => {
                 <X className="h-3 w-3" />
                 {tr.clearFilters}
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              size="sm"
+              onClick={() => setShowFilters(false)}
+              className="text-xs font-body gap-1 h-8 px-4"
+            >
+              {lang === "ro" ? "Aplică filtrele" : "Apply filters"}
+            </Button>
+          </div>
         </div>
       </div>
 
