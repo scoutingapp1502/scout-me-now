@@ -12,16 +12,24 @@ const DayPickerDropdown = ({ value, onChange, children, ...props }: DropdownProp
   const options = React.Children.toArray(children)
     .filter(React.isValidElement)
     .map((child) => {
-      const option = child as React.ReactElement<{ value: string; children: React.ReactNode }>;
+      const option = child as React.ReactElement<{ value: string | number; children: React.ReactNode }>;
+      const rawLabel = Array.isArray(option.props.children)
+        ? option.props.children.join("")
+        : option.props.children;
+
       return {
-        value: option.props.value,
-        label: String(option.props.children),
+        value: String(option.props.value),
+        label: String(rawLabel ?? ""),
       };
     });
 
+  const selectedValue = String(value ?? "");
+  const selectedLabel = options.find((option) => option.value === selectedValue)?.label;
+  const fallbackLabel = typeof props.caption === "string" ? props.caption : "";
+
   return (
     <Select
-      value={String(value)}
+      value={selectedValue}
       onValueChange={(nextValue) =>
         onChange?.({ target: { value: nextValue } } as React.ChangeEvent<HTMLSelectElement>)
       }
@@ -30,7 +38,7 @@ const DayPickerDropdown = ({ value, onChange, children, ...props }: DropdownProp
         className="h-8 min-w-[108px] rounded-md border-border bg-background px-2 text-sm font-medium"
         aria-label={props["aria-label"]}
       >
-        <SelectValue />
+        <span className="truncate">{selectedLabel || fallbackLabel}</span>
       </SelectTrigger>
       <SelectContent className="max-h-[220px] overflow-y-auto">
         {options.map((option) => (
