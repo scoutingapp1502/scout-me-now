@@ -14,6 +14,7 @@ interface PlayerCard {
   current_team: string | null;
   position: string | null;
   nationality: string | null;
+  sport: string | null;
 }
 
 const COLORS = [
@@ -37,7 +38,7 @@ const PlayersSection = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("player_profiles")
-        .select("user_id, first_name, last_name, photo_url, current_team, position, nationality")
+        .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport")
         .order("first_name", { ascending: true })
         .limit(10);
 
@@ -111,13 +112,9 @@ const PlayersSection = () => {
 
               {/* Team / Position badge */}
               <div className="pr-3 flex-shrink-0">
-                {player.current_team ? (
-                  <span className="text-[10px] text-muted-foreground font-body bg-muted px-2 py-1 rounded">
-                    {player.current_team}
-                  </span>
-                ) : player.position ? (
-                  <span className="text-[10px] text-muted-foreground font-body bg-muted px-2 py-1 rounded">
-                    {player.position}
+                {player.sport ? (
+                  <span className="text-[10px] text-muted-foreground font-body bg-muted px-2 py-1 rounded uppercase">
+                    {player.sport}
                   </span>
                 ) : null}
               </div>
