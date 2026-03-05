@@ -20,7 +20,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         caption: "flex justify-center pt-1 relative items-center",
         caption_label: cn("text-sm font-medium", isDropdownCaption && "hidden"),
         caption_dropdowns: "flex gap-2 items-center",
-        dropdown: "appearance-none bg-background border border-border rounded-md px-2 py-1 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring",
+        dropdown: "appearance-none bg-background border border-border rounded-md px-2 py-1 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring max-h-[220px] overflow-y-auto",
         dropdown_month: "",
         dropdown_year: "",
         vhidden: "sr-only",
