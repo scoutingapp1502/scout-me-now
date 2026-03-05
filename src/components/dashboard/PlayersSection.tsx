@@ -48,6 +48,8 @@ const PlayersSection = () => {
   const [filterFoot, setFilterFoot] = useState<string>("all");
   const [filterDobFrom, setFilterDobFrom] = useState<Date | undefined>();
   const [filterDobTo, setFilterDobTo] = useState<Date | undefined>();
+  const [filterDobFromMonth, setFilterDobFromMonth] = useState<Date>(new Date());
+  const [filterDobToMonth, setFilterDobToMonth] = useState<Date>(new Date());
   const [filterHeightMin, setFilterHeightMin] = useState("");
   const [filterHeightMax, setFilterHeightMax] = useState("");
   const [filterWeightMin, setFilterWeightMin] = useState("");
@@ -115,6 +117,8 @@ const PlayersSection = () => {
     setFilterFoot("all");
     setFilterDobFrom(undefined);
     setFilterDobTo(undefined);
+    setFilterDobFromMonth(new Date());
+    setFilterDobToMonth(new Date());
     setFilterHeightMin("");
     setFilterHeightMax("");
     setFilterWeightMin("");
@@ -314,8 +318,13 @@ const PlayersSection = () => {
                       captionLayout="dropdown-buttons"
                       fromYear={1970}
                       toYear={new Date().getFullYear()}
+                      month={filterDobFromMonth}
+                      onMonthChange={setFilterDobFromMonth}
                       selected={filterDobFrom}
-                      onSelect={setFilterDobFrom}
+                      onSelect={(date) => {
+                        setFilterDobFrom(date);
+                        if (date) setFilterDobFromMonth(date);
+                      }}
                       disabled={(date) => date > new Date()}
                       className={cn("p-3 pointer-events-auto")}
                     />
@@ -340,8 +349,13 @@ const PlayersSection = () => {
                       captionLayout="dropdown-buttons"
                       fromYear={1970}
                       toYear={new Date().getFullYear()}
+                      month={filterDobToMonth}
+                      onMonthChange={setFilterDobToMonth}
                       selected={filterDobTo}
-                      onSelect={setFilterDobTo}
+                      onSelect={(date) => {
+                        setFilterDobTo(date);
+                        if (date) setFilterDobToMonth(date);
+                      }}
                       disabled={(date) => date > new Date()}
                       className={cn("p-3 pointer-events-auto")}
                     />
