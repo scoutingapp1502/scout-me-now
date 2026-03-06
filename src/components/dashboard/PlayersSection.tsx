@@ -305,7 +305,7 @@ const PlayersSection = () => {
                       variant="outline"
                       className={cn(
                         "flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm",
-                        !filterDobFrom && "text-muted-foreground"
+                        !filterDobFrom ? "text-muted-foreground" : "text-foreground"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -336,7 +336,7 @@ const PlayersSection = () => {
                       variant="outline"
                       className={cn(
                         "flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm",
-                        !filterDobTo && "text-muted-foreground"
+                        !filterDobTo ? "text-muted-foreground" : "text-foreground"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-3.5 w-3.5" />
