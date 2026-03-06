@@ -231,8 +231,8 @@ const PlayersSection = () => {
 
       {/* Filter panel */}
       <div
-        className={`overflow-visible transition-all duration-300 ease-in-out ${
-          showFilters ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+        className={`transition-all duration-300 ease-in-out ${
+          showFilters ? "max-h-[600px] opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden pointer-events-none"
         }`}
       >
         <div className="bg-card border border-border rounded-xl p-4 sm:p-5 space-y-4">
