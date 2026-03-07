@@ -594,9 +594,22 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
           {documents.map((url, i) => (
             <div key={i} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
               <FileText className="h-4 w-4 text-primary shrink-0" />
-              <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground font-body hover:text-primary truncate flex-1">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    window.open(blobUrl, '_blank');
+                  } catch {
+                    window.open(url, '_blank');
+                  }
+                }}
+                className="text-sm text-foreground font-body hover:text-primary truncate flex-1 text-left"
+              >
                 {getFileName(url)}
-              </a>
+              </button>
               {editing && (
                 <button onClick={() => onRemove(i)} className="text-destructive hover:text-destructive/80 shrink-0">
                   <X className="h-4 w-4" />
