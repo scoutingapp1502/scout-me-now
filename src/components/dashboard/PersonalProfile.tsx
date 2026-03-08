@@ -683,7 +683,7 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 function ProfileTab({ form, profile, editing, updateForm }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const aboutDocs = editing ? (form.about_documents || []) : (profile?.about_documents || []);
   const palmaresDocs = editing ? (form.palmares_documents || []) : (profile?.palmares_documents || []);
