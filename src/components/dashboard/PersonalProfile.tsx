@@ -690,7 +690,7 @@ function ProfileTab({ form, profile, editing, updateForm }: {
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.height}</span><span className="text-foreground font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.weight}</span><span className="text-foreground font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot ? ({"Drept": t.dashboard.profile.rightFoot, "Stâng": t.dashboard.profile.leftFoot, "Ambele": t.dashboard.profile.bothFeet}[profile.preferred_foot] || profile.preferred_foot) : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{getCountryName(profile?.nationality, lang as "ro" | "en")}</span></div>
             </div>
           )}
         </div>
