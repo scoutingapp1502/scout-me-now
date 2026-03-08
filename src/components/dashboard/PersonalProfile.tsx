@@ -23,11 +23,48 @@ const positions = [
   "Extremă Dreapta", "Extremă Stânga", "Atacant", "Atacant Fals"
 ];
 
+const nationalities: Record<string, { ro: string; en: string }> = {
+  RO: { ro: "Român", en: "Romanian" },
+  HU: { ro: "Maghiar", en: "Hungarian" },
+  BG: { ro: "Bulgar", en: "Bulgarian" },
+  MD: { ro: "Moldovean", en: "Moldovan" },
+  RS: { ro: "Sârb", en: "Serbian" },
+  UA: { ro: "Ucrainean", en: "Ukrainian" },
+  DE: { ro: "German", en: "German" },
+  FR: { ro: "Francez", en: "French" },
+  ES: { ro: "Spaniol", en: "Spanish" },
+  IT: { ro: "Italian", en: "Italian" },
+  PT: { ro: "Portughez", en: "Portuguese" },
+  GB: { ro: "Britanic", en: "British" },
+  NL: { ro: "Olandez", en: "Dutch" },
+  BE: { ro: "Belgian", en: "Belgian" },
+  PL: { ro: "Polonez", en: "Polish" },
+  CZ: { ro: "Ceh", en: "Czech" },
+  AT: { ro: "Austriac", en: "Austrian" },
+  HR: { ro: "Croat", en: "Croatian" },
+  GR: { ro: "Grec", en: "Greek" },
+  TR: { ro: "Turc", en: "Turkish" },
+  BR: { ro: "Brazilian", en: "Brazilian" },
+  AR: { ro: "Argentinian", en: "Argentinian" },
+  US: { ro: "American", en: "American" },
+  NG: { ro: "Nigerian", en: "Nigerian" },
+  GH: { ro: "Ghanez", en: "Ghanaian" },
+  CM: { ro: "Camerunez", en: "Cameroonian" },
+  SN: { ro: "Senegalez", en: "Senegalese" },
+  CI: { ro: "Ivorian", en: "Ivorian" },
+  MA: { ro: "Marocan", en: "Moroccan" },
+  DZ: { ro: "Algerian", en: "Algerian" },
+  JP: { ro: "Japonez", en: "Japanese" },
+  KR: { ro: "Coreean", en: "Korean" },
+  AU: { ro: "Australian", en: "Australian" },
+  OTHER: { ro: "Altă naționalitate", en: "Other" },
+};
+
 type TabType = "stats" | "profile" | "video";
 
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -225,7 +262,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
                   <span className="text-sm font-semibold text-white font-body mt-0.5">
-                    {profile?.nationality || <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>}
+                    {profile?.nationality ? (nationalities[profile.nationality]?.[lang] || profile.nationality) : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>}
                   </span>
                 </div>
                 <div className="flex flex-col">
@@ -247,7 +284,14 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             {editing && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
+                  <Select value={form.nationality || ""} onValueChange={(v) => updateForm("nationality", v)}>
+                    <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs"><SelectValue placeholder={t.dashboard.profile.nationality} /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(nationalities).map(([code, names]) => (
+                        <SelectItem key={code} value={code}>{names[lang]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -639,7 +683,7 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 function ProfileTab({ form, profile, editing, updateForm }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const aboutDocs = editing ? (form.about_documents || []) : (profile?.about_documents || []);
   const palmaresDocs = editing ? (form.palmares_documents || []) : (profile?.palmares_documents || []);
@@ -666,14 +710,23 @@ function ProfileTab({ form, profile, editing, updateForm }: {
                 </Select>
               </div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label>
+                <Select value={form.nationality || ""} onValueChange={(v) => updateForm("nationality", v)}>
+                  <SelectTrigger className="text-white"><SelectValue placeholder={t.dashboard.profile.nationality} /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(nationalities).map(([code, names]) => (
+                      <SelectItem key={code} value={code}>{names[lang]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           ) : (
             <div className="space-y-3 font-body text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.height}</span><span className="text-foreground font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.weight}</span><span className="text-foreground font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot ? ({"Drept": t.dashboard.profile.rightFoot, "Stâng": t.dashboard.profile.leftFoot, "Ambele": t.dashboard.profile.bothFeet}[profile.preferred_foot] || profile.preferred_foot) : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality ? (nationalities[profile.nationality]?.[lang] || profile.nationality) : "—"}</span></div>
             </div>
           )}
         </div>
