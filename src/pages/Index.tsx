@@ -35,7 +35,7 @@ const Index = () => {
               <span className="text-primary-foreground font-display text-base sm:text-lg">⚽</span>
             </div>
             <span className="font-display text-lg sm:text-2xl text-primary-foreground tracking-wider">
-              FOOTBALLSCOUT
+              SPORTRISE
             </span>
           </Link>
 
