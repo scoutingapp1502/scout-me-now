@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { countries, getCountryName } from "@/data/countries";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -27,7 +28,7 @@ type TabType = "stats" | "profile" | "video";
 
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -224,9 +225,9 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
               <div className="flex items-center justify-center sm:justify-start gap-6 mt-4 pt-3 border-t border-border/30 flex-wrap">
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
-                  <span className="text-sm font-semibold text-white font-body mt-0.5">
-                    {profile?.nationality || <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>}
-                  </span>
+                   <span className="text-sm font-semibold text-white font-body mt-0.5">
+                     {profile?.nationality ? getCountryName(profile.nationality, lang as "ro" | "en") : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>}
+                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.birthDate}</span>
@@ -247,7 +248,14 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             {editing && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
+                   <Select value={form.nationality || ""} onValueChange={(v) => updateForm("nationality", v)}>
+                     <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs"><SelectValue placeholder={t.dashboard.profile.nationality} /></SelectTrigger>
+                     <SelectContent className="max-h-60">
+                       {countries.map((c) => (
+                         <SelectItem key={c.code} value={c.code}>{lang === "ro" ? c.ro : c.en}</SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
                   <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -666,14 +674,23 @@ function ProfileTab({ form, profile, editing, updateForm }: {
                 </Select>
               </div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label>
+                <Select value={form.nationality || ""} onValueChange={(v) => updateForm("nationality", v)}>
+                  <SelectTrigger className="text-white"><SelectValue placeholder={t.dashboard.profile.nationality} /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {countries.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>{lang === "ro" ? c.ro : c.en}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           ) : (
             <div className="space-y-3 font-body text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.height}</span><span className="text-foreground font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.weight}</span><span className="text-foreground font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot ? ({"Drept": t.dashboard.profile.rightFoot, "Stâng": t.dashboard.profile.leftFoot, "Ambele": t.dashboard.profile.bothFeet}[profile.preferred_foot] || profile.preferred_foot) : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{getCountryName(profile?.nationality, lang as "ro" | "en")}</span></div>
             </div>
           )}
         </div>
