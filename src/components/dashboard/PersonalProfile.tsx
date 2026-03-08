@@ -23,6 +23,43 @@ const positions = [
   "Extremă Dreapta", "Extremă Stânga", "Atacant", "Atacant Fals"
 ];
 
+const nationalities: Record<string, { ro: string; en: string }> = {
+  RO: { ro: "Român", en: "Romanian" },
+  HU: { ro: "Maghiar", en: "Hungarian" },
+  BG: { ro: "Bulgar", en: "Bulgarian" },
+  MD: { ro: "Moldovean", en: "Moldovan" },
+  RS: { ro: "Sârb", en: "Serbian" },
+  UA: { ro: "Ucrainean", en: "Ukrainian" },
+  DE: { ro: "German", en: "German" },
+  FR: { ro: "Francez", en: "French" },
+  ES: { ro: "Spaniol", en: "Spanish" },
+  IT: { ro: "Italian", en: "Italian" },
+  PT: { ro: "Portughez", en: "Portuguese" },
+  GB: { ro: "Britanic", en: "British" },
+  NL: { ro: "Olandez", en: "Dutch" },
+  BE: { ro: "Belgian", en: "Belgian" },
+  PL: { ro: "Polonez", en: "Polish" },
+  CZ: { ro: "Ceh", en: "Czech" },
+  AT: { ro: "Austriac", en: "Austrian" },
+  HR: { ro: "Croat", en: "Croatian" },
+  GR: { ro: "Grec", en: "Greek" },
+  TR: { ro: "Turc", en: "Turkish" },
+  BR: { ro: "Brazilian", en: "Brazilian" },
+  AR: { ro: "Argentinian", en: "Argentinian" },
+  US: { ro: "American", en: "American" },
+  NG: { ro: "Nigerian", en: "Nigerian" },
+  GH: { ro: "Ghanez", en: "Ghanaian" },
+  CM: { ro: "Camerunez", en: "Cameroonian" },
+  SN: { ro: "Senegalez", en: "Senegalese" },
+  CI: { ro: "Ivorian", en: "Ivorian" },
+  MA: { ro: "Marocan", en: "Moroccan" },
+  DZ: { ro: "Algerian", en: "Algerian" },
+  JP: { ro: "Japonez", en: "Japanese" },
+  KR: { ro: "Coreean", en: "Korean" },
+  AU: { ro: "Australian", en: "Australian" },
+  OTHER: { ro: "Altă naționalitate", en: "Other" },
+};
+
 type TabType = "stats" | "profile" | "video";
 
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
