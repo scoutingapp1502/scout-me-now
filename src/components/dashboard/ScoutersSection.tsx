@@ -128,7 +128,7 @@ const ScoutersSection = () => {
       {/* Scout profile dialog */}
       <Dialog open={!!selectedScoutId} onOpenChange={(open) => !open && setSelectedScoutId(null)}>
         <DialogContent 
-          className="max-w-4xl w-full sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-none sm:rounded-lg border-0 sm:border inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]"
+          className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-none sm:rounded-lg border-0 sm:border fixed inset-0 sm:inset-auto translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]"
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
         >
