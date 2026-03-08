@@ -284,7 +284,14 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             {editing && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
+                  <Select value={form.nationality || ""} onValueChange={(v) => updateForm("nationality", v)}>
+                    <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs"><SelectValue placeholder={t.dashboard.profile.nationality} /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(nationalities).map(([code, names]) => (
+                        <SelectItem key={code} value={code}>{names[lang]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
