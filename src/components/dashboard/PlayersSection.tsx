@@ -267,7 +267,7 @@ const PlayersSection = () => {
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.nationality}</label>
               <Select value={filterNationality} onValueChange={setFilterNationality}>
-                <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm">
+                <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground">
                   <SelectValue placeholder={tr.allNationalities} />
                 </SelectTrigger>
                 <SelectContent>
