@@ -674,7 +674,16 @@ function ProfileTab({ form, profile, editing, updateForm }: {
                 </Select>
               </div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label>
+                <Select value={form.nationality || ""} onValueChange={(v) => updateForm("nationality", v)}>
+                  <SelectTrigger className="text-white"><SelectValue placeholder={t.dashboard.profile.nationality} /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {countries.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>{lang === "ro" ? c.ro : c.en}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           ) : (
             <div className="space-y-3 font-body text-sm">
