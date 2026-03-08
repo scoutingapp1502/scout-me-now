@@ -198,7 +198,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col gap-4 items-center text-center">
             <div className="flex items-center gap-2">
-              <span className="font-display text-lg sm:text-xl text-primary-foreground">⚽ FOOTBALLSCOUT</span>
+              <span className="font-display text-lg sm:text-xl text-primary-foreground">⚽ SPORTRISE</span>
             </div>
             <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-muted-foreground font-body">
               <Link to="/" className="hover:text-primary transition-colors">{t.footer.home}</Link>

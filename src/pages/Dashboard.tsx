@@ -167,7 +167,7 @@ const Dashboard = () => {
               <button onClick={() => setSidebarOpen(true)} className="text-foreground">
                 <Menu className="h-6 w-6" />
               </button>
-              <span className="font-display text-xl text-primary">⚽ FOOTBALLSCOUT</span>
+              <span className="font-display text-xl text-primary">⚽ SPORTRISE</span>
             </header>
             <main className="flex-1 p-4 overflow-y-auto">
               {renderSection()}

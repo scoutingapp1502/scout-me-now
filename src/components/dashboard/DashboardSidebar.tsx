@@ -31,7 +31,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, profileL
   return (
     <aside className="w-64 min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="p-6 border-b border-sidebar-border">
-        <span className="font-display text-2xl text-primary">⚽ FOOTBALLSCOUT</span>
+        <span className="font-display text-2xl text-primary">⚽ SPORTRISE</span>
         {playerName && (
           <p className="text-sm text-sidebar-foreground/60 font-body mt-1 truncate">{playerName}</p>
         )}
