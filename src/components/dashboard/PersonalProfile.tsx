@@ -225,9 +225,9 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
               <div className="flex items-center justify-center sm:justify-start gap-6 mt-4 pt-3 border-t border-border/30 flex-wrap">
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
-                  <span className="text-sm font-semibold text-white font-body mt-0.5">
-                    {profile?.nationality || <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>}
-                  </span>
+                   <span className="text-sm font-semibold text-white font-body mt-0.5">
+                     {profile?.nationality ? getCountryName(profile.nationality, lang as "ro" | "en") : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>}
+                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.birthDate}</span>
