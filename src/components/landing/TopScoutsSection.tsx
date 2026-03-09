@@ -1,11 +1,16 @@
 import { useLanguage } from "@/i18n/LanguageContext";
 import scoutsRoom from "@/assets/scouts-room.jpg";
 
-const TopScoutsSection = () => {
+interface TopScoutsSectionProps {
+  selectedSport: string;
+  onSelectSport: (sport: string) => void;
+}
+
+const TopScoutsSection = ({ selectedSport, onSelectSport }: TopScoutsSectionProps) => {
   const { t } = useLanguage();
 
   const sportTabs = [
-    { key: "football", label: t.topScouts.sports.football, active: true },
+    { key: "football", label: t.topScouts.sports.football },
     { key: "basketball", label: t.topScouts.sports.basketball },
     { key: "boxing", label: t.topScouts.sports.boxing },
     { key: "volleyball", label: t.topScouts.sports.volleyball },
@@ -36,8 +41,9 @@ const TopScoutsSection = () => {
           {sportTabs.map((tab) => (
             <button
               key={tab.key}
-              className={`px-4 sm:px-6 py-2 rounded-full font-body text-sm sm:text-base transition-all ${
-                tab.active
+              onClick={() => onSelectSport(tab.key)}
+              className={`px-4 sm:px-6 py-2 rounded-full font-body text-sm sm:text-base transition-all cursor-pointer ${
+                selectedSport === tab.key
                   ? "bg-electric text-pitch font-semibold"
                   : "border border-electric/30 text-primary-foreground/70 hover:border-electric/60 hover:text-electric"
               }`}
