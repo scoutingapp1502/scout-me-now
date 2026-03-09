@@ -225,13 +225,13 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
                   <span className="text-sm font-semibold text-white font-body mt-0.5">
-                    {profile?.nationality || <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>}
+                    {profile?.nationality || (readOnly ? "—" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>)}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.birthDate}</span>
                   <span className="text-sm font-semibold text-white font-body mt-0.5">
-                    {profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addDob || "Adaugă data nașterii"}</span>}
+                    {profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : (readOnly ? "—" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addDob || "Adaugă data nașterii"}</span>)}
                   </span>
                 </div>
                 <div className="flex flex-col">
