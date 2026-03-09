@@ -239,7 +239,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                   <div className="flex items-center gap-2 mt-0.5">
                     {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-white hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>}
                     {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-white hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>}
-                    {!profile?.instagram_url && !profile?.twitter_url && <span className="text-muted-foreground italic text-sm font-body font-normal">—</span>}
+                    {!profile?.instagram_url && !profile?.twitter_url && !readOnly && <span className="text-muted-foreground italic text-sm font-body font-normal">—</span>}
                   </div>
                 </div>
               </div>
