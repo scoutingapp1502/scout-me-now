@@ -225,7 +225,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
                   <span className="text-sm font-semibold text-white font-body mt-0.5">
-                    {profile?.nationality || (readOnly ? "—" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>)}
+                    {profile?.nationality || (readOnly ? "" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>)}
                   </span>
                 </div>
                 <div className="flex flex-col">
