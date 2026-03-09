@@ -1,49 +1,214 @@
 import { Star, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 
-const TopTalentsSection = () => {
+interface TopTalentsSectionProps {
+  selectedSport: string;
+}
+
+const TopTalentsSection = ({ selectedSport }: TopTalentsSectionProps) => {
   const { t } = useLanguage();
 
-  const talents = [
-    {
-      name: "Andrei Popescu",
-      rating: 4,
-      tags: ["Atacant", "Tehnician", "Romania"],
-      sport: "⚽ Fotbal",
-      stats: [
-        { label: t.topTalents.goals, value: "18" },
-        { label: t.topTalents.assists, value: "9" },
-        { label: t.topTalents.speed, value: "33 km/h" },
-      ],
-      league: "Premier League",
-    },
-    {
-      name: "Michael Ramirez",
-      rating: 4,
-      tags: ["NBA", "Guard"],
-      sport: "🏀 Basketball",
-      stats: [
-        { label: t.topTalents.height, value: "28.2" },
-        { label: t.topTalents.assists, value: "5.6" },
-        { label: t.topTalents.rating, value: "6.8" },
-      ],
-      league: "NBA",
-    },
-    {
-      name: "David Ionescu",
-      rating: 4,
-      tags: ["Mijlocaș", "Romania"],
-      sport: "⚽ Fotbal",
-      stats: [
-        { label: t.topTalents.goals, value: "15" },
-        { label: t.topTalents.matches, value: "12" },
-        { label: t.topTalents.speed, value: "900" },
-      ],
-      league: "Serie A",
-    },
-  ];
+  const allTalents: Record<string, Array<{
+    name: string;
+    rating: number;
+    tags: string[];
+    sport: string;
+    stats: { label: string; value: string }[];
+    league: string;
+  }>> = {
+    football: [
+      {
+        name: "Andrei Popescu",
+        rating: 4,
+        tags: ["Atacant", "Tehnician", "Romania"],
+        sport: "⚽ Fotbal",
+        stats: [
+          { label: t.topTalents.goals, value: "18" },
+          { label: t.topTalents.assists, value: "9" },
+          { label: t.topTalents.speed, value: "33 km/h" },
+        ],
+        league: "Premier League",
+      },
+      {
+        name: "David Ionescu",
+        rating: 4,
+        tags: ["Mijlocaș", "Romania"],
+        sport: "⚽ Fotbal",
+        stats: [
+          { label: t.topTalents.goals, value: "15" },
+          { label: t.topTalents.matches, value: "12" },
+          { label: t.topTalents.speed, value: "31 km/h" },
+        ],
+        league: "Serie A",
+      },
+      {
+        name: "Lucas Silva",
+        rating: 5,
+        tags: ["Fundaș", "Brazilia"],
+        sport: "⚽ Fotbal",
+        stats: [
+          { label: t.topTalents.goals, value: "3" },
+          { label: t.topTalents.matches, value: "28" },
+          { label: t.topTalents.speed, value: "30 km/h" },
+        ],
+        league: "La Liga",
+      },
+    ],
+    basketball: [
+      {
+        name: "Michael Ramirez",
+        rating: 4,
+        tags: ["Guard", "USA"],
+        sport: "🏀 Basketball",
+        stats: [
+          { label: "PPG", value: "28.2" },
+          { label: t.topTalents.assists, value: "5.6" },
+          { label: t.topTalents.rating, value: "6.8" },
+        ],
+        league: "NBA",
+      },
+      {
+        name: "Jaylen Brooks",
+        rating: 5,
+        tags: ["Center", "USA"],
+        sport: "🏀 Basketball",
+        stats: [
+          { label: "PPG", value: "22.1" },
+          { label: "RPG", value: "11.3" },
+          { label: t.topTalents.rating, value: "7.2" },
+        ],
+        league: "EuroLeague",
+      },
+      {
+        name: "Nikola Petrović",
+        rating: 4,
+        tags: ["Forward", "Serbia"],
+        sport: "🏀 Basketball",
+        stats: [
+          { label: "PPG", value: "19.5" },
+          { label: t.topTalents.assists, value: "4.1" },
+          { label: t.topTalents.rating, value: "6.5" },
+        ],
+        league: "ABA Liga",
+      },
+    ],
+    boxing: [
+      {
+        name: "Carlos Mendez",
+        rating: 5,
+        tags: ["Heavyweight", "Mexico"],
+        sport: "🥊 Boxing",
+        stats: [
+          { label: "KO", value: "18" },
+          { label: t.topTalents.matches, value: "24" },
+          { label: "WIN %", value: "92%" },
+        ],
+        league: "WBC",
+      },
+      {
+        name: "Amir Khan Jr.",
+        rating: 4,
+        tags: ["Welterweight", "UK"],
+        sport: "🥊 Boxing",
+        stats: [
+          { label: "KO", value: "12" },
+          { label: t.topTalents.matches, value: "19" },
+          { label: "WIN %", value: "89%" },
+        ],
+        league: "WBA",
+      },
+      {
+        name: "Dmitri Volkov",
+        rating: 4,
+        tags: ["Middleweight", "Russia"],
+        sport: "🥊 Boxing",
+        stats: [
+          { label: "KO", value: "15" },
+          { label: t.topTalents.matches, value: "21" },
+          { label: "WIN %", value: "86%" },
+        ],
+        league: "IBF",
+      },
+    ],
+    volleyball: [
+      {
+        name: "Marco Rossi",
+        rating: 5,
+        tags: ["Setter", "Italy"],
+        sport: "🏐 Volleyball",
+        stats: [
+          { label: t.topTalents.assists, value: "842" },
+          { label: t.topTalents.matches, value: "35" },
+          { label: t.topTalents.rating, value: "8.9" },
+        ],
+        league: "SuperLega",
+      },
+      {
+        name: "Tomasz Nowak",
+        rating: 4,
+        tags: ["Opposite", "Poland"],
+        sport: "🏐 Volleyball",
+        stats: [
+          { label: "ACES", value: "67" },
+          { label: t.topTalents.matches, value: "30" },
+          { label: t.topTalents.rating, value: "8.1" },
+        ],
+        league: "PlusLiga",
+      },
+      {
+        name: "Yuki Tanaka",
+        rating: 4,
+        tags: ["Libero", "Japan"],
+        sport: "🏐 Volleyball",
+        stats: [
+          { label: "DIGS", value: "312" },
+          { label: t.topTalents.matches, value: "28" },
+          { label: t.topTalents.rating, value: "7.8" },
+        ],
+        league: "V.League",
+      },
+    ],
+    other: [
+      {
+        name: "Elena Gheorghe",
+        rating: 5,
+        tags: ["Sprint", "Romania"],
+        sport: "🏃 Atletism",
+        stats: [
+          { label: "100M", value: "11.2s" },
+          { label: t.topTalents.matches, value: "18" },
+          { label: t.topTalents.rating, value: "9.1" },
+        ],
+        league: "Diamond League",
+      },
+      {
+        name: "Pierre Dupont",
+        rating: 4,
+        tags: ["Singles", "France"],
+        sport: "🎾 Tenis",
+        stats: [
+          { label: "ACES", value: "320" },
+          { label: t.topTalents.matches, value: "42" },
+          { label: "WIN %", value: "78%" },
+        ],
+        league: "ATP",
+      },
+      {
+        name: "Ana Kovacs",
+        rating: 4,
+        tags: ["Freestyle", "Hungary"],
+        sport: "🏊 Înot",
+        stats: [
+          { label: "50M", value: "24.8s" },
+          { label: t.topTalents.matches, value: "15" },
+          { label: t.topTalents.rating, value: "8.5" },
+        ],
+        league: "FINA",
+      },
+    ],
+  };
 
-  const leagueFilters = ["Premier League", "NBA", "UFC", "Serie A", "Volleyball"];
+  const talents = allTalents[selectedSport] || allTalents.football;
 
   return (
     <section className="py-12 sm:py-20 bg-pitch border-t border-electric/10">
@@ -52,18 +217,8 @@ const TopTalentsSection = () => {
           {t.topTalents.title} <span className="text-electric">{t.topTalents.titleHighlight}</span>
         </h2>
 
-        {/* League filters */}
-        <div className="flex flex-wrap justify-center gap-3 mb-10">
-          {leagueFilters.map((league) => (
-            <span key={league} className="flex items-center gap-1.5 text-muted-foreground text-xs sm:text-sm font-body">
-              <span className="w-2 h-2 rounded-full bg-electric/60" />
-              {league}
-            </span>
-          ))}
-        </div>
-
         {/* Talent cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto mt-10">
           {talents.map((player) => (
             <div
               key={player.name}
