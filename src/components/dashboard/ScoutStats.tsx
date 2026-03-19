@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, BarChart3, Search, Lock } from "lucide-react";
+import { Eye, Search, Lock } from "lucide-react";
 
 interface ScoutStatsProps {
   userId: string;
@@ -9,7 +9,6 @@ interface ScoutStatsProps {
 
 const ScoutStats = ({ userId, isOwner }: ScoutStatsProps) => {
   const [profileViews, setProfileViews] = useState(0);
-  const [postImpressions, setPostImpressions] = useState(0);
   const [searchAppearances, setSearchAppearances] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -23,7 +22,7 @@ const ScoutStats = ({ userId, isOwner }: ScoutStatsProps) => {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const since = sevenDaysAgo.toISOString();
 
-    const [viewsRes, impressionsRes, searchRes] = await Promise.all([
+    const [viewsRes, searchRes] = await Promise.all([
       supabase
         .from("profile_analytics")
         .select("id", { count: "exact", head: true })
@@ -34,18 +33,11 @@ const ScoutStats = ({ userId, isOwner }: ScoutStatsProps) => {
         .from("profile_analytics")
         .select("id", { count: "exact", head: true })
         .eq("profile_user_id", userId)
-        .eq("event_type", "post_impression")
-        .gte("created_at", since),
-      supabase
-        .from("profile_analytics")
-        .select("id", { count: "exact", head: true })
-        .eq("profile_user_id", userId)
         .eq("event_type", "search_appearance")
         .gte("created_at", since),
     ]);
 
     setProfileViews(viewsRes.count || 0);
-    setPostImpressions(impressionsRes.count || 0);
     setSearchAppearances(searchRes.count || 0);
     setLoading(false);
   };
@@ -62,7 +54,7 @@ const ScoutStats = ({ userId, isOwner }: ScoutStatsProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mt-4">
+      <div className="grid grid-cols-2 gap-4 mt-4">
         {/* Profile views */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -76,22 +68,6 @@ const ScoutStats = ({ userId, isOwner }: ScoutStatsProps) => {
           </p>
           <p className="text-xs text-muted-foreground font-body">
             Descoperiți cine v-a vizitat profilul.
-          </p>
-        </div>
-
-        {/* Post impressions */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-muted-foreground" />
-            <span className="text-2xl font-bold text-foreground">
-              {loading ? "—" : postImpressions}
-            </span>
-          </div>
-          <p className="text-sm font-semibold text-foreground font-body">
-            afișări ale anunțului
-          </p>
-          <p className="text-xs text-muted-foreground font-body">
-            Începeți un anunț pentru a mări gradul de interacțiune.
           </p>
         </div>
 
