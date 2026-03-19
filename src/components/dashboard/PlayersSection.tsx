@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { calcPlayerCompletion } from "@/lib/profileCompletion";
 import { supabase } from "@/integrations/supabase/client";
+import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
 import { Search, User, SlidersHorizontal, X, ChevronDown, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
