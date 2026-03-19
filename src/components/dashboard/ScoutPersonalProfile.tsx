@@ -587,7 +587,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         </div>
 
         <div className="space-y-6">
-          {expForms.length === 0 && !editing && (
+          {expForms.length === 0 && editingSection !== "experience" && (
             <p className="text-muted-foreground italic text-sm font-body">Nicio experiență adăugată.</p>
           )}
           {expForms.map((exp, index) => (
