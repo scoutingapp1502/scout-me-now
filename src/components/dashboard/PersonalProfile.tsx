@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
+import PlayerStats from "./PlayerStats";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -325,7 +326,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       {/* Tab content */}
       <div className="mt-6 px-4 sm:px-6">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editing={editing} updateForm={updateForm} photoSrc={photoSrc} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editing={editing} updateForm={updateForm} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editing={editing} updateForm={updateForm} userId={userId} readOnly={readOnly} />}
         {activeTab === "video" && (
           <VideoTab
             form={form}
@@ -636,8 +637,8 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 }
 
 /* ======================== PROFILE TAB ======================== */
-function ProfileTab({ form, profile, editing, updateForm }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void;
+function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean;
 }) {
   const { t } = useLanguage();
 
@@ -646,6 +647,9 @@ function ProfileTab({ form, profile, editing, updateForm }: {
 
   return (
     <div className="space-y-6">
+      {/* Statistics */}
+      <PlayerStats userId={userId} isOwner={!readOnly} />
+
       {/* Physical + details */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
