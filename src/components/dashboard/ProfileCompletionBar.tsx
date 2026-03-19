@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { ProfileSection } from "@/hooks/useProfileCompletion";
 
