@@ -38,7 +38,7 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick }: ProfileC
             disabled={section.completed}
           >
             {section.completed ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
             ) : (
               <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
             )}
