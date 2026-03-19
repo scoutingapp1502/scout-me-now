@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
+import PlayerStats from "./PlayerStats";
 
 type PlayerProfile = Tables<"player_profiles">;
 
