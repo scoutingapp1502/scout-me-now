@@ -636,8 +636,8 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 }
 
 /* ======================== PROFILE TAB ======================== */
-function ProfileTab({ form, profile, editing, updateForm }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void;
+function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean;
 }) {
   const { t } = useLanguage();
 
