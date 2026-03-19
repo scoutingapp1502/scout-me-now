@@ -643,7 +643,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   <li>Adaugă competențele dobândite la fiecare experiență</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
           <div className="flex items-center gap-2">
             {editingSection === "experience" && (
