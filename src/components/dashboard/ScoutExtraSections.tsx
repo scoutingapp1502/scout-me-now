@@ -61,6 +61,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   const { toast } = useToast();
   const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingDocIndex, setUploadingDocIndex] = useState<number | null>(null);
 
   // Education
   const [education, setEducation] = useState<Education[]>([]);
