@@ -45,18 +45,24 @@ export function calcScoutCompletion(
     title?: string | null;
     organization?: string | null;
     skills?: string[] | null;
+    languages?: string[] | null;
   },
   hasExperience: boolean,
   hasPost: boolean,
+  hasEducation: boolean,
+  hasCertification: boolean,
 ): number {
   let pct = 0;
-  if (data.photo_url) pct += 15;
-  if (data.first_name && data.last_name && data.country) pct += 15;
-  if (data.cover_photo_url) pct += 10;
-  if (data.bio && data.bio.length > 10) pct += 15;
+  if (data.photo_url) pct += 10;
+  if (data.first_name && data.last_name && data.country) pct += 10;
+  if (data.cover_photo_url) pct += 5;
+  if (data.bio && data.bio.length > 10) pct += 10;
   if (data.title || data.organization) pct += 10;
-  if (data.skills && data.skills.length > 0) pct += 15;
-  if (hasExperience) pct += 10;
-  if (hasPost) pct += 10;
+  if (data.skills && data.skills.length > 0) pct += 10;
+  if (hasExperience) pct += 15;
+  if (hasEducation) pct += 10;
+  if (hasCertification) pct += 10;
+  if (data.languages && data.languages.length > 0) pct += 5;
+  if (hasPost) pct += 5;
   return pct;
 }

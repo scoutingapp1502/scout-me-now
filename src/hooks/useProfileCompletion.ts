@@ -90,10 +90,12 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
         setPercentage(s.reduce((acc, sec) => acc + (sec.completed ? sec.weight : 0), 0));
       } else {
         // Scout
-        const [profileRes, expRes, postsRes] = await Promise.all([
+        const [profileRes, expRes, postsRes, eduRes, certRes] = await Promise.all([
           supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
           supabase.from("scout_experiences").select("id").eq("user_id", userId).limit(1),
           supabase.from("scout_posts").select("id").eq("user_id", userId).limit(1),
+          supabase.from("scout_education").select("id").eq("user_id", userId).limit(1),
+          supabase.from("scout_certifications").select("id").eq("user_id", userId).limit(1),
         ]);
 
         const data = profileRes.data;
@@ -110,28 +112,28 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
             labelRo: "Fotografie de profil",
             labelEn: "Profile photo",
             completed: !!data.photo_url,
-            weight: 15,
+            weight: 10,
           },
           {
             key: "basic",
             labelRo: "Informații de bază",
             labelEn: "Basic information",
             completed: !!(data.first_name && data.last_name && data.country),
-            weight: 15,
+            weight: 10,
           },
           {
             key: "cover",
             labelRo: "Fotografie de copertă",
             labelEn: "Cover photo",
             completed: !!data.cover_photo_url,
-            weight: 10,
+            weight: 5,
           },
           {
             key: "bio",
             labelRo: "Despre mine",
             labelEn: "About me",
             completed: !!(data.bio && data.bio.length > 10),
-            weight: 15,
+            weight: 10,
           },
           {
             key: "title",
@@ -145,21 +147,42 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
             labelRo: "Aptitudini de top",
             labelEn: "Top skills",
             completed: !!(data.skills && data.skills.length > 0),
-            weight: 15,
+            weight: 10,
           },
           {
             key: "experience",
             labelRo: "Experiență profesională",
             labelEn: "Professional experience",
             completed: !!(expRes.data && expRes.data.length > 0),
+            weight: 15,
+          },
+          {
+            key: "education",
+            labelRo: "Studii",
+            labelEn: "Education",
+            completed: !!(eduRes.data && eduRes.data.length > 0),
             weight: 10,
+          },
+          {
+            key: "certifications",
+            labelRo: "Licențe și atestate",
+            labelEn: "Certifications",
+            completed: !!(certRes.data && certRes.data.length > 0),
+            weight: 10,
+          },
+          {
+            key: "languages",
+            labelRo: "Limbi cunoscute",
+            labelEn: "Languages",
+            completed: !!(data.languages && data.languages.length > 0),
+            weight: 5,
           },
           {
             key: "activity",
             labelRo: "Activitate (postări)",
             labelEn: "Activity (posts)",
             completed: !!(postsRes.data && postsRes.data.length > 0),
-            weight: 10,
+            weight: 5,
           },
         ];
 
@@ -174,10 +197,8 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
   }, [userId, role]);
 
   return { sections, percentage, loading, refetch: () => {
-    // Trigger re-calculation by toggling loading
     if (userId && role) {
       setLoading(true);
-      // Re-run by changing a dep - we'll just call the effect manually
       const event = new Event("profile-updated");
       window.dispatchEvent(event);
     }
