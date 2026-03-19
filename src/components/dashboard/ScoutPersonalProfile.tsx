@@ -601,7 +601,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                {editing ? (
+                {editingSection === "experience" ? (
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <Input value={exp.role || ""} onChange={e => updateExp(index, "role", e.target.value)} placeholder="Rol (ex: First team scout)" className="bg-muted border-border text-white text-sm flex-1" />
