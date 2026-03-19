@@ -138,6 +138,27 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
     }
   };
 
+  const handleEduDocUpload = async (file: File) => {
+    setUploadingEduDoc(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${userId}/edu-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("scout-documents").upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("scout-documents").getPublicUrl(path);
+      const currentDocs = eduForm.documents || [];
+      setEduForm(prev => ({ ...prev, documents: [...currentDocs, urlData.publicUrl] }));
+      toast({ title: "Document încărcat!" });
+    } catch (err: any) {
+      toast({ title: "Eroare la încărcare", description: err.message, variant: "destructive" });
+    } finally { setUploadingEduDoc(false); }
+  };
+
+  const removeEduDoc = (docIndex: number) => {
+    const currentDocs = eduForm.documents || [];
+    setEduForm(prev => ({ ...prev, documents: currentDocs.filter((_, i) => i !== docIndex) }));
+  };
+
   // === Certifications ===
   const openCertDialog = () => {
     setCertForm({ user_id: userId, name: "", issuing_organization: "", issue_date: "", expiry_date: "", credential_url: "", documents: [] });
