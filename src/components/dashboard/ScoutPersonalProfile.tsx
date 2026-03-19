@@ -330,7 +330,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                       : "Completează profilul"}
                   </h1>
                   {profile?.title && (
-                    <p className="text-white/80 font-body text-base mt-1">
+                    <p className="text-foreground/80 font-body text-base mt-1">
                       {profile.title}
                       {profile.organization && <span> @{profile.organization}</span>}
                     </p>
