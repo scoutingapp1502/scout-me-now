@@ -401,7 +401,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   <li>Păstrează un ton profesional dar autentic, 3-5 propoziții sunt ideale</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
           {!readOnly && editingSection !== "about" && (
             <button onClick={() => setEditingSection("about")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
