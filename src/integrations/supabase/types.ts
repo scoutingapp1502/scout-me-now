@@ -210,6 +210,7 @@ export type Database = {
         Row: {
           created_at: string
           credential_url: string | null
+          documents: string[] | null
           expiry_date: string | null
           id: string
           issue_date: string | null
@@ -221,6 +222,7 @@ export type Database = {
         Insert: {
           created_at?: string
           credential_url?: string | null
+          documents?: string[] | null
           expiry_date?: string | null
           id?: string
           issue_date?: string | null
@@ -232,6 +234,7 @@ export type Database = {
         Update: {
           created_at?: string
           credential_url?: string | null
+          documents?: string[] | null
           expiry_date?: string | null
           id?: string
           issue_date?: string | null
