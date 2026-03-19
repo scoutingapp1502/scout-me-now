@@ -397,49 +397,106 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
               <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
                 <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru limbi cunoscute:</p>
                 <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>Adaugă toate limbile pe care le vorbești (ex: Română, Engleză, Spaniolă)</li>
+                  <li>Adaugă toate limbile pe care le vorbești</li>
                   <li>Limbile străine sunt un avantaj major în scouting internațional</li>
-                  <li>Include și nivelul dacă dorești (ex: „Engleză - Avansat")</li>
-                  <li>Separă limbile cu virgulă</li>
+                  <li>Specifică nivelul de competență pentru fiecare limbă</li>
                 </ul>
               </PopoverContent>
             </Popover>
           </div>
-          <div className="flex items-center gap-2">
-            {editingSection === "languages" && (
-              <Button size="sm" onClick={handleSaveLanguages} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-                {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                {saving ? "..." : "Salvează"}
-              </Button>
-            )}
-            {!readOnly && editingSection !== "languages" && (
-              <button onClick={() => setEditingSection("languages")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
-                <Edit2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          {!readOnly && (
+            <Button variant="outline" size="sm" onClick={() => { setLangInput(""); setLangLevel(""); setLangError(""); setLangSuggestions([]); setShowLangDialog(true); }} className="text-primary border-primary/30 hover:bg-primary/10">
+              <Plus className="h-4 w-4 mr-1" /> Adaugă
+            </Button>
+          )}
         </div>
 
-        {editingSection === "languages" ? (
-          <Input
-            value={langForm}
-            onChange={e => setLangForm(e.target.value)}
-            placeholder="Română, Engleză - Avansat, Spaniolă - Intermediar (separate cu virgulă)"
-            className="bg-muted border-border text-white text-sm"
-          />
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {languages.length > 0 ? languages.map((lang, i) => (
-              <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground/80 rounded-full text-sm font-body">
-                <Languages className="h-3.5 w-3.5 text-primary" />
-                {lang}
-              </span>
-            )) : (
-              <p className="text-muted-foreground italic text-sm font-body">Nicio limbă adăugată.</p>
-            )}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {languages.length > 0 ? languages.map((lang, i) => (
+            <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground/80 rounded-full text-sm font-body">
+              <Languages className="h-3.5 w-3.5 text-primary" />
+              {lang}
+              {!readOnly && (
+                <button onClick={() => handleRemoveLanguage(i)} className="ml-1 hover:text-destructive transition-colors">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </span>
+          )) : (
+            <p className="text-muted-foreground italic text-sm font-body">Nicio limbă adăugată.</p>
+          )}
+        </div>
       </div>
+
+      {/* Language Dialog */}
+      <Dialog open={showLangDialog} onOpenChange={setShowLangDialog}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground font-display text-xl">Adăugați o limbă cunoscută</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground text-sm">Identificați-vă singur limba și competențele.</p>
+          
+          <div className="space-y-4 mt-2">
+            <div className="space-y-1.5 relative">
+              <Label className="text-foreground text-sm">Limbă*</Label>
+              <Input
+                ref={langInputRef}
+                value={langInput}
+                onChange={e => handleLangInputChange(e.target.value)}
+                placeholder="Căutați o limbă..."
+                className="bg-background border-border text-foreground text-sm"
+              />
+              {langError && (
+                <p className="text-destructive text-xs flex items-center gap-1">
+                  <span className="inline-block w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-center text-xs leading-4">⊘</span>
+                  {langError}
+                </p>
+              )}
+              {langSuggestions.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg overflow-hidden">
+                  {langSuggestions.map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => { setLangInput(s); setLangSuggestions([]); }}
+                      className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent/50 transition-colors"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Nivel de competență</Label>
+              <Select value={langLevel} onValueChange={setLangLevel}>
+                <SelectTrigger className="bg-background border-border text-foreground text-sm">
+                  <SelectValue placeholder="Selectați competența" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {PROFICIENCY_LEVELS.map(l => (
+                    <SelectItem key={l.value} value={l.value} className="text-foreground">
+                      <div>
+                        <span className="font-medium">{l.value}</span>
+                        <span className="text-muted-foreground text-xs ml-2">— {l.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowLangDialog(false)} className="border-border text-foreground">Anulează</Button>
+              <Button onClick={handleAddLanguage} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                Salvează
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
