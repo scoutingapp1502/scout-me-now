@@ -282,7 +282,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl text-foreground">Studii</h2>
-            <Popover>
+            {!readOnly && <Popover>
               <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru studii">
                   <Info className="h-4 w-4" />
@@ -297,7 +297,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   <li>Adaugă perioada studiilor pentru un profil complet</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
           {!readOnly && (
             <button onClick={openEduDialog} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Adaugă studiu">
@@ -353,7 +353,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl text-foreground">Licențe și Atestate</h2>
-            <Popover>
+            {!readOnly && <Popover>
               <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru licențe">
                   <Info className="h-4 w-4" />
@@ -369,7 +369,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   <li>Include data obținerii și data expirării (dacă e cazul)</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
           {!readOnly && (
             <button onClick={openCertDialog} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Adaugă licență">
@@ -427,7 +427,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl text-foreground">Limbi cunoscute</h2>
-            <Popover>
+            {!readOnly && <Popover>
               <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru limbi">
                   <Info className="h-4 w-4" />
@@ -441,7 +441,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   <li>Specifică nivelul de competență pentru fiecare limbă</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
           {!readOnly && (
             <button onClick={() => { setLangInput(""); setLangLevel(""); setLangError(""); setLangSuggestions([]); setShowLangDialog(true); }} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">

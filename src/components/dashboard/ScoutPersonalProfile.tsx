@@ -291,7 +291,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex-1">
               {/* Info tooltip for header */}
-              {editingSection !== "header" && (
+              {!readOnly && editingSection !== "header" && (
                 <div className="mb-2">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -385,7 +385,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl text-foreground">Despre</h2>
-            <Popover>
+            {!readOnly && <Popover>
               <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru secțiunea Despre">
                   <Info className="h-4 w-4" />
@@ -401,7 +401,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   <li>Păstrează un ton profesional dar autentic, 3-5 propoziții sunt ideale</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
           {!readOnly && editingSection !== "about" && (
             <button onClick={() => setEditingSection("about")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
@@ -433,7 +433,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           <div className="flex items-center gap-2 mb-2">
             <Award className="h-5 w-5 text-primary" />
             <h3 className="font-display text-lg text-foreground">Aptitudini de top</h3>
-            <Popover>
+            {!readOnly && <Popover>
               <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru aptitudini">
                   <Info className="h-4 w-4" />
@@ -448,7 +448,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   <li>3-6 aptitudini sunt suficiente pentru un profil echilibrat</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
           {editingSection === "about" ? (
             <SkillsEditor skills={form.skills || []} onChange={(skills) => updateForm("skills", skills)} />
@@ -471,7 +471,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl text-foreground">Activitate</h2>
-            <Popover>
+            {!readOnly && <Popover>
               <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru activitate">
                   <Info className="h-4 w-4" />
@@ -487,7 +487,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   <li>Un ton profesional și informatv atrage atenția cluburilor</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
         </div>
         <p className="text-muted-foreground text-sm font-body mb-4">{posts.length} postări</p>
@@ -627,7 +627,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl text-foreground">Experiență</h2>
-            <Popover>
+            {!readOnly && <Popover>
               <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru experiență">
                   <Info className="h-4 w-4" />
@@ -643,7 +643,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   <li>Adaugă competențele dobândite la fiecare experiență</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
           <div className="flex items-center gap-2">
             {editingSection === "experience" && (
