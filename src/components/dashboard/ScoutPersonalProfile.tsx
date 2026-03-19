@@ -130,7 +130,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
     setExpForms(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = async () => {
+  const handleSaveHeader = async () => {
     setSaving(true);
     try {
       let photoUrl = form.photo_url;
@@ -152,23 +152,51 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         coverUrl = urlData.publicUrl;
       }
 
-      const payload = {
+      const { error } = await supabase.from("scout_profiles").update({
         first_name: form.first_name,
         last_name: form.last_name,
         title: form.title,
         organization: form.organization,
         country: form.country,
-        bio: form.bio,
-        skills: form.skills,
         photo_url: photoUrl,
         cover_photo_url: coverUrl,
-      };
-
-      const { error } = await supabase.from("scout_profiles").update(payload).eq("user_id", userId);
+      }).eq("user_id", userId);
       if (error) throw error;
 
-      // Save experiences
-      // Delete removed ones
+      toast({ title: "Profil actualizat cu succes!" });
+      setEditingSection(null);
+      setAvatarFile(null);
+      setCoverFile(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveAbout = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("scout_profiles").update({
+        bio: form.bio,
+        skills: form.skills,
+      }).eq("user_id", userId);
+      if (error) throw error;
+
+      toast({ title: "Secțiunea Despre actualizată!" });
+      setEditingSection(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveExperience = async () => {
+    setSaving(true);
+    try {
       const existingIds = experiences.map(e => e.id);
       const keptIds = expForms.filter(e => e.id).map(e => e.id!);
       const removedIds = existingIds.filter(id => !keptIds.includes(id));
@@ -176,7 +204,6 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         await supabase.from("scout_experiences").delete().in("id", removedIds);
       }
 
-      // Upsert experiences
       for (let i = 0; i < expForms.length; i++) {
         const exp = expForms[i];
         const expPayload = {
@@ -197,10 +224,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         }
       }
 
-      toast({ title: "Profil actualizat cu succes!" });
-      setEditing(false);
-      setAvatarFile(null);
-      setCoverFile(null);
+      toast({ title: "Experiența actualizată!" });
+      setEditingSection(null);
       fetchData();
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
