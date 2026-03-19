@@ -90,9 +90,10 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
         setPercentage(s.reduce((acc, sec) => acc + (sec.completed ? sec.weight : 0), 0));
       } else {
         // Scout
-        const [profileRes, expRes] = await Promise.all([
+        const [profileRes, expRes, postsRes] = await Promise.all([
           supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
           supabase.from("scout_experiences").select("id").eq("user_id", userId).limit(1),
+          supabase.from("scout_posts").select("id").eq("user_id", userId).limit(1),
         ]);
 
         const data = profileRes.data;
@@ -109,35 +110,56 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
             labelRo: "Fotografie de profil",
             labelEn: "Profile photo",
             completed: !!data.photo_url,
-            weight: 20,
+            weight: 15,
           },
           {
             key: "basic",
             labelRo: "Informații de bază",
             labelEn: "Basic information",
             completed: !!(data.first_name && data.last_name && data.country),
-            weight: 20,
+            weight: 15,
+          },
+          {
+            key: "cover",
+            labelRo: "Fotografie de copertă",
+            labelEn: "Cover photo",
+            completed: !!data.cover_photo_url,
+            weight: 10,
           },
           {
             key: "bio",
-            labelRo: "Biografie",
-            labelEn: "Biography",
+            labelRo: "Despre mine",
+            labelEn: "About me",
             completed: !!(data.bio && data.bio.length > 10),
-            weight: 20,
+            weight: 15,
+          },
+          {
+            key: "title",
+            labelRo: "Titlu / Organizație",
+            labelEn: "Title / Organization",
+            completed: !!(data.title || data.organization),
+            weight: 10,
           },
           {
             key: "skills",
-            labelRo: "Aptitudini",
-            labelEn: "Skills",
+            labelRo: "Aptitudini de top",
+            labelEn: "Top skills",
             completed: !!(data.skills && data.skills.length > 0),
-            weight: 20,
+            weight: 15,
           },
           {
             key: "experience",
             labelRo: "Experiență profesională",
             labelEn: "Professional experience",
             completed: !!(expRes.data && expRes.data.length > 0),
-            weight: 20,
+            weight: 10,
+          },
+          {
+            key: "activity",
+            labelRo: "Activitate (postări)",
+            labelEn: "Activity (posts)",
+            completed: !!(postsRes.data && postsRes.data.length > 0),
+            weight: 10,
           },
         ];
 
