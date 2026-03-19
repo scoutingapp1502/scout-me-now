@@ -18,7 +18,7 @@ const Auth = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
 
-  const [tab, setTab] = useState<"login" | "register">(
+  const [tab, setTab] = useState<"login" | "register" | "forgot">(
     searchParams.get("tab") === "login" ? "login" : "register"
   );
   const [role, setRole] = useState<"player" | "scout">(
@@ -80,6 +80,22 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: t.auth.resetSent, description: t.auth.resetSentDesc });
+    } catch (error: any) {
+      toast({ title: t.auth.passwordResetError, description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pitch via-pitch/95 to-primary/20 flex items-center justify-center p-4">
       <div className="absolute inset-0 opacity-5" style={{
@@ -103,97 +119,124 @@ const Auth = () => {
               <span className="text-primary-foreground text-2xl">⚽</span>
             </div>
             <CardTitle className="font-display text-3xl text-foreground">
-              {tab === "register" ? t.auth.createAccount : t.auth.login}
+              {tab === "register" ? t.auth.createAccount : tab === "forgot" ? t.auth.forgotPasswordTitle : t.auth.login}
             </CardTitle>
             <CardDescription className="font-body">
-              {tab === "register" ? t.auth.registerDesc : t.auth.loginDesc}
+              {tab === "register" ? t.auth.registerDesc : tab === "forgot" ? t.auth.forgotPasswordDesc : t.auth.loginDesc}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex mb-6 bg-muted rounded-lg p-1">
-              <button onClick={() => setTab("register")} className={`flex-1 py-2 rounded-md text-sm font-medium font-body transition-all ${tab === "register" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}>
-                {t.auth.tabRegister}
-              </button>
-              <button onClick={() => setTab("login")} className={`flex-1 py-2 rounded-md text-sm font-medium font-body transition-all ${tab === "login" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}>
-                {t.auth.tabLogin}
-              </button>
-            </div>
+            {tab !== "forgot" && (
+              <div className="flex mb-6 bg-muted rounded-lg p-1">
+                <button onClick={() => setTab("register")} className={`flex-1 py-2 rounded-md text-sm font-medium font-body transition-all ${tab === "register" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}>
+                  {t.auth.tabRegister}
+                </button>
+                <button onClick={() => setTab("login")} className={`flex-1 py-2 rounded-md text-sm font-medium font-body transition-all ${tab === "login" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}>
+                  {t.auth.tabLogin}
+                </button>
+              </div>
+            )}
 
-            <form onSubmit={tab === "register" ? handleRegister : handleLogin} className="space-y-4">
-              {tab === "register" && (
-                <>
+            {tab === "forgot" ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="font-body">{t.auth.email}</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.auth.emailPlaceholder} required />
+                </div>
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-5" disabled={loading}>
+                  {loading ? t.auth.processing : t.auth.sendResetLink}
+                </Button>
+                <p className="text-center text-sm text-muted-foreground mt-4 font-body">
+                  <button onClick={() => setTab("login")} className="text-primary hover:underline font-medium">{t.auth.backToLogin}</button>
+                </p>
+              </form>
+            ) : (
+              <>
+                <form onSubmit={tab === "register" ? handleRegister : handleLogin} className="space-y-4">
+                  {tab === "register" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="font-body text-sm">{t.auth.accountType}</Label>
+                        <RadioGroup value={role} onValueChange={(v) => setRole(v as "player" | "scout")} className="flex gap-4">
+                          <div className="flex-1">
+                            <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${role === "player" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                              <RadioGroupItem value="player" />
+                              <div>
+                                <p className="font-semibold font-body text-sm">{t.auth.player}</p>
+                                <p className="text-xs text-muted-foreground font-body">{t.auth.playerDesc}</p>
+                              </div>
+                            </label>
+                          </div>
+                          <div className="flex-1">
+                            <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${role === "scout" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                              <RadioGroupItem value="scout" />
+                              <div>
+                                <p className="font-semibold font-body text-sm">{t.auth.scout}</p>
+                                <p className="text-xs text-muted-foreground font-body">{t.auth.scoutDesc}</p>
+                              </div>
+                            </label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName" className="font-body">{t.auth.fullName}</Label>
+                        <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.auth.fullNamePlaceholder} required />
+                      </div>
+                      {role === "player" && (
+                        <div className="space-y-2">
+                          <Label className="font-body text-sm">{t.auth.sport}</Label>
+                          <Select value={sport} onValueChange={setSport}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={t.auth.selectSport} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="football">{t.auth.sportFootball}</SelectItem>
+                              <SelectItem value="basketball">{t.auth.sportBasketball}</SelectItem>
+                              <SelectItem value="tennis">{t.auth.sportTennis}</SelectItem>
+                              <SelectItem value="handball">{t.auth.sportHandball}</SelectItem>
+                              <SelectItem value="volleyball">{t.auth.sportVolleyball}</SelectItem>
+                              <SelectItem value="rugby">{t.auth.sportRugby}</SelectItem>
+                              <SelectItem value="swimming">{t.auth.sportSwimming}</SelectItem>
+                              <SelectItem value="athletics">{t.auth.sportAthletics}</SelectItem>
+                              <SelectItem value="other">{t.auth.sportOther}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </>
+                  )}
+
                   <div className="space-y-2">
-                    <Label className="font-body text-sm">{t.auth.accountType}</Label>
-                    <RadioGroup value={role} onValueChange={(v) => setRole(v as "player" | "scout")} className="flex gap-4">
-                      <div className="flex-1">
-                        <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${role === "player" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                          <RadioGroupItem value="player" />
-                          <div>
-                            <p className="font-semibold font-body text-sm">{t.auth.player}</p>
-                            <p className="text-xs text-muted-foreground font-body">{t.auth.playerDesc}</p>
-                          </div>
-                        </label>
-                      </div>
-                      <div className="flex-1">
-                        <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${role === "scout" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                          <RadioGroupItem value="scout" />
-                          <div>
-                            <p className="font-semibold font-body text-sm">{t.auth.scout}</p>
-                            <p className="text-xs text-muted-foreground font-body">{t.auth.scoutDesc}</p>
-                          </div>
-                        </label>
-                      </div>
-                    </RadioGroup>
+                    <Label htmlFor="email" className="font-body">{t.auth.email}</Label>
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.auth.emailPlaceholder} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="font-body">{t.auth.fullName}</Label>
-                    <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.auth.fullNamePlaceholder} required />
+                    <Label htmlFor="password" className="font-body">{t.auth.password}</Label>
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
                   </div>
-                  {role === "player" && (
-                    <div className="space-y-2">
-                      <Label className="font-body text-sm">{t.auth.sport}</Label>
-                      <Select value={sport} onValueChange={setSport}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={t.auth.selectSport} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="football">{t.auth.sportFootball}</SelectItem>
-                          <SelectItem value="basketball">{t.auth.sportBasketball}</SelectItem>
-                          <SelectItem value="tennis">{t.auth.sportTennis}</SelectItem>
-                          <SelectItem value="handball">{t.auth.sportHandball}</SelectItem>
-                          <SelectItem value="volleyball">{t.auth.sportVolleyball}</SelectItem>
-                          <SelectItem value="rugby">{t.auth.sportRugby}</SelectItem>
-                          <SelectItem value="swimming">{t.auth.sportSwimming}</SelectItem>
-                          <SelectItem value="athletics">{t.auth.sportAthletics}</SelectItem>
-                          <SelectItem value="other">{t.auth.sportOther}</SelectItem>
-                        </SelectContent>
-                      </Select>
+
+                  {tab === "login" && (
+                    <div className="text-right">
+                      <button type="button" onClick={() => setTab("forgot")} className="text-sm text-primary hover:underline font-body">
+                        {t.auth.forgotPassword}
+                      </button>
                     </div>
                   )}
-                </>
-              )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="font-body">{t.auth.email}</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.auth.emailPlaceholder} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="font-body">{t.auth.password}</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
-              </div>
+                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-5" disabled={loading}>
+                    {loading ? t.auth.processing : tab === "register" ? t.auth.createBtn : t.auth.loginBtn}
+                  </Button>
+                </form>
 
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-5" disabled={loading}>
-                {loading ? t.auth.processing : tab === "register" ? t.auth.createBtn : t.auth.loginBtn}
-              </Button>
-            </form>
-
-            <p className="text-center text-sm text-muted-foreground mt-4 font-body">
-              {tab === "register" ? (
-                <>{t.auth.hasAccount}{" "}<button onClick={() => setTab("login")} className="text-primary hover:underline font-medium">{t.auth.loginLink}</button></>
-              ) : (
-                <>{t.auth.noAccount}{" "}<button onClick={() => setTab("register")} className="text-primary hover:underline font-medium">{t.auth.registerLink}</button></>
-              )}
-            </p>
+                <p className="text-center text-sm text-muted-foreground mt-4 font-body">
+                  {tab === "register" ? (
+                    <>{t.auth.hasAccount}{" "}<button onClick={() => setTab("login")} className="text-primary hover:underline font-medium">{t.auth.loginLink}</button></>
+                  ) : (
+                    <>{t.auth.noAccount}{" "}<button onClick={() => setTab("register")} className="text-primary hover:underline font-medium">{t.auth.registerLink}</button></>
+                  )}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
