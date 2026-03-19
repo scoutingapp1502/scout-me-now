@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
 import PlayerStats from "./PlayerStats";
@@ -653,7 +654,26 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
       {/* Physical + details */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-display text-lg text-foreground mb-3 uppercase">{t.dashboard.profile.physicalData}</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.physicalData}</h3>
+            {!readOnly && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi date fizice">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm font-body" side="top">
+                  <p className="font-semibold mb-1">💡 Sfaturi</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Completează datele fizice cu acuratețe</li>
+                    <li>Actualizează-le periodic pentru a reflecta progresul</li>
+                    <li>Scouterii verifică aceste date frecvent</li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
           {editing ? (
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="number" value={form.height_cm ?? ""} onChange={(e) => updateForm("height_cm", parseInt(e.target.value) || null)} className="text-white" /></div>
@@ -683,7 +703,26 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-display text-lg text-foreground mb-3 uppercase">{t.dashboard.profile.agentContact}</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.agentContact}</h3>
+            {!readOnly && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi contact agent">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm font-body" side="top">
+                  <p className="font-semibold mb-1">💡 Sfaturi</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Adaugă datele agentului pentru contactări rapide</li>
+                    <li>Verifică adresa de email să fie corectă</li>
+                    <li>Include un număr de telefon activ</li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
           {editing ? (
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} className="text-white" /></div>
@@ -711,6 +750,23 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <h3 className="font-display text-2xl text-foreground">{t.dashboard.profile.about}</h3>
+            {!readOnly && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi despre">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm font-body" side="top">
+                  <p className="font-semibold mb-1">💡 Sfaturi</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Descrie parcursul tău sportiv pe scurt</li>
+                    <li>Menționează echipele anterioare și performanțele</li>
+                    <li>Încarcă documente justificative pentru credibilitate</li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
           {editing && (
             <span className="text-xs text-muted-foreground font-body">Editare activă</span>
@@ -742,8 +798,25 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
 
       {/* Achievements / Palmares */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="relative bg-accent px-5 py-3">
+        <div className="relative bg-accent px-5 py-3 flex items-center justify-between">
           <h3 className="font-display text-xl text-accent-foreground uppercase">{t.dashboard.profile.achievements}</h3>
+          {!readOnly && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-accent-foreground/60 hover:text-accent-foreground transition-colors z-10" aria-label="Sfaturi palmares">
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="text-sm font-body" side="top">
+                <p className="font-semibold mb-1">💡 Sfaturi</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                  <li>Listează trofeele și premiile câștigate</li>
+                  <li>Include competițiile și anul</li>
+                  <li>Încarcă diplomele sau certificatele ca dovadă</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
+          )}
           <div className="absolute right-0 top-0 w-16 h-full bg-gradient-to-l from-accent/50 to-transparent" />
         </div>
         <div className="p-5">
