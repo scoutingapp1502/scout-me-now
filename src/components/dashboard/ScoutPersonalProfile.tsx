@@ -319,33 +319,35 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
               )}
             </div>
 
-            {/* Organization badge */}
-            {editingSection !== "header" && profile?.organization && (
-              <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                <Building2 className="h-5 w-5 text-primary" />
-                <span className="text-sm font-body text-foreground">{profile.organization}</span>
-              </div>
-            )}
+            {/* Right side: Edit button above Organization badge */}
+            <div className="flex flex-col items-end gap-2">
+              {!readOnly && editingSection !== "header" && (
+                <button
+                  onClick={() => setEditingSection("header")}
+                  className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50"
+                  title="Editează"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+              )}
+              {editingSection !== "header" && profile?.organization && (
+                <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-body text-foreground">{profile.organization}</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex gap-3 mt-4">
-            {!readOnly && editingSection === "header" && (
+          {/* Save button for header */}
+          {!readOnly && editingSection === "header" && (
+            <div className="flex gap-3 mt-4">
               <Button onClick={handleSaveHeader} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 {saving ? "..." : "Salvează"}
               </Button>
-            )}
-            {!readOnly && editingSection !== "header" && (
-              <button
-                onClick={() => setEditingSection("header")}
-                className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50"
-                title="Editează"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
       </div>
