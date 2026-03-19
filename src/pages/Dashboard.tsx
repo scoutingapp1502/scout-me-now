@@ -174,6 +174,15 @@ const Dashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-background dark">
+      {showWizard && userRole && (
+        <OnboardingWizard
+          sections={sections}
+          percentage={percentage}
+          role={userRole}
+          onGoToSection={handleWizardGoToSection}
+          onDismiss={handleWizardDismiss}
+        />
+      )}
       {isMobile ? (
         <>
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -194,6 +203,13 @@ const Dashboard = () => {
               <span className="font-display text-xl text-primary">⚽ SPORTRISE</span>
             </header>
             <main className="flex-1 p-4 overflow-y-auto">
+              {!completionLoading && percentage < 100 && (
+                <ProfileCompletionBar
+                  percentage={percentage}
+                  sections={sections}
+                  onSectionClick={handleWizardGoToSection}
+                />
+              )}
               {renderSection()}
             </main>
           </div>
@@ -207,6 +223,13 @@ const Dashboard = () => {
             profileLabel={sidebarFirstLabel}
           />
           <main className="flex-1 p-8 overflow-y-auto">
+            {!completionLoading && percentage < 100 && (
+              <ProfileCompletionBar
+                percentage={percentage}
+                sections={sections}
+                onSectionClick={handleWizardGoToSection}
+              />
+            )}
             {renderSection()}
           </main>
         </>
