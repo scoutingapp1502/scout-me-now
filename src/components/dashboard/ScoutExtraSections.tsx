@@ -502,8 +502,15 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
             </div>
 
             {/* Documents */}
-            <div className="space-y-3">
-              <Label className="text-foreground text-sm">Documente</Label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Label className="text-foreground text-sm">Documente</Label>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
+                  {uploadingEduDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {uploadingEduDoc ? "Se încarcă..." : "Încarcă document"}
+                  <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleEduDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingEduDoc} />
+                </label>
+              </div>
               {(eduForm.documents || []).map((doc, di) => (
                 <div key={di} className="flex items-center gap-2 text-sm">
                   <FileText className="h-4 w-4 text-primary flex-shrink-0" />
@@ -513,11 +520,6 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   </button>
                 </div>
               ))}
-              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
-                {uploadingEduDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {uploadingEduDoc ? "Se încarcă..." : "Încarcă document"}
-                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleEduDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingEduDoc} />
-              </label>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -562,8 +564,15 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
             </div>
 
             {/* Documents */}
-            <div className="space-y-3">
-              <Label className="text-foreground text-sm">Documente</Label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Label className="text-foreground text-sm">Documente</Label>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
+                  {uploadingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {uploadingDoc ? "Se încarcă..." : "Încarcă document"}
+                  <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleCertDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingDoc} />
+                </label>
+              </div>
               {(certForm.documents || []).map((doc, di) => (
                 <div key={di} className="flex items-center gap-2 text-sm">
                   <FileText className="h-4 w-4 text-primary flex-shrink-0" />
@@ -573,11 +582,6 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   </button>
                 </div>
               ))}
-              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
-                {uploadingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {uploadingDoc ? "Se încarcă..." : "Încarcă document"}
-                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleCertDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingDoc} />
-              </label>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
