@@ -255,7 +255,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
               backgroundSize: '30px 30px'
             }} />
           )}
-          {editing && (
+          {editingSection === "header" && (
             <label className="absolute top-3 right-3 bg-background/80 rounded-lg p-2 cursor-pointer hover:bg-background transition-colors">
               <Camera className="h-5 w-5 text-foreground" />
               <input type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
@@ -276,7 +276,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                 </div>
               )}
             </div>
-            {editing && (
+            {editingSection === "header" && (
               <label className="absolute bottom-1 left-20 sm:left-24 bg-primary rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors shadow-md">
                 <Camera className="h-4 w-4 text-primary-foreground" />
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -287,7 +287,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           {/* Name & Title */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex-1">
-              {editing ? (
+              {editingSection === "header" ? (
                 <div className="space-y-3">
                   <div className="flex gap-2">
                     <Input value={form.first_name || ""} onChange={e => updateForm("first_name", e.target.value)} placeholder="Prenume" className="bg-muted border-border text-white font-display text-xl h-auto py-1" />
@@ -320,7 +320,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
             </div>
 
             {/* Organization badge */}
-            {!editing && profile?.organization && (
+            {editingSection !== "header" && profile?.organization && (
               <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
                 <Building2 className="h-5 w-5 text-primary" />
                 <span className="text-sm font-body text-foreground">{profile.organization}</span>
@@ -330,25 +330,23 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
           {/* Action buttons */}
           <div className="flex gap-3 mt-4">
-            {!readOnly && (
-              <Button
-                onClick={() => editing ? handleSave() : setEditing(true)}
-                disabled={saving}
-                className={editing
-                  ? "bg-primary hover:bg-primary/90 text-primary-foreground font-body"
-                  : "bg-primary hover:bg-primary/90 text-primary-foreground font-body"
-                }
-              >
-                {editing ? (
-                  <>{saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}{saving ? "..." : "Salvează"}</>
-                ) : (
-                  <><Edit2 className="h-4 w-4 mr-2" />Editează Profilul</>
-                )}
+            {!readOnly && editingSection === "header" && (
+              <Button onClick={handleSaveHeader} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                {saving ? "..." : "Salvează"}
               </Button>
+            )}
+            {!readOnly && editingSection !== "header" && (
+              <button
+                onClick={() => setEditingSection("header")}
+                className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50"
+                title="Editează"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
             )}
           </div>
         </div>
-      </div>
 
       {/* ===== DESPRE / BIO ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
