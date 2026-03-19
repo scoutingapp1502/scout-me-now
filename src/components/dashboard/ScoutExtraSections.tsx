@@ -327,6 +327,16 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   {edu.end_date && <span>{edu.end_date}</span>}
                 </p>
                 {edu.description && <p className="text-foreground/70 font-body text-sm mt-2 whitespace-pre-line">{edu.description}</p>}
+                {edu.documents && edu.documents.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {edu.documents.map((doc, di) => (
+                      <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md text-xs text-foreground/70 hover:text-primary transition-colors font-body">
+                        <FileText className="h-3.5 w-3.5" />
+                        {decodeURIComponent(doc.split("/").pop() || "Document")}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               {!readOnly && edu.id && (
                 <button onClick={() => handleDeleteEducation(edu.id!)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 self-start">
