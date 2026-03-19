@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Plus, Trash2, Loader2, Save, GraduationCap, BadgeCheck, Languages, Info, X, Upload, FileText } from "lucide-react";
+import { Edit2, Plus, Trash2, Loader2, GraduationCap, BadgeCheck, Languages, Info, X, Upload, FileText } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -55,21 +55,20 @@ type Certification = {
   sort_order: number;
 };
 
-type EditingSection = "education" | "certifications" | "languages" | null;
-
 const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProps) => {
   const { toast } = useToast();
-  const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [saving, setSaving] = useState(false);
-  const [uploadingDocIndex, setUploadingDocIndex] = useState<number | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   // Education
   const [education, setEducation] = useState<Education[]>([]);
-  const [eduForms, setEduForms] = useState<Partial<Education>[]>([]);
+  const [showEduDialog, setShowEduDialog] = useState(false);
+  const [eduForm, setEduForm] = useState<Partial<Education>>({});
 
   // Certifications
   const [certifications, setCertifications] = useState<Certification[]>([]);
-  const [certForms, setCertForms] = useState<Partial<Certification>[]>([]);
+  const [showCertDialog, setShowCertDialog] = useState(false);
+  const [certForm, setCertForm] = useState<Partial<Certification>>({});
 
   // Languages
   const [languages, setLanguages] = useState<string[]>([]);
@@ -90,95 +89,111 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       supabase.from("scout_certifications").select("*").eq("user_id", userId).order("sort_order", { ascending: true }),
       supabase.from("scout_profiles").select("languages").eq("user_id", userId).maybeSingle(),
     ]);
-    if (eduRes.data) { setEducation(eduRes.data as Education[]); setEduForms(eduRes.data as Education[]); }
-    if (certRes.data) { setCertifications(certRes.data as Certification[]); setCertForms(certRes.data as Certification[]); }
+    if (eduRes.data) setEducation(eduRes.data as Education[]);
+    if (certRes.data) setCertifications(certRes.data as Certification[]);
     const langs = (profileRes.data as any)?.languages as string[] | null;
-    if (langs) { setLanguages(langs); }
+    if (langs) setLanguages(langs);
   };
 
   // === Education ===
-  const addEducation = () => setEduForms(prev => [...prev, { user_id: userId, institution: "", degree: "", sort_order: prev.length }]);
-  const removeEducation = (i: number) => setEduForms(prev => prev.filter((_, idx) => idx !== i));
-  const updateEdu = (i: number, key: string, val: any) => setEduForms(prev => prev.map((e, idx) => idx === i ? { ...e, [key]: val } : e));
+  const openEduDialog = () => {
+    setEduForm({ user_id: userId, institution: "", degree: "", field_of_study: "", start_date: "", end_date: "", description: "" });
+    setShowEduDialog(true);
+  };
 
   const handleSaveEducation = async () => {
+    if (!eduForm.institution && !eduForm.degree) return;
     setSaving(true);
     try {
-      await supabase.from("scout_education").delete().eq("user_id", userId);
-      const toInsert = eduForms.filter(e => e.institution || e.degree).map((e, i) => ({
+      const { error } = await supabase.from("scout_education").insert({
         user_id: userId,
-        institution: e.institution || "",
-        degree: e.degree || "",
-        field_of_study: e.field_of_study || null,
-        start_date: e.start_date || null,
-        end_date: e.end_date || null,
-        description: e.description || null,
-        sort_order: i,
-      }));
-      if (toInsert.length > 0) {
-        const { error } = await supabase.from("scout_education").insert(toInsert);
-        if (error) throw error;
-      }
+        institution: eduForm.institution || "",
+        degree: eduForm.degree || "",
+        field_of_study: eduForm.field_of_study || null,
+        start_date: eduForm.start_date || null,
+        end_date: eduForm.end_date || null,
+        description: eduForm.description || null,
+        sort_order: education.length,
+      });
+      if (error) throw error;
       const { data } = await supabase.from("scout_education").select("*").eq("user_id", userId).order("sort_order", { ascending: true });
-      if (data) { setEducation(data as Education[]); setEduForms(data as Education[]); }
-      setEditingSection(null);
-      toast({ title: "Studii salvate!" });
+      if (data) setEducation(data as Education[]);
+      setShowEduDialog(false);
+      toast({ title: "Studiu adăugat!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
+  };
+
+  const handleDeleteEducation = async (id: string) => {
+    try {
+      await supabase.from("scout_education").delete().eq("id", id);
+      setEducation(prev => prev.filter(e => e.id !== id));
+      toast({ title: "Studiu eliminat!" });
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    }
   };
 
   // === Certifications ===
-  const addCertification = () => setCertForms(prev => [...prev, { user_id: userId, name: "", issuing_organization: "", sort_order: prev.length }]);
-  const removeCertification = (i: number) => setCertForms(prev => prev.filter((_, idx) => idx !== i));
-  const updateCert = (i: number, key: string, val: any) => setCertForms(prev => prev.map((c, idx) => idx === i ? { ...c, [key]: val } : c));
+  const openCertDialog = () => {
+    setCertForm({ user_id: userId, name: "", issuing_organization: "", issue_date: "", expiry_date: "", credential_url: "", documents: [] });
+    setShowCertDialog(true);
+  };
 
-  const handleSaveCertifications = async () => {
+  const handleSaveCertification = async () => {
+    if (!certForm.name && !certForm.issuing_organization) return;
     setSaving(true);
     try {
-      await supabase.from("scout_certifications").delete().eq("user_id", userId);
-      const toInsert = certForms.filter(c => c.name || c.issuing_organization).map((c, i) => ({
+      const { error } = await supabase.from("scout_certifications").insert({
         user_id: userId,
-        name: c.name || "",
-        issuing_organization: c.issuing_organization || "",
-        issue_date: c.issue_date || null,
-        expiry_date: c.expiry_date || null,
-        credential_url: c.credential_url || null,
-        documents: c.documents || [],
-        sort_order: i,
-      }));
-      if (toInsert.length > 0) {
-        const { error } = await supabase.from("scout_certifications").insert(toInsert);
-        if (error) throw error;
-      }
+        name: certForm.name || "",
+        issuing_organization: certForm.issuing_organization || "",
+        issue_date: certForm.issue_date || null,
+        expiry_date: certForm.expiry_date || null,
+        credential_url: certForm.credential_url || null,
+        documents: certForm.documents || [],
+        sort_order: certifications.length,
+      });
+      if (error) throw error;
       const { data } = await supabase.from("scout_certifications").select("*").eq("user_id", userId).order("sort_order", { ascending: true });
-      if (data) { setCertifications(data as Certification[]); setCertForms(data as Certification[]); }
-      setEditingSection(null);
-      toast({ title: "Licențe și atestate salvate!" });
+      if (data) setCertifications(data as Certification[]);
+      setShowCertDialog(false);
+      toast({ title: "Licență/atestat adăugat!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
   };
 
-  const handleCertDocUpload = async (certIndex: number, file: File) => {
-    setUploadingDocIndex(certIndex);
+  const handleDeleteCertification = async (id: string) => {
+    try {
+      await supabase.from("scout_certifications").delete().eq("id", id);
+      setCertifications(prev => prev.filter(c => c.id !== id));
+      toast({ title: "Licență/atestat eliminat!" });
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleCertDocUpload = async (file: File) => {
+    setUploadingDoc(true);
     try {
       const ext = file.name.split(".").pop();
       const path = `${userId}/cert-${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("scout-documents").upload(path, file);
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from("scout-documents").getPublicUrl(path);
-      const currentDocs = certForms[certIndex].documents || [];
-      updateCert(certIndex, "documents", [...currentDocs, urlData.publicUrl]);
+      const currentDocs = certForm.documents || [];
+      setCertForm(prev => ({ ...prev, documents: [...currentDocs, urlData.publicUrl] }));
       toast({ title: "Document încărcat!" });
     } catch (err: any) {
       toast({ title: "Eroare la încărcare", description: err.message, variant: "destructive" });
-    } finally { setUploadingDocIndex(null); }
+    } finally { setUploadingDoc(false); }
   };
 
-  const handleRemoveCertDoc = (certIndex: number, docIndex: number) => {
-    const currentDocs = certForms[certIndex].documents || [];
-    updateCert(certIndex, "documents", currentDocs.filter((_, i) => i !== docIndex));
+  const removeCertDoc = (docIndex: number) => {
+    const currentDocs = certForm.documents || [];
+    setCertForm(prev => ({ ...prev, documents: currentDocs.filter((_, i) => i !== docIndex) }));
   };
 
   const openDocSafely = async (url: string) => {
@@ -226,8 +241,8 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
     setLangInput(val);
     setLangError("");
     if (val.trim().length > 0) {
-      const filtered = ALL_LANGUAGES.filter(l => 
-        l.toLowerCase().startsWith(val.toLowerCase()) && 
+      const filtered = ALL_LANGUAGES.filter(l =>
+        l.toLowerCase().startsWith(val.toLowerCase()) &&
         !languages.some(existing => existing.split(" - ")[0] === l)
       );
       setLangSuggestions(filtered.slice(0, 5));
@@ -260,68 +275,40 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
               </PopoverContent>
             </Popover>
           </div>
-          <div className="flex items-center gap-2">
-            {editingSection === "education" && (
-              <>
-                <Button variant="outline" size="sm" onClick={addEducation} className="text-primary border-primary/30 hover:bg-primary/10">
-                  <Plus className="h-4 w-4 mr-1" /> Adaugă
-                </Button>
-                <Button size="sm" onClick={handleSaveEducation} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-                  {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  {saving ? "..." : "Salvează"}
-                </Button>
-              </>
-            )}
-            {!readOnly && editingSection !== "education" && (
-              <button onClick={() => setEditingSection("education")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
-                <Edit2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          {!readOnly && (
+            <button onClick={openEduDialog} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Adaugă studiu">
+              <Edit2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         <div className="space-y-4">
-          {eduForms.length === 0 && editingSection !== "education" && (
+          {education.length === 0 && (
             <p className="text-muted-foreground italic text-sm font-body">Niciun studiu adăugat.</p>
           )}
-          {eduForms.map((edu, index) => (
-            <div key={edu.id || `new-${index}`} className="flex gap-4">
+          {education.map((edu) => (
+            <div key={edu.id} className="flex gap-4 group">
               <div className="flex-shrink-0 mt-1">
                 <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
                   <GraduationCap className="h-6 w-6 text-primary" />
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                {editingSection === "education" ? (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Input value={edu.institution || ""} onChange={e => updateEdu(index, "institution", e.target.value)} placeholder="Instituție" className="bg-muted border-border text-white text-sm flex-1" />
-                      <Button variant="ghost" size="icon" onClick={() => removeEducation(index)} className="text-destructive hover:text-destructive/80 flex-shrink-0">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Input value={edu.degree || ""} onChange={e => updateEdu(index, "degree", e.target.value)} placeholder="Diploma (ex: Licență, Master)" className="bg-muted border-border text-white text-sm" />
-                    <Input value={edu.field_of_study || ""} onChange={e => updateEdu(index, "field_of_study", e.target.value)} placeholder="Domeniu de studiu" className="bg-muted border-border text-white text-sm" />
-                    <div className="flex gap-2">
-                      <Input value={edu.start_date || ""} onChange={e => updateEdu(index, "start_date", e.target.value)} placeholder="Data început" className="bg-muted border-border text-white text-sm" />
-                      <Input value={edu.end_date || ""} onChange={e => updateEdu(index, "end_date", e.target.value)} placeholder="Data sfârșit" className="bg-muted border-border text-white text-sm" />
-                    </div>
-                    <Textarea value={edu.description || ""} onChange={e => updateEdu(index, "description", e.target.value)} placeholder="Descriere (opțional)" className="bg-muted border-border text-white text-sm min-h-[60px]" />
-                  </div>
-                ) : (
-                  <>
-                    <h3 className="font-body font-semibold text-foreground">{edu.degree || "Diplomă nespecificată"}</h3>
-                    <p className="text-foreground/70 font-body text-sm">{edu.institution}</p>
-                    {edu.field_of_study && <p className="text-muted-foreground font-body text-xs">{edu.field_of_study}</p>}
-                    <p className="text-muted-foreground font-body text-xs mt-0.5">
-                      {edu.start_date && <span>{edu.start_date}</span>}
-                      {edu.start_date && edu.end_date && <span> – </span>}
-                      {edu.end_date && <span>{edu.end_date}</span>}
-                    </p>
-                    {edu.description && <p className="text-foreground/70 font-body text-sm mt-2 whitespace-pre-line">{edu.description}</p>}
-                  </>
-                )}
+                <h3 className="font-body font-semibold text-foreground">{edu.degree || "Diplomă nespecificată"}</h3>
+                <p className="text-foreground/70 font-body text-sm">{edu.institution}</p>
+                {edu.field_of_study && <p className="text-muted-foreground font-body text-xs">{edu.field_of_study}</p>}
+                <p className="text-muted-foreground font-body text-xs mt-0.5">
+                  {edu.start_date && <span>{edu.start_date}</span>}
+                  {edu.start_date && edu.end_date && <span> – </span>}
+                  {edu.end_date && <span>{edu.end_date}</span>}
+                </p>
+                {edu.description && <p className="text-foreground/70 font-body text-sm mt-2 whitespace-pre-line">{edu.description}</p>}
               </div>
+              {!readOnly && edu.id && (
+                <button onClick={() => handleDeleteEducation(edu.id!)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 self-start">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -350,98 +337,52 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
               </PopoverContent>
             </Popover>
           </div>
-          <div className="flex items-center gap-2">
-            {editingSection === "certifications" && (
-              <>
-                <Button variant="outline" size="sm" onClick={addCertification} className="text-primary border-primary/30 hover:bg-primary/10">
-                  <Plus className="h-4 w-4 mr-1" /> Adaugă
-                </Button>
-                <Button size="sm" onClick={handleSaveCertifications} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-                  {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  {saving ? "..." : "Salvează"}
-                </Button>
-              </>
-            )}
-            {!readOnly && editingSection !== "certifications" && (
-              <button onClick={() => setEditingSection("certifications")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
-                <Edit2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          {!readOnly && (
+            <button onClick={openCertDialog} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Adaugă licență">
+              <Edit2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         <div className="space-y-4">
-          {certForms.length === 0 && editingSection !== "certifications" && (
+          {certifications.length === 0 && (
             <p className="text-muted-foreground italic text-sm font-body">Nicio licență sau atestat adăugat.</p>
           )}
-          {certForms.map((cert, index) => (
-            <div key={cert.id || `new-${index}`} className="flex gap-4">
+          {certifications.map((cert) => (
+            <div key={cert.id} className="flex gap-4 group">
               <div className="flex-shrink-0 mt-1">
                 <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
                   <BadgeCheck className="h-6 w-6 text-primary" />
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                {editingSection === "certifications" ? (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Input value={cert.name || ""} onChange={e => updateCert(index, "name", e.target.value)} placeholder="Denumire (ex: UEFA B License)" className="bg-muted border-border text-white text-sm flex-1" />
-                      <Button variant="ghost" size="icon" onClick={() => removeCertification(index)} className="text-destructive hover:text-destructive/80 flex-shrink-0">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Input value={cert.issuing_organization || ""} onChange={e => updateCert(index, "issuing_organization", e.target.value)} placeholder="Organizație emitentă" className="bg-muted border-border text-white text-sm" />
-                    <div className="flex gap-2">
-                      <Input value={cert.issue_date || ""} onChange={e => updateCert(index, "issue_date", e.target.value)} placeholder="Data obținerii" className="bg-muted border-border text-white text-sm" />
-                      <Input value={cert.expiry_date || ""} onChange={e => updateCert(index, "expiry_date", e.target.value)} placeholder="Data expirării (opțional)" className="bg-muted border-border text-white text-sm" />
-                    </div>
-                    <Input value={cert.credential_url || ""} onChange={e => updateCert(index, "credential_url", e.target.value)} placeholder="URL verificare (opțional)" className="bg-muted border-border text-white text-sm" />
-                    
-                    {/* Document upload */}
-                    <div className="space-y-1.5">
-                      <p className="text-muted-foreground text-xs font-body">Documente atașate:</p>
-                      {(cert.documents || []).map((doc, di) => (
-                        <div key={di} className="flex items-center gap-2 text-sm">
-                          <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                          <span className="text-foreground/70 truncate flex-1 font-body">{decodeURIComponent(doc.split("/").pop() || "Document")}</span>
-                          <button type="button" onClick={() => handleRemoveCertDoc(index, di)} className="text-destructive hover:text-destructive/80">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
-                        {uploadingDocIndex === index ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                        {uploadingDocIndex === index ? "Se încarcă..." : "Încarcă document"}
-                        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleCertDocUpload(index, e.target.files[0]); e.target.value = ""; }} disabled={uploadingDocIndex === index} />
-                      </label>
-                    </div>
+                <h3 className="font-body font-semibold text-foreground">{cert.name || "Certificare nespecificată"}</h3>
+                <p className="text-foreground/70 font-body text-sm">{cert.issuing_organization}</p>
+                <p className="text-muted-foreground font-body text-xs mt-0.5">
+                  {cert.issue_date && <span>Obținut: {cert.issue_date}</span>}
+                  {cert.expiry_date && <span> · Expiră: {cert.expiry_date}</span>}
+                </p>
+                {cert.credential_url && (
+                  <a href={cert.credential_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline mt-1 inline-block">
+                    Verifică acreditarea →
+                  </a>
+                )}
+                {cert.documents && cert.documents.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {cert.documents.map((doc, di) => (
+                      <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md text-xs text-foreground/70 hover:text-primary transition-colors font-body">
+                        <FileText className="h-3.5 w-3.5" />
+                        {decodeURIComponent(doc.split("/").pop() || "Document")}
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  <>
-                    <h3 className="font-body font-semibold text-foreground">{cert.name || "Certificare nespecificată"}</h3>
-                    <p className="text-foreground/70 font-body text-sm">{cert.issuing_organization}</p>
-                    <p className="text-muted-foreground font-body text-xs mt-0.5">
-                      {cert.issue_date && <span>Obținut: {cert.issue_date}</span>}
-                      {cert.expiry_date && <span> · Expiră: {cert.expiry_date}</span>}
-                    </p>
-                    {cert.credential_url && (
-                      <a href={cert.credential_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline mt-1 inline-block">
-                        Verifică acreditarea →
-                      </a>
-                    )}
-                    {cert.documents && cert.documents.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {cert.documents.map((doc, di) => (
-                          <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md text-xs text-foreground/70 hover:text-primary transition-colors font-body">
-                            <FileText className="h-3.5 w-3.5" />
-                            {decodeURIComponent(doc.split("/").pop() || "Document")}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
                 )}
               </div>
+              {!readOnly && cert.id && (
+                <button onClick={() => handleDeleteCertification(cert.id!)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 self-start">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -492,14 +433,118 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
         </div>
       </div>
 
-      {/* Language Dialog */}
+      {/* === Education Dialog === */}
+      <Dialog open={showEduDialog} onOpenChange={setShowEduDialog}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground font-display text-xl">Adaugă studiu</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Instituție*</Label>
+              <Input value={eduForm.institution || ""} onChange={e => setEduForm(p => ({ ...p, institution: e.target.value }))} placeholder="Ex: Universitatea din București" className="bg-background border-border text-foreground text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Diplomă*</Label>
+              <Input value={eduForm.degree || ""} onChange={e => setEduForm(p => ({ ...p, degree: e.target.value }))} placeholder="Ex: Licență, Master" className="bg-background border-border text-foreground text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Domeniu de studiu</Label>
+              <Input value={eduForm.field_of_study || ""} onChange={e => setEduForm(p => ({ ...p, field_of_study: e.target.value }))} placeholder="Ex: Management sportiv" className="bg-background border-border text-foreground text-sm" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-foreground text-sm">Data început</Label>
+                <Input value={eduForm.start_date || ""} onChange={e => setEduForm(p => ({ ...p, start_date: e.target.value }))} placeholder="Ex: 2018" className="bg-background border-border text-foreground text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-foreground text-sm">Data sfârșit</Label>
+                <Input value={eduForm.end_date || ""} onChange={e => setEduForm(p => ({ ...p, end_date: e.target.value }))} placeholder="Ex: 2022" className="bg-background border-border text-foreground text-sm" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Descriere (opțional)</Label>
+              <Textarea value={eduForm.description || ""} onChange={e => setEduForm(p => ({ ...p, description: e.target.value }))} placeholder="Descriere scurtă..." className="bg-background border-border text-foreground text-sm min-h-[60px]" />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowEduDialog(false)} className="border-border text-foreground">Anulează</Button>
+              <Button onClick={handleSaveEducation} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                Salvează
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* === Certification Dialog === */}
+      <Dialog open={showCertDialog} onOpenChange={setShowCertDialog}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground font-display text-xl">Adaugă licență / atestat</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Denumire*</Label>
+              <Input value={certForm.name || ""} onChange={e => setCertForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: UEFA B License" className="bg-background border-border text-foreground text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Organizație emitentă*</Label>
+              <Input value={certForm.issuing_organization || ""} onChange={e => setCertForm(p => ({ ...p, issuing_organization: e.target.value }))} placeholder="Ex: UEFA" className="bg-background border-border text-foreground text-sm" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-foreground text-sm">Data obținerii</Label>
+                <Input value={certForm.issue_date || ""} onChange={e => setCertForm(p => ({ ...p, issue_date: e.target.value }))} placeholder="Ex: 2023" className="bg-background border-border text-foreground text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-foreground text-sm">Data expirării</Label>
+                <Input value={certForm.expiry_date || ""} onChange={e => setCertForm(p => ({ ...p, expiry_date: e.target.value }))} placeholder="Opțional" className="bg-background border-border text-foreground text-sm" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">URL verificare</Label>
+              <Input value={certForm.credential_url || ""} onChange={e => setCertForm(p => ({ ...p, credential_url: e.target.value }))} placeholder="https://..." className="bg-background border-border text-foreground text-sm" />
+            </div>
+
+            {/* Documents */}
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Documente</Label>
+              {(certForm.documents || []).map((doc, di) => (
+                <div key={di} className="flex items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className="text-foreground/70 truncate flex-1 font-body">{decodeURIComponent(doc.split("/").pop() || "Document")}</span>
+                  <button type="button" onClick={() => removeCertDoc(di)} className="text-destructive hover:text-destructive/80">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
+                {uploadingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {uploadingDoc ? "Se încarcă..." : "Încarcă document"}
+                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleCertDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingDoc} />
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowCertDialog(false)} className="border-border text-foreground">Anulează</Button>
+              <Button onClick={handleSaveCertification} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                Salvează
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* === Language Dialog === */}
       <Dialog open={showLangDialog} onOpenChange={setShowLangDialog}>
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground font-display text-xl">Adăugați o limbă cunoscută</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground text-sm">Identificați-vă singur limba și competențele.</p>
-          
+
           <div className="space-y-4 mt-2">
             <div className="space-y-1.5 relative">
               <Label className="text-foreground text-sm">Limbă*</Label>
