@@ -798,8 +798,25 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
 
       {/* Achievements / Palmares */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="relative bg-accent px-5 py-3">
+        <div className="relative bg-accent px-5 py-3 flex items-center justify-between">
           <h3 className="font-display text-xl text-accent-foreground uppercase">{t.dashboard.profile.achievements}</h3>
+          {!readOnly && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-accent-foreground/60 hover:text-accent-foreground transition-colors z-10" aria-label="Sfaturi palmares">
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="text-sm font-body" side="top">
+                <p className="font-semibold mb-1">💡 Sfaturi</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                  <li>Listează trofeele și premiile câștigate</li>
+                  <li>Include competițiile și anul</li>
+                  <li>Încarcă diplomele sau certificatele ca dovadă</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
+          )}
           <div className="absolute right-0 top-0 w-16 h-full bg-gradient-to-l from-accent/50 to-transparent" />
         </div>
         <div className="p-5">
