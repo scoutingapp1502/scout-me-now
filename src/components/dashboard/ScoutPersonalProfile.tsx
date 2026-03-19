@@ -287,6 +287,28 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           {/* Name & Title */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex-1">
+              {/* Info tooltip for header */}
+              {editingSection !== "header" && (
+                <div className="mb-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru antet">
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+                      <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru antetul profilului:</p>
+                      <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                        <li>Folosește o fotografie profesională, clară, pe fundal neutru</li>
+                        <li>Adaugă o copertă relevantă (stadion, eveniment sportiv)</li>
+                        <li>Scrie titlul complet al rolului tău (ex: „First team scout")</li>
+                        <li>Menționează organizația/clubul la care activezi</li>
+                        <li>Adaugă locația ta pentru a fi găsit mai ușor</li>
+                      </ul>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
               {editingSection === "header" ? (
                 <div className="space-y-3">
                   <div className="flex gap-2">
