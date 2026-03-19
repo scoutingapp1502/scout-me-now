@@ -221,13 +221,6 @@ const Dashboard = () => {
               <span className="font-display text-xl text-primary">⚽ SPORTRISE</span>
             </header>
             <main className="flex-1 p-4 overflow-y-auto">
-              {!completionLoading && percentage < 100 && (
-                <ProfileCompletionBar
-                  percentage={percentage}
-                  sections={sections}
-                  onSectionClick={handleWizardGoToSection}
-                />
-              )}
               {renderSection()}
             </main>
           </div>
