@@ -477,7 +477,14 @@ const PlayersSection = () => {
           {filtered.map((player, idx) => (
             <div
               key={player.user_id}
-              onClick={() => setSelectedPlayerId(player.user_id)}
+              onClick={() => {
+                setSelectedPlayerId(player.user_id);
+                supabase.auth.getUser().then(({ data }) => {
+                  if (data.user && data.user.id !== player.user_id) {
+                    trackAnalyticsEvent(player.user_id, "profile_view", data.user.id);
+                  }
+                });
+              }}
               className="flex items-center bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors cursor-pointer group"
             >
               <div className={`relative w-20 h-24 flex-shrink-0 ${COLORS[idx % COLORS.length]} flex items-end justify-center overflow-hidden`}>
