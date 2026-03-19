@@ -250,6 +250,7 @@ export type Database = {
           created_at: string
           degree: string
           description: string | null
+          documents: string[] | null
           end_date: string | null
           field_of_study: string | null
           id: string
@@ -262,6 +263,7 @@ export type Database = {
           created_at?: string
           degree?: string
           description?: string | null
+          documents?: string[] | null
           end_date?: string | null
           field_of_study?: string | null
           id?: string
@@ -274,6 +276,7 @@ export type Database = {
           created_at?: string
           degree?: string
           description?: string | null
+          documents?: string[] | null
           end_date?: string | null
           field_of_study?: string | null
           id?: string

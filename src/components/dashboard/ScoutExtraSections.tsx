@@ -40,6 +40,7 @@ type Education = {
   start_date?: string | null;
   end_date?: string | null;
   description?: string | null;
+  documents?: string[] | null;
   sort_order: number;
 };
 
@@ -59,6 +60,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [uploadingEduDoc, setUploadingEduDoc] = useState(false);
 
   // Education
   const [education, setEducation] = useState<Education[]>([]);
@@ -97,7 +99,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
 
   // === Education ===
   const openEduDialog = () => {
-    setEduForm({ user_id: userId, institution: "", degree: "", field_of_study: "", start_date: "", end_date: "", description: "" });
+    setEduForm({ user_id: userId, institution: "", degree: "", field_of_study: "", start_date: "", end_date: "", description: "", documents: [] });
     setShowEduDialog(true);
   };
 
@@ -113,6 +115,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
         start_date: eduForm.start_date || null,
         end_date: eduForm.end_date || null,
         description: eduForm.description || null,
+        documents: eduForm.documents || [],
         sort_order: education.length,
       });
       if (error) throw error;
@@ -133,6 +136,27 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
     }
+  };
+
+  const handleEduDocUpload = async (file: File) => {
+    setUploadingEduDoc(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${userId}/edu-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("scout-documents").upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("scout-documents").getPublicUrl(path);
+      const currentDocs = eduForm.documents || [];
+      setEduForm(prev => ({ ...prev, documents: [...currentDocs, urlData.publicUrl] }));
+      toast({ title: "Document încărcat!" });
+    } catch (err: any) {
+      toast({ title: "Eroare la încărcare", description: err.message, variant: "destructive" });
+    } finally { setUploadingEduDoc(false); }
+  };
+
+  const removeEduDoc = (docIndex: number) => {
+    const currentDocs = eduForm.documents || [];
+    setEduForm(prev => ({ ...prev, documents: currentDocs.filter((_, i) => i !== docIndex) }));
   };
 
   // === Certifications ===
@@ -303,6 +327,16 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   {edu.end_date && <span>{edu.end_date}</span>}
                 </p>
                 {edu.description && <p className="text-foreground/70 font-body text-sm mt-2 whitespace-pre-line">{edu.description}</p>}
+                {edu.documents && edu.documents.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {edu.documents.map((doc, di) => (
+                      <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md text-xs text-foreground/70 hover:text-primary transition-colors font-body">
+                        <FileText className="h-3.5 w-3.5" />
+                        {decodeURIComponent(doc.split("/").pop() || "Document")}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               {!readOnly && edu.id && (
                 <button onClick={() => handleDeleteEducation(edu.id!)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 self-start">
@@ -466,6 +500,26 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
               <Label className="text-foreground text-sm">Descriere (opțional)</Label>
               <Textarea value={eduForm.description || ""} onChange={e => setEduForm(p => ({ ...p, description: e.target.value }))} placeholder="Descriere scurtă..." className="bg-background border-border text-foreground text-sm min-h-[60px]" />
             </div>
+
+            {/* Documents */}
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Documente</Label>
+              {(eduForm.documents || []).map((doc, di) => (
+                <div key={di} className="flex items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className="text-foreground/70 truncate flex-1 font-body">{decodeURIComponent(doc.split("/").pop() || "Document")}</span>
+                  <button type="button" onClick={() => removeEduDoc(di)} className="text-destructive hover:text-destructive/80">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
+                {uploadingEduDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {uploadingEduDoc ? "Se încarcă..." : "Încarcă document"}
+                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleEduDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingEduDoc} />
+              </label>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowEduDialog(false)} className="border-border text-foreground">Anulează</Button>
               <Button onClick={handleSaveEducation} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
