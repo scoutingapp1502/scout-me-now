@@ -1,11 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Plus, Trash2, Loader2, Save, GraduationCap, BadgeCheck, Languages, Info } from "lucide-react";
+import { Edit2, Plus, Trash2, Loader2, Save, GraduationCap, BadgeCheck, Languages, Info, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
+const ALL_LANGUAGES = [
+  "Română", "Engleză", "Franceză", "Spaniolă", "Germană", "Italiană", "Portugheză",
+  "Olandeză", "Rusă", "Ucraineană", "Poloneză", "Cehă", "Slovacă", "Bulgară",
+  "Sârbă", "Croată", "Maghiară", "Turcă", "Arabă", "Chineză (Mandarină)",
+  "Japoneză", "Coreeană", "Hindi", "Greacă", "Suedeză", "Norvegiană", "Daneză",
+  "Finlandeză", "Catalană", "Bască", "Galiciană", "Ebraică", "Persană",
+];
+
+const PROFICIENCY_LEVELS = [
+  { value: "Nativ", label: "Nativ sau bilingv" },
+  { value: "Avansat", label: "Competență profesională completă" },
+  { value: "Intermediar-Avansat", label: "Competență profesională limitată" },
+  { value: "Intermediar", label: "Competență elementară profesională" },
+  { value: "Începător", label: "Competență elementară" },
+];
 
 interface ScoutExtraSectionsProps {
   userId: string;
