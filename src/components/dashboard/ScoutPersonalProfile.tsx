@@ -348,6 +348,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           </div>
         </div>
 
+      </div>
+
       {/* ===== DESPRE / BIO ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center gap-2 mb-3">
