@@ -40,6 +40,7 @@ type Education = {
   start_date?: string | null;
   end_date?: string | null;
   description?: string | null;
+  documents?: string[] | null;
   sort_order: number;
 };
 
