@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2 } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ScoutProfile = Tables<"scout_profiles">;
@@ -326,7 +327,26 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
       {/* ===== DESPRE / BIO ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
-        <h2 className="font-display text-2xl text-foreground mb-3">Despre</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="font-display text-2xl text-foreground">Despre</h2>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru secțiunea Despre">
+                <Info className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+              <p className="font-semibold text-foreground mb-2">💡 Cum să scrii o secțiune „Despre" profesională:</p>
+              <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                <li>Începe cu rolul tău actual și experiența în scouting</li>
+                <li>Menționează sporturile și ligile pe care le urmărești</li>
+                <li>Descrie filosofia ta de scouting și ce calități cauți la jucători</li>
+                <li>Adaugă realizări notabile (jucători descoperiți, transferuri reușite)</li>
+                <li>Păstrează un ton profesional dar autentic, 3-5 propoziții sunt ideale</li>
+              </ul>
+            </PopoverContent>
+          </Popover>
+        </div>
         {editing ? (
           <Textarea
             value={form.bio || ""}
