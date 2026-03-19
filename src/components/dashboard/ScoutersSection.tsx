@@ -36,12 +36,24 @@ const ScoutersSection = () => {
   useEffect(() => {
     const fetchScouts = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("scout_profiles")
-        .select("user_id, first_name, last_name, photo_url, organization, title, country")
-        .order("first_name", { ascending: true });
+      const [profilesRes, expRes, postsRes] = await Promise.all([
+        supabase
+          .from("scout_profiles")
+          .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills")
+          .order("first_name", { ascending: true }),
+        supabase.from("scout_experiences").select("user_id"),
+        supabase.from("scout_posts").select("user_id"),
+      ]);
 
-      if (!error && data) setScouts(data);
+      if (!profilesRes.error && profilesRes.data) {
+        const expUserIds = new Set((expRes.data || []).map((e) => e.user_id));
+        const postUserIds = new Set((postsRes.data || []).map((p) => p.user_id));
+
+        const visible = profilesRes.data.filter((s) =>
+          calcScoutCompletion(s, expUserIds.has(s.user_id), postUserIds.has(s.user_id)) >= 55
+        );
+        setScouts(visible);
+      }
       setLoading(false);
     };
     fetchScouts();
