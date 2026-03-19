@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info } from "lucide-react";
 import ScoutExtraSections from "./ScoutExtraSections";
+import SkillsEditor from "./SkillsEditor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -446,12 +447,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
             </Popover>
           </div>
           {editingSection === "about" ? (
-            <Input
-              value={(form.skills || []).join(", ")}
-              onChange={e => updateForm("skills", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-              placeholder="Recruitment analysis, Scouting, Video analysis... (separate cu virgulă)"
-              className="bg-muted border-border text-white text-sm"
-            />
+            <SkillsEditor skills={form.skills || []} onChange={(skills) => updateForm("skills", skills)} />
           ) : (
             <div className="flex flex-wrap gap-2">
               {skillsArray.length > 0 ? skillsArray.map((skill, i) => (
