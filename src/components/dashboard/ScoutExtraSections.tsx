@@ -500,6 +500,26 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
               <Label className="text-foreground text-sm">Descriere (opțional)</Label>
               <Textarea value={eduForm.description || ""} onChange={e => setEduForm(p => ({ ...p, description: e.target.value }))} placeholder="Descriere scurtă..." className="bg-background border-border text-foreground text-sm min-h-[60px]" />
             </div>
+
+            {/* Documents */}
+            <div className="space-y-1.5">
+              <Label className="text-foreground text-sm">Documente</Label>
+              {(eduForm.documents || []).map((doc, di) => (
+                <div key={di} className="flex items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className="text-foreground/70 truncate flex-1 font-body">{decodeURIComponent(doc.split("/").pop() || "Document")}</span>
+                  <button type="button" onClick={() => removeEduDoc(di)} className="text-destructive hover:text-destructive/80">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
+                {uploadingEduDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {uploadingEduDoc ? "Se încarcă..." : "Încarcă document"}
+                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleEduDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingEduDoc} />
+              </label>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowEduDialog(false)} className="border-border text-foreground">Anulează</Button>
               <Button onClick={handleSaveEducation} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
