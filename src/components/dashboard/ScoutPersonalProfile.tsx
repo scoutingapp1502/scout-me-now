@@ -433,7 +433,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           <div className="flex items-center gap-2 mb-2">
             <Award className="h-5 w-5 text-primary" />
             <h3 className="font-display text-lg text-foreground">Aptitudini de top</h3>
-            <Popover>
+            {!readOnly && <Popover>
               <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru aptitudini">
                   <Info className="h-4 w-4" />
