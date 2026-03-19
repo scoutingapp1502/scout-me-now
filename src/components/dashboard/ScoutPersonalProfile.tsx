@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info } from "lucide-react";
 import ScoutExtraSections from "./ScoutExtraSections";
+import ScoutStats from "./ScoutStats";
 import SkillsEditor from "./SkillsEditor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
@@ -375,6 +376,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         </div>
 
       </div>
+
+      {/* ===== STATISTICI ===== */}
+      <ScoutStats userId={userId} isOwner={!readOnly} />
 
       {/* ===== DESPRE / BIO ===== */}
       <div className="bg-card rounded-xl border border-border p-6">

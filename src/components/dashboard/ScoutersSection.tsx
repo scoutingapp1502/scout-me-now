@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, User } from "lucide-react";
+import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -64,6 +65,21 @@ const ScoutersSection = () => {
     return name.includes(search.toLowerCase());
   });
 
+  // Track search appearances when user searches
+  useEffect(() => {
+    if (!search.trim() || filtered.length === 0) return;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      filtered.forEach((s) => {
+        if (s.user_id !== data.user!.id) {
+          trackAnalyticsEvent(s.user_id, "search_appearance", data.user!.id);
+        }
+      });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [search, filtered.length]);
+
   return (
     <div className="space-y-6">
       {/* Search bar */}
@@ -95,7 +111,14 @@ const ScoutersSection = () => {
           {filtered.map((scout, idx) => (
             <div
               key={scout.user_id}
-              onClick={() => setSelectedScoutId(scout.user_id)}
+              onClick={() => {
+                setSelectedScoutId(scout.user_id);
+                supabase.auth.getUser().then(({ data }) => {
+                  if (data.user && data.user.id !== scout.user_id) {
+                    trackAnalyticsEvent(scout.user_id, "profile_view", data.user.id);
+                  }
+                });
+              }}
               className="flex items-center bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors cursor-pointer group"
             >
               {/* Photo area */}
