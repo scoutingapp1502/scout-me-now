@@ -708,33 +708,36 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
 
       {/* About */}
       <div className="bg-card border border-border rounded-xl p-5 sm:p-6">
-        <h3 className="font-display text-xl text-foreground mb-3 uppercase">
-          {t.dashboard.profile.about}
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h3 className="font-display text-2xl text-foreground">{t.dashboard.profile.about}</h3>
+          </div>
+          {editing && (
+            <span className="text-xs text-muted-foreground font-body">Editare activă</span>
+          )}
+        </div>
         {editing ? (
           <Textarea
             value={form.career_description || ""}
             onChange={(e) => updateForm("career_description", e.target.value)}
             placeholder={t.dashboard.profile.careerPlaceholder}
-            rows={8}
-            className="text-white"
+            rows={5}
+            className="bg-muted border-border text-foreground min-h-[120px]"
           />
         ) : (
-          <div className="space-y-0">
-            {(profile?.career_description || t.dashboard.profile.noDescription).split("\n").filter(Boolean).map((line, i) => (
-              <div key={i} className="py-3 border-b border-border last:border-b-0">
-                <p className="text-foreground font-body text-sm leading-relaxed">{line}</p>
-              </div>
-            ))}
-          </div>
+          <p className="text-foreground/80 font-body text-sm leading-relaxed whitespace-pre-line">
+            {profile?.career_description || <span className="italic text-muted-foreground">{t.dashboard.profile.noDescription}</span>}
+          </p>
         )}
-        <DocumentUploader
-          documents={aboutDocs}
-          onAdd={(url) => updateForm("about_documents", [...(form.about_documents || []), url])}
-          onRemove={(i) => updateForm("about_documents", (form.about_documents || []).filter((_, idx) => idx !== i))}
-          editing={editing}
-          label="📄 Documente atestare"
-        />
+        <div className="mt-4">
+          <DocumentUploader
+            documents={aboutDocs}
+            onAdd={(url) => updateForm("about_documents", [...(form.about_documents || []), url])}
+            onRemove={(i) => updateForm("about_documents", (form.about_documents || []).filter((_, idx) => idx !== i))}
+            editing={editing}
+            label="📄 Documente atestare"
+          />
+        </div>
       </div>
 
       {/* Achievements / Palmares */}
