@@ -22,7 +22,9 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<"player" | "scout" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [showWizard, setShowWizard] = useState(false);
   const isMobile = useIsMobile();
+  const { sections, percentage, loading: completionLoading } = useProfileCompletion(user?.id ?? null, userRole);
 
   useEffect(() => {
     let isMounted = true;
