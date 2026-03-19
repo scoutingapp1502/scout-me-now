@@ -14,7 +14,7 @@ interface OnboardingWizardProps {
 }
 
 const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss }: OnboardingWizardProps) => {
-  const { language } = useLanguage();
+  const { lang } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
   const incompleteSections = sections.filter((s) => !s.completed);
 

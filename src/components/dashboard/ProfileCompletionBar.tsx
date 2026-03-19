@@ -10,7 +10,7 @@ interface ProfileCompletionBarProps {
 }
 
 const ProfileCompletionBar = ({ percentage, sections, onSectionClick }: ProfileCompletionBarProps) => {
-  const { language } = useLanguage();
+  const { lang } = useLanguage();
 
   if (percentage >= 100) return null;
 
