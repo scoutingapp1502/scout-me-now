@@ -709,7 +709,7 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
       {/* About */}
       <div className="bg-card border border-border rounded-xl p-5 sm:p-6">
         <h3 className="font-display text-xl text-foreground mb-3 uppercase">
-          {t.dashboard.profile.about} {profile?.first_name} {profile?.last_name}
+          {t.dashboard.profile.about}
         </h3>
         {editing ? (
           <Textarea
