@@ -144,6 +144,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
         issue_date: c.issue_date || null,
         expiry_date: c.expiry_date || null,
         credential_url: c.credential_url || null,
+        documents: c.documents || [],
         sort_order: i,
       }));
       if (toInsert.length > 0) {
@@ -157,6 +158,38 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
+  };
+
+  const handleCertDocUpload = async (certIndex: number, file: File) => {
+    setUploadingDocIndex(certIndex);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${userId}/cert-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("scout-documents").upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("scout-documents").getPublicUrl(path);
+      const currentDocs = certForms[certIndex].documents || [];
+      updateCert(certIndex, "documents", [...currentDocs, urlData.publicUrl]);
+      toast({ title: "Document încărcat!" });
+    } catch (err: any) {
+      toast({ title: "Eroare la încărcare", description: err.message, variant: "destructive" });
+    } finally { setUploadingDocIndex(null); }
+  };
+
+  const handleRemoveCertDoc = (certIndex: number, docIndex: number) => {
+    const currentDocs = certForms[certIndex].documents || [];
+    updateCert(certIndex, "documents", currentDocs.filter((_, i) => i !== docIndex));
+  };
+
+  const openDocSafely = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+    } catch {
+      window.open(url, "_blank");
+    }
   };
 
   // === Languages ===
