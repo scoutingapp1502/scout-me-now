@@ -153,20 +153,38 @@ const Dashboard = () => {
     if (isMobile) setSidebarOpen(false);
   };
 
+  const completionBar = !completionLoading && percentage < 100 ? (
+    <ProfileCompletionBar
+      percentage={percentage}
+      sections={sections}
+      onSectionClick={handleWizardGoToSection}
+    />
+  ) : null;
+
   const renderSection = () => {
     switch (activeSection) {
       case "profile":
-        return userRole === "scout"
-          ? <ScoutPersonalProfile userId={user.id} />
-          : <PersonalProfile userId={user.id} />;
+        return (
+          <>
+            {completionBar}
+            {userRole === "scout"
+              ? <ScoutPersonalProfile userId={user.id} />
+              : <PersonalProfile userId={user.id} />}
+          </>
+        );
       case "players": return <PlayersSection />;
       case "scouters": return <ScoutersSection />;
       case "agents": return <PlaceholderSection title="AGENTS" />;
       case "clubs": return <PlaceholderSection title="CLUBS" />;
       default:
-        return userRole === "scout"
-          ? <ScoutPersonalProfile userId={user.id} />
-          : <PersonalProfile userId={user.id} />;
+        return (
+          <>
+            {completionBar}
+            {userRole === "scout"
+              ? <ScoutPersonalProfile userId={user.id} />
+              : <PersonalProfile userId={user.id} />}
+          </>
+        );
     }
   };
 
