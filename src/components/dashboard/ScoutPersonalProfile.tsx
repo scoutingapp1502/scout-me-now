@@ -287,6 +287,28 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           {/* Name & Title */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex-1">
+              {/* Info tooltip for header */}
+              {editingSection !== "header" && (
+                <div className="mb-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru antet">
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+                      <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru antetul profilului:</p>
+                      <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                        <li>Folosește o fotografie profesională, clară, pe fundal neutru</li>
+                        <li>Adaugă o copertă relevantă (stadion, eveniment sportiv)</li>
+                        <li>Scrie titlul complet al rolului tău (ex: „First team scout")</li>
+                        <li>Menționează organizația/clubul la care activezi</li>
+                        <li>Adaugă locația ta pentru a fi găsit mai ușor</li>
+                      </ul>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
               {editingSection === "header" ? (
                 <div className="space-y-3">
                   <div className="flex gap-2">
@@ -405,6 +427,22 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           <div className="flex items-center gap-2 mb-2">
             <Award className="h-5 w-5 text-primary" />
             <h3 className="font-display text-lg text-foreground">Aptitudini de top</h3>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru aptitudini">
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru aptitudini:</p>
+                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                  <li>Adaugă competențele tale cheie (ex: „Analiză video", „Recruitment")</li>
+                  <li>Include aptitudini tehnice și soft skills relevante</li>
+                  <li>Menționează specializări (ex: „Scouting tineret", „Analiză tactică")</li>
+                  <li>3-6 aptitudini sunt suficiente pentru un profil echilibrat</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
           </div>
           {editingSection === "about" ? (
             <Input
@@ -430,7 +468,26 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
       {/* ===== ACTIVITATE ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="font-display text-2xl text-foreground">Activitate</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-2xl text-foreground">Activitate</h2>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru activitate">
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru secțiunea Activitate:</p>
+                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                  <li>Publică observații de la meciuri sau turnee la care participi</li>
+                  <li>Împărtășește analize scurte despre tendințe în fotbal</li>
+                  <li>Adaugă fotografii de la evenimente sportive</li>
+                  <li>Postează regulat pentru a-ți crește vizibilitatea</li>
+                  <li>Un ton profesional și informatv atrage atenția cluburilor</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         <p className="text-muted-foreground text-sm font-body mb-4">{posts.length} postări</p>
 
@@ -567,7 +624,26 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
       {/* ===== EXPERIENȚĂ ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-2xl text-foreground">Experiență</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-2xl text-foreground">Experiență</h2>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru experiență">
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru secțiunea Experiență:</p>
+                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                  <li>Adaugă toate pozițiile relevante din cariera ta de scouting</li>
+                  <li>Menționează cluburile, academiile sau agențiile pentru care ai lucrat</li>
+                  <li>Descrie responsabilitățile principale pentru fiecare rol</li>
+                  <li>Include perioada exactă (lună și an) pentru credibilitate</li>
+                  <li>Adaugă competențele dobândite la fiecare experiență</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
+          </div>
           <div className="flex items-center gap-2">
             {editingSection === "experience" && (
               <>
