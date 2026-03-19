@@ -562,7 +562,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
             </div>
 
             {/* Documents */}
-            <div className="space-y-1.5">
+            <div className="space-y-3">
               <Label className="text-foreground text-sm">Documente</Label>
               {(certForm.documents || []).map((doc, di) => (
                 <div key={di} className="flex items-center gap-2 text-sm">
