@@ -158,18 +158,47 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   };
 
   // === Languages ===
-  const handleSaveLanguages = async () => {
+  const handleAddLanguage = async () => {
+    if (!langInput.trim()) { setLangError("Acest câmp este obligatoriu"); return; }
+    const entry = langLevel ? `${langInput.trim()} - ${langLevel}` : langInput.trim();
+    const updated = [...languages, entry];
     setSaving(true);
     try {
-      const parsed = langForm.split(",").map(s => s.trim()).filter(Boolean);
-      const { error } = await supabase.from("scout_profiles").update({ languages: parsed } as any).eq("user_id", userId);
+      const { error } = await supabase.from("scout_profiles").update({ languages: updated } as any).eq("user_id", userId);
       if (error) throw error;
-      setLanguages(parsed);
-      setEditingSection(null);
-      toast({ title: "Limbi salvate!" });
+      setLanguages(updated);
+      setShowLangDialog(false);
+      setLangInput(""); setLangLevel(""); setLangError(""); setLangSuggestions([]);
+      toast({ title: "Limbă adăugată!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
+  };
+
+  const handleRemoveLanguage = async (index: number) => {
+    const updated = languages.filter((_, i) => i !== index);
+    try {
+      const { error } = await supabase.from("scout_profiles").update({ languages: updated } as any).eq("user_id", userId);
+      if (error) throw error;
+      setLanguages(updated);
+      toast({ title: "Limbă eliminată!" });
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleLangInputChange = (val: string) => {
+    setLangInput(val);
+    setLangError("");
+    if (val.trim().length > 0) {
+      const filtered = ALL_LANGUAGES.filter(l => 
+        l.toLowerCase().startsWith(val.toLowerCase()) && 
+        !languages.some(existing => existing.split(" - ")[0] === l)
+      );
+      setLangSuggestions(filtered.slice(0, 5));
+    } else {
+      setLangSuggestions([]);
+    }
   };
 
   return (
