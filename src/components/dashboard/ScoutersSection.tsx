@@ -96,7 +96,14 @@ const ScoutersSection = () => {
           {filtered.map((scout, idx) => (
             <div
               key={scout.user_id}
-              onClick={() => setSelectedScoutId(scout.user_id)}
+              onClick={() => {
+                setSelectedScoutId(scout.user_id);
+                supabase.auth.getUser().then(({ data }) => {
+                  if (data.user && data.user.id !== scout.user_id) {
+                    trackAnalyticsEvent(scout.user_id, "profile_view", data.user.id);
+                  }
+                });
+              }}
               className="flex items-center bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors cursor-pointer group"
             >
               {/* Photo area */}
