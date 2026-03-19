@@ -51,6 +51,7 @@ type Certification = {
   issue_date?: string | null;
   expiry_date?: string | null;
   credential_url?: string | null;
+  documents?: string[] | null;
   sort_order: number;
 };
 
