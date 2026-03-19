@@ -23,7 +23,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const [experiences, setExperiences] = useState<ScoutExperience[]>([]);
   const [posts, setPosts] = useState<ScoutPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [editingSection, setEditingSection] = useState<"header" | "about" | "experience" | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<ScoutProfile>>({});
   const [expForms, setExpForms] = useState<Partial<ScoutExperience>[]>([]);
