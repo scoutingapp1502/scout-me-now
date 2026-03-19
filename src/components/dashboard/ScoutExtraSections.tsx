@@ -115,6 +115,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
         start_date: eduForm.start_date || null,
         end_date: eduForm.end_date || null,
         description: eduForm.description || null,
+        documents: eduForm.documents || [],
         sort_order: education.length,
       });
       if (error) throw error;
