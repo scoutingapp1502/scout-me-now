@@ -7,6 +7,9 @@ import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import ScoutersSection from "@/components/dashboard/ScoutersSection";
 import PlayersSection from "@/components/dashboard/PlayersSection";
+import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
+import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
+import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Menu, Loader2 } from "lucide-react";
@@ -19,7 +22,9 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<"player" | "scout" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [showWizard, setShowWizard] = useState(false);
   const isMobile = useIsMobile();
+  const { sections, percentage, loading: completionLoading } = useProfileCompletion(user?.id ?? null, userRole);
 
   useEffect(() => {
     let isMounted = true;
@@ -116,6 +121,25 @@ const Dashboard = () => {
       });
   }, [user, userRole]);
 
+  // Show wizard for new users (percentage < 100 on first load)
+  useEffect(() => {
+    if (!completionLoading && percentage < 100 && userRole) {
+      const wizardDismissed = sessionStorage.getItem(`wizard-dismissed-${user?.id}`);
+      if (!wizardDismissed) {
+        setShowWizard(true);
+      }
+    }
+  }, [completionLoading, percentage, userRole, user?.id]);
+
+  const handleWizardDismiss = () => {
+    setShowWizard(false);
+    if (user?.id) sessionStorage.setItem(`wizard-dismissed-${user.id}`, "true");
+  };
+
+  const handleWizardGoToSection = (sectionKey: string) => {
+    setActiveSection("profile");
+  };
+
   if (!user || roleLoading) {
     return (
       <div className="flex min-h-screen bg-background dark items-center justify-center">
@@ -150,6 +174,15 @@ const Dashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-background dark">
+      {showWizard && userRole && (
+        <OnboardingWizard
+          sections={sections}
+          percentage={percentage}
+          role={userRole}
+          onGoToSection={handleWizardGoToSection}
+          onDismiss={handleWizardDismiss}
+        />
+      )}
       {isMobile ? (
         <>
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -170,6 +203,13 @@ const Dashboard = () => {
               <span className="font-display text-xl text-primary">⚽ SPORTRISE</span>
             </header>
             <main className="flex-1 p-4 overflow-y-auto">
+              {!completionLoading && percentage < 100 && (
+                <ProfileCompletionBar
+                  percentage={percentage}
+                  sections={sections}
+                  onSectionClick={handleWizardGoToSection}
+                />
+              )}
               {renderSection()}
             </main>
           </div>
@@ -183,6 +223,13 @@ const Dashboard = () => {
             profileLabel={sidebarFirstLabel}
           />
           <main className="flex-1 p-8 overflow-y-auto">
+            {!completionLoading && percentage < 100 && (
+              <ProfileCompletionBar
+                percentage={percentage}
+                sections={sections}
+                onSectionClick={handleWizardGoToSection}
+              />
+            )}
             {renderSection()}
           </main>
         </>
