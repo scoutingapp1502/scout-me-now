@@ -121,6 +121,25 @@ const Dashboard = () => {
       });
   }, [user, userRole]);
 
+  // Show wizard for new users (percentage < 100 on first load)
+  useEffect(() => {
+    if (!completionLoading && percentage < 100 && userRole) {
+      const wizardDismissed = sessionStorage.getItem(`wizard-dismissed-${user?.id}`);
+      if (!wizardDismissed) {
+        setShowWizard(true);
+      }
+    }
+  }, [completionLoading, percentage, userRole, user?.id]);
+
+  const handleWizardDismiss = () => {
+    setShowWizard(false);
+    if (user?.id) sessionStorage.setItem(`wizard-dismissed-${user.id}`, "true");
+  };
+
+  const handleWizardGoToSection = (sectionKey: string) => {
+    setActiveSection("profile");
+  };
+
   if (!user || roleLoading) {
     return (
       <div className="flex min-h-screen bg-background dark items-center justify-center">
