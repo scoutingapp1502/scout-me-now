@@ -291,7 +291,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex-1">
               {/* Info tooltip for header */}
-              {editingSection !== "header" && (
+              {!readOnly && editingSection !== "header" && (
                 <div className="mb-2">
                   <Popover>
                     <PopoverTrigger asChild>
