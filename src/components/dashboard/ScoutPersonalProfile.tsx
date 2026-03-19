@@ -566,11 +566,24 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-2xl text-foreground">Experiență</h2>
-          {editing && (
-            <Button variant="outline" size="sm" onClick={addExperience} className="text-primary border-primary/30 hover:bg-primary/10">
-              <Plus className="h-4 w-4 mr-1" /> Adaugă
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {editingSection === "experience" && (
+              <>
+                <Button variant="outline" size="sm" onClick={addExperience} className="text-primary border-primary/30 hover:bg-primary/10">
+                  <Plus className="h-4 w-4 mr-1" /> Adaugă
+                </Button>
+                <Button size="sm" onClick={handleSaveExperience} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+                  {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                  {saving ? "..." : "Salvează"}
+                </Button>
+              </>
+            )}
+            {!readOnly && editingSection !== "experience" && (
+              <button onClick={() => setEditingSection("experience")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
+                <Edit2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-6">
