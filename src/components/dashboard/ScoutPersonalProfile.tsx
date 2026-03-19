@@ -624,7 +624,26 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
       {/* ===== EXPERIENȚĂ ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-2xl text-foreground">Experiență</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-2xl text-foreground">Experiență</h2>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru experiență">
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru secțiunea Experiență:</p>
+                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                  <li>Adaugă toate pozițiile relevante din cariera ta de scouting</li>
+                  <li>Menționează cluburile, academiile sau agențiile pentru care ai lucrat</li>
+                  <li>Descrie responsabilitățile principale pentru fiecare rol</li>
+                  <li>Include perioada exactă (lună și an) pentru credibilitate</li>
+                  <li>Adaugă competențele dobândite la fiecare experiență</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
+          </div>
           <div className="flex items-center gap-2">
             {editingSection === "experience" && (
               <>
