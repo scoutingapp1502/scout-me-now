@@ -396,6 +396,25 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                       <Input value={cert.expiry_date || ""} onChange={e => updateCert(index, "expiry_date", e.target.value)} placeholder="Data expirării (opțional)" className="bg-muted border-border text-white text-sm" />
                     </div>
                     <Input value={cert.credential_url || ""} onChange={e => updateCert(index, "credential_url", e.target.value)} placeholder="URL verificare (opțional)" className="bg-muted border-border text-white text-sm" />
+                    
+                    {/* Document upload */}
+                    <div className="space-y-1.5">
+                      <p className="text-muted-foreground text-xs font-body">Documente atașate:</p>
+                      {(cert.documents || []).map((doc, di) => (
+                        <div key={di} className="flex items-center gap-2 text-sm">
+                          <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                          <span className="text-foreground/70 truncate flex-1 font-body">{decodeURIComponent(doc.split("/").pop() || "Document")}</span>
+                          <button type="button" onClick={() => handleRemoveCertDoc(index, di)} className="text-destructive hover:text-destructive/80">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
+                        {uploadingDocIndex === index ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                        {uploadingDocIndex === index ? "Se încarcă..." : "Încarcă document"}
+                        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleCertDocUpload(index, e.target.files[0]); e.target.value = ""; }} disabled={uploadingDocIndex === index} />
+                      </label>
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -409,6 +428,16 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                       <a href={cert.credential_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline mt-1 inline-block">
                         Verifică acreditarea →
                       </a>
+                    )}
+                    {cert.documents && cert.documents.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {cert.documents.map((doc, di) => (
+                          <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md text-xs text-foreground/70 hover:text-primary transition-colors font-body">
+                            <FileText className="h-3.5 w-3.5" />
+                            {decodeURIComponent(doc.split("/").pop() || "Document")}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </>
                 )}
