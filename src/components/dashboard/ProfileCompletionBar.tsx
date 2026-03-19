@@ -23,9 +23,32 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick }: ProfileC
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between p-4 hover:bg-accent/30 transition-colors"
       >
-        <h3 className="text-sm font-semibold text-foreground">
-          {lang === "ro" ? "Completează-ți profilul" : "Complete your profile"}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground">
+            {lang === "ro" ? "Completează-ți profilul" : "Complete your profile"}
+          </h3>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Info className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" className="w-80 text-sm">
+              <p className="font-semibold mb-2">
+                {lang === "ro" ? "⚠️ De ce contează?" : "⚠️ Why does it matter?"}
+              </p>
+              <p className="text-muted-foreground">
+                {lang === "ro"
+                  ? "Dacă nu completezi cel puțin 55% din informațiile necesare pentru profilul tău, contul tău nu va apărea în listele de jucători sau scouteri. Completează cât mai multe secțiuni pentru a fi vizibil!"
+                  : "If you don't complete at least 55% of the required profile information, your account will not appear in the players or scouts listings. Complete as many sections as possible to be visible!"}
+              </p>
+            </PopoverContent>
+          </Popover>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-primary">{percentage}%</span>
           {expanded ? (
