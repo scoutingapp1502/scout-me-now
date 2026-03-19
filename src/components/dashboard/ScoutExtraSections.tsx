@@ -99,7 +99,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
 
   // === Education ===
   const openEduDialog = () => {
-    setEduForm({ user_id: userId, institution: "", degree: "", field_of_study: "", start_date: "", end_date: "", description: "" });
+    setEduForm({ user_id: userId, institution: "", degree: "", field_of_study: "", start_date: "", end_date: "", description: "", documents: [] });
     setShowEduDialog(true);
   };
 
