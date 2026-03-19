@@ -427,6 +427,22 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           <div className="flex items-center gap-2 mb-2">
             <Award className="h-5 w-5 text-primary" />
             <h3 className="font-display text-lg text-foreground">Aptitudini de top</h3>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru aptitudini">
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru aptitudini:</p>
+                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                  <li>Adaugă competențele tale cheie (ex: „Analiză video", „Recruitment")</li>
+                  <li>Include aptitudini tehnice și soft skills relevante</li>
+                  <li>Menționează specializări (ex: „Scouting tineret", „Analiză tactică")</li>
+                  <li>3-6 aptitudini sunt suficiente pentru un profil echilibrat</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
           </div>
           {editingSection === "about" ? (
             <Input
