@@ -352,27 +352,40 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
       {/* ===== DESPRE / BIO ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="font-display text-2xl text-foreground">Despre</h2>
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru secțiunea Despre">
-                <Info className="h-4 w-4" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-              <p className="font-semibold text-foreground mb-2">💡 Cum să scrii o secțiune „Despre" profesională:</p>
-              <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                <li>Începe cu rolul tău actual și experiența în scouting</li>
-                <li>Menționează sporturile și ligile pe care le urmărești</li>
-                <li>Descrie filosofia ta de scouting și ce calități cauți la jucători</li>
-                <li>Adaugă realizări notabile (jucători descoperiți, transferuri reușite)</li>
-                <li>Păstrează un ton profesional dar autentic, 3-5 propoziții sunt ideale</li>
-              </ul>
-            </PopoverContent>
-          </Popover>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-2xl text-foreground">Despre</h2>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru secțiunea Despre">
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+                <p className="font-semibold text-foreground mb-2">💡 Cum să scrii o secțiune „Despre" profesională:</p>
+                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                  <li>Începe cu rolul tău actual și experiența în scouting</li>
+                  <li>Menționează sporturile și ligile pe care le urmărești</li>
+                  <li>Descrie filosofia ta de scouting și ce calități cauți la jucători</li>
+                  <li>Adaugă realizări notabile (jucători descoperiți, transferuri reușite)</li>
+                  <li>Păstrează un ton profesional dar autentic, 3-5 propoziții sunt ideale</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
+          </div>
+          {!readOnly && editingSection !== "about" && (
+            <button onClick={() => setEditingSection("about")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
+              <Edit2 className="h-4 w-4" />
+            </button>
+          )}
+          {!readOnly && editingSection === "about" && (
+            <Button size="sm" onClick={handleSaveAbout} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+              {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              {saving ? "..." : "Salvează"}
+            </Button>
+          )}
         </div>
-        {editing ? (
+        {editingSection === "about" ? (
           <Textarea
             value={form.bio || ""}
             onChange={e => updateForm("bio", e.target.value)}
@@ -391,7 +404,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
             <Award className="h-5 w-5 text-primary" />
             <h3 className="font-display text-lg text-foreground">Aptitudini de top</h3>
           </div>
-          {editing ? (
+          {editingSection === "about" ? (
             <Input
               value={(form.skills || []).join(", ")}
               onChange={e => updateForm("skills", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
