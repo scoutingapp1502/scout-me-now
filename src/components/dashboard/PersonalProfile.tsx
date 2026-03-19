@@ -654,7 +654,26 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
       {/* Physical + details */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-display text-lg text-foreground mb-3 uppercase">{t.dashboard.profile.physicalData}</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.physicalData}</h3>
+            {!readOnly && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi date fizice">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm font-body" side="top">
+                  <p className="font-semibold mb-1">💡 Sfaturi</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Completează datele fizice cu acuratețe</li>
+                    <li>Actualizează-le periodic pentru a reflecta progresul</li>
+                    <li>Scouterii verifică aceste date frecvent</li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
           {editing ? (
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="number" value={form.height_cm ?? ""} onChange={(e) => updateForm("height_cm", parseInt(e.target.value) || null)} className="text-white" /></div>
