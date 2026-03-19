@@ -520,11 +520,6 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   </button>
                 </div>
               ))}
-              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
-                {uploadingEduDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {uploadingEduDoc ? "Se încarcă..." : "Încarcă document"}
-                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleEduDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingEduDoc} />
-              </label>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
