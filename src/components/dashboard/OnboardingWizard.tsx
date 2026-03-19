@@ -52,8 +52,16 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
       en: "Connect your social media accounts for maximum visibility.",
     },
     bio: {
-      ro: "Scrie o biografie care să te descrie profesional.",
-      en: "Write a biography that describes you professionally.",
+      ro: "Scrie o descriere despre tine care să te prezinte profesional.",
+      en: "Write a description about yourself that presents you professionally.",
+    },
+    cover: {
+      ro: "Adaugă o fotografie de copertă pentru a-ți personaliza profilul.",
+      en: "Add a cover photo to personalize your profile.",
+    },
+    title: {
+      ro: "Adaugă titlul tău profesional și organizația din care faci parte.",
+      en: "Add your professional title and organization.",
     },
     skills: {
       ro: "Adaugă aptitudinile tale de scouting.",
@@ -62,6 +70,10 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
     experience: {
       ro: "Adaugă cel puțin o experiență profesională.",
       en: "Add at least one professional experience.",
+    },
+    activity: {
+      ro: "Publică prima ta postare pentru a-ți crește vizibilitatea.",
+      en: "Publish your first post to increase your visibility.",
     },
   };
 
