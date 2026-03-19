@@ -750,6 +750,23 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <h3 className="font-display text-2xl text-foreground">{t.dashboard.profile.about}</h3>
+            {!readOnly && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi despre">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm font-body" side="top">
+                  <p className="font-semibold mb-1">💡 Sfaturi</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Descrie parcursul tău sportiv pe scurt</li>
+                    <li>Menționează echipele anterioare și performanțele</li>
+                    <li>Încarcă documente justificative pentru credibilitate</li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
           {editing && (
             <span className="text-xs text-muted-foreground font-body">Editare activă</span>
