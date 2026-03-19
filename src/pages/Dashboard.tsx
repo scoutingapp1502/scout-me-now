@@ -234,13 +234,6 @@ const Dashboard = () => {
             profileLabel={sidebarFirstLabel}
           />
           <main className="flex-1 p-8 overflow-y-auto">
-            {!completionLoading && percentage < 100 && (
-              <ProfileCompletionBar
-                percentage={percentage}
-                sections={sections}
-                onSectionClick={handleWizardGoToSection}
-              />
-            )}
             {renderSection()}
           </main>
         </>
