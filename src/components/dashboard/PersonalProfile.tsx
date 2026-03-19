@@ -124,6 +124,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           defense: form.defense,
           career_description: form.career_description,
           video_highlights: form.video_highlights,
+          video_descriptions: (form as any).video_descriptions,
           about_documents: form.about_documents,
           palmares_documents: form.palmares_documents,
           sport: (form as any).sport,
