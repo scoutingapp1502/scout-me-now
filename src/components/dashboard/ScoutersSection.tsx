@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
+import { calcScoutCompletion } from "@/lib/profileCompletion";
 
 interface ScoutCard {
   user_id: string;
