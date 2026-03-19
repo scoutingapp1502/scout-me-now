@@ -23,7 +23,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const [experiences, setExperiences] = useState<ScoutExperience[]>([]);
   const [posts, setPosts] = useState<ScoutPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [editingSection, setEditingSection] = useState<"header" | "about" | "experience" | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<ScoutProfile>>({});
   const [expForms, setExpForms] = useState<Partial<ScoutExperience>[]>([]);
@@ -130,7 +130,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
     setExpForms(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = async () => {
+  const handleSaveHeader = async () => {
     setSaving(true);
     try {
       let photoUrl = form.photo_url;
@@ -152,23 +152,51 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         coverUrl = urlData.publicUrl;
       }
 
-      const payload = {
+      const { error } = await supabase.from("scout_profiles").update({
         first_name: form.first_name,
         last_name: form.last_name,
         title: form.title,
         organization: form.organization,
         country: form.country,
-        bio: form.bio,
-        skills: form.skills,
         photo_url: photoUrl,
         cover_photo_url: coverUrl,
-      };
-
-      const { error } = await supabase.from("scout_profiles").update(payload).eq("user_id", userId);
+      }).eq("user_id", userId);
       if (error) throw error;
 
-      // Save experiences
-      // Delete removed ones
+      toast({ title: "Profil actualizat cu succes!" });
+      setEditingSection(null);
+      setAvatarFile(null);
+      setCoverFile(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveAbout = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("scout_profiles").update({
+        bio: form.bio,
+        skills: form.skills,
+      }).eq("user_id", userId);
+      if (error) throw error;
+
+      toast({ title: "Secțiunea Despre actualizată!" });
+      setEditingSection(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveExperience = async () => {
+    setSaving(true);
+    try {
       const existingIds = experiences.map(e => e.id);
       const keptIds = expForms.filter(e => e.id).map(e => e.id!);
       const removedIds = existingIds.filter(id => !keptIds.includes(id));
@@ -176,7 +204,6 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         await supabase.from("scout_experiences").delete().in("id", removedIds);
       }
 
-      // Upsert experiences
       for (let i = 0; i < expForms.length; i++) {
         const exp = expForms[i];
         const expPayload = {
@@ -197,10 +224,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         }
       }
 
-      toast({ title: "Profil actualizat cu succes!" });
-      setEditing(false);
-      setAvatarFile(null);
-      setCoverFile(null);
+      toast({ title: "Experiența actualizată!" });
+      setEditingSection(null);
       fetchData();
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
@@ -230,7 +255,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
               backgroundSize: '30px 30px'
             }} />
           )}
-          {editing && (
+          {editingSection === "header" && (
             <label className="absolute top-3 right-3 bg-background/80 rounded-lg p-2 cursor-pointer hover:bg-background transition-colors">
               <Camera className="h-5 w-5 text-foreground" />
               <input type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
@@ -251,7 +276,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                 </div>
               )}
             </div>
-            {editing && (
+            {editingSection === "header" && (
               <label className="absolute bottom-1 left-20 sm:left-24 bg-primary rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors shadow-md">
                 <Camera className="h-4 w-4 text-primary-foreground" />
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -262,7 +287,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           {/* Name & Title */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex-1">
-              {editing ? (
+              {editingSection === "header" ? (
                 <div className="space-y-3">
                   <div className="flex gap-2">
                     <Input value={form.first_name || ""} onChange={e => updateForm("first_name", e.target.value)} placeholder="Prenume" className="bg-muted border-border text-white font-display text-xl h-auto py-1" />
@@ -295,7 +320,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
             </div>
 
             {/* Organization badge */}
-            {!editing && profile?.organization && (
+            {editingSection !== "header" && profile?.organization && (
               <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
                 <Building2 className="h-5 w-5 text-primary" />
                 <span className="text-sm font-body text-foreground">{profile.organization}</span>
@@ -305,49 +330,62 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
           {/* Action buttons */}
           <div className="flex gap-3 mt-4">
-            {!readOnly && (
-              <Button
-                onClick={() => editing ? handleSave() : setEditing(true)}
-                disabled={saving}
-                className={editing
-                  ? "bg-primary hover:bg-primary/90 text-primary-foreground font-body"
-                  : "bg-primary hover:bg-primary/90 text-primary-foreground font-body"
-                }
-              >
-                {editing ? (
-                  <>{saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}{saving ? "..." : "Salvează"}</>
-                ) : (
-                  <><Edit2 className="h-4 w-4 mr-2" />Editează Profilul</>
-                )}
+            {!readOnly && editingSection === "header" && (
+              <Button onClick={handleSaveHeader} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                {saving ? "..." : "Salvează"}
               </Button>
+            )}
+            {!readOnly && editingSection !== "header" && (
+              <button
+                onClick={() => setEditingSection("header")}
+                className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50"
+                title="Editează"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
             )}
           </div>
         </div>
+
       </div>
 
       {/* ===== DESPRE / BIO ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="font-display text-2xl text-foreground">Despre</h2>
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru secțiunea Despre">
-                <Info className="h-4 w-4" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-              <p className="font-semibold text-foreground mb-2">💡 Cum să scrii o secțiune „Despre" profesională:</p>
-              <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                <li>Începe cu rolul tău actual și experiența în scouting</li>
-                <li>Menționează sporturile și ligile pe care le urmărești</li>
-                <li>Descrie filosofia ta de scouting și ce calități cauți la jucători</li>
-                <li>Adaugă realizări notabile (jucători descoperiți, transferuri reușite)</li>
-                <li>Păstrează un ton profesional dar autentic, 3-5 propoziții sunt ideale</li>
-              </ul>
-            </PopoverContent>
-          </Popover>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-2xl text-foreground">Despre</h2>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru secțiunea Despre">
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
+                <p className="font-semibold text-foreground mb-2">💡 Cum să scrii o secțiune „Despre" profesională:</p>
+                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                  <li>Începe cu rolul tău actual și experiența în scouting</li>
+                  <li>Menționează sporturile și ligile pe care le urmărești</li>
+                  <li>Descrie filosofia ta de scouting și ce calități cauți la jucători</li>
+                  <li>Adaugă realizări notabile (jucători descoperiți, transferuri reușite)</li>
+                  <li>Păstrează un ton profesional dar autentic, 3-5 propoziții sunt ideale</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
+          </div>
+          {!readOnly && editingSection !== "about" && (
+            <button onClick={() => setEditingSection("about")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
+              <Edit2 className="h-4 w-4" />
+            </button>
+          )}
+          {!readOnly && editingSection === "about" && (
+            <Button size="sm" onClick={handleSaveAbout} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+              {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              {saving ? "..." : "Salvează"}
+            </Button>
+          )}
         </div>
-        {editing ? (
+        {editingSection === "about" ? (
           <Textarea
             value={form.bio || ""}
             onChange={e => updateForm("bio", e.target.value)}
@@ -366,7 +404,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
             <Award className="h-5 w-5 text-primary" />
             <h3 className="font-display text-lg text-foreground">Aptitudini de top</h3>
           </div>
-          {editing ? (
+          {editingSection === "about" ? (
             <Input
               value={(form.skills || []).join(", ")}
               onChange={e => updateForm("skills", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
@@ -528,15 +566,28 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-2xl text-foreground">Experiență</h2>
-          {editing && (
-            <Button variant="outline" size="sm" onClick={addExperience} className="text-primary border-primary/30 hover:bg-primary/10">
-              <Plus className="h-4 w-4 mr-1" /> Adaugă
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {editingSection === "experience" && (
+              <>
+                <Button variant="outline" size="sm" onClick={addExperience} className="text-primary border-primary/30 hover:bg-primary/10">
+                  <Plus className="h-4 w-4 mr-1" /> Adaugă
+                </Button>
+                <Button size="sm" onClick={handleSaveExperience} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+                  {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                  {saving ? "..." : "Salvează"}
+                </Button>
+              </>
+            )}
+            {!readOnly && editingSection !== "experience" && (
+              <button onClick={() => setEditingSection("experience")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
+                <Edit2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-6">
-          {expForms.length === 0 && !editing && (
+          {expForms.length === 0 && editingSection !== "experience" && (
             <p className="text-muted-foreground italic text-sm font-body">Nicio experiență adăugată.</p>
           )}
           {expForms.map((exp, index) => (
@@ -550,7 +601,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                {editing ? (
+                {editingSection === "experience" ? (
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <Input value={exp.role || ""} onChange={e => updateExp(index, "role", e.target.value)} placeholder="Rol (ex: First team scout)" className="bg-muted border-border text-white text-sm flex-1" />
