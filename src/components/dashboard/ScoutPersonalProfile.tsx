@@ -487,7 +487,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   <li>Un ton profesional și informatv atrage atenția cluburilor</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
         </div>
         <p className="text-muted-foreground text-sm font-body mb-4">{posts.length} postări</p>
