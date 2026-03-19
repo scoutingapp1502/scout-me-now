@@ -62,11 +62,14 @@ const PlayersSection = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("player_profiles")
-        .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot")
+        .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot, speed, jumping, endurance, acceleration, defense, career_description, video_highlights, instagram_url, tiktok_url, twitter_url")
         .order("first_name", { ascending: true })
         .limit(100);
 
-      if (!error && data) setPlayers(data);
+      if (!error && data) {
+        const visible = data.filter((p) => calcPlayerCompletion(p) >= 55);
+        setPlayers(visible);
+      }
       setLoading(false);
     };
     fetchPlayers();
