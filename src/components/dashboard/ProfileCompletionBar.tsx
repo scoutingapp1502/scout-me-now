@@ -18,7 +18,7 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick }: ProfileC
     <div className="mb-6 rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-foreground">
-          {language === "ro" ? "Completează-ți profilul" : "Complete your profile"}
+          {lang === "ro" ? "Completează-ți profilul" : "Complete your profile"}
         </h3>
         <span className="text-lg font-bold text-primary">{percentage}%</span>
       </div>
@@ -43,7 +43,7 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick }: ProfileC
               <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
             )}
             <span className={section.completed ? "line-through" : "font-medium"}>
-              {language === "ro" ? section.labelRo : section.labelEn}
+              {lang === "ro" ? section.labelRo : section.labelEn}
             </span>
             {!section.completed && (
               <span className="ml-auto text-xs text-muted-foreground">+{section.weight}%</span>

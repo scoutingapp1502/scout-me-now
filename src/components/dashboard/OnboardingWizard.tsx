@@ -76,7 +76,7 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-bold text-foreground">
-                {language === "ro" ? "Construiește-ți profilul" : "Build your profile"}
+                {lang === "ro" ? "Construiește-ți profilul" : "Build your profile"}
               </h2>
             </div>
             <button onClick={onDismiss} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -94,13 +94,13 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
         <div className="p-6">
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-3">
-              {language === "ro" ? `Pas ${currentStep + 1} din ${incompleteSections.length}` : `Step ${currentStep + 1} of ${incompleteSections.length}`}
+              {lang === "ro" ? `Pas ${currentStep + 1} din ${incompleteSections.length}` : `Step ${currentStep + 1} of ${incompleteSections.length}`}
             </div>
             <h3 className="text-xl font-bold text-foreground mb-2">
-              {language === "ro" ? current.labelRo : current.labelEn}
+              {lang === "ro" ? current.labelRo : current.labelEn}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {language === "ro" ? tip.ro : tip.en}
+              {lang === "ro" ? tip.ro : tip.en}
             </p>
           </div>
 
@@ -118,7 +118,7 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
                 }`}
               >
                 {s.completed ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
-                {language === "ro" ? s.labelRo : s.labelEn}
+                {lang === "ro" ? s.labelRo : s.labelEn}
               </div>
             ))}
           </div>
@@ -133,12 +133,12 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
             disabled={currentStep === 0}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            {language === "ro" ? "Înapoi" : "Back"}
+            {lang === "ro" ? "Înapoi" : "Back"}
           </Button>
 
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onDismiss}>
-              {language === "ro" ? "Mai târziu" : "Later"}
+              {lang === "ro" ? "Mai târziu" : "Later"}
             </Button>
             <Button
               size="sm"
@@ -147,7 +147,7 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
                 onDismiss();
               }}
             >
-              {language === "ro" ? "Completează" : "Fill in"}
+              {lang === "ro" ? "Completează" : "Fill in"}
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
