@@ -71,7 +71,12 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
 
   // Languages
   const [languages, setLanguages] = useState<string[]>([]);
-  const [langForm, setLangForm] = useState("");
+  const [showLangDialog, setShowLangDialog] = useState(false);
+  const [langInput, setLangInput] = useState("");
+  const [langLevel, setLangLevel] = useState("");
+  const [langError, setLangError] = useState("");
+  const [langSuggestions, setLangSuggestions] = useState<string[]>([]);
+  const langInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchAll();
