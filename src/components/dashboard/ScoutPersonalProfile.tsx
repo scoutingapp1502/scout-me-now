@@ -324,7 +324,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                 </div>
               ) : (
                 <>
-                  <h1 className="font-display text-3xl sm:text-4xl text-white tracking-wide">
+                  <h1 className="font-display text-3xl sm:text-4xl text-foreground tracking-wide">
                     {profile?.first_name || profile?.last_name
                       ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
                       : "Completează profilul"}
