@@ -377,6 +377,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
       </div>
 
+      {/* ===== STATISTICI ===== */}
+      <ScoutStats userId={userId} isOwner={!readOnly} />
+
       {/* ===== DESPRE / BIO ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-3">
