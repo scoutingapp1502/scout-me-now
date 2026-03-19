@@ -729,6 +729,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
           ))}
         </div>
       </div>
+
+      {/* Extra sections: Studii, Licențe, Limbi */}
+      <ScoutExtraSections userId={userId} readOnly={readOnly} />
     </div>
   );
 };
