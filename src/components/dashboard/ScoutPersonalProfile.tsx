@@ -448,7 +448,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   <li>3-6 aptitudini sunt suficiente pentru un profil echilibrat</li>
                 </ul>
               </PopoverContent>
-            </Popover>
+            </Popover>}
           </div>
           {editingSection === "about" ? (
             <SkillsEditor skills={form.skills || []} onChange={(skills) => updateForm("skills", skills)} />
