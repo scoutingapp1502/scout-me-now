@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Plus, Trash2, Loader2, Save, GraduationCap, BadgeCheck, Languages, Info, X } from "lucide-react";
+import { Edit2, Plus, Trash2, Loader2, Save, GraduationCap, BadgeCheck, Languages, Info, X, Upload, FileText } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,6 +51,7 @@ type Certification = {
   issue_date?: string | null;
   expiry_date?: string | null;
   credential_url?: string | null;
+  documents?: string[] | null;
   sort_order: number;
 };
 
@@ -60,6 +61,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   const { toast } = useToast();
   const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingDocIndex, setUploadingDocIndex] = useState<number | null>(null);
 
   // Education
   const [education, setEducation] = useState<Education[]>([]);
@@ -142,6 +144,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
         issue_date: c.issue_date || null,
         expiry_date: c.expiry_date || null,
         credential_url: c.credential_url || null,
+        documents: c.documents || [],
         sort_order: i,
       }));
       if (toInsert.length > 0) {
@@ -155,6 +158,38 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
+  };
+
+  const handleCertDocUpload = async (certIndex: number, file: File) => {
+    setUploadingDocIndex(certIndex);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${userId}/cert-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("scout-documents").upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("scout-documents").getPublicUrl(path);
+      const currentDocs = certForms[certIndex].documents || [];
+      updateCert(certIndex, "documents", [...currentDocs, urlData.publicUrl]);
+      toast({ title: "Document încărcat!" });
+    } catch (err: any) {
+      toast({ title: "Eroare la încărcare", description: err.message, variant: "destructive" });
+    } finally { setUploadingDocIndex(null); }
+  };
+
+  const handleRemoveCertDoc = (certIndex: number, docIndex: number) => {
+    const currentDocs = certForms[certIndex].documents || [];
+    updateCert(certIndex, "documents", currentDocs.filter((_, i) => i !== docIndex));
+  };
+
+  const openDocSafely = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+    } catch {
+      window.open(url, "_blank");
+    }
   };
 
   // === Languages ===
@@ -361,6 +396,25 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                       <Input value={cert.expiry_date || ""} onChange={e => updateCert(index, "expiry_date", e.target.value)} placeholder="Data expirării (opțional)" className="bg-muted border-border text-white text-sm" />
                     </div>
                     <Input value={cert.credential_url || ""} onChange={e => updateCert(index, "credential_url", e.target.value)} placeholder="URL verificare (opțional)" className="bg-muted border-border text-white text-sm" />
+                    
+                    {/* Document upload */}
+                    <div className="space-y-1.5">
+                      <p className="text-muted-foreground text-xs font-body">Documente atașate:</p>
+                      {(cert.documents || []).map((doc, di) => (
+                        <div key={di} className="flex items-center gap-2 text-sm">
+                          <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                          <span className="text-foreground/70 truncate flex-1 font-body">{decodeURIComponent(doc.split("/").pop() || "Document")}</span>
+                          <button type="button" onClick={() => handleRemoveCertDoc(index, di)} className="text-destructive hover:text-destructive/80">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
+                        {uploadingDocIndex === index ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                        {uploadingDocIndex === index ? "Se încarcă..." : "Încarcă document"}
+                        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleCertDocUpload(index, e.target.files[0]); e.target.value = ""; }} disabled={uploadingDocIndex === index} />
+                      </label>
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -374,6 +428,16 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                       <a href={cert.credential_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline mt-1 inline-block">
                         Verifică acreditarea →
                       </a>
+                    )}
+                    {cert.documents && cert.documents.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {cert.documents.map((doc, di) => (
+                          <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md text-xs text-foreground/70 hover:text-primary transition-colors font-body">
+                            <FileText className="h-3.5 w-3.5" />
+                            {decodeURIComponent(doc.split("/").pop() || "Document")}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </>
                 )}
