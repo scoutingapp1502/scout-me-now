@@ -18,7 +18,7 @@ const Auth = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
 
-  const [tab, setTab] = useState<"login" | "register">(
+  const [tab, setTab] = useState<"login" | "register" | "forgot">(
     searchParams.get("tab") === "login" ? "login" : "register"
   );
   const [role, setRole] = useState<"player" | "scout">(
