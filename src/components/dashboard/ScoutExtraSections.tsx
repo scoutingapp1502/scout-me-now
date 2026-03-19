@@ -91,7 +91,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
     if (eduRes.data) { setEducation(eduRes.data as Education[]); setEduForms(eduRes.data as Education[]); }
     if (certRes.data) { setCertifications(certRes.data as Certification[]); setCertForms(certRes.data as Certification[]); }
     const langs = (profileRes.data as any)?.languages as string[] | null;
-    if (langs) { setLanguages(langs); setLangForm(langs.join(", ")); }
+    if (langs) { setLanguages(langs); }
   };
 
   // === Education ===
