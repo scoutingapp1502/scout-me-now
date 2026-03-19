@@ -405,9 +405,9 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
             </Popover>
           </div>
           {!readOnly && (
-            <Button variant="outline" size="sm" onClick={() => { setLangInput(""); setLangLevel(""); setLangError(""); setLangSuggestions([]); setShowLangDialog(true); }} className="text-primary border-primary/30 hover:bg-primary/10">
-              <Plus className="h-4 w-4 mr-1" /> Adaugă
-            </Button>
+            <button onClick={() => { setLangInput(""); setLangLevel(""); setLangError(""); setLangSuggestions([]); setShowLangDialog(true); }} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
+              <Edit2 className="h-4 w-4" />
+            </button>
           )}
         </div>
 
