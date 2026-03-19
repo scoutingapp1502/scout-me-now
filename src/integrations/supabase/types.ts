@@ -98,6 +98,7 @@ export type Database = {
           twitter_url: string | null
           updated_at: string
           user_id: string
+          video_descriptions: string[] | null
           video_highlights: string[] | null
           weight_kg: number | null
         }
@@ -136,6 +137,7 @@ export type Database = {
           twitter_url?: string | null
           updated_at?: string
           user_id: string
+          video_descriptions?: string[] | null
           video_highlights?: string[] | null
           weight_kg?: number | null
         }
@@ -174,6 +176,7 @@ export type Database = {
           twitter_url?: string | null
           updated_at?: string
           user_id?: string
+          video_descriptions?: string[] | null
           video_highlights?: string[] | null
           weight_kg?: number | null
         }
