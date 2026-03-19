@@ -206,6 +206,81 @@ export type Database = {
         }
         Relationships: []
       }
+      scout_certifications: {
+        Row: {
+          created_at: string
+          credential_url: string | null
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          issuing_organization: string
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credential_url?: string | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string
+          name?: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credential_url?: string | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scout_education: {
+        Row: {
+          created_at: string
+          degree: string
+          description: string | null
+          end_date: string | null
+          field_of_study: string | null
+          id: string
+          institution: string
+          sort_order: number
+          start_date: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          degree?: string
+          description?: string | null
+          end_date?: string | null
+          field_of_study?: string | null
+          id?: string
+          institution?: string
+          sort_order?: number
+          start_date?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          degree?: string
+          description?: string | null
+          end_date?: string | null
+          field_of_study?: string | null
+          id?: string
+          institution?: string
+          sort_order?: number
+          start_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       scout_experiences: {
         Row: {
           created_at: string
@@ -283,6 +358,7 @@ export type Database = {
           created_at: string
           first_name: string
           id: string
+          languages: string[] | null
           last_name: string
           organization: string | null
           photo_url: string | null
@@ -298,6 +374,7 @@ export type Database = {
           created_at?: string
           first_name?: string
           id?: string
+          languages?: string[] | null
           last_name?: string
           organization?: string | null
           photo_url?: string | null
@@ -313,6 +390,7 @@ export type Database = {
           created_at?: string
           first_name?: string
           id?: string
+          languages?: string[] | null
           last_name?: string
           organization?: string | null
           photo_url?: string | null
