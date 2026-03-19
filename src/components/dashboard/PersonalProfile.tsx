@@ -134,12 +134,12 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       if (profile) {
         ({ error } = await supabase
           .from("player_profiles")
-          .update(payload)
+          .update(payload as any)
           .eq("user_id", userId));
       } else {
         ({ error } = await supabase
           .from("player_profiles")
-          .insert({ ...payload, user_id: userId }));
+          .insert({ ...payload, user_id: userId } as any));
       }
 
       if (error) throw error;
