@@ -703,7 +703,26 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-display text-lg text-foreground mb-3 uppercase">{t.dashboard.profile.agentContact}</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.agentContact}</h3>
+            {!readOnly && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi contact agent">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm font-body" side="top">
+                  <p className="font-semibold mb-1">💡 Sfaturi</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Adaugă datele agentului pentru contactări rapide</li>
+                    <li>Verifică adresa de email să fie corectă</li>
+                    <li>Include un număr de telefon activ</li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
           {editing ? (
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} className="text-white" /></div>
