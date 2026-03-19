@@ -447,12 +447,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
             </Popover>
           </div>
           {editingSection === "about" ? (
-            <Input
-              value={(form.skills || []).join(", ")}
-              onChange={e => updateForm("skills", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-              placeholder="Recruitment analysis, Scouting, Video analysis... (separate cu virgulă)"
-              className="bg-muted border-border text-white text-sm"
-            />
+            <SkillsEditor skills={form.skills || []} onChange={(skills) => updateForm("skills", skills)} />
           ) : (
             <div className="flex flex-wrap gap-2">
               {skillsArray.length > 0 ? skillsArray.map((skill, i) => (
