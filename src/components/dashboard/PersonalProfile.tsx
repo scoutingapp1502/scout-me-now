@@ -124,6 +124,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           defense: form.defense,
           career_description: form.career_description,
           video_highlights: form.video_highlights,
+          video_descriptions: (form as any).video_descriptions,
           about_documents: form.about_documents,
           palmares_documents: form.palmares_documents,
           sport: (form as any).sport,
@@ -858,7 +859,34 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
   const { t } = useLanguage();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [newVideoDescription, setNewVideoDescription] = useState("");
   const videos = editing ? (form.video_highlights || []) : (profile?.video_highlights || []);
+  const descriptions: string[] = editing ? ((form as any).video_descriptions || []) : ((profile as any)?.video_descriptions || []);
+
+  const addVideoWithDescription = () => {
+    if (!newVideoUrl.trim()) return;
+    const currentVideos = form.video_highlights || [];
+    const currentDescs: string[] = (form as any).video_descriptions || [];
+    updateForm("video_highlights", [...currentVideos, newVideoUrl.trim()]);
+    updateForm("video_descriptions", [...currentDescs, newVideoDescription.trim()]);
+    setNewVideoUrl("");
+    setNewVideoDescription("");
+  };
+
+  const removeVideoWithDescription = (index: number) => {
+    const currentVideos = form.video_highlights || [];
+    const currentDescs: string[] = (form as any).video_descriptions || [];
+    updateForm("video_highlights", currentVideos.filter((_, i) => i !== index));
+    updateForm("video_descriptions", currentDescs.filter((_, i) => i !== index));
+  };
+
+  const updateDescription = (index: number, value: string) => {
+    const currentDescs: string[] = [...((form as any).video_descriptions || [])];
+    // Ensure array is long enough
+    while (currentDescs.length <= index) currentDescs.push("");
+    currentDescs[index] = value;
+    updateForm("video_descriptions", currentDescs);
+  };
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -891,15 +919,16 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-      const current = form.video_highlights || [];
-      updateForm("video_highlights", [...current, urlData.publicUrl]);
+      const currentVideos = form.video_highlights || [];
+      const currentDescs: string[] = (form as any).video_descriptions || [];
+      updateForm("video_highlights", [...currentVideos, urlData.publicUrl]);
+      updateForm("video_descriptions", [...currentDescs, ""]);
 
       toast({ title: "Video încărcat cu succes!" });
     } catch (err: any) {
       toast({ title: t.dashboard.profile.error, description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
-      // Reset file input
       e.target.value = "";
     }
   };
@@ -920,11 +949,22 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
                 value={newVideoUrl}
                 onChange={(e) => setNewVideoUrl(e.target.value)}
                 placeholder={t.dashboard.profile.videoPlaceholder}
-                className="flex-1 text-white"
-                onKeyDown={(e) => e.key === "Enter" && addVideoUrl()}
+                className="flex-1 text-foreground"
+                onKeyDown={(e) => e.key === "Enter" && addVideoWithDescription()}
               />
-              <Button onClick={addVideoUrl} size="sm"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
+              <Button onClick={addVideoWithDescription} size="sm"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
             </div>
+          </div>
+          {/* Description for new video */}
+          <div>
+            <Label className="text-xs text-muted-foreground font-body mb-1 block">Descriere video (opțional)</Label>
+            <Textarea
+              value={newVideoDescription}
+              onChange={(e) => setNewVideoDescription(e.target.value)}
+              placeholder="Ex: Liga 1 - Etapa 12, vs FC Steaua, gol din minutul 34..."
+              rows={2}
+              className="text-foreground text-sm"
+            />
           </div>
           {/* File upload */}
           <div className="flex items-center gap-2">
@@ -953,13 +993,14 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
           {videos.map((url, i) => {
             const youtubeId = extractYouTubeId(url);
             const isUploaded = isUploadedVideo(url);
+            const description = descriptions[i] || "";
             return (
               <div key={i} className="bg-card border border-border rounded-xl overflow-hidden group relative">
                 {youtubeId ? (
                   <div className="aspect-video">
                     <iframe
                       src={`https://www.youtube.com/embed/${youtubeId}`}
-                      title={`Video ${i + 1}`}
+                      title={description || `Video ${i + 1}`}
                       className="w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
@@ -982,9 +1023,23 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
                     <span className="font-body text-sm text-foreground truncate">{url}</span>
                   </a>
                 )}
+                {/* Description area */}
+                <div className="px-4 py-3 border-t border-border">
+                  {editing ? (
+                    <Textarea
+                      value={description}
+                      onChange={(e) => updateDescription(i, e.target.value)}
+                      placeholder="Descriere: competiție, adversar, stagiu meci..."
+                      rows={2}
+                      className="text-foreground text-xs"
+                    />
+                  ) : description ? (
+                    <p className="text-foreground/80 font-body text-sm leading-relaxed">{description}</p>
+                  ) : null}
+                </div>
                 {editing && (
                   <button
-                    onClick={() => removeVideoUrl(i)}
+                    onClick={() => removeVideoWithDescription(i)}
                     className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="h-3 w-3" />
