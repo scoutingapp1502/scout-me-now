@@ -353,11 +353,10 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
 }) {
   const { t } = useLanguage();
   const stats = [
-    { key: "speed", label: t.dashboard.profile.speed, icon: "⚡" },
-    { key: "jumping", label: t.dashboard.profile.jumping, icon: "🦘" },
-    { key: "endurance", label: t.dashboard.profile.endurance, icon: "💪" },
-    { key: "acceleration", label: t.dashboard.profile.acceleration, icon: "🚀" },
-    { key: "defense", label: t.dashboard.profile.defense, icon: "🛡️" },
+    { key: "speed", label: "Pro Line Drill", icon: "⚡" },
+    { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘" },
+    { key: "endurance", label: "Shuttle Run", icon: "💪" },
+    { key: "acceleration", label: "2 Foots Vertical Jump in action", icon: "🚀" },
   ];
 
   const overallRating = Math.round(
