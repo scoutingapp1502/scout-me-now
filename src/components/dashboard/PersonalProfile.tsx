@@ -479,22 +479,23 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
         <div className="space-y-2">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {stats.map((stat) => {
-            const value = (form as any)[stat.key] ?? 0;
-            return (
-              <div key={stat.key} className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
-                <p className="text-xs text-muted-foreground font-body mb-2">{stat.icon} {stat.label}</p>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={value}
-                  onChange={(e) => updateForm(stat.key, Math.min(100, parseInt(e.target.value) || 0))}
-                  className="text-center text-lg font-display text-white"
-                />
-              </div>
-            );
-          })}
+            {stats.map((stat) => {
+              const value = (form as any)[stat.key] ?? 0;
+              return (
+                <div key={stat.key} className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
+                  <p className="text-xs text-muted-foreground font-body mb-2">{stat.icon} {stat.label}</p>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={value}
+                    onChange={(e) => updateForm(stat.key, Math.min(100, parseInt(e.target.value) || 0))}
+                    className="text-center text-lg font-display text-white"
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
