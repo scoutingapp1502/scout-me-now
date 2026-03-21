@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
 import PlayerStats from "./PlayerStats";
+import NationalityInput from "@/components/ui/nationality-input";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -250,7 +251,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             {editing && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
+                  <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
                   <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -691,7 +692,7 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
                 </Select>
               </div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} className="text-white" /></div>
             </div>
           ) : (
             <div className="space-y-3 font-body text-sm">
