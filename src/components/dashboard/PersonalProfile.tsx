@@ -353,15 +353,14 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
 }) {
   const { t } = useLanguage();
   const stats = [
-    { key: "speed", label: t.dashboard.profile.speed, icon: "⚡" },
-    { key: "jumping", label: t.dashboard.profile.jumping, icon: "🦘" },
-    { key: "endurance", label: t.dashboard.profile.endurance, icon: "💪" },
-    { key: "acceleration", label: t.dashboard.profile.acceleration, icon: "🚀" },
-    { key: "defense", label: t.dashboard.profile.defense, icon: "🛡️" },
+    { key: "speed", label: "Pro Line Drill", icon: "⚡" },
+    { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘" },
+    { key: "endurance", label: "Shuttle Run", icon: "💪" },
+    { key: "acceleration", label: "2 Foots Vertical Jump in action", icon: "🚀" },
   ];
 
   const overallRating = Math.round(
-    (((form as any).speed ?? 0) + ((form as any).jumping ?? 0) + ((form as any).endurance ?? 0) + ((form as any).acceleration ?? 0) + ((form as any).defense ?? 0)) / 5
+    (((form as any).speed ?? 0) + ((form as any).jumping ?? 0) + ((form as any).endurance ?? 0) + ((form as any).acceleration ?? 0)) / 4
   );
 
   return (
@@ -418,11 +417,10 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
               {/* Stats grid */}
               <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-5 pb-4">
                 {[
-                  { label: "VIT", value: (form as any).speed ?? 0 },
-                  { label: "DET", value: (form as any).jumping ?? 0 },
-                  { label: "REZ", value: (form as any).endurance ?? 0 },
-                  { label: "ACC", value: (form as any).acceleration ?? 0 },
-                  { label: "APR", value: (form as any).defense ?? 0 },
+                  { label: "PLD", value: (form as any).speed ?? 0 },
+                  { label: "2FVJ", value: (form as any).jumping ?? 0 },
+                  { label: "SHR", value: (form as any).endurance ?? 0 },
+                  { label: "2FVJA", value: (form as any).acceleration ?? 0 },
                 ].map((stat) => (
                   <div key={stat.label} className="flex items-center gap-2">
                     <span className="font-display text-lg text-primary-foreground leading-none">{stat.value}</span>
@@ -435,7 +433,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
 
           {/* Stat bars - vertical bars visualization */}
           <div className="flex-1 w-full bg-card border border-border rounded-2xl p-5 sm:p-6">
-            <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-4">Atribute</h4>
+            <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-1">Teste Atletice</h4>
             <div className="space-y-4">
               {stats.map((stat) => {
                 const value = (form as any)[stat.key] ?? 0;
@@ -478,23 +476,26 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
 
       {/* Editing mode: stat inputs */}
       {editing && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {stats.map((stat) => {
-            const value = (form as any)[stat.key] ?? 0;
-            return (
-              <div key={stat.key} className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
-                <p className="text-xs text-muted-foreground font-body mb-2">{stat.icon} {stat.label}</p>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={value}
-                  onChange={(e) => updateForm(stat.key, Math.min(100, parseInt(e.target.value) || 0))}
-                  className="text-center text-lg font-display text-white"
-                />
-              </div>
-            );
-          })}
+        <div className="space-y-2">
+          <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {stats.map((stat) => {
+              const value = (form as any)[stat.key] ?? 0;
+              return (
+                <div key={stat.key} className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
+                  <p className="text-xs text-muted-foreground font-body mb-2">{stat.icon} {stat.label}</p>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={value}
+                    onChange={(e) => updateForm(stat.key, Math.min(100, parseInt(e.target.value) || 0))}
+                    className="text-center text-lg font-display text-white"
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
