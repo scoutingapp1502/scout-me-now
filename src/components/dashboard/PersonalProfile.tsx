@@ -692,7 +692,7 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
                 </Select>
               </div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><Input value={form.nationality || ""} onChange={(e) => updateForm("nationality", e.target.value)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} className="text-white" /></div>
             </div>
           ) : (
             <div className="space-y-3 font-body text-sm">
