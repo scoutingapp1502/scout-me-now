@@ -38,7 +38,7 @@ export const translations = {
         basketball: "Basketball",
         boxing: "Boxing",
         volleyball: "Volleyball",
-        other: "Altree",
+        other: "Altele",
       },
     },
     // Top Talents
