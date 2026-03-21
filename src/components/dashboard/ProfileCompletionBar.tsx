@@ -32,7 +32,7 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick }: ProfileC
               <button
                 type="button"
                 onClick={(e) => e.stopPropagation()}
-                className="text-muted-foreground hover:text-primary transition-colors"
+                className="ml-2 p-2 -m-2 text-muted-foreground hover:text-primary transition-colors rounded-full"
               >
                 <Info className="h-4 w-4" />
               </button>
