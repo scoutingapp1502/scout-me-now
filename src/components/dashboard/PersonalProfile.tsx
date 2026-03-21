@@ -433,7 +433,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
 
           {/* Stat bars - vertical bars visualization */}
           <div className="flex-1 w-full bg-card border border-border rounded-2xl p-5 sm:p-6">
-            <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-4">Atribute</h4>
+            <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-1">Teste Atletice</h4>
             <div className="space-y-4">
               {stats.map((stat) => {
                 const value = (form as any)[stat.key] ?? 0;
