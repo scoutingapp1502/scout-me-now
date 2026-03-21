@@ -417,11 +417,10 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
               {/* Stats grid */}
               <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-5 pb-4">
                 {[
-                  { label: "VIT", value: (form as any).speed ?? 0 },
-                  { label: "DET", value: (form as any).jumping ?? 0 },
-                  { label: "REZ", value: (form as any).endurance ?? 0 },
-                  { label: "ACC", value: (form as any).acceleration ?? 0 },
-                  { label: "APR", value: (form as any).defense ?? 0 },
+                  { label: "PLD", value: (form as any).speed ?? 0 },
+                  { label: "2FVJ", value: (form as any).jumping ?? 0 },
+                  { label: "SHR", value: (form as any).endurance ?? 0 },
+                  { label: "2FVJA", value: (form as any).acceleration ?? 0 },
                 ].map((stat) => (
                   <div key={stat.label} className="flex items-center gap-2">
                     <span className="font-display text-lg text-primary-foreground leading-none">{stat.value}</span>
