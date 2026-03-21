@@ -476,7 +476,9 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
 
       {/* Editing mode: stat inputs */}
       {editing && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="space-y-2">
+          <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {stats.map((stat) => {
             const value = (form as any)[stat.key] ?? 0;
             return (
