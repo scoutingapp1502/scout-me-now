@@ -147,7 +147,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       toast({ title: t.dashboard.profile.profileUpdated });
       setEditing(false);
       setAvatarFile(null);
-      fetchProfile();
+      window.location.reload();
     } catch (err: any) {
       toast({ title: t.dashboard.profile.error, description: err.message, variant: "destructive" });
     } finally {
