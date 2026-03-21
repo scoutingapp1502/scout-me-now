@@ -360,7 +360,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
   ];
 
   const overallRating = Math.round(
-    (((form as any).speed ?? 0) + ((form as any).jumping ?? 0) + ((form as any).endurance ?? 0) + ((form as any).acceleration ?? 0) + ((form as any).defense ?? 0)) / 5
+    (((form as any).speed ?? 0) + ((form as any).jumping ?? 0) + ((form as any).endurance ?? 0) + ((form as any).acceleration ?? 0)) / 4
   );
 
   return (
