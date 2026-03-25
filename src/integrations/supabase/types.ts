@@ -79,6 +79,7 @@ export type Database = {
           cv_url: string | null
           date_of_birth: string | null
           defense: number | null
+          double_cross_video: string | null
           endurance: number | null
           first_name: string
           goals: number | null
@@ -122,6 +123,7 @@ export type Database = {
           cv_url?: string | null
           date_of_birth?: string | null
           defense?: number | null
+          double_cross_video?: string | null
           endurance?: number | null
           first_name?: string
           goals?: number | null
@@ -165,6 +167,7 @@ export type Database = {
           cv_url?: string | null
           date_of_birth?: string | null
           defense?: number | null
+          double_cross_video?: string | null
           endurance?: number | null
           first_name?: string
           goals?: number | null
