@@ -73,6 +73,7 @@ export type Database = {
           bio: string | null
           career_description: string | null
           created_at: string
+          crossover_video: string | null
           current_team: string | null
           cv_url: string | null
           date_of_birth: string | null
@@ -114,6 +115,7 @@ export type Database = {
           bio?: string | null
           career_description?: string | null
           created_at?: string
+          crossover_video?: string | null
           current_team?: string | null
           cv_url?: string | null
           date_of_birth?: string | null
@@ -155,6 +157,7 @@ export type Database = {
           bio?: string | null
           career_description?: string | null
           created_at?: string
+          crossover_video?: string | null
           current_team?: string | null
           cv_url?: string | null
           date_of_birth?: string | null
