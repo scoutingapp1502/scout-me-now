@@ -134,6 +134,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           crossover_video: (form as any).crossover_video,
           between_the_legs_video: (form as any).between_the_legs_video,
           double_cross_video: (form as any).double_cross_video,
+          between_legs_cross_video: (form as any).between_legs_cross_video,
         };
 
       let error;
@@ -621,6 +622,41 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                 );
               })()}
             </div>
+
+            {/* Between the Legs Cross */}
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Between the Legs Cross</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Between the Legs Cross">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="text-sm font-body" side="top">
+                    <p className="font-semibold mb-1">🏀 Between the Legs Cross</p>
+                    <p className="text-muted-foreground text-xs">Executarea procedeului de trecerea mingii printre picioare și apoi cross de fiecare dată când ajung în fața jalonului. Jaloanele vor fi în număr de 5 și se vor afla pe o linie coliniară, la distanța de 3 metri unul față de celălalt.</p>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              {(() => {
+                const videoUrl = (form as any).between_legs_cross_video || (profile as any)?.between_legs_cross_video || "";
+                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
+                return (
+                  <div className="mt-2">
+                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                        className="w-full aspect-video rounded-lg"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       </>)}
@@ -876,6 +912,63 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                     }
                     const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
                     updateForm("double_cross_video" as any, urlData.publicUrl);
+                    toast({ title: "Video încărcat cu succes!" });
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Between the Legs Cross video edit */}
+            <div>
+              <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Between the Legs Cross</p>
+              {(form as any).between_legs_cross_video && (
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any).between_legs_cross_video}</span>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => updateForm("between_legs_cross_video" as any, null)}>
+                    <X className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Link YouTube sau video URL"
+                  value={(form as any)._blc_video_input || ""}
+                  onChange={(e) => updateForm("_blc_video_input" as any, e.target.value)}
+                  className="text-white flex-1"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  const val = (form as any)._blc_video_input?.trim();
+                  if (val) {
+                    updateForm("between_legs_cross_video" as any, val);
+                    updateForm("_blc_video_input" as any, "");
+                  }
+                }}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="relative mt-2">
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => document.getElementById("blc-video-upload")?.click()}>
+                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
+                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                </div>
+                <input
+                  id="blc-video-upload"
+                  type="file"
+                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const ext = file.name.split(".").pop();
+                    const path = `${userId}/between-legs-cross-${Date.now()}.${ext}`;
+                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
+                    if (uploadError) {
+                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                      return;
+                    }
+                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                    updateForm("between_legs_cross_video" as any, urlData.publicUrl);
                     toast({ title: "Video încărcat cu succes!" });
                   }}
                 />
