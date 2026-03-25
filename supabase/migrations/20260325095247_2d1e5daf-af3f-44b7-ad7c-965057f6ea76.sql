@@ -1,0 +1,1 @@
+ALTER TABLE public.player_profiles ADD COLUMN star_shooting_drill_video text DEFAULT NULL;

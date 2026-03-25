@@ -95,6 +95,7 @@ export type Database = {
           speed: number | null
           sport: string | null
           star_shooting_drill: number | null
+          star_shooting_drill_video: string | null
           tiktok_url: string | null
           twitter_url: string | null
           updated_at: string
@@ -135,6 +136,7 @@ export type Database = {
           speed?: number | null
           sport?: string | null
           star_shooting_drill?: number | null
+          star_shooting_drill_video?: string | null
           tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string
@@ -175,6 +177,7 @@ export type Database = {
           speed?: number | null
           sport?: string | null
           star_shooting_drill?: number | null
+          star_shooting_drill_video?: string | null
           tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string

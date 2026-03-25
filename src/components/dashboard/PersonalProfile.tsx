@@ -130,6 +130,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           palmares_documents: form.palmares_documents,
           sport: (form as any).sport,
           star_shooting_drill: (form as any).star_shooting_drill,
+          star_shooting_drill_video: (form as any).star_shooting_drill_video,
         };
 
       let error;
@@ -329,7 +330,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 
       {/* Tab content */}
       <div className="mt-6 px-4 sm:px-6">
-        {activeTab === "stats" && <StatsTab form={form} profile={profile} editing={editing} updateForm={updateForm} photoSrc={photoSrc} />}
+        {activeTab === "stats" && <StatsTab form={form} profile={profile} editing={editing} updateForm={updateForm} photoSrc={photoSrc} userId={userId} />}
         {activeTab === "profile" && <ProfileTab form={form} profile={profile} editing={editing} updateForm={updateForm} userId={userId} readOnly={readOnly} />}
         {activeTab === "video" && (
           <VideoTab
@@ -349,10 +350,11 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 };
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; photoSrc?: string | null;
+function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string;
 }) {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const stats = [
     { key: "speed", label: "Pro Line Drill", icon: "⚡" },
     { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘" },
@@ -483,8 +485,9 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
             ].map((stat) => {
               const value = (form as any)[stat.key] ?? 0;
               const percentage = Math.min(value, 100);
+              const videoUrl = (form as any)[`${stat.key}_video`] || (profile as any)?.[`${stat.key}_video`] || "";
               return (
-                <div key={stat.key} className="group">
+                <div key={stat.key} className="group space-y-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
                     <span className="font-display text-xl text-foreground">{value}</span>
@@ -502,6 +505,20 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
                       }}
                     />
                   </div>
+                  {/* Video display */}
+                  {videoUrl && (
+                    <div className="mt-2">
+                      {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
+                        <iframe
+                          src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                          className="w-full aspect-video rounded-lg"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -536,19 +553,74 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
 
       {/* Editing mode: Teste Tehnice Specifice */}
       {editing && (
-        <div className="space-y-2">
+        <div className="space-y-4">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
-              <p className="text-xs text-muted-foreground font-body mb-2">🎯 Star Shooting Drill</p>
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <div className="flex flex-col items-center">
+              <p className="text-xs text-muted-foreground font-body mb-2">🎯 Star Shooting Drill — Scor</p>
               <Input
                 type="number"
                 min={0}
                 max={100}
                 value={(form as any).star_shooting_drill ?? 0}
                 onChange={(e) => updateForm("star_shooting_drill" as any, Math.min(100, parseInt(e.target.value) || 0))}
-                className="text-center text-lg font-display text-white"
+                className="text-center text-lg font-display text-white w-32"
               />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Star Shooting Drill</p>
+              {(form as any).star_shooting_drill_video && (
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any).star_shooting_drill_video}</span>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => updateForm("star_shooting_drill_video" as any, null)}>
+                    <X className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Link YouTube sau video URL"
+                  value={(form as any)._ssd_video_input || ""}
+                  onChange={(e) => updateForm("_ssd_video_input" as any, e.target.value)}
+                  className="text-white flex-1"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  const val = (form as any)._ssd_video_input?.trim();
+                  if (val) {
+                    updateForm("star_shooting_drill_video" as any, val);
+                    updateForm("_ssd_video_input" as any, "");
+                  }
+                }}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="relative mt-2">
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => document.getElementById("ssd-video-upload")?.click()}>
+                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
+                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                </div>
+                <input
+                  id="ssd-video-upload"
+                  type="file"
+                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const ext = file.name.split(".").pop();
+                    const path = `${userId}/star-shooting-drill-${Date.now()}.${ext}`;
+                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
+                    if (uploadError) {
+                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                      return;
+                    }
+                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                    updateForm("star_shooting_drill_video" as any, urlData.publicUrl);
+                    toast({ title: "Video încărcat cu succes!" });
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
