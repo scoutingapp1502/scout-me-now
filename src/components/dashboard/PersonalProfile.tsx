@@ -513,6 +513,41 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                 );
               })()}
             </div>
+
+            {/* Crossover */}
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Crossover</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Crossover">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="text-sm font-body" side="top">
+                    <p className="font-semibold mb-1">🏀 Crossover</p>
+                    <p className="text-muted-foreground text-xs">Executarea procedeului de cros la viteza maximă folosind 6 jaloane, 3 pe partea dreaptă 3 pe stânga la distanța de 2 m una de cealaltă.</p>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              {(() => {
+                const videoUrl = (form as any).crossover_video || (profile as any)?.crossover_video || "";
+                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
+                return (
+                  <div className="mt-2">
+                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                        className="w-full aspect-video rounded-lg"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       </>)}
