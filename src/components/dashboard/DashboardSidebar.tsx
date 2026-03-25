@@ -9,9 +9,10 @@ interface DashboardSidebarProps {
   onSectionChange: (section: string) => void;
   playerName?: string;
   profileLabel?: string;
+  userRole?: "player" | "scout" | null;
 }
 
-const DashboardSidebar = ({ activeSection, onSectionChange, playerName, profileLabel }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ activeSection, onSectionChange, playerName, profileLabel, userRole }: DashboardSidebarProps) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
@@ -31,9 +32,12 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, profileL
   return (
     <aside className="w-64 min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="p-6 border-b border-sidebar-border">
-        <span className="font-display text-2xl text-primary">⚽ SPORTRISE</span>
+        <span className="font-display text-2xl text-primary">{userRole === "scout" ? "" : "⚽ "}SPORTRISE</span>
         {playerName && (
           <p className="text-sm text-sidebar-foreground/60 font-body mt-1 truncate">{playerName}</p>
+        )}
+        {userRole === "scout" && (
+          <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">SCOUTER</p>
         )}
       </div>
 

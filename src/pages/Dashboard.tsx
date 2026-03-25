@@ -210,6 +210,7 @@ const Dashboard = () => {
                 onSectionChange={handleSectionChange}
                 playerName={playerName}
                 profileLabel={sidebarFirstLabel}
+                userRole={userRole}
               />
             </SheetContent>
           </Sheet>
@@ -232,6 +233,7 @@ const Dashboard = () => {
             onSectionChange={setActiveSection}
             playerName={playerName}
             profileLabel={sidebarFirstLabel}
+            userRole={userRole}
           />
           <main className="flex-1 p-8 overflow-y-auto">
             {renderSection()}
