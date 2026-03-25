@@ -507,7 +507,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
             })}
           </div>
         </div>
-      )}
+      </>)}
 
       {/* Editing mode: stat inputs */}
       {editing && (
