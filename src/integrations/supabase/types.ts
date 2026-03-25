@@ -83,6 +83,7 @@ export type Database = {
           double_cross_video: string | null
           endurance: number | null
           first_name: string
+          free_throw_shooting_video: string | null
           goals: number | null
           height_cm: number | null
           id: string
@@ -128,6 +129,7 @@ export type Database = {
           double_cross_video?: string | null
           endurance?: number | null
           first_name?: string
+          free_throw_shooting_video?: string | null
           goals?: number | null
           height_cm?: number | null
           id?: string
@@ -173,6 +175,7 @@ export type Database = {
           double_cross_video?: string | null
           endurance?: number | null
           first_name?: string
+          free_throw_shooting_video?: string | null
           goals?: number | null
           height_cm?: number | null
           id?: string
