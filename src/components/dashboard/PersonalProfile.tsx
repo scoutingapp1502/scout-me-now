@@ -534,6 +534,26 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
         </div>
       )}
 
+      {/* Editing mode: Teste Tehnice Specifice */}
+      {editing && (
+        <div className="space-y-2">
+          <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
+              <p className="text-xs text-muted-foreground font-body mb-2">🎯 Star Shooting Drill</p>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={(form as any).star_shooting_drill ?? 0}
+                onChange={(e) => updateForm("star_shooting_drill" as any, Math.min(100, parseInt(e.target.value) || 0))}
+                className="text-center text-lg font-display text-white"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Classic stats row */}
       <div className="grid grid-cols-3 gap-3">
         {editing ? (
