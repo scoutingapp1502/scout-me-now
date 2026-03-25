@@ -350,10 +350,11 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 };
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; photoSrc?: string | null;
+function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string;
 }) {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const stats = [
     { key: "speed", label: "Pro Line Drill", icon: "⚡" },
     { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘" },
