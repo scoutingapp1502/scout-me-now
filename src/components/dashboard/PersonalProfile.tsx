@@ -665,12 +665,12 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
       {editing && (
         <div className="space-y-2">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {stats.map((stat) => {
               const value = (form as any)[stat.key] ?? 0;
               return (
-                <div key={stat.key} className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
-                  <p className="text-xs text-muted-foreground font-body mb-2">{stat.icon} {stat.label}</p>
+                <div key={stat.key} className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center">
+                  <p className="text-xs text-muted-foreground font-body mb-2 text-center">{stat.icon} {stat.label}</p>
                   <Input
                     type="number"
                     min={0}
@@ -690,7 +690,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
       {editing && (
         <div className="space-y-4">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4 space-y-4">
             <div>
               <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Star Shooting Drill</p>
               {(form as any).star_shooting_drill_video && (
@@ -701,14 +701,14 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                   </Button>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   placeholder="Link YouTube sau video URL"
                   value={(form as any)._ssd_video_input || ""}
                   onChange={(e) => updateForm("_ssd_video_input" as any, e.target.value)}
-                  className="text-white flex-1"
+                  className="text-white flex-1 min-w-0"
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => {
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
                   const val = (form as any)._ssd_video_input?.trim();
                   if (val) {
                     updateForm("star_shooting_drill_video" as any, val);
@@ -719,7 +719,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                 </Button>
               </div>
               <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => document.getElementById("ssd-video-upload")?.click()}>
                   <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
                   <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
@@ -758,14 +758,14 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                   </Button>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   placeholder="Link YouTube sau video URL"
                   value={(form as any)._crossover_video_input || ""}
                   onChange={(e) => updateForm("_crossover_video_input" as any, e.target.value)}
-                  className="text-white flex-1"
+                  className="text-white flex-1 min-w-0"
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => {
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
                   const val = (form as any)._crossover_video_input?.trim();
                   if (val) {
                     updateForm("crossover_video" as any, val);
@@ -776,7 +776,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                 </Button>
               </div>
               <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => document.getElementById("crossover-video-upload")?.click()}>
                   <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
                   <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
@@ -815,14 +815,14 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                   </Button>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   placeholder="Link YouTube sau video URL"
                   value={(form as any)._btl_video_input || ""}
                   onChange={(e) => updateForm("_btl_video_input" as any, e.target.value)}
-                  className="text-white flex-1"
+                  className="text-white flex-1 min-w-0"
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => {
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
                   const val = (form as any)._btl_video_input?.trim();
                   if (val) {
                     updateForm("between_the_legs_video" as any, val);
@@ -833,7 +833,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                 </Button>
               </div>
               <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => document.getElementById("btl-video-upload")?.click()}>
                   <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
                   <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
@@ -872,14 +872,14 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                   </Button>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   placeholder="Link YouTube sau video URL"
                   value={(form as any)._dc_video_input || ""}
                   onChange={(e) => updateForm("_dc_video_input" as any, e.target.value)}
-                  className="text-white flex-1"
+                  className="text-white flex-1 min-w-0"
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => {
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
                   const val = (form as any)._dc_video_input?.trim();
                   if (val) {
                     updateForm("double_cross_video" as any, val);
@@ -890,7 +890,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                 </Button>
               </div>
               <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => document.getElementById("dc-video-upload")?.click()}>
                   <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
                   <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
@@ -929,14 +929,14 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                   </Button>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   placeholder="Link YouTube sau video URL"
                   value={(form as any)._blc_video_input || ""}
                   onChange={(e) => updateForm("_blc_video_input" as any, e.target.value)}
-                  className="text-white flex-1"
+                  className="text-white flex-1 min-w-0"
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => {
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
                   const val = (form as any)._blc_video_input?.trim();
                   if (val) {
                     updateForm("between_legs_cross_video" as any, val);
@@ -947,7 +947,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                 </Button>
               </div>
               <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => document.getElementById("blc-video-upload")?.click()}>
                   <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
                   <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
@@ -979,7 +979,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
       )}
 
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {editing ? (
           <>
             <div className="bg-card border border-border rounded-xl p-4">
