@@ -480,48 +480,26 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-4">Teste Tehnice Specifice</h4>
           <div className="space-y-4">
-            {[
-              { label: "Star Shooting Drill", key: "star_shooting_drill", icon: "🎯" },
-            ].map((stat) => {
-              const value = (form as any)[stat.key] ?? 0;
-              const percentage = Math.min(value, 100);
-              const videoUrl = (form as any)[`${stat.key}_video`] || (profile as any)?.[`${stat.key}_video`] || "";
-              return (
-                <div key={stat.key} className="group space-y-3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
-                    <span className="font-display text-xl text-foreground">{value}</span>
+            <div>
+              <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🎯 Star Shooting Drill</span>
+              {(() => {
+                const videoUrl = (form as any).star_shooting_drill_video || (profile as any)?.star_shooting_drill_video || "";
+                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
+                return (
+                  <div className="mt-2">
+                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                        className="w-full aspect-video rounded-lg"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                    )}
                   </div>
-                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700 ease-out"
-                      style={{
-                        width: `${percentage}%`,
-                        background: percentage >= 80
-                          ? 'linear-gradient(90deg, hsl(var(--primary)), hsl(145 80% 50%))'
-                          : percentage >= 50
-                            ? 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))'
-                            : 'linear-gradient(90deg, hsl(var(--destructive) / 0.6), hsl(var(--destructive)))',
-                      }}
-                    />
-                  </div>
-                  {/* Video display */}
-                  {videoUrl && (
-                    <div className="mt-2">
-                      {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                        <iframe
-                          src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                          className="w-full aspect-video rounded-lg"
-                          allowFullScreen
-                        />
-                      ) : (
-                        <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })()}
+            </div>
           </div>
         </div>
       </>)}
@@ -556,17 +534,6 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
         <div className="space-y-4">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
           <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-            <div className="flex flex-col items-center">
-              <p className="text-xs text-muted-foreground font-body mb-2">🎯 Star Shooting Drill — Scor</p>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                value={(form as any).star_shooting_drill ?? 0}
-                onChange={(e) => updateForm("star_shooting_drill" as any, Math.min(100, parseInt(e.target.value) || 0))}
-                className="text-center text-lg font-display text-white w-32"
-              />
-            </div>
             <div>
               <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Star Shooting Drill</p>
               {(form as any).star_shooting_drill_video && (
