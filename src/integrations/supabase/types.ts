@@ -70,6 +70,7 @@ export type Database = {
           agent_name: string | null
           agent_phone: string | null
           assists: number | null
+          between_legs_cross_video: string | null
           between_the_legs_video: string | null
           bio: string | null
           career_description: string | null
@@ -114,6 +115,7 @@ export type Database = {
           agent_name?: string | null
           agent_phone?: string | null
           assists?: number | null
+          between_legs_cross_video?: string | null
           between_the_legs_video?: string | null
           bio?: string | null
           career_description?: string | null
@@ -158,6 +160,7 @@ export type Database = {
           agent_name?: string | null
           agent_phone?: string | null
           assists?: number | null
+          between_legs_cross_video?: string | null
           between_the_legs_video?: string | null
           bio?: string | null
           career_description?: string | null
