@@ -130,6 +130,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           palmares_documents: form.palmares_documents,
           sport: (form as any).sport,
           star_shooting_drill: (form as any).star_shooting_drill,
+          star_shooting_drill_video: (form as any).star_shooting_drill_video,
         };
 
       let error;
@@ -483,8 +484,9 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
             ].map((stat) => {
               const value = (form as any)[stat.key] ?? 0;
               const percentage = Math.min(value, 100);
+              const videoUrl = (form as any)[`${stat.key}_video`] || (profile as any)?.[`${stat.key}_video`] || "";
               return (
-                <div key={stat.key} className="group">
+                <div key={stat.key} className="group space-y-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
                     <span className="font-display text-xl text-foreground">{value}</span>
@@ -502,6 +504,20 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
                       }}
                     />
                   </div>
+                  {/* Video display */}
+                  {videoUrl && (
+                    <div className="mt-2">
+                      {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
+                        <iframe
+                          src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                          className="w-full aspect-video rounded-lg"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
