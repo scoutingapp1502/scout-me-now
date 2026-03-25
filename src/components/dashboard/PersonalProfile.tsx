@@ -786,8 +786,8 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
           </div>
           {editing ? (
             <div className="space-y-3">
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="number" value={form.height_cm ?? ""} onChange={(e) => updateForm("height_cm", parseInt(e.target.value) || null)} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="number" value={form.weight_kg ?? ""} onChange={(e) => updateForm("weight_kg", parseInt(e.target.value) || null)} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="number" min={0} value={form.height_cm ?? ""} onChange={(e) => { const v = parseInt(e.target.value); updateForm("height_cm", isNaN(v) ? null : Math.max(0, v)); }} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="number" min={0} value={form.weight_kg ?? ""} onChange={(e) => { const v = parseInt(e.target.value); updateForm("weight_kg", isNaN(v) ? null : Math.max(0, v)); }} className="text-white" /></div>
               <div>
                 <Label className="text-xs text-muted-foreground">{t.dashboard.profile.preferredFoot}</Label>
                 <Select value={form.preferred_foot || ""} onValueChange={(v) => updateForm("preferred_foot", v)}>
