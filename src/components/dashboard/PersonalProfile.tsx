@@ -129,6 +129,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           about_documents: form.about_documents,
           palmares_documents: form.palmares_documents,
           sport: (form as any).sport,
+          star_shooting_drill: (form as any).star_shooting_drill,
         };
 
       let error;
@@ -470,6 +471,40 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
                 <span className="text-xs text-muted-foreground font-body">/100</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Teste Tehnice Specifice section */}
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
+          <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-4">Teste Tehnice Specifice</h4>
+          <div className="space-y-4">
+            {[
+              { label: "Star Shooting Drill", key: "star_shooting_drill", icon: "🎯" },
+            ].map((stat) => {
+              const value = (form as any)[stat.key] ?? 0;
+              const percentage = Math.min(value, 100);
+              return (
+                <div key={stat.key} className="group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
+                    <span className="font-display text-xl text-foreground">{value}</span>
+                  </div>
+                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700 ease-out"
+                      style={{
+                        width: `${percentage}%`,
+                        background: percentage >= 80
+                          ? 'linear-gradient(90deg, hsl(var(--primary)), hsl(145 80% 50%))'
+                          : percentage >= 50
+                            ? 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))'
+                            : 'linear-gradient(90deg, hsl(var(--destructive) / 0.6), hsl(var(--destructive)))',
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
