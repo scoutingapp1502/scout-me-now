@@ -149,7 +149,7 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
           </Button>
 
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onDismiss}>
+            <Button variant="outline" size="sm" onClick={onDismiss} className="border-muted-foreground/50 text-muted-foreground hover:text-foreground">
               {lang === "ro" ? "Mai târziu" : "Later"}
             </Button>
             <Button
