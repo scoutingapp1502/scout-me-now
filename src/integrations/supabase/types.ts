@@ -94,6 +94,7 @@ export type Database = {
           preferred_foot: string | null
           speed: number | null
           sport: string | null
+          star_shooting_drill: number | null
           tiktok_url: string | null
           twitter_url: string | null
           updated_at: string
@@ -133,6 +134,7 @@ export type Database = {
           preferred_foot?: string | null
           speed?: number | null
           sport?: string | null
+          star_shooting_drill?: number | null
           tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string
@@ -172,6 +174,7 @@ export type Database = {
           preferred_foot?: string | null
           speed?: number | null
           sport?: string | null
+          star_shooting_drill?: number | null
           tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string
