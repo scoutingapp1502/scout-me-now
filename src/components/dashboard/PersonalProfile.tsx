@@ -185,20 +185,20 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const photoSrc = avatarPreview || profile?.photo_url;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-0">
+    <div className="max-w-4xl mx-auto space-y-0 overflow-hidden">
       {/* Header / Hero */}
       <div className="relative bg-gradient-to-br from-sidebar to-sidebar-accent rounded-t-xl overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
           backgroundSize: '30px 30px'
         }} />
-        <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 p-5 sm:p-8">
+        <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 p-4 sm:p-8">
           {/* Info */}
-          <div className="flex-1 text-center sm:text-left order-2 sm:order-1">
+          <div className="flex-1 min-w-0 w-full text-center sm:text-left order-2 sm:order-1">
             {editing ? (
               <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-xl sm:text-2xl h-auto py-1" />
-                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-xl sm:text-2xl h-auto py-1" />
+                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-lg sm:text-2xl h-auto py-1 min-w-0" />
+                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-lg sm:text-2xl h-auto py-1 min-w-0" />
               </div>
             ) : (
             <h1 className="font-display text-3xl sm:text-5xl text-white tracking-wide uppercase">
@@ -219,7 +219,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                     {positions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Input value={form.current_team || ""} onChange={(e) => updateForm("current_team", e.target.value)} placeholder={t.dashboard.profile.currentTeam} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground sm:w-48" />
+                <Input value={form.current_team || ""} onChange={(e) => updateForm("current_team", e.target.value)} placeholder={t.dashboard.profile.currentTeam} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground w-full sm:w-48 min-w-0" />
               </div>
             ) : (
               <p className="text-muted-foreground font-body text-sm sm:text-base mt-1">
@@ -257,21 +257,21 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             {editing && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
-                  <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
+                  <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
+                  <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input value={form.instagram_url || ""} onChange={(e) => updateForm("instagram_url", e.target.value)} placeholder="Instagram URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
-                  <Input value={form.twitter_url || ""} onChange={(e) => updateForm("twitter_url", e.target.value)} placeholder="Twitter/X URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
-                  <Input value={form.tiktok_url || ""} onChange={(e) => updateForm("tiktok_url", e.target.value)} placeholder="TikTok URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs" />
+                <div className="flex flex-col gap-2">
+                  <Input value={form.instagram_url || ""} onChange={(e) => updateForm("instagram_url", e.target.value)} placeholder="Instagram URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
+                  <Input value={form.twitter_url || ""} onChange={(e) => updateForm("twitter_url", e.target.value)} placeholder="Twitter/X URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
+                  <Input value={form.tiktok_url || ""} onChange={(e) => updateForm("tiktok_url", e.target.value)} placeholder="TikTok URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
                 </div>
               </div>
             )}
           </div>
 
           {/* Avatar */}
-          <div className="relative group order-1 sm:order-2">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl border-2 border-primary/30 overflow-hidden bg-muted shadow-lg">
+          <div className="relative group order-1 sm:order-2 shrink-0">
+            <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-xl border-2 border-primary/30 overflow-hidden bg-muted shadow-lg">
               {photoSrc ? (
                 <img src={photoSrc} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -333,7 +333,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       </div>
 
       {/* Tab content */}
-      <div className="mt-6 px-4 sm:px-6">
+      <div className="mt-6 px-2 sm:px-6">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editing={editing} updateForm={updateForm} photoSrc={photoSrc} userId={userId} />}
         {activeTab === "profile" && <ProfileTab form={form} profile={profile} editing={editing} updateForm={updateForm} userId={userId} readOnly={readOnly} />}
         {activeTab === "video" && (
