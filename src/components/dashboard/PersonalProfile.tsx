@@ -131,6 +131,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           sport: (form as any).sport,
           star_shooting_drill: (form as any).star_shooting_drill,
           star_shooting_drill_video: (form as any).star_shooting_drill_video,
+          crossover_video: (form as any).crossover_video,
         };
 
       let error;
