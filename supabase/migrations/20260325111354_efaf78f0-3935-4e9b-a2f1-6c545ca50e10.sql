@@ -1,0 +1,1 @@
+ALTER TABLE public.player_profiles ADD COLUMN IF NOT EXISTS between_the_legs_video text DEFAULT NULL;
