@@ -552,19 +552,74 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
 
       {/* Editing mode: Teste Tehnice Specifice */}
       {editing && (
-        <div className="space-y-2">
+        <div className="space-y-4">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
-              <p className="text-xs text-muted-foreground font-body mb-2">🎯 Star Shooting Drill</p>
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <div className="flex flex-col items-center">
+              <p className="text-xs text-muted-foreground font-body mb-2">🎯 Star Shooting Drill — Scor</p>
               <Input
                 type="number"
                 min={0}
                 max={100}
                 value={(form as any).star_shooting_drill ?? 0}
                 onChange={(e) => updateForm("star_shooting_drill" as any, Math.min(100, parseInt(e.target.value) || 0))}
-                className="text-center text-lg font-display text-white"
+                className="text-center text-lg font-display text-white w-32"
               />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Star Shooting Drill</p>
+              {(form as any).star_shooting_drill_video && (
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any).star_shooting_drill_video}</span>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => updateForm("star_shooting_drill_video" as any, null)}>
+                    <X className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Link YouTube sau video URL"
+                  value={(form as any)._ssd_video_input || ""}
+                  onChange={(e) => updateForm("_ssd_video_input" as any, e.target.value)}
+                  className="text-white flex-1"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  const val = (form as any)._ssd_video_input?.trim();
+                  if (val) {
+                    updateForm("star_shooting_drill_video" as any, val);
+                    updateForm("_ssd_video_input" as any, "");
+                  }
+                }}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="relative mt-2">
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => document.getElementById("ssd-video-upload")?.click()}>
+                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
+                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                </div>
+                <input
+                  id="ssd-video-upload"
+                  type="file"
+                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const ext = file.name.split(".").pop();
+                    const path = `${userId}/star-shooting-drill-${Date.now()}.${ext}`;
+                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
+                    if (uploadError) {
+                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                      return;
+                    }
+                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                    updateForm("star_shooting_drill_video" as any, urlData.publicUrl);
+                    toast({ title: "Video încărcat cu succes!" });
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
