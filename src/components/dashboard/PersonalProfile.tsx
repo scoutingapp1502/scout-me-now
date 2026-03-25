@@ -185,7 +185,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const photoSrc = avatarPreview || profile?.photo_url;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-0">
+    <div className="max-w-4xl mx-auto space-y-0 overflow-hidden">
       {/* Header / Hero */}
       <div className="relative bg-gradient-to-br from-sidebar to-sidebar-accent rounded-t-xl overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{
@@ -333,7 +333,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       </div>
 
       {/* Tab content */}
-      <div className="mt-6 px-4 sm:px-6">
+      <div className="mt-6 px-2 sm:px-6">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editing={editing} updateForm={updateForm} photoSrc={photoSrc} userId={userId} />}
         {activeTab === "profile" && <ProfileTab form={form} profile={profile} editing={editing} updateForm={updateForm} userId={userId} readOnly={readOnly} />}
         {activeTab === "video" && (
