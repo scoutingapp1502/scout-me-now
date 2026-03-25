@@ -491,7 +491,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                   </PopoverTrigger>
                   <PopoverContent className="text-sm font-body" side="top">
                     <p className="font-semibold mb-1">🎯 Star Shooting Drill</p>
-                    <p className="text-muted-foreground text-xs">25 shots, 5 right corner, 5 left wing, 5 right wing, 5 left corner, 5 top of the key</p>
+                    <p className="text-muted-foreground text-xs">25 shots, 5 right corner, 5 left wing, 5 right wing, 5 left corner, 5 top of the key. After each throw, you have to change the position. Exercise is not timed.</p>
                   </PopoverContent>
                 </Popover>
               </div>
