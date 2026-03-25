@@ -1,0 +1,1 @@
+ALTER TABLE public.player_profiles ADD COLUMN star_shooting_drill integer DEFAULT 0;

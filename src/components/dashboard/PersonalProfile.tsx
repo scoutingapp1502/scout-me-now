@@ -129,6 +129,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           about_documents: form.about_documents,
           palmares_documents: form.palmares_documents,
           sport: (form as any).sport,
+          star_shooting_drill: (form as any).star_shooting_drill,
         };
 
       let error;
@@ -366,7 +367,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
   return (
     <div className="space-y-6">
       {/* FIFA card + Stat bars side by side on desktop */}
-      {!editing && (
+      {!editing && (<>
         <div className="flex flex-col lg:flex-row gap-6 items-center">
           {/* FIFA-style card - refined */}
           <div className="mx-auto lg:mx-0 relative w-[220px] shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_hsl(var(--primary)/0.4)]"
@@ -472,7 +473,41 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
             </div>
           </div>
         </div>
-      )}
+
+        {/* Teste Tehnice Specifice section */}
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
+          <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-4">Teste Tehnice Specifice</h4>
+          <div className="space-y-4">
+            {[
+              { label: "Star Shooting Drill", key: "star_shooting_drill", icon: "🎯" },
+            ].map((stat) => {
+              const value = (form as any)[stat.key] ?? 0;
+              const percentage = Math.min(value, 100);
+              return (
+                <div key={stat.key} className="group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
+                    <span className="font-display text-xl text-foreground">{value}</span>
+                  </div>
+                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700 ease-out"
+                      style={{
+                        width: `${percentage}%`,
+                        background: percentage >= 80
+                          ? 'linear-gradient(90deg, hsl(var(--primary)), hsl(145 80% 50%))'
+                          : percentage >= 50
+                            ? 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))'
+                            : 'linear-gradient(90deg, hsl(var(--destructive) / 0.6), hsl(var(--destructive)))',
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </>)}
 
       {/* Editing mode: stat inputs */}
       {editing && (
@@ -495,6 +530,26 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Editing mode: Teste Tehnice Specifice */}
+      {editing && (
+        <div className="space-y-2">
+          <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
+              <p className="text-xs text-muted-foreground font-body mb-2">🎯 Star Shooting Drill</p>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={(form as any).star_shooting_drill ?? 0}
+                onChange={(e) => updateForm("star_shooting_drill" as any, Math.min(100, parseInt(e.target.value) || 0))}
+                className="text-center text-lg font-display text-white"
+              />
+            </div>
           </div>
         </div>
       )}
