@@ -695,8 +695,10 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
               </div>
             </div>
           </div>
+        </div>
+      )}
 
-      {/* Classic stats row */}
+
       <div className="grid grid-cols-3 gap-3">
         {editing ? (
           <>
