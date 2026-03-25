@@ -367,7 +367,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc }: {
   return (
     <div className="space-y-6">
       {/* FIFA card + Stat bars side by side on desktop */}
-      {!editing && (
+      {!editing && (<>
         <div className="flex flex-col lg:flex-row gap-6 items-center">
           {/* FIFA-style card - refined */}
           <div className="mx-auto lg:mx-0 relative w-[220px] shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_hsl(var(--primary)/0.4)]"
