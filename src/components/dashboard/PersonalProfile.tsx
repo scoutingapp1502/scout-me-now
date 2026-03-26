@@ -27,7 +27,7 @@ const positionsBySport: Record<string, string[]> = {
     "Extremă Dreapta", "Extremă Stânga", "Atacant", "Atacant Fals"
   ],
   basketball: [
-    "Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"
+    "Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"
   ],
 };
 
