@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [sport, setSport] = useState("football");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -212,7 +214,12 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password" className="font-body">{t.auth.password}</Label>
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
+                    <div className="relative">
+                      <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} className="pr-10" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
 
                   {tab === "login" && (
