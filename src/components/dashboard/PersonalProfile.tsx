@@ -20,11 +20,16 @@ interface PersonalProfileProps {
   readOnly?: boolean;
 }
 
-const positions = [
-  "Portar", "Fundaș Central", "Fundaș Dreapta", "Fundaș Stânga",
-  "Mijlocaș Defensiv", "Mijlocaș Central", "Mijlocaș Ofensiv",
-  "Extremă Dreapta", "Extremă Stânga", "Atacant", "Atacant Fals"
-];
+const positionsBySport: Record<string, string[]> = {
+  football: [
+    "Portar", "Fundaș Central", "Fundaș Dreapta", "Fundaș Stânga",
+    "Mijlocaș Defensiv", "Mijlocaș Central", "Mijlocaș Ofensiv",
+    "Extremă Dreapta", "Extremă Stânga", "Atacant", "Atacant Fals"
+  ],
+  basketball: [
+    "Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"
+  ],
+};
 
 type TabType = "stats" | "profile" | "video";
 
