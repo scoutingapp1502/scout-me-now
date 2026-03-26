@@ -20,11 +20,16 @@ interface PersonalProfileProps {
   readOnly?: boolean;
 }
 
-const positions = [
-  "Portar", "Fundaș Central", "Fundaș Dreapta", "Fundaș Stânga",
-  "Mijlocaș Defensiv", "Mijlocaș Central", "Mijlocaș Ofensiv",
-  "Extremă Dreapta", "Extremă Stânga", "Atacant", "Atacant Fals"
-];
+const positionsBySport: Record<string, string[]> = {
+  football: [
+    "Portar", "Fundaș Central", "Fundaș Dreapta", "Fundaș Stânga",
+    "Mijlocaș Defensiv", "Mijlocaș Central", "Mijlocaș Ofensiv",
+    "Extremă Dreapta", "Extremă Stânga", "Atacant", "Atacant Fals"
+  ],
+  basketball: [
+    "Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"
+  ],
+};
 
 type TabType = "stats" | "profile" | "video";
 
@@ -217,7 +222,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                     <SelectValue placeholder="Poziție" />
                   </SelectTrigger>
                   <SelectContent>
-                    {positions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    {(positionsBySport[form.sport || profile?.sport || "football"] || positionsBySport["football"]).map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Input value={form.current_team || ""} onChange={(e) => updateForm("current_team", e.target.value)} placeholder={t.dashboard.profile.currentTeam} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground w-full sm:w-48 min-w-0" />
