@@ -1259,13 +1259,23 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.height_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("height_cm", v ? parseInt(v) : null); }} className="text-white" /></div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.weight_kg ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("weight_kg", v ? parseInt(v) : null); }} className="text-white" /></div>
               <div>
-                <Label className="text-xs text-muted-foreground">{t.dashboard.profile.preferredFoot}</Label>
+                <Label className="text-xs text-muted-foreground">{(form.sport || profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</Label>
                 <Select value={form.preferred_foot || ""} onValueChange={(v) => updateForm("preferred_foot", v)}>
                   <SelectTrigger className="text-white"><SelectValue placeholder={t.dashboard.profile.selectFoot} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Drept">{t.dashboard.profile.rightFoot}</SelectItem>
-                    <SelectItem value="Stâng">{t.dashboard.profile.leftFoot}</SelectItem>
-                    <SelectItem value="Ambele">{t.dashboard.profile.bothFeet}</SelectItem>
+                    {(form.sport || profile?.sport) === "basketball" ? (
+                      <>
+                        <SelectItem value="Dreapta">{t.dashboard.profile.rightHand}</SelectItem>
+                        <SelectItem value="Stânga">{t.dashboard.profile.leftHand}</SelectItem>
+                        <SelectItem value="Ambele">{t.dashboard.profile.bothHands}</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="Drept">{t.dashboard.profile.rightFoot}</SelectItem>
+                        <SelectItem value="Stâng">{t.dashboard.profile.leftFoot}</SelectItem>
+                        <SelectItem value="Ambele">{t.dashboard.profile.bothFeet}</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -1276,7 +1286,7 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
             <div className="space-y-3 font-body text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.height}</span><span className="text-foreground font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.weight}</span><span className="text-foreground font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{(profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality || "—"}</span></div>
             </div>
           )}
