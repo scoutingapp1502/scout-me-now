@@ -111,18 +111,28 @@ const Dashboard = () => {
   // Fetch display name based on role
   useEffect(() => {
     if (!user || !userRole) return;
-    const table = userRole === "scout" ? "scout_profiles" : "player_profiles";
-    supabase
-      .from(table)
-      .select("first_name, last_name, sport")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setPlayerName(`${data.first_name} ${data.last_name}`.trim());
-          if (userRole === "player" && data.sport) setPlayerSport(data.sport);
-        }
-      });
+    if (userRole === "scout") {
+      supabase
+        .from("scout_profiles")
+        .select("first_name, last_name")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+        });
+    } else {
+      supabase
+        .from("player_profiles")
+        .select("first_name, last_name, sport")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+            if (data.sport) setPlayerSport(data.sport);
+          }
+        });
+    }
   }, [user, userRole]);
 
   // Show wizard for new users (percentage < 100 on first load)
