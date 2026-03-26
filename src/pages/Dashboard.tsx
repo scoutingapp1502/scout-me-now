@@ -19,6 +19,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [activeSection, setActiveSection] = useState("profile");
   const [playerName, setPlayerName] = useState("");
+  const [playerSport, setPlayerSport] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<"player" | "scout" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
@@ -110,15 +111,28 @@ const Dashboard = () => {
   // Fetch display name based on role
   useEffect(() => {
     if (!user || !userRole) return;
-    const table = userRole === "scout" ? "scout_profiles" : "player_profiles";
-    supabase
-      .from(table)
-      .select("first_name, last_name")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
-      });
+    if (userRole === "scout") {
+      supabase
+        .from("scout_profiles")
+        .select("first_name, last_name")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+        });
+    } else {
+      supabase
+        .from("player_profiles")
+        .select("first_name, last_name, sport")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+            if (data.sport) setPlayerSport(data.sport);
+          }
+        });
+    }
   }, [user, userRole]);
 
   // Show wizard for new users (percentage < 100 on first load)
@@ -209,6 +223,7 @@ const Dashboard = () => {
                 activeSection={activeSection}
                 onSectionChange={handleSectionChange}
                 playerName={playerName}
+                playerSport={playerSport}
                 profileLabel={sidebarFirstLabel}
                 userRole={userRole}
               />
@@ -232,6 +247,7 @@ const Dashboard = () => {
             activeSection={activeSection}
             onSectionChange={setActiveSection}
             playerName={playerName}
+            playerSport={playerSport}
             profileLabel={sidebarFirstLabel}
             userRole={userRole}
           />
