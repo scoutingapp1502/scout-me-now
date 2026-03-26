@@ -19,6 +19,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [activeSection, setActiveSection] = useState("profile");
   const [playerName, setPlayerName] = useState("");
+  const [playerSport, setPlayerSport] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<"player" | "scout" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
@@ -113,11 +114,14 @@ const Dashboard = () => {
     const table = userRole === "scout" ? "scout_profiles" : "player_profiles";
     supabase
       .from(table)
-      .select("first_name, last_name")
+      .select("first_name, last_name, sport")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+        if (data) {
+          setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+          if (userRole === "player" && data.sport) setPlayerSport(data.sport);
+        }
       });
   }, [user, userRole]);
 
@@ -209,6 +213,7 @@ const Dashboard = () => {
                 activeSection={activeSection}
                 onSectionChange={handleSectionChange}
                 playerName={playerName}
+                playerSport={playerSport}
                 profileLabel={sidebarFirstLabel}
                 userRole={userRole}
               />
@@ -232,6 +237,7 @@ const Dashboard = () => {
             activeSection={activeSection}
             onSectionChange={setActiveSection}
             playerName={playerName}
+            playerSport={playerSport}
             profileLabel={sidebarFirstLabel}
             userRole={userRole}
           />

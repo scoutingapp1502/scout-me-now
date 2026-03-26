@@ -8,11 +8,12 @@ interface DashboardSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   playerName?: string;
+  playerSport?: string;
   profileLabel?: string;
   userRole?: "player" | "scout" | null;
 }
 
-const DashboardSidebar = ({ activeSection, onSectionChange, playerName, profileLabel, userRole }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole }: DashboardSidebarProps) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
@@ -34,7 +35,9 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, profileL
       <div className="p-6 border-b border-sidebar-border">
         <span className="font-display text-2xl text-primary">{userRole === "scout" ? "" : "⚽ "}SPORTRISE</span>
         {playerName && (
-          <p className="text-sm text-sidebar-foreground/60 font-body mt-1 truncate">{playerName}</p>
+          <p className="text-sm text-sidebar-foreground/60 font-body mt-1 truncate">
+            {playerName}{userRole === "player" && playerSport ? ` · ${playerSport.charAt(0).toUpperCase() + playerSport.slice(1)}` : ""}
+          </p>
         )}
         {userRole === "scout" && (
           <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">SCOUTER</p>
