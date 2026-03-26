@@ -222,7 +222,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                     <SelectValue placeholder="Poziție" />
                   </SelectTrigger>
                   <SelectContent>
-                    {positions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    {(positionsBySport[form.sport || profile?.sport || "football"] || positionsBySport["football"]).map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Input value={form.current_team || ""} onChange={(e) => updateForm("current_team", e.target.value)} placeholder={t.dashboard.profile.currentTeam} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground w-full sm:w-48 min-w-0" />
