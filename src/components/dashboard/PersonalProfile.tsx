@@ -407,6 +407,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>;
 }) {
   const editing = editingSection === "stats";
+  const editingTechnical = editingSection === "technical";
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -538,7 +539,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
-            <SectionEditButton section="stats" />
+            <SectionEditButton section="technical" />
           </div>
           <div className="space-y-4">
             {getTechnicalTestsBySport(currentSport).map((test) => (
@@ -606,7 +607,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
       )}
 
       {/* Editing mode: Teste Tehnice Specifice */}
-      {editing && (
+      {editingTechnical && (
         <div className="space-y-4">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4 space-y-4">
