@@ -871,7 +871,7 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           <Label className="text-xs text-foreground font-medium">Loc</Label>
           {customPlace ? (
             <div className="flex gap-1">
-              <Input value={palmares.place} onChange={(e) => updatePalmares("place", e.target.value)} placeholder="Ex.: Locul 4" className="bg-background" />
+              <Input value={palmares.place} onChange={(e) => updatePalmares("place", e.target.value)} placeholder="Ex.: Locul 4" className="bg-background text-foreground placeholder:text-foreground/60" />
               <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomPlace(false); updatePalmares("place", ""); }}><X className="h-3 w-3" /></Button>
             </div>
           ) : (
@@ -888,7 +888,7 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           <Label className="text-xs text-foreground font-medium">Campionat</Label>
           {customChampionship ? (
             <div className="flex gap-1">
-              <Input value={palmares.championship} onChange={(e) => updatePalmares("championship", e.target.value)} placeholder="Ex.: Campionat European" className="bg-background" />
+              <Input value={palmares.championship} onChange={(e) => updatePalmares("championship", e.target.value)} placeholder="Ex.: Campionat European" className="bg-background text-foreground placeholder:text-foreground/60" />
               <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomChampionship(false); updatePalmares("championship", ""); }}><X className="h-3 w-3" /></Button>
             </div>
           ) : (
@@ -905,7 +905,7 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           <Label className="text-xs text-foreground font-medium">Categoria</Label>
           {customCategory ? (
             <div className="flex gap-1">
-              <Input value={palmares.category} onChange={(e) => updatePalmares("category", e.target.value)} placeholder="Ex.: Open" className="bg-background" />
+              <Input value={palmares.category} onChange={(e) => updatePalmares("category", e.target.value)} placeholder="Ex.: Open" className="bg-background text-foreground placeholder:text-foreground/60" />
               <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomCategory(false); updatePalmares("category", ""); }}><X className="h-3 w-3" /></Button>
             </div>
           ) : (
