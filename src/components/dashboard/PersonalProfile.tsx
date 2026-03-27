@@ -536,7 +536,10 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
 
         {/* Teste Tehnice Specifice section */}
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
-          <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-4">Teste Tehnice Specifice</h4>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
+            <SectionEditButton section="stats" />
+          </div>
           <div className="space-y-4">
             {getTechnicalTestsBySport(currentSport).map((test) => (
               <div key={test.key}>
