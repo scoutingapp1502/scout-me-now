@@ -78,6 +78,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("stats");
   const [newVideoUrl, setNewVideoUrl] = useState("");
+  const currentSport = form.sport || profile?.sport || "football";
 
   useEffect(() => {
     fetchProfile();
