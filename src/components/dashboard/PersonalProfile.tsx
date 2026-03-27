@@ -490,214 +490,41 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-4">Teste Tehnice Specifice</h4>
           <div className="space-y-4">
-            {/* Free Throw Shooting */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Free Throw Shooting</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Free Throw Shooting">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Free Throw Shooting</p>
-                    <p className="text-muted-foreground text-xs">Timp de 60 de secunde, sportivul aruncă, își recuperează singur mingea și revine la linia de la libere pentru o nouă aruncare.</p>
-                  </PopoverContent>
-                </Popover>
+            {getTechnicalTestsBySport(currentSport).map((test) => (
+              <div key={test.key}>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label={`Info ${test.label}`}>
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="text-sm font-body" side="top">
+                      <p className="font-semibold mb-1">{test.icon} {test.label}</p>
+                      <p className="text-muted-foreground text-xs">{test.description}</p>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {(() => {
+                  const videoUrl = (form as any)[test.key] || (profile as any)?.[test.key] || "";
+                  if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
+                  return (
+                    <div className="mt-2">
+                      {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
+                        <iframe
+                          src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                          className="w-full aspect-video rounded-lg"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
-              {(() => {
-                const videoUrl = (form as any).free_throw_shooting_video || (profile as any)?.free_throw_shooting_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🎯 Star Shooting Drill</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Star Shooting Drill">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🎯 Star Shooting Drill</p>
-                    <p className="text-muted-foreground text-xs">25 shots, 5 right corner, 5 left wing, 5 right wing, 5 left corner, 5 top of the key. After each throw, you have to change the position. Exercise is not timed.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).star_shooting_drill_video || (profile as any)?.star_shooting_drill_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Crossover */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Crossover</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Crossover">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Crossover</p>
-                    <p className="text-muted-foreground text-xs">Executarea procedeului de cros la viteza maximă folosind 6 jaloane, 3 pe partea dreaptă 3 pe stânga la distanța de 2 m una de cealaltă.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).crossover_video || (profile as any)?.crossover_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Between the Legs */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Between the Legs</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Between the Legs">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Between the Legs</p>
-                    <p className="text-muted-foreground text-xs">Executarea procedeului de trecerea mingii printre picioare la viteza maximă folosind 6 jaloane, 3 pe partea dreaptă 3 pe stânga la distanța de 2 m una de cealaltă.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).between_the_legs_video || (profile as any)?.between_the_legs_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Double Cross */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Double Cross</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Double Cross">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Double Cross</p>
-                    <p className="text-muted-foreground text-xs">Executarea procedeului de dublu cros de fiecare dată când ajung în fața jalonului. Jaloanele vor fi în număr de 5 și se vor afla pe o linie coliniară, la distanța de 3 metri unul față de celălalt.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).double_cross_video || (profile as any)?.double_cross_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Between the Legs Cross */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Between the Legs Cross</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Between the Legs Cross">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Between the Legs Cross</p>
-                    <p className="text-muted-foreground text-xs">Executarea procedeului de trecerea mingii printre picioare și apoi cross de fiecare dată când ajung în fața jalonului. Jaloanele vor fi în număr de 5 și se vor afla pe o linie coliniară, la distanța de 3 metri unul față de celălalt.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).between_legs_cross_video || (profile as any)?.between_legs_cross_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+            ))}
           </div>
         </div>
       </>)}
