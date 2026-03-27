@@ -397,6 +397,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string;
 }) {
+  const currentSport = (form as any).sport || (profile as any)?.sport || "football";
   const { t } = useLanguage();
   const { toast } = useToast();
   const stats = [
