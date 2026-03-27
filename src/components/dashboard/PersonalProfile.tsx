@@ -1161,7 +1161,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               variant="outline"
               size="sm"
               onClick={() => setCareerEntries([...careerEntries, { team_name: "", start_date: "", end_date: "", currently_active: false, description: "" }])}
-              className="w-full"
+              className="w-full text-foreground border-foreground/30 hover:text-foreground"
             >
               <Plus className="h-4 w-4 mr-1" /> Adaugă echipă
             </Button>
