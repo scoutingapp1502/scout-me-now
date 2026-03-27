@@ -1059,20 +1059,13 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     Activez în acest moment
                   </Label>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Descriere</Label>
-                  <Textarea
-                    value={entry.description}
-                    onChange={(e) => {
-                      const updated = [...careerEntries];
-                      updated[idx] = { ...entry, description: e.target.value };
-                      setCareerEntries(updated);
-                    }}
-                    placeholder="Descrie experiența ta la această echipă..."
-                    rows={3}
-                    className="bg-background"
-                  />
-                </div>
+                {/* Palmares structured fields */}
+                <PalmaresEditor
+                  entry={entry}
+                  idx={idx}
+                  careerEntries={careerEntries}
+                  setCareerEntries={setCareerEntries}
+                />
               </div>
             ))}
             <Button
@@ -1096,7 +1089,19 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     {" — "}
                     {entry.currently_active ? "Prezent" : entry.end_date ? new Date(entry.end_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
                   </p>
-                  {entry.description && <p className="text-xs text-foreground/70 mt-1">{entry.description}</p>}
+                  {entry.description && (
+                    <p className="text-xs text-foreground/70 mt-1">
+                      {(() => {
+                        try {
+                          const p = JSON.parse(entry.description);
+                          const parts = [p.place, p.championship, p.category ? `Categoria ${p.category}` : null, p.year].filter(Boolean);
+                          return parts.join(" • ");
+                        } catch {
+                          return entry.description;
+                        }
+                      })()}
+                    </p>
+                  )}
                 </div>
               ))
             ) : (
