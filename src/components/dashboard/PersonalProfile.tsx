@@ -838,7 +838,95 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
   );
 }
 
-/* ======================== PROFILE TAB ======================== */
+/* ======================== PALMARES EDITOR ======================== */
+function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
+  entry: CareerEntry; idx: number; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>;
+}) {
+  // Parse existing description as JSON palmares or default
+  let palmares = { place: "", championship: "", category: "", year: "" };
+  try {
+    if (entry.description) palmares = { ...palmares, ...JSON.parse(entry.description) };
+  } catch { /* old free-text, ignore */ }
+
+  const updatePalmares = (field: string, value: string) => {
+    const updated = [...careerEntries];
+    const newPalmares = { ...palmares, [field]: value };
+    updated[idx] = { ...entry, description: JSON.stringify(newPalmares) };
+    setCareerEntries(updated);
+  };
+
+  const placeOptions = ["Locul 1", "Locul 2", "Locul 3"];
+  const championshipOptions = ["Campionat Municipal", "Campionat Regional", "Campionat Național"];
+  const categoryOptions = ["U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U21", "Seniori"];
+
+  const [customPlace, setCustomPlace] = useState(palmares.place && !placeOptions.includes(palmares.place));
+  const [customChampionship, setCustomChampionship] = useState(palmares.championship && !championshipOptions.includes(palmares.championship));
+  const [customCategory, setCustomCategory] = useState(palmares.category && !categoryOptions.includes(palmares.category));
+
+  return (
+    <div className="space-y-3 border-t border-border pt-3 mt-2">
+      <Label className="text-xs text-muted-foreground font-semibold">🏆 Palmares</Label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs text-muted-foreground">Loc</Label>
+          {customPlace ? (
+            <div className="flex gap-1">
+              <Input value={palmares.place} onChange={(e) => updatePalmares("place", e.target.value)} placeholder="Ex.: Locul 4" className="bg-background" />
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomPlace(false); updatePalmares("place", ""); }}><X className="h-3 w-3" /></Button>
+            </div>
+          ) : (
+            <Select value={palmares.place} onValueChange={(v) => v === "__custom__" ? setCustomPlace(true) : updatePalmares("place", v)}>
+              <SelectTrigger className="bg-background"><SelectValue placeholder="Selectează..." /></SelectTrigger>
+              <SelectContent>
+                {placeOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                <SelectItem value="__custom__">Altele...</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Campionat</Label>
+          {customChampionship ? (
+            <div className="flex gap-1">
+              <Input value={palmares.championship} onChange={(e) => updatePalmares("championship", e.target.value)} placeholder="Ex.: Campionat European" className="bg-background" />
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomChampionship(false); updatePalmares("championship", ""); }}><X className="h-3 w-3" /></Button>
+            </div>
+          ) : (
+            <Select value={palmares.championship} onValueChange={(v) => v === "__custom__" ? setCustomChampionship(true) : updatePalmares("championship", v)}>
+              <SelectTrigger className="bg-background"><SelectValue placeholder="Selectează..." /></SelectTrigger>
+              <SelectContent>
+                {championshipOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                <SelectItem value="__custom__">Altele...</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Categoria</Label>
+          {customCategory ? (
+            <div className="flex gap-1">
+              <Input value={palmares.category} onChange={(e) => updatePalmares("category", e.target.value)} placeholder="Ex.: Open" className="bg-background" />
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomCategory(false); updatePalmares("category", ""); }}><X className="h-3 w-3" /></Button>
+            </div>
+          ) : (
+            <Select value={palmares.category} onValueChange={(v) => v === "__custom__" ? setCustomCategory(true) : updatePalmares("category", v)}>
+              <SelectTrigger className="bg-background"><SelectValue placeholder="Selectează..." /></SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                <SelectItem value="__custom__">Altele...</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Anul</Label>
+          <Input value={palmares.year} onChange={(e) => updatePalmares("year", e.target.value)} placeholder="Ex.: 2024" className="bg-background" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>;
 }) {
@@ -1059,20 +1147,13 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     Activez în acest moment
                   </Label>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Descriere</Label>
-                  <Textarea
-                    value={entry.description}
-                    onChange={(e) => {
-                      const updated = [...careerEntries];
-                      updated[idx] = { ...entry, description: e.target.value };
-                      setCareerEntries(updated);
-                    }}
-                    placeholder="Descrie experiența ta la această echipă..."
-                    rows={3}
-                    className="bg-background"
-                  />
-                </div>
+                {/* Palmares structured fields */}
+                <PalmaresEditor
+                  entry={entry}
+                  idx={idx}
+                  careerEntries={careerEntries}
+                  setCareerEntries={setCareerEntries}
+                />
               </div>
             ))}
             <Button
@@ -1096,7 +1177,19 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     {" — "}
                     {entry.currently_active ? "Prezent" : entry.end_date ? new Date(entry.end_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
                   </p>
-                  {entry.description && <p className="text-xs text-foreground/70 mt-1">{entry.description}</p>}
+                  {entry.description && (
+                    <p className="text-xs text-foreground/70 mt-1">
+                      {(() => {
+                        try {
+                          const p = JSON.parse(entry.description);
+                          const parts = [p.place, p.championship, p.category ? `Categoria ${p.category}` : null, p.year].filter(Boolean);
+                          return parts.join(" • ");
+                        } catch {
+                          return entry.description;
+                        }
+                      })()}
+                    </p>
+                  )}
                 </div>
               ))
             ) : (
