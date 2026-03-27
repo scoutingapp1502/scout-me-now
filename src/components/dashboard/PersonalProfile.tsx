@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -68,6 +69,15 @@ const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTe
 
 type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "palmares" | "video" | null;
 
+interface CareerEntry {
+  id?: string;
+  team_name: string;
+  start_date: string;
+  end_date: string;
+  currently_active: boolean;
+  description: string;
+}
+
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -80,11 +90,31 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("stats");
   const [newVideoUrl, setNewVideoUrl] = useState("");
+  const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
 
   useEffect(() => {
     fetchProfile();
+    fetchCareerEntries();
   }, [userId]);
+
+  const fetchCareerEntries = async () => {
+    const { data } = await supabase
+      .from("player_career_entries")
+      .select("*")
+      .eq("user_id", userId)
+      .order("sort_order", { ascending: true });
+    if (data) {
+      setCareerEntries(data.map((e: any) => ({
+        id: e.id,
+        team_name: e.team_name || "",
+        start_date: e.start_date || "",
+        end_date: e.end_date || "",
+        currently_active: e.currently_active || false,
+        description: e.description || "",
+      })));
+    }
+  };
 
   const fetchProfile = async () => {
     let { data, error } = await supabase
@@ -192,6 +222,26 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       }
 
       if (error) throw error;
+
+      // Save career entries if editing about section
+      if (editingSection === "about") {
+        // Delete existing entries
+        await supabase.from("player_career_entries").delete().eq("user_id", userId);
+        // Insert new entries
+        if (careerEntries.length > 0) {
+          const entries = careerEntries.map((e, i) => ({
+            user_id: userId,
+            team_name: e.team_name,
+            start_date: e.start_date || null,
+            end_date: e.currently_active ? null : (e.end_date || null),
+            currently_active: e.currently_active,
+            description: e.description || null,
+            sort_order: i,
+          }));
+          const { error: careerError } = await supabase.from("player_career_entries").insert(entries);
+          if (careerError) throw careerError;
+        }
+      }
 
       toast({ title: t.dashboard.profile.profileUpdated });
       setEditingSection(null);
@@ -383,7 +433,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       {/* Tab content */}
       <div className="mt-6 px-2 sm:px-6">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} />}
         {activeTab === "video" && (
           <VideoTab
             form={form}
@@ -789,8 +839,8 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 }
 
 /* ======================== PROFILE TAB ======================== */
-function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>;
 }) {
   const { t } = useLanguage();
 
@@ -943,17 +993,116 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           <SectionEditButton section="about" />
         </div>
         {editingAbout ? (
-          <Textarea
-            value={form.career_description || ""}
-            onChange={(e) => updateForm("career_description", e.target.value)}
-            placeholder={t.dashboard.profile.careerPlaceholder}
-            rows={5}
-            className="bg-muted border-border text-foreground min-h-[120px]"
-          />
+          <div className="space-y-4">
+            {careerEntries.map((entry, idx) => (
+              <div key={idx} className="bg-muted border border-border rounded-lg p-4 space-y-3 relative">
+                <button
+                  type="button"
+                  onClick={() => setCareerEntries(careerEntries.filter((_, i) => i !== idx))}
+                  className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Echipa*</Label>
+                  <Input
+                    value={entry.team_name}
+                    onChange={(e) => {
+                      const updated = [...careerEntries];
+                      updated[idx] = { ...entry, team_name: e.target.value };
+                      setCareerEntries(updated);
+                    }}
+                    placeholder="Ex.: FC Barcelona"
+                    className="bg-background"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Data început</Label>
+                    <Input
+                      type="date"
+                      value={entry.start_date}
+                      onChange={(e) => {
+                        const updated = [...careerEntries];
+                        updated[idx] = { ...entry, start_date: e.target.value };
+                        setCareerEntries(updated);
+                      }}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Data sfârșit</Label>
+                    <Input
+                      type="date"
+                      value={entry.end_date}
+                      onChange={(e) => {
+                        const updated = [...careerEntries];
+                        updated[idx] = { ...entry, end_date: e.target.value };
+                        setCareerEntries(updated);
+                      }}
+                      disabled={entry.currently_active}
+                      className="bg-background"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id={`currently-active-${idx}`}
+                    checked={entry.currently_active}
+                    onCheckedChange={(checked) => {
+                      const updated = [...careerEntries];
+                      updated[idx] = { ...entry, currently_active: !!checked, end_date: checked ? "" : entry.end_date };
+                      setCareerEntries(updated);
+                    }}
+                  />
+                  <Label htmlFor={`currently-active-${idx}`} className="text-xs text-muted-foreground cursor-pointer">
+                    Activez în acest moment
+                  </Label>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Descriere</Label>
+                  <Textarea
+                    value={entry.description}
+                    onChange={(e) => {
+                      const updated = [...careerEntries];
+                      updated[idx] = { ...entry, description: e.target.value };
+                      setCareerEntries(updated);
+                    }}
+                    placeholder="Descrie experiența ta la această echipă..."
+                    rows={3}
+                    className="bg-background"
+                  />
+                </div>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setCareerEntries([...careerEntries, { team_name: "", start_date: "", end_date: "", currently_active: false, description: "" }])}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Adaugă echipă
+            </Button>
+          </div>
         ) : (
-          <p className="text-foreground/80 font-body text-sm leading-relaxed whitespace-pre-line">
-            {profile?.career_description || <span className="italic text-muted-foreground">{t.dashboard.profile.noDescription}</span>}
-          </p>
+          <div className="space-y-3">
+            {careerEntries.length > 0 ? (
+              careerEntries.map((entry, idx) => (
+                <div key={idx} className="border-l-2 border-primary/30 pl-3">
+                  <p className="font-semibold text-foreground text-sm">{entry.team_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {entry.start_date ? new Date(entry.start_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
+                    {" — "}
+                    {entry.currently_active ? "Prezent" : entry.end_date ? new Date(entry.end_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
+                  </p>
+                  {entry.description && <p className="text-xs text-foreground/70 mt-1">{entry.description}</p>}
+                </div>
+              ))
+            ) : (
+              <p className="italic text-muted-foreground text-sm">{t.dashboard.profile.noDescription}</p>
+            )}
+          </div>
         )}
         <div className="mt-4">
           <DocumentUploader

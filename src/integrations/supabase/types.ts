@@ -62,6 +62,42 @@ export type Database = {
         }
         Relationships: []
       }
+      player_career_entries: {
+        Row: {
+          created_at: string
+          currently_active: boolean
+          description: string | null
+          end_date: string | null
+          id: string
+          sort_order: number
+          start_date: string | null
+          team_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currently_active?: boolean
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          sort_order?: number
+          start_date?: string | null
+          team_name?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currently_active?: boolean
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          sort_order?: number
+          start_date?: string | null
+          team_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_profiles: {
         Row: {
           about_documents: string[] | null
