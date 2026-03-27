@@ -53,7 +53,7 @@ const basketballTests: TechnicalTest[] = [
 ];
 
 const footballTests: TechnicalTest[] = [
-  { key: "control_pass_video", label: "Control și Pasă", icon: "⚽", description: "Sportivul controlează mingea și execută o pasă precisă către un coechipier sau un punct fix. Se evaluează calitatea primei atingeri și precizia pasei.", inputKey: "_cp_video_input", uploadId: "cp-video-upload", storagePath: "control-pass" },
+  { key: "control_pass_video", label: "Control și Pasă", icon: "⚽", description: "Configurare: Jucătorul stă la 5 metri de un perete sau un partener.\n\nExercițiu: Jucătorul trebuie să paseze mingea în perete și să facă prima atingere (preluarea) pentru a pregăti următoarea pasă. Se cronometrează câte repetări corecte face în 60 de secunde.", inputKey: "_cp_video_input", uploadId: "cp-video-upload", storagePath: "control-pass" },
   { key: "slalom_video", label: "Slalom printre Jaloane", icon: "⚽", description: "Sportivul conduce mingea printre jaloane amplasate în linie dreaptă, la distanță egală unul față de celălalt. Se evaluează viteza de execuție și controlul mingii.", inputKey: "_slalom_video_input", uploadId: "slalom-video-upload", storagePath: "slalom" },
   { key: "precision_video", label: "Precizie", icon: "⚽", description: "Sportivul execută șuturi la poartă din diferite poziții, vizând colțurile porții sau zone marcate. Se evaluează precizia și tehnica de finalizare.", inputKey: "_precision_video_input", uploadId: "precision-video-upload", storagePath: "precision" },
   { key: "coordination_video", label: "Coordonare", icon: "⚽", description: "Sportivul execută exerciții de coordonare cu mingea, combinând pase, dribling și schimbări de direcție. Se evaluează coordonarea generală și fluiditatea mișcărilor.", inputKey: "_coord_video_input", uploadId: "coord-video-upload", storagePath: "coordination" },
@@ -537,7 +537,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                     </PopoverTrigger>
                     <PopoverContent className="text-sm font-body" side="top">
                       <p className="font-semibold mb-1">{test.icon} {test.label}</p>
-                      <p className="text-muted-foreground text-xs">{test.description}</p>
+                      <p className="text-muted-foreground text-xs whitespace-pre-line">{test.description}</p>
                     </PopoverContent>
                   </Popover>
                 </div>
