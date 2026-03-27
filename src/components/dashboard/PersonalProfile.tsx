@@ -194,7 +194,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       if (error) throw error;
 
       toast({ title: t.dashboard.profile.profileUpdated });
-      setEditing(false);
+      setEditingSection(null);
       setAvatarFile(null);
       window.location.reload();
     } catch (err: any) {
@@ -202,6 +202,21 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
     } finally {
       setSaving(false);
     }
+  };
+
+  const SectionEditButton = ({ section }: { section: EditingSection }) => {
+    if (readOnly || !section) return null;
+    const isEditing = editingSection === section;
+    return (
+      <button
+        onClick={() => isEditing ? handleSave() : setEditingSection(section)}
+        disabled={saving}
+        className="text-muted-foreground hover:text-primary transition-colors p-1"
+        aria-label={isEditing ? "Salvează" : "Editează"}
+      >
+        {isEditing ? (saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-primary" />) : <Edit2 className="h-4 w-4" />}
+      </button>
+    );
   };
 
   const updateForm = (key: string, value: any) => {
