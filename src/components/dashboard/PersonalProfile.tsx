@@ -791,7 +791,7 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 
   return (
     <div className="mt-3">
-      <p className="text-xs text-muted-foreground font-body mb-2">{label}</p>
+      <p className="text-xs text-foreground font-medium font-body mb-2">{label}</p>
       {documents.length > 0 && (
         <div className="space-y-2 mb-2">
           {documents.map((url, i) => (
