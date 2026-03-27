@@ -1132,6 +1132,10 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Video Highlights</h4>
+        <SectionEditButton section="video" />
+      </div>
       {editing && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-3">
           {/* YouTube link input */}
