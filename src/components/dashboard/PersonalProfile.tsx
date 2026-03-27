@@ -66,7 +66,7 @@ const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTe
   return footballTests; // default
 };
 
-type EditingSection = "header" | "stats" | "physical" | "agent" | "about" | "palmares" | "video" | null;
+type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "palmares" | "video" | null;
 
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
