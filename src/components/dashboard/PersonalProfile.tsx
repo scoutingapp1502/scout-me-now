@@ -1113,7 +1113,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                         updated[idx] = { ...entry, start_date: e.target.value };
                         setCareerEntries(updated);
                       }}
-                      className="bg-background"
+                      className="bg-background text-foreground [color-scheme:dark]"
                     />
                   </div>
                   <div>
@@ -1127,7 +1127,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                         setCareerEntries(updated);
                       }}
                       disabled={entry.currently_active}
-                      className="bg-background"
+                      className="bg-background text-foreground [color-scheme:dark]"
                     />
                   </div>
                 </div>
