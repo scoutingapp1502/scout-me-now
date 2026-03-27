@@ -69,6 +69,15 @@ const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTe
 
 type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "palmares" | "video" | null;
 
+interface CareerEntry {
+  id?: string;
+  team_name: string;
+  start_date: string;
+  end_date: string;
+  currently_active: boolean;
+  description: string;
+}
+
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { t } = useLanguage();
