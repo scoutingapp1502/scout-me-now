@@ -66,12 +66,14 @@ const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTe
   return footballTests; // default
 };
 
+type EditingSection = "header" | "stats" | "physical" | "agent" | "about" | "palmares" | "video" | null;
+
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { t } = useLanguage();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<PlayerProfile>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
