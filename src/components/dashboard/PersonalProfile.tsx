@@ -90,6 +90,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("stats");
   const [newVideoUrl, setNewVideoUrl] = useState("");
+  const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
 
   useEffect(() => {
