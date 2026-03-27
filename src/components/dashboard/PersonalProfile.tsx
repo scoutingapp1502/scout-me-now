@@ -67,7 +67,7 @@ const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTe
   return footballTests; // default
 };
 
-type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "palmares" | "video" | null;
+type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "video" | null;
 
 interface CareerEntry {
   id?: string;
@@ -935,10 +935,8 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
   const editingPhysical = editingSection === "physical";
   const editingAgent = editingSection === "agent";
   const editingAbout = editingSection === "about";
-  const editingPalmares = editingSection === "palmares";
 
   const aboutDocs = editingAbout ? (form.about_documents || []) : (profile?.about_documents || []);
-  const palmaresDocs = editingPalmares ? (form.palmares_documents || []) : (profile?.palmares_documents || []);
 
   return (
     <div className="space-y-6">
