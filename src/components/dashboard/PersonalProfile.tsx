@@ -791,7 +791,7 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 
   return (
     <div className="mt-3">
-      <p className="text-xs text-muted-foreground font-body mb-2">{label}</p>
+      <p className="text-xs text-foreground font-medium font-body mb-2">{label}</p>
       {documents.length > 0 && (
         <div className="space-y-2 mb-2">
           {documents.map((url, i) => (
@@ -865,10 +865,10 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
 
   return (
     <div className="space-y-3 border-t border-border pt-3 mt-2">
-      <Label className="text-xs text-muted-foreground font-semibold">🏆 Palmares</Label>
+      <Label className="text-xs text-foreground font-semibold">🏆 Palmares</Label>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <Label className="text-xs text-muted-foreground">Loc</Label>
+          <Label className="text-xs text-foreground font-medium">Loc</Label>
           {customPlace ? (
             <div className="flex gap-1">
               <Input value={palmares.place} onChange={(e) => updatePalmares("place", e.target.value)} placeholder="Ex.: Locul 4" className="bg-background" />
@@ -885,7 +885,7 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           )}
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Campionat</Label>
+          <Label className="text-xs text-foreground font-medium">Campionat</Label>
           {customChampionship ? (
             <div className="flex gap-1">
               <Input value={palmares.championship} onChange={(e) => updatePalmares("championship", e.target.value)} placeholder="Ex.: Campionat European" className="bg-background" />
@@ -902,7 +902,7 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           )}
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Categoria</Label>
+          <Label className="text-xs text-foreground font-medium">Categoria</Label>
           {customCategory ? (
             <div className="flex gap-1">
               <Input value={palmares.category} onChange={(e) => updatePalmares("category", e.target.value)} placeholder="Ex.: Open" className="bg-background" />
@@ -919,7 +919,7 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           )}
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Anul</Label>
+          <Label className="text-xs text-foreground font-medium">Anul</Label>
           <Input value={palmares.year} onChange={(e) => updatePalmares("year", e.target.value)} placeholder="Ex.: 2024" className="bg-background" />
         </div>
       </div>
@@ -1092,7 +1092,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                   <Trash2 className="h-4 w-4" />
                 </button>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Echipa*</Label>
+                  <Label className="text-xs text-foreground font-medium">Echipa*</Label>
                   <Input
                     value={entry.team_name}
                     onChange={(e) => {
@@ -1106,7 +1106,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Data început</Label>
+                    <Label className="text-xs text-foreground font-medium">Data început</Label>
                     <Input
                       type="date"
                       value={entry.start_date}
@@ -1119,7 +1119,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Data sfârșit</Label>
+                    <Label className="text-xs text-foreground font-medium">Data sfârșit</Label>
                     <Input
                       type="date"
                       value={entry.end_date}
@@ -1143,7 +1143,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       setCareerEntries(updated);
                     }}
                   />
-                  <Label htmlFor={`currently-active-${idx}`} className="text-xs text-muted-foreground cursor-pointer">
+                  <Label htmlFor={`currently-active-${idx}`} className="text-xs text-foreground cursor-pointer">
                     Activez în acest moment
                   </Label>
                 </div>
