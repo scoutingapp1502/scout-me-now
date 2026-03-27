@@ -66,12 +66,14 @@ const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTe
   return footballTests; // default
 };
 
+type EditingSection = "header" | "stats" | "physical" | "agent" | "about" | "palmares" | "video" | null;
+
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { t } = useLanguage();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<PlayerProfile>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -192,7 +194,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       if (error) throw error;
 
       toast({ title: t.dashboard.profile.profileUpdated });
-      setEditing(false);
+      setEditingSection(null);
       setAvatarFile(null);
       window.location.reload();
     } catch (err: any) {
@@ -200,6 +202,21 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
     } finally {
       setSaving(false);
     }
+  };
+
+  const SectionEditButton = ({ section }: { section: EditingSection }) => {
+    if (readOnly || !section) return null;
+    const isEditing = editingSection === section;
+    return (
+      <button
+        onClick={() => isEditing ? handleSave() : setEditingSection(section)}
+        disabled={saving}
+        className="text-muted-foreground hover:text-primary transition-colors p-1"
+        aria-label={isEditing ? "Salvează" : "Editează"}
+      >
+        {isEditing ? (saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-primary" />) : <Edit2 className="h-4 w-4" />}
+      </button>
+    );
   };
 
   const updateForm = (key: string, value: any) => {
@@ -235,7 +252,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
         <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 p-4 sm:p-8">
           {/* Info */}
           <div className="flex-1 min-w-0 w-full text-center sm:text-left order-2 sm:order-1">
-            {editing ? (
+            {editingSection === "header" ? (
               <div className="flex flex-col sm:flex-row gap-2 mb-2">
                 <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-lg sm:text-2xl h-auto py-1 min-w-0" />
                 <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-lg sm:text-2xl h-auto py-1 min-w-0" />
@@ -248,7 +265,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
               </h1>
             )}
 
-            {editing ? (
+            {editingSection === "header" ? (
               <div className="flex flex-col sm:flex-row gap-2 mt-2">
                 <Select value={form.position || ""} onValueChange={(v) => updateForm("position", v)}>
                   <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground w-full sm:w-48">
@@ -270,7 +287,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             )}
 
             {/* Nationality, DOB & Social icons */}
-            {!editing && (
+            {editingSection !== "header" && (
               <div className="flex items-center justify-center sm:justify-start gap-6 mt-4 pt-3 border-t border-border/30 flex-wrap">
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
@@ -294,7 +311,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 </div>
               </div>
             )}
-            {editing && (
+            {editingSection === "header" && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
                   <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
@@ -320,7 +337,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 </div>
               )}
             </div>
-            {editing && (
+            {editingSection === "header" && (
               <label className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-xl cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="h-6 w-6 text-primary" />
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -328,11 +345,17 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             )}
           </div>
 
+          {/* Edit pencil for header */}
+          {!readOnly && (
+            <div className="absolute top-3 right-3 z-10">
+              <SectionEditButton section="header" />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Tabs + Edit button row */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center border-b border-border bg-card rounded-b-xl">
+      {/* Tabs row (no edit button) */}
+      <div className="flex items-stretch border-b border-border bg-card rounded-b-xl">
         <div className="flex flex-1 overflow-x-auto">
           {([
             { key: "stats" as TabType, label: "Stats" },
@@ -355,37 +378,23 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             </button>
           ))}
         </div>
-        {!readOnly && (
-          <div className="flex items-center justify-center sm:justify-end px-4 py-2 sm:py-0">
-            <Button
-              onClick={() => editing ? handleSave() : setEditing(true)}
-              disabled={saving}
-              className={editing ? "bg-primary hover:bg-primary/90 text-primary-foreground font-display text-sm sm:text-base px-4 sm:px-6 w-full sm:w-auto" : "bg-accent text-accent-foreground hover:bg-accent/90 font-display text-sm sm:text-base px-4 sm:px-6 shadow-md w-full sm:w-auto"}
-            >
-              {editing ? (
-                <><Save className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{saving ? "..." : t.dashboard.profile.save}</>
-              ) : (
-                <><Edit2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{t.dashboard.profile.edit}</>
-              )}
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Tab content */}
       <div className="mt-6 px-2 sm:px-6">
-        {activeTab === "stats" && <StatsTab form={form} profile={profile} editing={editing} updateForm={updateForm} photoSrc={photoSrc} userId={userId} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editing={editing} updateForm={updateForm} userId={userId} readOnly={readOnly} />}
+        {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} />}
         {activeTab === "video" && (
           <VideoTab
             form={form}
             profile={profile}
-            editing={editing}
+            editing={editingSection === "video"}
             newVideoUrl={newVideoUrl}
             setNewVideoUrl={setNewVideoUrl}
             addVideoUrl={addVideoUrl}
             removeVideoUrl={removeVideoUrl}
             updateForm={updateForm}
+            SectionEditButton={SectionEditButton}
           />
         )}
       </div>
@@ -394,9 +403,10 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 };
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string;
+function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, SectionEditButton }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>;
 }) {
+  const editing = editingSection === "stats";
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -481,7 +491,10 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
 
           {/* Stat bars - vertical bars visualization */}
           <div className="flex-1 w-full bg-card border border-border rounded-2xl p-5 sm:p-6">
-            <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-1">Teste Atletice</h4>
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
+              <SectionEditButton section="stats" />
+            </div>
             <div className="space-y-4">
               {stats.map((stat) => {
                 const value = (form as any)[stat.key] ?? 0;
@@ -797,13 +810,18 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 }
 
 /* ======================== PROFILE TAB ======================== */
-function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>;
 }) {
   const { t } = useLanguage();
 
-  const aboutDocs = editing ? (form.about_documents || []) : (profile?.about_documents || []);
-  const palmaresDocs = editing ? (form.palmares_documents || []) : (profile?.palmares_documents || []);
+  const editingPhysical = editingSection === "physical";
+  const editingAgent = editingSection === "agent";
+  const editingAbout = editingSection === "about";
+  const editingPalmares = editingSection === "palmares";
+
+  const aboutDocs = editingAbout ? (form.about_documents || []) : (profile?.about_documents || []);
+  const palmaresDocs = editingPalmares ? (form.palmares_documents || []) : (profile?.palmares_documents || []);
 
   return (
     <div className="space-y-6">
@@ -815,25 +833,28 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.physicalData}</h3>
-            {!readOnly && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi date fizice">
-                    <Info className="h-4 w-4" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="text-sm font-body" side="top">
-                  <p className="font-semibold mb-1">💡 Sfaturi</p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                    <li>Completează datele fizice cu acuratețe</li>
-                    <li>Actualizează-le periodic pentru a reflecta progresul</li>
-                    <li>Scouterii verifică aceste date frecvent</li>
-                  </ul>
-                </PopoverContent>
-              </Popover>
-            )}
+            <div className="flex items-center gap-1">
+              {!readOnly && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi date fizice">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="text-sm font-body" side="top">
+                    <p className="font-semibold mb-1">💡 Sfaturi</p>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                      <li>Completează datele fizice cu acuratețe</li>
+                      <li>Actualizează-le periodic pentru a reflecta progresul</li>
+                      <li>Scouterii verifică aceste date frecvent</li>
+                    </ul>
+                  </PopoverContent>
+                </Popover>
+              )}
+              <SectionEditButton section="physical" />
+            </div>
           </div>
-          {editing ? (
+          {editingPhysical ? (
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.height_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("height_cm", v ? parseInt(v) : null); }} className="text-white" /></div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.weight_kg ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("weight_kg", v ? parseInt(v) : null); }} className="text-white" /></div>
@@ -874,25 +895,28 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.agentContact}</h3>
-            {!readOnly && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi contact agent">
-                    <Info className="h-4 w-4" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="text-sm font-body" side="top">
-                  <p className="font-semibold mb-1">💡 Sfaturi</p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                    <li>Adaugă datele agentului pentru contactări rapide</li>
-                    <li>Verifică adresa de email să fie corectă</li>
-                    <li>Include un număr de telefon activ</li>
-                  </ul>
-                </PopoverContent>
-              </Popover>
-            )}
+            <div className="flex items-center gap-1">
+              {!readOnly && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi contact agent">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="text-sm font-body" side="top">
+                    <p className="font-semibold mb-1">💡 Sfaturi</p>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                      <li>Adaugă datele agentului pentru contactări rapide</li>
+                      <li>Verifică adresa de email să fie corectă</li>
+                      <li>Include un număr de telefon activ</li>
+                    </ul>
+                  </PopoverContent>
+                </Popover>
+              )}
+              <SectionEditButton section="agent" />
+            </div>
           </div>
-          {editing ? (
+          {editingAgent ? (
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} className="text-white" /></div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label><Input value={form.agent_email || ""} onChange={(e) => updateForm("agent_email", e.target.value)} className="text-white" /></div>
@@ -937,11 +961,9 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
               </Popover>
             )}
           </div>
-          {editing && (
-            <span className="text-xs text-muted-foreground font-body">Editare activă</span>
-          )}
+          <SectionEditButton section="about" />
         </div>
-        {editing ? (
+        {editingAbout ? (
           <Textarea
             value={form.career_description || ""}
             onChange={(e) => updateForm("career_description", e.target.value)}
@@ -959,7 +981,7 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
             documents={aboutDocs}
             onAdd={(url) => updateForm("about_documents", [...(form.about_documents || []), url])}
             onRemove={(i) => updateForm("about_documents", (form.about_documents || []).filter((_, idx) => idx !== i))}
-            editing={editing}
+            editing={editingAbout}
             label="📄 Documente atestare"
           />
         </div>
@@ -969,27 +991,30 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="relative bg-accent px-5 py-3 flex items-center justify-between">
           <h3 className="font-display text-xl text-accent-foreground uppercase">{t.dashboard.profile.achievements}</h3>
-          {!readOnly && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="text-accent-foreground/60 hover:text-accent-foreground transition-colors z-10" aria-label="Sfaturi palmares">
-                  <Info className="h-4 w-4" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="text-sm font-body" side="top">
-                <p className="font-semibold mb-1">💡 Sfaturi</p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                  <li>Listează trofeele și premiile câștigate</li>
-                  <li>Include competițiile și anul</li>
-                  <li>Încarcă diplomele sau certificatele ca dovadă</li>
-                </ul>
-              </PopoverContent>
-            </Popover>
-          )}
+          <div className="flex items-center gap-1 z-10">
+            {!readOnly && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-accent-foreground/60 hover:text-accent-foreground transition-colors" aria-label="Sfaturi palmares">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm font-body" side="top">
+                  <p className="font-semibold mb-1">💡 Sfaturi</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Listează trofeele și premiile câștigate</li>
+                    <li>Include competițiile și anul</li>
+                    <li>Încarcă diplomele sau certificatele ca dovadă</li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            )}
+            <SectionEditButton section="palmares" />
+          </div>
           <div className="absolute right-0 top-0 w-16 h-full bg-gradient-to-l from-accent/50 to-transparent" />
         </div>
         <div className="p-5">
-          {editing ? (
+          {editingPalmares ? (
             <Textarea
               value={form.palmares || ""}
               onChange={(e) => updateForm("palmares", e.target.value)}
@@ -1010,7 +1035,7 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
             documents={palmaresDocs}
             onAdd={(url) => updateForm("palmares_documents", [...(form.palmares_documents || []), url])}
             onRemove={(i) => updateForm("palmares_documents", (form.palmares_documents || []).filter((_, idx) => idx !== i))}
-            editing={editing}
+            editing={editingPalmares}
             label="🏆 Documente atestare competiții/trofee"
           />
         </div>
@@ -1020,9 +1045,9 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
 }
 
 /* ======================== VIDEO TAB ======================== */
-function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm }: {
+function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean;
-  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void;
+  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>;
 }) {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -1107,6 +1132,10 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Video Highlights</h4>
+        <SectionEditButton section="video" />
+      </div>
       {editing && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-3">
           {/* YouTube link input */}
