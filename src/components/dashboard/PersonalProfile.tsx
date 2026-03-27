@@ -1208,59 +1208,6 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
         </div>
       </div>
 
-      {/* Achievements / Palmares */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="relative bg-accent px-5 py-3 flex items-center justify-between">
-          <h3 className="font-display text-xl text-accent-foreground uppercase">{t.dashboard.profile.achievements}</h3>
-          <div className="flex items-center gap-1 z-10">
-            {!readOnly && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="text-accent-foreground/60 hover:text-accent-foreground transition-colors" aria-label="Sfaturi palmares">
-                    <Info className="h-4 w-4" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="text-sm font-body" side="top">
-                  <p className="font-semibold mb-1">💡 Sfaturi</p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                    <li>Listează trofeele și premiile câștigate</li>
-                    <li>Include competițiile și anul</li>
-                    <li>Încarcă diplomele sau certificatele ca dovadă</li>
-                  </ul>
-                </PopoverContent>
-              </Popover>
-            )}
-            <SectionEditButton section="palmares" />
-          </div>
-          <div className="absolute right-0 top-0 w-16 h-full bg-gradient-to-l from-accent/50 to-transparent" />
-        </div>
-        <div className="p-5">
-          {editingPalmares ? (
-            <Textarea
-              value={form.palmares || ""}
-              onChange={(e) => updateForm("palmares", e.target.value)}
-              placeholder={t.dashboard.profile.achievementsPlaceholder}
-              rows={5}
-              className="text-white"
-            />
-          ) : (
-            <div className="space-y-0">
-              {(profile?.palmares || t.dashboard.profile.noAchievements).split("\n").filter(Boolean).map((line, i) => (
-                <div key={i} className="py-3 border-b border-border last:border-b-0">
-                  <p className="text-foreground font-body text-sm font-medium">{line}</p>
-                </div>
-              ))}
-            </div>
-          )}
-          <DocumentUploader
-            documents={palmaresDocs}
-            onAdd={(url) => updateForm("palmares_documents", [...(form.palmares_documents || []), url])}
-            onRemove={(i) => updateForm("palmares_documents", (form.palmares_documents || []).filter((_, idx) => idx !== i))}
-            editing={editingPalmares}
-            label="🏆 Documente atestare competiții/trofee"
-          />
-        </div>
-      </div>
     </div>
   );
 }
