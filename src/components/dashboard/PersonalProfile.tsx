@@ -252,7 +252,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
         <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 p-4 sm:p-8">
           {/* Info */}
           <div className="flex-1 min-w-0 w-full text-center sm:text-left order-2 sm:order-1">
-            {editing ? (
+            {editingSection === "header" ? (
               <div className="flex flex-col sm:flex-row gap-2 mb-2">
                 <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-lg sm:text-2xl h-auto py-1 min-w-0" />
                 <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-lg sm:text-2xl h-auto py-1 min-w-0" />
@@ -265,7 +265,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
               </h1>
             )}
 
-            {editing ? (
+            {editingSection === "header" ? (
               <div className="flex flex-col sm:flex-row gap-2 mt-2">
                 <Select value={form.position || ""} onValueChange={(v) => updateForm("position", v)}>
                   <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground w-full sm:w-48">
@@ -287,7 +287,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             )}
 
             {/* Nationality, DOB & Social icons */}
-            {!editing && (
+            {editingSection !== "header" && (
               <div className="flex items-center justify-center sm:justify-start gap-6 mt-4 pt-3 border-t border-border/30 flex-wrap">
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
@@ -311,7 +311,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 </div>
               </div>
             )}
-            {editing && (
+            {editingSection === "header" && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
                   <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
@@ -337,7 +337,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 </div>
               )}
             </div>
-            {editing && (
+            {editingSection === "header" && (
               <label className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-xl cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="h-6 w-6 text-primary" />
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -345,6 +345,12 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             )}
           </div>
 
+          {/* Edit pencil for header */}
+          {!readOnly && (
+            <div className="absolute top-3 right-3 z-10">
+              <SectionEditButton section="header" />
+            </div>
+          )}
         </div>
       </div>
 
