@@ -993,17 +993,116 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           <SectionEditButton section="about" />
         </div>
         {editingAbout ? (
-          <Textarea
-            value={form.career_description || ""}
-            onChange={(e) => updateForm("career_description", e.target.value)}
-            placeholder={t.dashboard.profile.careerPlaceholder}
-            rows={5}
-            className="bg-muted border-border text-foreground min-h-[120px]"
-          />
+          <div className="space-y-4">
+            {careerEntries.map((entry, idx) => (
+              <div key={idx} className="bg-muted border border-border rounded-lg p-4 space-y-3 relative">
+                <button
+                  type="button"
+                  onClick={() => setCareerEntries(careerEntries.filter((_, i) => i !== idx))}
+                  className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Echipa*</Label>
+                  <Input
+                    value={entry.team_name}
+                    onChange={(e) => {
+                      const updated = [...careerEntries];
+                      updated[idx] = { ...entry, team_name: e.target.value };
+                      setCareerEntries(updated);
+                    }}
+                    placeholder="Ex.: FC Barcelona"
+                    className="bg-background"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Data început</Label>
+                    <Input
+                      type="date"
+                      value={entry.start_date}
+                      onChange={(e) => {
+                        const updated = [...careerEntries];
+                        updated[idx] = { ...entry, start_date: e.target.value };
+                        setCareerEntries(updated);
+                      }}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Data sfârșit</Label>
+                    <Input
+                      type="date"
+                      value={entry.end_date}
+                      onChange={(e) => {
+                        const updated = [...careerEntries];
+                        updated[idx] = { ...entry, end_date: e.target.value };
+                        setCareerEntries(updated);
+                      }}
+                      disabled={entry.currently_active}
+                      className="bg-background"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id={`currently-active-${idx}`}
+                    checked={entry.currently_active}
+                    onCheckedChange={(checked) => {
+                      const updated = [...careerEntries];
+                      updated[idx] = { ...entry, currently_active: !!checked, end_date: checked ? "" : entry.end_date };
+                      setCareerEntries(updated);
+                    }}
+                  />
+                  <Label htmlFor={`currently-active-${idx}`} className="text-xs text-muted-foreground cursor-pointer">
+                    Activez în acest moment
+                  </Label>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Descriere</Label>
+                  <Textarea
+                    value={entry.description}
+                    onChange={(e) => {
+                      const updated = [...careerEntries];
+                      updated[idx] = { ...entry, description: e.target.value };
+                      setCareerEntries(updated);
+                    }}
+                    placeholder="Descrie experiența ta la această echipă..."
+                    rows={3}
+                    className="bg-background"
+                  />
+                </div>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setCareerEntries([...careerEntries, { team_name: "", start_date: "", end_date: "", currently_active: false, description: "" }])}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Adaugă echipă
+            </Button>
+          </div>
         ) : (
-          <p className="text-foreground/80 font-body text-sm leading-relaxed whitespace-pre-line">
-            {profile?.career_description || <span className="italic text-muted-foreground">{t.dashboard.profile.noDescription}</span>}
-          </p>
+          <div className="space-y-3">
+            {careerEntries.length > 0 ? (
+              careerEntries.map((entry, idx) => (
+                <div key={idx} className="border-l-2 border-primary/30 pl-3">
+                  <p className="font-semibold text-foreground text-sm">{entry.team_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {entry.start_date ? new Date(entry.start_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
+                    {" — "}
+                    {entry.currently_active ? "Prezent" : entry.end_date ? new Date(entry.end_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
+                  </p>
+                  {entry.description && <p className="text-xs text-foreground/70 mt-1">{entry.description}</p>}
+                </div>
+              ))
+            ) : (
+              <p className="italic text-muted-foreground text-sm">{t.dashboard.profile.noDescription}</p>
+            )}
+          </div>
         )}
         <div className="mt-4">
           <DocumentUploader
