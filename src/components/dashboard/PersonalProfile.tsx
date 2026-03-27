@@ -425,33 +425,23 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
   return (
     <div className="space-y-6">
       {/* FIFA card + Stat bars side by side on desktop */}
-      {!editing && (<>
-        <div className="flex flex-col lg:flex-row gap-6 items-center">
+      <div className="flex flex-col lg:flex-row gap-6 items-center">
           {/* FIFA-style card - refined */}
           <div className="mx-auto lg:mx-0 relative w-[220px] shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_hsl(var(--primary)/0.4)]"
             style={{
               background: 'linear-gradient(160deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.65) 60%, hsl(var(--primary) / 0.35) 100%)',
             }}
           >
-            {/* Decorative pattern overlay */}
             <div className="absolute inset-0 opacity-[0.07]" style={{
               backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
             }} />
-
             <div className="relative">
-              {/* Rating + Position */}
               <div className="flex items-start px-4 pt-4">
                 <div className="flex flex-col items-center">
-                  <span className="font-display text-[42px] text-primary-foreground leading-none drop-shadow-lg">
-                    {overallRating}
-                  </span>
-                  <span className="font-display text-[11px] text-primary-foreground/80 uppercase tracking-[0.2em]">
-                    {profile?.position ? profile.position.substring(0, 3).toUpperCase() : "—"}
-                  </span>
+                  <span className="font-display text-[42px] text-primary-foreground leading-none drop-shadow-lg">{overallRating}</span>
+                  <span className="font-display text-[11px] text-primary-foreground/80 uppercase tracking-[0.2em]">{profile?.position ? profile.position.substring(0, 3).toUpperCase() : "—"}</span>
                 </div>
               </div>
-
-              {/* Player photo */}
               <div className="flex justify-center mt-1 px-5">
                 <div className="w-[130px] h-[130px] rounded-xl overflow-hidden border-2 border-primary-foreground/20 shadow-lg">
                   {photoSrc ? (
@@ -463,17 +453,11 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                   )}
                 </div>
               </div>
-
-              {/* Player name */}
               <div className="text-center mt-2 pb-2 mx-4">
                 <div className="border-t border-primary-foreground/20 pt-2">
-                  <p className="font-display text-sm text-primary-foreground uppercase tracking-[0.15em]">
-                    {profile?.first_name || ""} {profile?.last_name || "PLAYER"}
-                  </p>
+                  <p className="font-display text-sm text-primary-foreground uppercase tracking-[0.15em]">{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
                 </div>
               </div>
-
-              {/* Stats grid */}
               <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-5 pb-4">
                 {[
                   { label: "PLD", value: (form as any).speed ?? 0 },
@@ -490,48 +474,69 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
             </div>
           </div>
 
-          {/* Stat bars - vertical bars visualization */}
+          {/* Stat bars / edit inputs */}
           <div className="flex-1 w-full bg-card border border-border rounded-2xl p-5 sm:p-6">
             <div className="flex items-center justify-between mb-1">
               <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
               <SectionEditButton section="stats" />
             </div>
-            <div className="space-y-4">
-              {stats.map((stat) => {
-                const value = (form as any)[stat.key] ?? 0;
-                const percentage = Math.min(value, 100);
-                return (
-                  <div key={stat.key} className="group">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
-                      <span className="font-display text-xl text-foreground">{value}</span>
-                    </div>
-                    <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-700 ease-out"
-                        style={{
-                          width: `${percentage}%`,
-                          background: percentage >= 80
-                            ? 'linear-gradient(90deg, hsl(var(--primary)), hsl(145 80% 50%))'
-                            : percentage >= 50
-                              ? 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))'
-                              : 'linear-gradient(90deg, hsl(var(--destructive) / 0.6), hsl(var(--destructive)))',
-                        }}
+            {editing ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3">
+                {stats.map((stat) => {
+                  const value = (form as any)[stat.key] ?? 0;
+                  return (
+                    <div key={stat.key} className="bg-muted/50 border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center">
+                      <p className="text-xs text-muted-foreground font-body mb-2 text-center">{stat.icon} {stat.label}</p>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={value}
+                        onChange={(e) => updateForm(stat.key, Math.min(100, parseInt(e.target.value) || 0))}
+                        className="text-center text-lg font-display text-white"
                       />
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Overall rating badge */}
-            <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-              <span className="text-sm text-muted-foreground font-body uppercase tracking-wide">Rating General</span>
-              <div className="flex items-center gap-2">
-                <span className="font-display text-3xl text-primary">{overallRating}</span>
-                <span className="text-xs text-muted-foreground font-body">/100</span>
+                  );
+                })}
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  {stats.map((stat) => {
+                    const value = (form as any)[stat.key] ?? 0;
+                    const percentage = Math.min(value, 100);
+                    return (
+                      <div key={stat.key} className="group">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
+                          <span className="font-display text-xl text-foreground">{value}</span>
+                        </div>
+                        <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700 ease-out"
+                            style={{
+                              width: `${percentage}%`,
+                              background: percentage >= 80
+                                ? 'linear-gradient(90deg, hsl(var(--primary)), hsl(145 80% 50%))'
+                                : percentage >= 50
+                                  ? 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))'
+                                  : 'linear-gradient(90deg, hsl(var(--destructive) / 0.6), hsl(var(--destructive)))',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground font-body uppercase tracking-wide">Rating General</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-display text-3xl text-primary">{overallRating}</span>
+                    <span className="text-xs text-muted-foreground font-body">/100</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -541,136 +546,106 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
             <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
             <SectionEditButton section="technical" />
           </div>
-          <div className="space-y-4">
-            {getTechnicalTestsBySport(currentSport).map((test) => (
-              <div key={test.key}>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label={`Info ${test.label}`}>
-                        <Info className="h-4 w-4" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="text-sm font-body" side="top">
-                      <p className="font-semibold mb-1">{test.icon} {test.label}</p>
-                      <p className="text-muted-foreground text-xs whitespace-pre-line">{test.description}</p>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                {(() => {
-                  const videoUrl = (form as any)[test.key] || (profile as any)?.[test.key] || "";
-                  if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                  return (
-                    <div className="mt-2">
-                      {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                        <iframe
-                          src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                          className="w-full aspect-video rounded-lg"
-                          allowFullScreen
-                        />
-                      ) : (
-                        <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                      )}
+          {editingTechnical ? (
+            <div className="space-y-4">
+              {getTechnicalTestsBySport(currentSport).map((test) => (
+                <div key={test.key}>
+                  <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video {test.label}</p>
+                  {(form as any)[test.key] && (
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any)[test.key]}</span>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => updateForm(test.key as any, null)}>
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
-                  );
-                })()}
-              </div>
-            ))}
-          </div>
-        </div>
-      </>)}
-
-      {/* Editing mode: stat inputs */}
-      {editing && (
-        <div className="space-y-2">
-          <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {stats.map((stat) => {
-              const value = (form as any)[stat.key] ?? 0;
-              return (
-                <div key={stat.key} className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center">
-                  <p className="text-xs text-muted-foreground font-body mb-2 text-center">{stat.icon} {stat.label}</p>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={value}
-                    onChange={(e) => updateForm(stat.key, Math.min(100, parseInt(e.target.value) || 0))}
-                    className="text-center text-lg font-display text-white"
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Editing mode: Teste Tehnice Specifice */}
-      {editingTechnical && (
-        <div className="space-y-4">
-          <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
-          <div className="bg-card border border-border rounded-xl p-3 sm:p-4 space-y-4">
-            {getTechnicalTestsBySport(currentSport).map((test) => (
-              <div key={test.key}>
-                <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video {test.label}</p>
-                {(form as any)[test.key] && (
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any)[test.key]}</span>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => updateForm(test.key as any, null)}>
-                      <X className="h-4 w-4 text-destructive" />
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      placeholder="Link YouTube sau video URL"
+                      value={(form as any)[test.inputKey] || ""}
+                      onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
+                      className="text-white flex-1 min-w-0"
+                    />
+                    <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
+                      const val = (form as any)[test.inputKey]?.trim();
+                      if (val) {
+                        updateForm(test.key as any, val);
+                        updateForm(test.inputKey as any, "");
+                      }
+                    }}>
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                )}
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    placeholder="Link YouTube sau video URL"
-                    value={(form as any)[test.inputKey] || ""}
-                    onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
-                    className="text-white flex-1 min-w-0"
-                  />
-                  <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
-                    const val = (form as any)[test.inputKey]?.trim();
-                    if (val) {
-                      updateForm(test.key as any, val);
-                      updateForm(test.inputKey as any, "");
-                    }
-                  }}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="relative mt-2">
-                  <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => document.getElementById(test.uploadId)?.click()}>
-                    <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                    <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                  <div className="relative mt-2">
+                    <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => document.getElementById(test.uploadId)?.click()}>
+                      <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
+                      <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                    </div>
+                    <input
+                      id={test.uploadId}
+                      type="file"
+                      accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const ext = file.name.split(".").pop();
+                        const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
+                        const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
+                        if (uploadError) {
+                          toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                          return;
+                        }
+                        const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                        updateForm(test.key as any, urlData.publicUrl);
+                        toast({ title: "Video încărcat cu succes!" });
+                      }}
+                    />
                   </div>
-                  <input
-                    id={test.uploadId}
-                    type="file"
-                    accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const ext = file.name.split(".").pop();
-                      const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
-                      const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
-                      if (uploadError) {
-                        toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
-                        return;
-                      }
-                      const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-                      updateForm(test.key as any, urlData.publicUrl);
-                      toast({ title: "Video încărcat cu succes!" });
-                    }}
-                  />
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {getTechnicalTestsBySport(currentSport).map((test) => (
+                <div key={test.key}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label={`Info ${test.label}`}>
+                          <Info className="h-4 w-4" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="text-sm font-body" side="top">
+                        <p className="font-semibold mb-1">{test.icon} {test.label}</p>
+                        <p className="text-muted-foreground text-xs whitespace-pre-line">{test.description}</p>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {(() => {
+                    const videoUrl = (form as any)[test.key] || (profile as any)?.[test.key] || "";
+                    if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
+                    return (
+                      <div className="mt-2">
+                        {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
+                          <iframe
+                            src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                            className="w-full aspect-video rounded-lg"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
 
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
