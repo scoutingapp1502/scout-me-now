@@ -95,7 +95,26 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 
   useEffect(() => {
     fetchProfile();
+    fetchCareerEntries();
   }, [userId]);
+
+  const fetchCareerEntries = async () => {
+    const { data } = await supabase
+      .from("player_career_entries")
+      .select("*")
+      .eq("user_id", userId)
+      .order("sort_order", { ascending: true });
+    if (data) {
+      setCareerEntries(data.map((e: any) => ({
+        id: e.id,
+        team_name: e.team_name || "",
+        start_date: e.start_date || "",
+        end_date: e.end_date || "",
+        currently_active: e.currently_active || false,
+        description: e.description || "",
+      })));
+    }
+  };
 
   const fetchProfile = async () => {
     let { data, error } = await supabase
