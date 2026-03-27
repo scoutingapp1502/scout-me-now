@@ -33,6 +33,39 @@ const positionsBySport: Record<string, string[]> = {
 
 type TabType = "stats" | "profile" | "video";
 
+interface TechnicalTest {
+  key: string;
+  label: string;
+  icon: string;
+  description: string;
+  inputKey: string;
+  uploadId: string;
+  storagePath: string;
+}
+
+const basketballTests: TechnicalTest[] = [
+  { key: "free_throw_shooting_video", label: "Free Throw Shooting", icon: "🏀", description: "Timp de 60 de secunde, sportivul aruncă, își recuperează singur mingea și revine la linia de la libere pentru o nouă aruncare.", inputKey: "_fts_video_input", uploadId: "fts-video-upload", storagePath: "free-throw-shooting" },
+  { key: "star_shooting_drill_video", label: "Star Shooting Drill", icon: "🎯", description: "25 shots, 5 right corner, 5 left wing, 5 right wing, 5 left corner, 5 top of the key. After each throw, you have to change the position. Exercise is not timed.", inputKey: "_ssd_video_input", uploadId: "ssd-video-upload", storagePath: "star-shooting-drill" },
+  { key: "crossover_video", label: "Crossover", icon: "🏀", description: "Executarea procedeului de cros la viteza maximă folosind 6 jaloane, 3 pe partea dreaptă 3 pe stânga la distanța de 2 m una de cealaltă.", inputKey: "_crossover_video_input", uploadId: "crossover-video-upload", storagePath: "crossover" },
+  { key: "between_the_legs_video", label: "Between the Legs", icon: "🏀", description: "Executarea procedeului de trecerea mingii printre picioare la viteza maximă folosind 6 jaloane, 3 pe partea dreaptă 3 pe stânga la distanța de 2 m una de cealaltă.", inputKey: "_btl_video_input", uploadId: "btl-video-upload", storagePath: "between-the-legs" },
+  { key: "double_cross_video", label: "Double Cross", icon: "🏀", description: "Executarea procedeului de dublu cros de fiecare dată când ajung în fața jalonului. Jaloanele vor fi în număr de 5 și se vor afla pe o linie coliniară, la distanța de 3 metri unul față de celălalt.", inputKey: "_dc_video_input", uploadId: "dc-video-upload", storagePath: "double-cross" },
+  { key: "between_legs_cross_video", label: "Between the Legs Cross", icon: "🏀", description: "Executarea procedeului de trecerea mingii printre picioare și apoi cross de fiecare dată când ajung în fața jalonului. Jaloanele vor fi în număr de 5 și se vor afla pe o linie coliniară, la distanța de 3 metri unul față de celălalt.", inputKey: "_blc_video_input", uploadId: "blc-video-upload", storagePath: "between-legs-cross" },
+];
+
+const footballTests: TechnicalTest[] = [
+  { key: "control_pass_video", label: "Control și Pasă", icon: "⚽", description: "Sportivul controlează mingea și execută o pasă precisă către un coechipier sau un punct fix. Se evaluează calitatea primei atingeri și precizia pasei.", inputKey: "_cp_video_input", uploadId: "cp-video-upload", storagePath: "control-pass" },
+  { key: "slalom_video", label: "Slalom printre Jaloane", icon: "⚽", description: "Sportivul conduce mingea printre jaloane amplasate în linie dreaptă, la distanță egală unul față de celălalt. Se evaluează viteza de execuție și controlul mingii.", inputKey: "_slalom_video_input", uploadId: "slalom-video-upload", storagePath: "slalom" },
+  { key: "precision_video", label: "Precizie", icon: "⚽", description: "Sportivul execută șuturi la poartă din diferite poziții, vizând colțurile porții sau zone marcate. Se evaluează precizia și tehnica de finalizare.", inputKey: "_precision_video_input", uploadId: "precision-video-upload", storagePath: "precision" },
+  { key: "coordination_video", label: "Coordonare", icon: "⚽", description: "Sportivul execută exerciții de coordonare cu mingea, combinând pase, dribling și schimbări de direcție. Se evaluează coordonarea generală și fluiditatea mișcărilor.", inputKey: "_coord_video_input", uploadId: "coord-video-upload", storagePath: "coordination" },
+  { key: "long_pass_video", label: "Pasă Lungă la Punct Fix", icon: "⚽", description: "Sportivul execută pase lungi către un punct fix marcat pe teren. Se evaluează precizia, distanța și tehnica de execuție a pasei lungi.", inputKey: "_lp_video_input", uploadId: "lp-video-upload", storagePath: "long-pass" },
+];
+
+const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTest[] => {
+  if (sport === "basketball") return basketballTests;
+  if (sport === "football") return footballTests;
+  return footballTests; // default
+};
+
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { t } = useLanguage();
