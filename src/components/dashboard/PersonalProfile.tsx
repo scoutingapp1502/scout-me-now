@@ -354,8 +354,8 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
         </div>
       </div>
 
-      {/* Tabs + Edit button row */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center border-b border-border bg-card rounded-b-xl">
+      {/* Tabs row (no edit button) */}
+      <div className="flex items-stretch border-b border-border bg-card rounded-b-xl">
         <div className="flex flex-1 overflow-x-auto">
           {([
             { key: "stats" as TabType, label: "Stats" },
@@ -378,37 +378,23 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             </button>
           ))}
         </div>
-        {!readOnly && (
-          <div className="flex items-center justify-center sm:justify-end px-4 py-2 sm:py-0">
-            <Button
-              onClick={() => editing ? handleSave() : setEditing(true)}
-              disabled={saving}
-              className={editing ? "bg-primary hover:bg-primary/90 text-primary-foreground font-display text-sm sm:text-base px-4 sm:px-6 w-full sm:w-auto" : "bg-accent text-accent-foreground hover:bg-accent/90 font-display text-sm sm:text-base px-4 sm:px-6 shadow-md w-full sm:w-auto"}
-            >
-              {editing ? (
-                <><Save className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{saving ? "..." : t.dashboard.profile.save}</>
-              ) : (
-                <><Edit2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />{t.dashboard.profile.edit}</>
-              )}
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Tab content */}
       <div className="mt-6 px-2 sm:px-6">
-        {activeTab === "stats" && <StatsTab form={form} profile={profile} editing={editing} updateForm={updateForm} photoSrc={photoSrc} userId={userId} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editing={editing} updateForm={updateForm} userId={userId} readOnly={readOnly} />}
+        {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} />}
         {activeTab === "video" && (
           <VideoTab
             form={form}
             profile={profile}
-            editing={editing}
+            editing={editingSection === "video"}
             newVideoUrl={newVideoUrl}
             setNewVideoUrl={setNewVideoUrl}
             addVideoUrl={addVideoUrl}
             removeVideoUrl={removeVideoUrl}
             updateForm={updateForm}
+            SectionEditButton={SectionEditButton}
           />
         )}
       </div>
