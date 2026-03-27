@@ -74,6 +74,8 @@ export type Database = {
           between_the_legs_video: string | null
           bio: string | null
           career_description: string | null
+          control_pass_video: string | null
+          coordination_video: string | null
           created_at: string
           crossover_video: string | null
           current_team: string | null
@@ -90,13 +92,16 @@ export type Database = {
           instagram_url: string | null
           jumping: number | null
           last_name: string
+          long_pass_video: string | null
           matches_played: number | null
           nationality: string | null
           palmares: string | null
           palmares_documents: string[] | null
           photo_url: string | null
           position: string | null
+          precision_video: string | null
           preferred_foot: string | null
+          slalom_video: string | null
           speed: number | null
           sport: string | null
           star_shooting_drill: number | null
@@ -120,6 +125,8 @@ export type Database = {
           between_the_legs_video?: string | null
           bio?: string | null
           career_description?: string | null
+          control_pass_video?: string | null
+          coordination_video?: string | null
           created_at?: string
           crossover_video?: string | null
           current_team?: string | null
@@ -136,13 +143,16 @@ export type Database = {
           instagram_url?: string | null
           jumping?: number | null
           last_name?: string
+          long_pass_video?: string | null
           matches_played?: number | null
           nationality?: string | null
           palmares?: string | null
           palmares_documents?: string[] | null
           photo_url?: string | null
           position?: string | null
+          precision_video?: string | null
           preferred_foot?: string | null
+          slalom_video?: string | null
           speed?: number | null
           sport?: string | null
           star_shooting_drill?: number | null
@@ -166,6 +176,8 @@ export type Database = {
           between_the_legs_video?: string | null
           bio?: string | null
           career_description?: string | null
+          control_pass_video?: string | null
+          coordination_video?: string | null
           created_at?: string
           crossover_video?: string | null
           current_team?: string | null
@@ -182,13 +194,16 @@ export type Database = {
           instagram_url?: string | null
           jumping?: number | null
           last_name?: string
+          long_pass_video?: string | null
           matches_played?: number | null
           nationality?: string | null
           palmares?: string | null
           palmares_documents?: string[] | null
           photo_url?: string | null
           position?: string | null
+          precision_video?: string | null
           preferred_foot?: string | null
+          slalom_video?: string | null
           speed?: number | null
           sport?: string | null
           star_shooting_drill?: number | null

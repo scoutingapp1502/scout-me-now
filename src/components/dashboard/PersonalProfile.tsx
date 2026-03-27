@@ -33,6 +33,39 @@ const positionsBySport: Record<string, string[]> = {
 
 type TabType = "stats" | "profile" | "video";
 
+interface TechnicalTest {
+  key: string;
+  label: string;
+  icon: string;
+  description: string;
+  inputKey: string;
+  uploadId: string;
+  storagePath: string;
+}
+
+const basketballTests: TechnicalTest[] = [
+  { key: "free_throw_shooting_video", label: "Free Throw Shooting", icon: "🏀", description: "Timp de 60 de secunde, sportivul aruncă, își recuperează singur mingea și revine la linia de la libere pentru o nouă aruncare.", inputKey: "_fts_video_input", uploadId: "fts-video-upload", storagePath: "free-throw-shooting" },
+  { key: "star_shooting_drill_video", label: "Star Shooting Drill", icon: "🎯", description: "25 shots, 5 right corner, 5 left wing, 5 right wing, 5 left corner, 5 top of the key. After each throw, you have to change the position. Exercise is not timed.", inputKey: "_ssd_video_input", uploadId: "ssd-video-upload", storagePath: "star-shooting-drill" },
+  { key: "crossover_video", label: "Crossover", icon: "🏀", description: "Executarea procedeului de cros la viteza maximă folosind 6 jaloane, 3 pe partea dreaptă 3 pe stânga la distanța de 2 m una de cealaltă.", inputKey: "_crossover_video_input", uploadId: "crossover-video-upload", storagePath: "crossover" },
+  { key: "between_the_legs_video", label: "Between the Legs", icon: "🏀", description: "Executarea procedeului de trecerea mingii printre picioare la viteza maximă folosind 6 jaloane, 3 pe partea dreaptă 3 pe stânga la distanța de 2 m una de cealaltă.", inputKey: "_btl_video_input", uploadId: "btl-video-upload", storagePath: "between-the-legs" },
+  { key: "double_cross_video", label: "Double Cross", icon: "🏀", description: "Executarea procedeului de dublu cros de fiecare dată când ajung în fața jalonului. Jaloanele vor fi în număr de 5 și se vor afla pe o linie coliniară, la distanța de 3 metri unul față de celălalt.", inputKey: "_dc_video_input", uploadId: "dc-video-upload", storagePath: "double-cross" },
+  { key: "between_legs_cross_video", label: "Between the Legs Cross", icon: "🏀", description: "Executarea procedeului de trecerea mingii printre picioare și apoi cross de fiecare dată când ajung în fața jalonului. Jaloanele vor fi în număr de 5 și se vor afla pe o linie coliniară, la distanța de 3 metri unul față de celălalt.", inputKey: "_blc_video_input", uploadId: "blc-video-upload", storagePath: "between-legs-cross" },
+];
+
+const footballTests: TechnicalTest[] = [
+  { key: "control_pass_video", label: "Control și Pasă", icon: "⚽", description: "Sportivul controlează mingea și execută o pasă precisă către un coechipier sau un punct fix. Se evaluează calitatea primei atingeri și precizia pasei.", inputKey: "_cp_video_input", uploadId: "cp-video-upload", storagePath: "control-pass" },
+  { key: "slalom_video", label: "Slalom printre Jaloane", icon: "⚽", description: "Sportivul conduce mingea printre jaloane amplasate în linie dreaptă, la distanță egală unul față de celălalt. Se evaluează viteza de execuție și controlul mingii.", inputKey: "_slalom_video_input", uploadId: "slalom-video-upload", storagePath: "slalom" },
+  { key: "precision_video", label: "Precizie", icon: "⚽", description: "Sportivul execută șuturi la poartă din diferite poziții, vizând colțurile porții sau zone marcate. Se evaluează precizia și tehnica de finalizare.", inputKey: "_precision_video_input", uploadId: "precision-video-upload", storagePath: "precision" },
+  { key: "coordination_video", label: "Coordonare", icon: "⚽", description: "Sportivul execută exerciții de coordonare cu mingea, combinând pase, dribling și schimbări de direcție. Se evaluează coordonarea generală și fluiditatea mișcărilor.", inputKey: "_coord_video_input", uploadId: "coord-video-upload", storagePath: "coordination" },
+  { key: "long_pass_video", label: "Pasă Lungă la Punct Fix", icon: "⚽", description: "Sportivul execută pase lungi către un punct fix marcat pe teren. Se evaluează precizia, distanța și tehnica de execuție a pasei lungi.", inputKey: "_lp_video_input", uploadId: "lp-video-upload", storagePath: "long-pass" },
+];
+
+const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTest[] => {
+  if (sport === "basketball") return basketballTests;
+  if (sport === "football") return footballTests;
+  return footballTests; // default
+};
+
 const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -45,6 +78,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("stats");
   const [newVideoUrl, setNewVideoUrl] = useState("");
+  const currentSport = form.sport || profile?.sport || "football";
 
   useEffect(() => {
     fetchProfile();
@@ -490,214 +524,41 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-4">Teste Tehnice Specifice</h4>
           <div className="space-y-4">
-            {/* Free Throw Shooting */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Free Throw Shooting</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Free Throw Shooting">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Free Throw Shooting</p>
-                    <p className="text-muted-foreground text-xs">Timp de 60 de secunde, sportivul aruncă, își recuperează singur mingea și revine la linia de la libere pentru o nouă aruncare.</p>
-                  </PopoverContent>
-                </Popover>
+            {getTechnicalTestsBySport(currentSport).map((test) => (
+              <div key={test.key}>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label={`Info ${test.label}`}>
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="text-sm font-body" side="top">
+                      <p className="font-semibold mb-1">{test.icon} {test.label}</p>
+                      <p className="text-muted-foreground text-xs">{test.description}</p>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {(() => {
+                  const videoUrl = (form as any)[test.key] || (profile as any)?.[test.key] || "";
+                  if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
+                  return (
+                    <div className="mt-2">
+                      {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
+                        <iframe
+                          src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                          className="w-full aspect-video rounded-lg"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
-              {(() => {
-                const videoUrl = (form as any).free_throw_shooting_video || (profile as any)?.free_throw_shooting_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🎯 Star Shooting Drill</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Star Shooting Drill">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🎯 Star Shooting Drill</p>
-                    <p className="text-muted-foreground text-xs">25 shots, 5 right corner, 5 left wing, 5 right wing, 5 left corner, 5 top of the key. After each throw, you have to change the position. Exercise is not timed.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).star_shooting_drill_video || (profile as any)?.star_shooting_drill_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Crossover */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Crossover</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Crossover">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Crossover</p>
-                    <p className="text-muted-foreground text-xs">Executarea procedeului de cros la viteza maximă folosind 6 jaloane, 3 pe partea dreaptă 3 pe stânga la distanța de 2 m una de cealaltă.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).crossover_video || (profile as any)?.crossover_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Between the Legs */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Between the Legs</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Between the Legs">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Between the Legs</p>
-                    <p className="text-muted-foreground text-xs">Executarea procedeului de trecerea mingii printre picioare la viteza maximă folosind 6 jaloane, 3 pe partea dreaptă 3 pe stânga la distanța de 2 m una de cealaltă.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).between_the_legs_video || (profile as any)?.between_the_legs_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Double Cross */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Double Cross</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Double Cross">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Double Cross</p>
-                    <p className="text-muted-foreground text-xs">Executarea procedeului de dublu cros de fiecare dată când ajung în fața jalonului. Jaloanele vor fi în număr de 5 și se vor afla pe o linie coliniară, la distanța de 3 metri unul față de celălalt.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).double_cross_video || (profile as any)?.double_cross_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Between the Legs Cross */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">🏀 Between the Legs Cross</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Info Between the Legs Cross">
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">🏀 Between the Legs Cross</p>
-                    <p className="text-muted-foreground text-xs">Executarea procedeului de trecerea mingii printre picioare și apoi cross de fiecare dată când ajung în fața jalonului. Jaloanele vor fi în număr de 5 și se vor afla pe o linie coliniară, la distanța de 3 metri unul față de celălalt.</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {(() => {
-                const videoUrl = (form as any).between_legs_cross_video || (profile as any)?.between_legs_cross_video || "";
-                if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
-                return (
-                  <div className="mt-2">
-                    {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
-                        className="w-full aspect-video rounded-lg"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+            ))}
           </div>
         </div>
       </>)}
@@ -732,346 +593,63 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
         <div className="space-y-4">
           <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4 space-y-4">
-            {/* Free Throw Shooting video edit */}
-            <div>
-              <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Free Throw Shooting</p>
-              {(form as any).free_throw_shooting_video && (
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any).free_throw_shooting_video}</span>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => updateForm("free_throw_shooting_video" as any, null)}>
-                    <X className="h-4 w-4 text-destructive" />
+            {getTechnicalTestsBySport(currentSport).map((test) => (
+              <div key={test.key}>
+                <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video {test.label}</p>
+                {(form as any)[test.key] && (
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any)[test.key]}</span>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => updateForm(test.key as any, null)}>
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    placeholder="Link YouTube sau video URL"
+                    value={(form as any)[test.inputKey] || ""}
+                    onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
+                    className="text-white flex-1 min-w-0"
+                  />
+                  <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
+                    const val = (form as any)[test.inputKey]?.trim();
+                    if (val) {
+                      updateForm(test.key as any, val);
+                      updateForm(test.inputKey as any, "");
+                    }
+                  }}>
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
-              )}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  placeholder="Link YouTube sau video URL"
-                  value={(form as any)._fts_video_input || ""}
-                  onChange={(e) => updateForm("_fts_video_input" as any, e.target.value)}
-                  className="text-white flex-1 min-w-0"
-                />
-                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
-                  const val = (form as any)._fts_video_input?.trim();
-                  if (val) {
-                    updateForm("free_throw_shooting_video" as any, val);
-                    updateForm("_fts_video_input" as any, "");
-                  }
-                }}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => document.getElementById("fts-video-upload")?.click()}>
-                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                <div className="relative mt-2">
+                  <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => document.getElementById(test.uploadId)?.click()}>
+                    <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
+                    <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                  </div>
+                  <input
+                    id={test.uploadId}
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const ext = file.name.split(".").pop();
+                      const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
+                      const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
+                      if (uploadError) {
+                        toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                        return;
+                      }
+                      const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                      updateForm(test.key as any, urlData.publicUrl);
+                      toast({ title: "Video încărcat cu succes!" });
+                    }}
+                  />
                 </div>
-                <input
-                  id="fts-video-upload"
-                  type="file"
-                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const ext = file.name.split(".").pop();
-                    const path = `${userId}/free-throw-shooting-${Date.now()}.${ext}`;
-                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
-                    if (uploadError) {
-                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
-                      return;
-                    }
-                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-                    updateForm("free_throw_shooting_video" as any, urlData.publicUrl);
-                    toast({ title: "Video încărcat cu succes!" });
-                  }}
-                />
               </div>
-            </div>
-
-            <div>
-              <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Star Shooting Drill</p>
-              {(form as any).star_shooting_drill_video && (
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any).star_shooting_drill_video}</span>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => updateForm("star_shooting_drill_video" as any, null)}>
-                    <X className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              )}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  placeholder="Link YouTube sau video URL"
-                  value={(form as any)._ssd_video_input || ""}
-                  onChange={(e) => updateForm("_ssd_video_input" as any, e.target.value)}
-                  className="text-white flex-1 min-w-0"
-                />
-                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
-                  const val = (form as any)._ssd_video_input?.trim();
-                  if (val) {
-                    updateForm("star_shooting_drill_video" as any, val);
-                    updateForm("_ssd_video_input" as any, "");
-                  }
-                }}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => document.getElementById("ssd-video-upload")?.click()}>
-                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
-                </div>
-                <input
-                  id="ssd-video-upload"
-                  type="file"
-                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const ext = file.name.split(".").pop();
-                    const path = `${userId}/star-shooting-drill-${Date.now()}.${ext}`;
-                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
-                    if (uploadError) {
-                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
-                      return;
-                    }
-                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-                    updateForm("star_shooting_drill_video" as any, urlData.publicUrl);
-                    toast({ title: "Video încărcat cu succes!" });
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Crossover video edit */}
-            <div>
-              <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Crossover</p>
-              {(form as any).crossover_video && (
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any).crossover_video}</span>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => updateForm("crossover_video" as any, null)}>
-                    <X className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              )}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  placeholder="Link YouTube sau video URL"
-                  value={(form as any)._crossover_video_input || ""}
-                  onChange={(e) => updateForm("_crossover_video_input" as any, e.target.value)}
-                  className="text-white flex-1 min-w-0"
-                />
-                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
-                  const val = (form as any)._crossover_video_input?.trim();
-                  if (val) {
-                    updateForm("crossover_video" as any, val);
-                    updateForm("_crossover_video_input" as any, "");
-                  }
-                }}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => document.getElementById("crossover-video-upload")?.click()}>
-                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
-                </div>
-                <input
-                  id="crossover-video-upload"
-                  type="file"
-                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const ext = file.name.split(".").pop();
-                    const path = `${userId}/crossover-${Date.now()}.${ext}`;
-                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
-                    if (uploadError) {
-                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
-                      return;
-                    }
-                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-                    updateForm("crossover_video" as any, urlData.publicUrl);
-                    toast({ title: "Video încărcat cu succes!" });
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Between the Legs video edit */}
-            <div>
-              <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Between the Legs</p>
-              {(form as any).between_the_legs_video && (
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any).between_the_legs_video}</span>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => updateForm("between_the_legs_video" as any, null)}>
-                    <X className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              )}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  placeholder="Link YouTube sau video URL"
-                  value={(form as any)._btl_video_input || ""}
-                  onChange={(e) => updateForm("_btl_video_input" as any, e.target.value)}
-                  className="text-white flex-1 min-w-0"
-                />
-                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
-                  const val = (form as any)._btl_video_input?.trim();
-                  if (val) {
-                    updateForm("between_the_legs_video" as any, val);
-                    updateForm("_btl_video_input" as any, "");
-                  }
-                }}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => document.getElementById("btl-video-upload")?.click()}>
-                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
-                </div>
-                <input
-                  id="btl-video-upload"
-                  type="file"
-                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const ext = file.name.split(".").pop();
-                    const path = `${userId}/between-the-legs-${Date.now()}.${ext}`;
-                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
-                    if (uploadError) {
-                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
-                      return;
-                    }
-                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-                    updateForm("between_the_legs_video" as any, urlData.publicUrl);
-                    toast({ title: "Video încărcat cu succes!" });
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Double Cross video edit */}
-            <div>
-              <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Double Cross</p>
-              {(form as any).double_cross_video && (
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any).double_cross_video}</span>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => updateForm("double_cross_video" as any, null)}>
-                    <X className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              )}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  placeholder="Link YouTube sau video URL"
-                  value={(form as any)._dc_video_input || ""}
-                  onChange={(e) => updateForm("_dc_video_input" as any, e.target.value)}
-                  className="text-white flex-1 min-w-0"
-                />
-                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
-                  const val = (form as any)._dc_video_input?.trim();
-                  if (val) {
-                    updateForm("double_cross_video" as any, val);
-                    updateForm("_dc_video_input" as any, "");
-                  }
-                }}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => document.getElementById("dc-video-upload")?.click()}>
-                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
-                </div>
-                <input
-                  id="dc-video-upload"
-                  type="file"
-                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const ext = file.name.split(".").pop();
-                    const path = `${userId}/double-cross-${Date.now()}.${ext}`;
-                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
-                    if (uploadError) {
-                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
-                      return;
-                    }
-                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-                    updateForm("double_cross_video" as any, urlData.publicUrl);
-                    toast({ title: "Video încărcat cu succes!" });
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Between the Legs Cross video edit */}
-            <div>
-              <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video Between the Legs Cross</p>
-              {(form as any).between_legs_cross_video && (
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any).between_legs_cross_video}</span>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => updateForm("between_legs_cross_video" as any, null)}>
-                    <X className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              )}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  placeholder="Link YouTube sau video URL"
-                  value={(form as any)._blc_video_input || ""}
-                  onChange={(e) => updateForm("_blc_video_input" as any, e.target.value)}
-                  className="text-white flex-1 min-w-0"
-                />
-                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
-                  const val = (form as any)._blc_video_input?.trim();
-                  if (val) {
-                    updateForm("between_legs_cross_video" as any, val);
-                    updateForm("_blc_video_input" as any, "");
-                  }
-                }}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="relative mt-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => document.getElementById("blc-video-upload")?.click()}>
-                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
-                </div>
-                <input
-                  id="blc-video-upload"
-                  type="file"
-                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const ext = file.name.split(".").pop();
-                    const path = `${userId}/between-legs-cross-${Date.now()}.${ext}`;
-                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
-                    if (uploadError) {
-                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
-                      return;
-                    }
-                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-                    updateForm("between_legs_cross_video" as any, urlData.publicUrl);
-                    toast({ title: "Video încărcat cu succes!" });
-                  }}
-                />
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
