@@ -537,7 +537,7 @@ function StatsTab({ form, profile, editing, updateForm, photoSrc, userId }: {
                     </PopoverTrigger>
                     <PopoverContent className="text-sm font-body" side="top">
                       <p className="font-semibold mb-1">{test.icon} {test.label}</p>
-                      <p className="text-muted-foreground text-xs">{test.description}</p>
+                      <p className="text-muted-foreground text-xs whitespace-pre-line">{test.description}</p>
                     </PopoverContent>
                   </Popover>
                 </div>
