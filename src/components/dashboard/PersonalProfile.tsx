@@ -223,6 +223,26 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 
       if (error) throw error;
 
+      // Save career entries if editing about section
+      if (editingSection === "about") {
+        // Delete existing entries
+        await supabase.from("player_career_entries").delete().eq("user_id", userId);
+        // Insert new entries
+        if (careerEntries.length > 0) {
+          const entries = careerEntries.map((e, i) => ({
+            user_id: userId,
+            team_name: e.team_name,
+            start_date: e.start_date || null,
+            end_date: e.currently_active ? null : (e.end_date || null),
+            currently_active: e.currently_active,
+            description: e.description || null,
+            sort_order: i,
+          }));
+          const { error: careerError } = await supabase.from("player_career_entries").insert(entries);
+          if (careerError) throw careerError;
+        }
+      }
+
       toast({ title: t.dashboard.profile.profileUpdated });
       setEditingSection(null);
       setAvatarFile(null);
