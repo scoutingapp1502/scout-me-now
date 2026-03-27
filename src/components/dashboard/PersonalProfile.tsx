@@ -491,7 +491,10 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
 
           {/* Stat bars - vertical bars visualization */}
           <div className="flex-1 w-full bg-card border border-border rounded-2xl p-5 sm:p-6">
-            <h4 className="font-display text-lg text-foreground uppercase tracking-wide mb-1">Teste Atletice</h4>
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
+              <SectionEditButton section="stats" />
+            </div>
             <div className="space-y-4">
               {stats.map((stat) => {
                 const value = (form as any)[stat.key] ?? 0;
