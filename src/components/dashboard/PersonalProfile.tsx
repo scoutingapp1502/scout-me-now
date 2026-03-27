@@ -807,13 +807,18 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 }
 
 /* ======================== PROFILE TAB ======================== */
-function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>;
 }) {
   const { t } = useLanguage();
 
-  const aboutDocs = editing ? (form.about_documents || []) : (profile?.about_documents || []);
-  const palmaresDocs = editing ? (form.palmares_documents || []) : (profile?.palmares_documents || []);
+  const editingPhysical = editingSection === "physical";
+  const editingAgent = editingSection === "agent";
+  const editingAbout = editingSection === "about";
+  const editingPalmares = editingSection === "palmares";
+
+  const aboutDocs = editingAbout ? (form.about_documents || []) : (profile?.about_documents || []);
+  const palmaresDocs = editingPalmares ? (form.palmares_documents || []) : (profile?.palmares_documents || []);
 
   return (
     <div className="space-y-6">
@@ -1030,9 +1035,9 @@ function ProfileTab({ form, profile, editing, updateForm, userId, readOnly }: {
 }
 
 /* ======================== VIDEO TAB ======================== */
-function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm }: {
+function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean;
-  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void;
+  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>;
 }) {
   const { t } = useLanguage();
   const { toast } = useToast();
