@@ -919,7 +919,7 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           )}
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Anul</Label>
+          <Label className="text-xs text-foreground font-medium">Anul</Label>
           <Input value={palmares.year} onChange={(e) => updatePalmares("year", e.target.value)} placeholder="Ex.: 2024" className="bg-background" />
         </div>
       </div>
