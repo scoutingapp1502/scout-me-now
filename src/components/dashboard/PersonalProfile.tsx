@@ -830,25 +830,28 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.physicalData}</h3>
-            {!readOnly && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi date fizice">
-                    <Info className="h-4 w-4" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="text-sm font-body" side="top">
-                  <p className="font-semibold mb-1">💡 Sfaturi</p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                    <li>Completează datele fizice cu acuratețe</li>
-                    <li>Actualizează-le periodic pentru a reflecta progresul</li>
-                    <li>Scouterii verifică aceste date frecvent</li>
-                  </ul>
-                </PopoverContent>
-              </Popover>
-            )}
+            <div className="flex items-center gap-1">
+              {!readOnly && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi date fizice">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="text-sm font-body" side="top">
+                    <p className="font-semibold mb-1">💡 Sfaturi</p>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                      <li>Completează datele fizice cu acuratețe</li>
+                      <li>Actualizează-le periodic pentru a reflecta progresul</li>
+                      <li>Scouterii verifică aceste date frecvent</li>
+                    </ul>
+                  </PopoverContent>
+                </Popover>
+              )}
+              <SectionEditButton section="physical" />
+            </div>
           </div>
-          {editing ? (
+          {editingPhysical ? (
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.height_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("height_cm", v ? parseInt(v) : null); }} className="text-white" /></div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.weight_kg ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("weight_kg", v ? parseInt(v) : null); }} className="text-white" /></div>
@@ -889,25 +892,28 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.agentContact}</h3>
-            {!readOnly && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi contact agent">
-                    <Info className="h-4 w-4" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="text-sm font-body" side="top">
-                  <p className="font-semibold mb-1">💡 Sfaturi</p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                    <li>Adaugă datele agentului pentru contactări rapide</li>
-                    <li>Verifică adresa de email să fie corectă</li>
-                    <li>Include un număr de telefon activ</li>
-                  </ul>
-                </PopoverContent>
-              </Popover>
-            )}
+            <div className="flex items-center gap-1">
+              {!readOnly && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi contact agent">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="text-sm font-body" side="top">
+                    <p className="font-semibold mb-1">💡 Sfaturi</p>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                      <li>Adaugă datele agentului pentru contactări rapide</li>
+                      <li>Verifică adresa de email să fie corectă</li>
+                      <li>Include un număr de telefon activ</li>
+                    </ul>
+                  </PopoverContent>
+                </Popover>
+              )}
+              <SectionEditButton section="agent" />
+            </div>
           </div>
-          {editing ? (
+          {editingAgent ? (
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} className="text-white" /></div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label><Input value={form.agent_email || ""} onChange={(e) => updateForm("agent_email", e.target.value)} className="text-white" /></div>
@@ -952,11 +958,9 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               </Popover>
             )}
           </div>
-          {editing && (
-            <span className="text-xs text-muted-foreground font-body">Editare activă</span>
-          )}
+          <SectionEditButton section="about" />
         </div>
-        {editing ? (
+        {editingAbout ? (
           <Textarea
             value={form.career_description || ""}
             onChange={(e) => updateForm("career_description", e.target.value)}
@@ -974,7 +978,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             documents={aboutDocs}
             onAdd={(url) => updateForm("about_documents", [...(form.about_documents || []), url])}
             onRemove={(i) => updateForm("about_documents", (form.about_documents || []).filter((_, idx) => idx !== i))}
-            editing={editing}
+            editing={editingAbout}
             label="📄 Documente atestare"
           />
         </div>
@@ -984,27 +988,30 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="relative bg-accent px-5 py-3 flex items-center justify-between">
           <h3 className="font-display text-xl text-accent-foreground uppercase">{t.dashboard.profile.achievements}</h3>
-          {!readOnly && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="text-accent-foreground/60 hover:text-accent-foreground transition-colors z-10" aria-label="Sfaturi palmares">
-                  <Info className="h-4 w-4" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="text-sm font-body" side="top">
-                <p className="font-semibold mb-1">💡 Sfaturi</p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                  <li>Listează trofeele și premiile câștigate</li>
-                  <li>Include competițiile și anul</li>
-                  <li>Încarcă diplomele sau certificatele ca dovadă</li>
-                </ul>
-              </PopoverContent>
-            </Popover>
-          )}
+          <div className="flex items-center gap-1 z-10">
+            {!readOnly && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-accent-foreground/60 hover:text-accent-foreground transition-colors" aria-label="Sfaturi palmares">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm font-body" side="top">
+                  <p className="font-semibold mb-1">💡 Sfaturi</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Listează trofeele și premiile câștigate</li>
+                    <li>Include competițiile și anul</li>
+                    <li>Încarcă diplomele sau certificatele ca dovadă</li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            )}
+            <SectionEditButton section="palmares" />
+          </div>
           <div className="absolute right-0 top-0 w-16 h-full bg-gradient-to-l from-accent/50 to-transparent" />
         </div>
         <div className="p-5">
-          {editing ? (
+          {editingPalmares ? (
             <Textarea
               value={form.palmares || ""}
               onChange={(e) => updateForm("palmares", e.target.value)}
@@ -1025,7 +1032,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             documents={palmaresDocs}
             onAdd={(url) => updateForm("palmares_documents", [...(form.palmares_documents || []), url])}
             onRemove={(i) => updateForm("palmares_documents", (form.palmares_documents || []).filter((_, idx) => idx !== i))}
-            editing={editing}
+            editing={editingPalmares}
             label="🏆 Documente atestare competiții/trofee"
           />
         </div>
