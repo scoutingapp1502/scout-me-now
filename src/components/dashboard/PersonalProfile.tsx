@@ -924,10 +924,12 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
   );
 }
 
-function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove }: {
+function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd }: {
   palmares: PalmaresItem; pIdx: number; total: number;
   onUpdate: (pIdx: number, field: string, value: string) => void;
   onRemove: (pIdx: number) => void;
+  isDragging: boolean; isDragOver: boolean;
+  onDragStart: () => void; onDragOver: (e: React.DragEvent) => void; onDragEnd: () => void;
 }) {
   const placeOptions = ["Locul 1", "Locul 2", "Locul 3"];
   const championshipOptions = ["Campionat Municipal", "Campionat Regional", "Campionat Național"];
