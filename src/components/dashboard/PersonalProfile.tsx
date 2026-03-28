@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
@@ -862,6 +862,8 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
   entry: CareerEntry; idx: number; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>;
 }) {
   const palmaresList = parsePalmaresList(entry.description);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   const updateList = (newList: PalmaresItem[]) => {
     const updated = [...careerEntries];
@@ -884,6 +886,17 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
     updateList(newList);
   };
 
+  const handleDragEnd = () => {
+    if (dragIdx !== null && dragOverIdx !== null && dragIdx !== dragOverIdx) {
+      const newList = [...palmaresList];
+      const [dragged] = newList.splice(dragIdx, 1);
+      newList.splice(dragOverIdx, 0, dragged);
+      updateList(newList);
+    }
+    setDragIdx(null);
+    setDragOverIdx(null);
+  };
+
   return (
     <div className="space-y-3 border-t border-border pt-3 mt-2">
       <div className="flex items-center justify-between">
@@ -900,16 +913,23 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           total={palmaresList.length}
           onUpdate={updatePalmaresItem}
           onRemove={removePalmares}
+          isDragging={dragIdx === pIdx}
+          isDragOver={dragOverIdx === pIdx}
+          onDragStart={() => setDragIdx(pIdx)}
+          onDragOver={(e: React.DragEvent) => { e.preventDefault(); setDragOverIdx(pIdx); }}
+          onDragEnd={handleDragEnd}
         />
       ))}
     </div>
   );
 }
 
-function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove }: {
+function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd }: {
   palmares: PalmaresItem; pIdx: number; total: number;
   onUpdate: (pIdx: number, field: string, value: string) => void;
   onRemove: (pIdx: number) => void;
+  isDragging: boolean; isDragOver: boolean;
+  onDragStart: () => void; onDragOver: (e: React.DragEvent) => void; onDragEnd: () => void;
 }) {
   const placeOptions = ["Locul 1", "Locul 2", "Locul 3"];
   const championshipOptions = ["Campionat Municipal", "Campionat Regional", "Campionat Național"];
@@ -920,7 +940,14 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove }: {
   const [customCategory, setCustomCategory] = useState(!!palmares.category && !categoryOptions.includes(palmares.category));
 
   return (
-    <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-3 bg-background/30 rounded-md p-2 border border-border/50">
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      className={`relative grid grid-cols-1 sm:grid-cols-2 gap-3 bg-background/30 rounded-md p-2 pl-7 border transition-all cursor-grab active:cursor-grabbing ${isDragging ? "opacity-50 border-primary" : isDragOver ? "border-primary/60 bg-primary/5" : "border-border/50"}`}
+    >
+      <GripVertical className="absolute left-1.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       {total > 1 && (
         <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(pIdx)} className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive hover:text-destructive">
           <Trash2 className="h-3 w-3" />
