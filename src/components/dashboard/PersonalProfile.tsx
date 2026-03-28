@@ -862,6 +862,8 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
   entry: CareerEntry; idx: number; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>;
 }) {
   const palmaresList = parsePalmaresList(entry.description);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   const updateList = (newList: PalmaresItem[]) => {
     const updated = [...careerEntries];
@@ -884,6 +886,17 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
     updateList(newList);
   };
 
+  const handleDragEnd = () => {
+    if (dragIdx !== null && dragOverIdx !== null && dragIdx !== dragOverIdx) {
+      const newList = [...palmaresList];
+      const [dragged] = newList.splice(dragIdx, 1);
+      newList.splice(dragOverIdx, 0, dragged);
+      updateList(newList);
+    }
+    setDragIdx(null);
+    setDragOverIdx(null);
+  };
+
   return (
     <div className="space-y-3 border-t border-border pt-3 mt-2">
       <div className="flex items-center justify-between">
@@ -900,6 +913,11 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           total={palmaresList.length}
           onUpdate={updatePalmaresItem}
           onRemove={removePalmares}
+          isDragging={dragIdx === pIdx}
+          isDragOver={dragOverIdx === pIdx}
+          onDragStart={() => setDragIdx(pIdx)}
+          onDragOver={(e: React.DragEvent) => { e.preventDefault(); setDragOverIdx(pIdx); }}
+          onDragEnd={handleDragEnd}
         />
       ))}
     </div>
