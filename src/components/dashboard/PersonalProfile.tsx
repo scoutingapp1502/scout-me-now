@@ -1233,19 +1233,20 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     {" — "}
                     {entry.currently_active ? "Prezent" : entry.end_date ? new Date(entry.end_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
                   </p>
-                  {entry.description && (
-                    <p className="text-xs text-foreground/70 mt-1">
-                      {(() => {
-                        try {
-                          const p = JSON.parse(entry.description);
-                          const parts = [p.place, p.championship, p.category ? `Categoria ${p.category}` : null, p.year].filter(Boolean);
-                          return parts.join(" • ");
-                        } catch {
-                          return entry.description;
-                        }
-                      })()}
-                    </p>
-                  )}
+                  {entry.description && (() => {
+                    try {
+                      const parsed = JSON.parse(entry.description);
+                      const items = Array.isArray(parsed) ? parsed : [parsed];
+                      const validItems = items.filter((p: any) => p.place || p.championship || p.category || p.year);
+                      if (validItems.length === 0) return null;
+                      return validItems.map((p: any, pIdx: number) => {
+                        const parts = [p.place, p.championship, p.category ? `Categoria ${p.category}` : null, p.year].filter(Boolean);
+                        return <p key={pIdx} className="text-xs text-foreground/70 mt-1">🏆 {parts.join(" • ")}</p>;
+                      });
+                    } catch {
+                      return <p className="text-xs text-foreground/70 mt-1">{entry.description}</p>;
+                    }
+                  })()}
                 </div>
               ))
             ) : (
