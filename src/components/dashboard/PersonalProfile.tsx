@@ -940,7 +940,14 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   const [customCategory, setCustomCategory] = useState(!!palmares.category && !categoryOptions.includes(palmares.category));
 
   return (
-    <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-3 bg-background/30 rounded-md p-2 border border-border/50">
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      className={`relative grid grid-cols-1 sm:grid-cols-2 gap-3 bg-background/30 rounded-md p-2 pl-7 border transition-all cursor-grab active:cursor-grabbing ${isDragging ? "opacity-50 border-primary" : isDragOver ? "border-primary/60 bg-primary/5" : "border-border/50"}`}
+    >
+      <GripVertical className="absolute left-1.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       {total > 1 && (
         <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(pIdx)} className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive hover:text-destructive">
           <Trash2 className="h-3 w-3" />
