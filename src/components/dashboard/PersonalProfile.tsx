@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
