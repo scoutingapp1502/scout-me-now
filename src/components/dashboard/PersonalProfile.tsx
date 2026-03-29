@@ -1401,8 +1401,17 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       const validItems = items.filter((p: any) => p.place || p.championship || p.category || p.year);
                       if (validItems.length === 0) return null;
                       return validItems.map((p: any, pIdx: number) => {
-                        const parts = [p.place, p.championship, p.category ? `Grupa/Seria ${p.category}` : null, p.year ? `Sezonul ${p.year}` : null].filter(Boolean);
-                        return <p key={pIdx} className="text-xs text-foreground/70 mt-1">🏆 {parts.join(" • ")}</p>;
+                         const parts = [p.place, p.championship, p.category ? `Grupa/Seria ${p.category}` : null, p.year ? `Sezonul ${p.year}` : null].filter(Boolean);
+                         return (
+                           <div key={pIdx} className="mt-1">
+                             <p className="text-xs text-foreground/70">🏆 {parts.join(" • ")}</p>
+                             {p.document_url && (
+                               <button type="button" onClick={() => window.open(p.document_url, '_blank')} className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5">
+                                 <FileText className="h-3 w-3" /> Document atașat
+                               </button>
+                             )}
+                           </div>
+                         );
                       });
                     } catch {
                       return <p className="text-xs text-foreground/70 mt-1">{entry.description}</p>;
