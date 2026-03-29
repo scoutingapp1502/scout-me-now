@@ -852,6 +852,7 @@ interface PalmaresItem {
   championship: string;
   category: string;
   year: string;
+  document_url?: string;
 }
 
 function parsePalmaresList(description: string | undefined): PalmaresItem[] {
@@ -859,8 +860,7 @@ function parsePalmaresList(description: string | undefined): PalmaresItem[] {
   try {
     const parsed = JSON.parse(description);
     if (Array.isArray(parsed)) return parsed.length > 0 ? parsed : [{ place: "", championship: "", category: "", year: "" }];
-    // Migrate old single-object format to array
-    return [{ place: parsed.place || "", championship: parsed.championship || "", category: parsed.category || "", year: parsed.year || "" }];
+    return [{ place: parsed.place || "", championship: parsed.championship || "", category: parsed.category || "", year: parsed.year || "", document_url: parsed.document_url || "" }];
   } catch {
     return [{ place: "", championship: "", category: "", year: "" }];
   }
@@ -985,6 +985,70 @@ function ChampionshipCombobox({ value, customChampionship, setCustomChampionship
   );
 }
 
+function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onUpdate: (url: string) => void }) {
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Eroare", description: "Format nesuportat. Folosește PDF, JPG, PNG sau WebP.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Eroare", description: "Fișierul trebuie să fie mai mic de 10MB.", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${session.user.id}/palmares/${fileName}`;
+      const { error: uploadError } = await supabase.storage.from("player-documents").upload(path, file, { upsert: false });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
+      onUpdate(urlData.publicUrl);
+      toast({ title: "Document încărcat!" });
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  if (documentUrl) {
+    return (
+      <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5 mt-1">
+        <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+        <button type="button" onClick={() => window.open(documentUrl, '_blank')} className="text-xs text-foreground font-body hover:text-primary truncate flex-1 text-left">
+          Document atașat
+        </button>
+        <button type="button" onClick={() => onUpdate("")} className="text-destructive hover:text-destructive/80 shrink-0">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <label className="block mt-1">
+      <div className="flex items-center justify-center gap-1.5 border border-dashed border-border rounded-md p-1.5 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
+        {uploading ? (
+          <><Loader2 className="h-3.5 w-3.5 text-primary animate-spin" /><span className="text-xs text-muted-foreground font-body">Se încarcă...</span></>
+        ) : (
+          <><Upload className="h-3.5 w-3.5 text-muted-foreground" /><span className="text-xs text-muted-foreground font-body">Atașează document</span></>
+        )}
+      </div>
+      <input type="file" accept=".pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} disabled={uploading} />
+    </label>
+  );
+}
+
 function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd }: {
   palmares: PalmaresItem; pIdx: number; total: number;
   onUpdate: (pIdx: number, field: string, value: string) => void;
@@ -1070,6 +1134,13 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
             })()}
           </SelectContent>
         </Select>
+      </div>
+      {/* Per-palmares document upload */}
+      <div className="col-span-1 sm:col-span-2">
+        <PalmaresDocUpload
+          documentUrl={palmares.document_url || ""}
+          onUpdate={(url) => onUpdate(pIdx, "document_url", url)}
+        />
       </div>
     </div>
   );
@@ -1330,8 +1401,17 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       const validItems = items.filter((p: any) => p.place || p.championship || p.category || p.year);
                       if (validItems.length === 0) return null;
                       return validItems.map((p: any, pIdx: number) => {
-                        const parts = [p.place, p.championship, p.category ? `Grupa/Seria ${p.category}` : null, p.year ? `Sezonul ${p.year}` : null].filter(Boolean);
-                        return <p key={pIdx} className="text-xs text-foreground/70 mt-1">🏆 {parts.join(" • ")}</p>;
+                         const parts = [p.place, p.championship, p.category ? `Grupa/Seria ${p.category}` : null, p.year ? `Sezonul ${p.year}` : null].filter(Boolean);
+                         return (
+                           <div key={pIdx} className="mt-1">
+                             <p className="text-xs text-foreground/70">🏆 {parts.join(" • ")}</p>
+                             {p.document_url && (
+                               <button type="button" onClick={() => window.open(p.document_url, '_blank')} className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5">
+                                 <FileText className="h-3 w-3" /> Document atașat
+                               </button>
+                             )}
+                           </div>
+                         );
                       });
                     } catch {
                       return <p className="text-xs text-foreground/70 mt-1">{entry.description}</p>;
@@ -1344,15 +1424,6 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             )}
           </div>
         )}
-        <div className="mt-4">
-          <DocumentUploader
-            documents={aboutDocs}
-            onAdd={(url) => updateForm("about_documents", [...(form.about_documents || []), url])}
-            onRemove={(i) => updateForm("about_documents", (form.about_documents || []).filter((_, idx) => idx !== i))}
-            editing={editingAbout}
-            label="📄 Documente atestare"
-          />
-        </div>
       </div>
 
     </div>
