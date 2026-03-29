@@ -1403,7 +1403,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               className="w-full text-foreground border-foreground/30 hover:text-foreground"
             >
               <Plus className="h-4 w-4 mr-1" /> Adaugă echipă
-            </Button>
+            <SectionSaveButton />
           </div>
         ) : (
           <div className="space-y-3">
@@ -1660,6 +1660,7 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
           <p className="text-muted-foreground font-body text-sm">{t.dashboard.profile.noVideos}</p>
         </div>
       )}
+      <SectionSaveButton />
     </div>
   );
 }
