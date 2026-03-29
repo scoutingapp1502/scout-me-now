@@ -939,7 +939,22 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   onDragStart: () => void; onDragOver: (e: React.DragEvent) => void; onDragEnd: () => void;
 }) {
   const placeOptions = ["Locul 1", "Locul 2", "Locul 3"];
-  const championshipOptions = ["Campionat Municipal", "Campionat Regional", "Campionat Național"];
+  const championshipOptions = [
+    "SuperLiga - Sezon Regular", "SuperLiga - Play-Off", "SuperLiga - Play-Out",
+    "Cupa României", "Super Cupa României",
+    "Liga 2 Casa Pariurilor", "Liga 2 Casa Pariurilor - Play-Off", "Liga 2 Casa Pariurilor - Play-Out",
+    "Liga 3", "Liga 3 - Play-Off", "Liga 3 - Play-Out", "Baraj Liga 3",
+    "Liga de Tineret", "Cupa de Tineret",
+    "Liga Elitelor U17", "Cupa - Elitelor U17",
+    "Liga Elitelor U16", "Liga Elitelor U16 Play-Off", "Liga Elitelor U16 Play-Out", "Cupa - Elitelor U16",
+    "Liga Elitelor U15 Play-Off", "Liga Elitelor U15", "Liga Elitelor U15 Play-Out", "Cupa - Elitelor U15",
+    "Liga Elitelor U13", "Liga Elitelor U14",
+    "Campionatul Național U19", "Cupa - Național U19",
+    "Campionatul Național U17", "Cupa - Național U17",
+    "Campionatul U16 Național", "Cupa - Național U16",
+    "Campionatul U15 Național", "Cupa - Național U15",
+    "Interliga de Iarnă U12", "Interliga de Iarnă U11",
+  ];
   const categoryOptions = ["U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U21", "Seniori"];
 
   const [customPlace, setCustomPlace] = useState(!!palmares.place && !placeOptions.includes(palmares.place));
