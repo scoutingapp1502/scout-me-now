@@ -1453,9 +1453,9 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
 }
 
 /* ======================== VIDEO TAB ======================== */
-function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton }: {
+function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton, SectionSaveButton }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean;
-  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>;
+  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
   const { t } = useLanguage();
   const { toast } = useToast();
