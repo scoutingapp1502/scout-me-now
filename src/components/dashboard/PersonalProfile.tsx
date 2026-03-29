@@ -273,13 +273,12 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const SectionSaveButton = () => {
     if (!editingSection || readOnly) return null;
     return (
-      <div className="flex justify-center mt-3">
+      <div className="flex justify-end mt-3">
         <Button
           onClick={handleSave}
           disabled={saving}
-          variant="outline"
           size="sm"
-          className="w-full text-foreground border-foreground/30 hover:text-foreground"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
           Salvați
@@ -459,8 +458,8 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 
       {/* Tab content */}
       <div className="mt-6 px-2 sm:px-6">
-        {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} />}
+        {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} />}
         {activeTab === "video" && (
           <VideoTab
             form={form}
@@ -472,17 +471,17 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             removeVideoUrl={removeVideoUrl}
             updateForm={updateForm}
             SectionEditButton={SectionEditButton}
+            SectionSaveButton={SectionSaveButton}
           />
         )}
-        {editingSection && editingSection !== "header" && <SectionSaveButton />}
       </div>
     </div>
   );
 };
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, SectionEditButton }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>;
+function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, SectionEditButton, SectionSaveButton }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
   const editing = editingSection === "stats";
   const editingTechnical = editingSection === "technical";
@@ -501,6 +500,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
   );
 
   return (
+    <>
     <div className="space-y-6">
       {/* FIFA card + Stat bars side by side on desktop */}
       <div className="flex flex-col lg:flex-row gap-6 items-center">
@@ -759,6 +759,8 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
         )}
       </div>
     </div>
+    <SectionSaveButton />
+    </>
   );
 }
 
@@ -1166,8 +1168,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   );
 }
 
-function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC;
 }) {
   const { t } = useLanguage();
 
@@ -1243,7 +1245,8 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               <div className="flex justify-between"><span className="text-muted-foreground">{(profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality || "—"}</span></div>
             </div>
-          )}
+           )}
+          {editingPhysical && <SectionSaveButton />}
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5">
@@ -1289,6 +1292,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               )}
             </div>
           )}
+          {editingAgent && <SectionSaveButton />}
         </div>
       </div>
 
@@ -1402,6 +1406,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             >
               <Plus className="h-4 w-4 mr-1" /> Adaugă echipă
             </Button>
+            <SectionSaveButton />
           </div>
         ) : (
           <div className="space-y-3">
@@ -1451,9 +1456,9 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
 }
 
 /* ======================== VIDEO TAB ======================== */
-function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton }: {
+function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton, SectionSaveButton }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean;
-  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>;
+  newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -1658,6 +1663,7 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
           <p className="text-muted-foreground font-body text-sm">{t.dashboard.profile.noVideos}</p>
         </div>
       )}
+      <SectionSaveButton />
     </div>
   );
 }
