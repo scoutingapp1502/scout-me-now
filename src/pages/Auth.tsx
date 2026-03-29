@@ -196,6 +196,7 @@ const Auth = () => {
                             <SelectItem value="female">{t.auth.genderFemale}</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
                       {role === "player" && (
                         <div className="space-y-2">
                           <Label className="font-body text-sm">{t.auth.sport}</Label>
