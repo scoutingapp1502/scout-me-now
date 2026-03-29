@@ -293,7 +293,20 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const photoSrc = avatarPreview || profile?.photo_url;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-0 overflow-hidden">
+    <div className="max-w-4xl mx-auto space-y-0 overflow-hidden relative">
+      {/* Fixed Save Button */}
+      {editingSection && !readOnly && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-3 rounded-lg shadow-lg text-base"
+          >
+            {saving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
+            Salvați
+          </Button>
+        </div>
+      )}
       {/* Header / Hero */}
       <div className="relative bg-gradient-to-br from-sidebar to-sidebar-accent rounded-t-xl overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{
