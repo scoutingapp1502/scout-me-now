@@ -425,6 +425,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
               <SectionEditButton section="header" />
             </div>
           )}
+          {editingSection === "header" && <SectionSaveButton />}
         </div>
       </div>
 
@@ -471,6 +472,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             SectionEditButton={SectionEditButton}
           />
         )}
+        {editingSection && editingSection !== "header" && <SectionSaveButton />}
       </div>
     </div>
   );
