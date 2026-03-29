@@ -273,13 +273,12 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const SectionSaveButton = () => {
     if (!editingSection || readOnly) return null;
     return (
-      <div className="flex justify-center mt-3">
+      <div className="flex justify-end mt-3">
         <Button
           onClick={handleSave}
           disabled={saving}
-          variant="outline"
           size="sm"
-          className="w-full text-foreground border-foreground/30 hover:text-foreground"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
           Salvați
