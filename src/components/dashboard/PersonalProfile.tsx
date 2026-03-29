@@ -500,6 +500,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
   );
 
   return (
+    <>
     <div className="space-y-6">
       {/* FIFA card + Stat bars side by side on desktop */}
       <div className="flex flex-col lg:flex-row gap-6 items-center">
@@ -759,6 +760,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
       </div>
     </div>
     <SectionSaveButton />
+    </>
   );
 }
 
