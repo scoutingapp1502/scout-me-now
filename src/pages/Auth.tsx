@@ -29,6 +29,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [sport, setSport] = useState("football");
+  const [gender, setGender] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -48,7 +49,7 @@ const Auth = () => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: window.location.origin, data: { full_name: fullName, role } },
+        options: { emailRedirectTo: window.location.origin, data: { full_name: fullName, role, gender } },
       });
       if (error) throw error;
       if (data.user) {
@@ -56,9 +57,9 @@ const Auth = () => {
         if (roleError) console.error("Role insert error:", roleError);
         await supabase.from("profiles").insert({ user_id: data.user.id, full_name: fullName });
         if (role === "player") {
-          await supabase.from("player_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "", sport });
+          await supabase.from("player_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "", sport, gender: gender || null } as any);
         } else {
-          await supabase.from("scout_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "" });
+          await supabase.from("scout_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "", gender: gender || null } as any);
         }
         toast({ title: t.auth.successTitle, description: t.auth.successDesc });
       }
@@ -183,6 +184,18 @@ const Auth = () => {
                       <div className="space-y-2">
                         <Label htmlFor="fullName" className="font-body">{t.auth.fullName}</Label>
                         <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.auth.fullNamePlaceholder} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-body text-sm">{t.auth.gender}</Label>
+                        <Select value={gender} onValueChange={setGender}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={t.auth.selectGender} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">{t.auth.genderMale}</SelectItem>
+                            <SelectItem value="female">{t.auth.genderFemale}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       {role === "player" && (
                         <div className="space-y-2">

@@ -153,6 +153,10 @@ export const translations = {
       passwordResetSuccessDesc: "Parola ta a fost actualizată cu succes.",
       passwordResetError: "Eroare la resetare",
       backToLogin: "Înapoi la autentificare",
+      gender: "Gen",
+      selectGender: "Selectează genul",
+      genderMale: "Masculin",
+      genderFemale: "Feminin",
     },
     // Dashboard
     dashboard: {
@@ -373,6 +377,10 @@ export const translations = {
       passwordResetSuccessDesc: "Your password has been updated successfully.",
       passwordResetError: "Reset error",
       backToLogin: "Back to login",
+      gender: "Gender",
+      selectGender: "Select gender",
+      genderMale: "Male",
+      genderFemale: "Female",
     },
     dashboard: {
       sidebar: {
