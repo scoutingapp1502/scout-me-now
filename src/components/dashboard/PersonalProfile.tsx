@@ -1403,6 +1403,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               className="w-full text-foreground border-foreground/30 hover:text-foreground"
             >
               <Plus className="h-4 w-4 mr-1" /> Adaugă echipă
+            </Button>
             <SectionSaveButton />
           </div>
         ) : (
