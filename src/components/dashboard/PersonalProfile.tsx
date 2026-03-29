@@ -480,8 +480,8 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 };
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, SectionEditButton }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>;
+function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, SectionEditButton, SectionSaveButton }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
   const editing = editingSection === "stats";
   const editingTechnical = editingSection === "technical";
@@ -758,6 +758,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
         )}
       </div>
     </div>
+    <SectionSaveButton />
   );
 }
 
@@ -1165,8 +1166,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   );
 }
 
-function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC;
 }) {
   const { t } = useLanguage();
 
