@@ -1009,11 +1009,9 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
     "Campionatul U15 Național", "Cupa - Național U15",
     "Interliga de Iarnă U12", "Interliga de Iarnă U11",
   ];
-  const categoryOptions = ["U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U21", "Seniori"];
 
   const [customPlace, setCustomPlace] = useState(!!palmares.place && !placeOptions.includes(palmares.place));
   const [customChampionship, setCustomChampionship] = useState(!!palmares.championship && !championshipOptions.includes(palmares.championship));
-  const [customCategory, setCustomCategory] = useState(!!palmares.category && !categoryOptions.includes(palmares.category));
 
   return (
     <div
@@ -1054,21 +1052,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
         onChange={(v) => onUpdate(pIdx, "championship", v)}
       />
       <div>
-        <Label className="text-xs text-foreground font-medium">Categoria</Label>
-        {customCategory ? (
-          <div className="flex gap-1">
-            <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder="Ex.: Open" className="bg-background text-foreground placeholder:text-foreground/60" />
-            <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomCategory(false); onUpdate(pIdx, "category", ""); }}><X className="h-3 w-3" /></Button>
-          </div>
-        ) : (
-          <Select value={palmares.category} onValueChange={(v) => v === "__custom__" ? setCustomCategory(true) : onUpdate(pIdx, "category", v)}>
-            <SelectTrigger className="bg-background text-foreground"><SelectValue placeholder="Selectează..." /></SelectTrigger>
-            <SelectContent>
-              {categoryOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              <SelectItem value="__custom__">Altele...</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
+        <Label className="text-xs text-foreground font-medium">Grupa/Serie</Label>
+        <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder="Ex.: Seria 1" className="bg-background text-foreground placeholder:text-foreground/60" />
       </div>
       <div>
         <Label className="text-xs text-foreground font-medium">Anul</Label>
@@ -1333,7 +1318,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       const validItems = items.filter((p: any) => p.place || p.championship || p.category || p.year);
                       if (validItems.length === 0) return null;
                       return validItems.map((p: any, pIdx: number) => {
-                        const parts = [p.place, p.championship, p.category ? `Categoria ${p.category}` : null, p.year].filter(Boolean);
+                        const parts = [p.place, p.championship, p.category ? `Grupa/Seria ${p.category}` : null, p.year].filter(Boolean);
                         return <p key={pIdx} className="text-xs text-foreground/70 mt-1">🏆 {parts.join(" • ")}</p>;
                       });
                     } catch {
