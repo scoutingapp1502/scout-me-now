@@ -1245,7 +1245,8 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               <div className="flex justify-between"><span className="text-muted-foreground">{(profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality || "—"}</span></div>
             </div>
-          )}
+           )}
+          {editingPhysical && <SectionSaveButton />}
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5">
@@ -1291,6 +1292,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               )}
             </div>
           )}
+          {editingAgent && <SectionSaveButton />}
         </div>
       </div>
 
