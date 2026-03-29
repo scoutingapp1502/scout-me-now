@@ -194,6 +194,7 @@ const Auth = () => {
                           <SelectContent>
                             <SelectItem value="male">{t.auth.genderMale}</SelectItem>
                             <SelectItem value="female">{t.auth.genderFemale}</SelectItem>
+                            <SelectItem value="prefer_not_to_say">{t.auth.genderPreferNotToSay}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

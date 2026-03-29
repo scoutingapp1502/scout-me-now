@@ -315,6 +315,13 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
               </h1>
             )}
 
+            {/* Gender display - only show if male or female */}
+            {editingSection !== "header" && profile?.gender && profile.gender !== "prefer_not_to_say" && (
+              <p className="text-primary-foreground/70 font-body text-sm mt-1">
+                {profile.gender === "male" ? t.auth.genderMale : t.auth.genderFemale}
+              </p>
+            )}
+
             {editingSection === "header" ? (
               <div className="flex flex-col sm:flex-row gap-2 mt-2">
                 <Select value={form.position || ""} onValueChange={(v) => updateForm("position", v)}>
