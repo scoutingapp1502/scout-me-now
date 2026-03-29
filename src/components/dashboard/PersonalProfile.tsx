@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
@@ -931,6 +932,59 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
   );
 }
 
+function ChampionshipCombobox({ value, customChampionship, setCustomChampionship, championshipOptions, onChange }: {
+  value: string; customChampionship: boolean; setCustomChampionship: (v: boolean) => void;
+  championshipOptions: string[]; onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (customChampionship) {
+    return (
+      <div>
+        <Label className="text-xs text-foreground font-medium">Campionat</Label>
+        <div className="flex gap-1">
+          <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Ex.: Campionat European" className="bg-background text-foreground placeholder:text-foreground/60" />
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomChampionship(false); onChange(""); }}><X className="h-3 w-3" /></Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Label className="text-xs text-foreground font-medium">Campionat</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between bg-background text-foreground font-normal h-10 text-sm">
+            {value || "Selectează..."}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[300px] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Caută campionat..." />
+            <CommandList>
+              <CommandEmpty>Nu s-a găsit.</CommandEmpty>
+              <CommandGroup>
+                {championshipOptions.map(o => (
+                  <CommandItem key={o} value={o} onSelect={() => { onChange(o); setOpen(false); }}>
+                    <Check className={`mr-2 h-4 w-4 ${value === o ? "opacity-100" : "opacity-0"}`} />
+                    {o}
+                  </CommandItem>
+                ))}
+                <CommandItem value="__custom__" onSelect={() => { setCustomChampionship(true); setOpen(false); }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Altele...
+                </CommandItem>
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd }: {
   palmares: PalmaresItem; pIdx: number; total: number;
   onUpdate: (pIdx: number, field: string, value: string) => void;
@@ -939,7 +993,22 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   onDragStart: () => void; onDragOver: (e: React.DragEvent) => void; onDragEnd: () => void;
 }) {
   const placeOptions = ["Locul 1", "Locul 2", "Locul 3"];
-  const championshipOptions = ["Campionat Municipal", "Campionat Regional", "Campionat Național"];
+  const championshipOptions = [
+    "SuperLiga - Sezon Regular", "SuperLiga - Play-Off", "SuperLiga - Play-Out",
+    "Cupa României", "Super Cupa României",
+    "Liga 2 Casa Pariurilor", "Liga 2 Casa Pariurilor - Play-Off", "Liga 2 Casa Pariurilor - Play-Out",
+    "Liga 3", "Liga 3 - Play-Off", "Liga 3 - Play-Out", "Baraj Liga 3",
+    "Liga de Tineret", "Cupa de Tineret",
+    "Liga Elitelor U17", "Cupa - Elitelor U17",
+    "Liga Elitelor U16", "Liga Elitelor U16 Play-Off", "Liga Elitelor U16 Play-Out", "Cupa - Elitelor U16",
+    "Liga Elitelor U15 Play-Off", "Liga Elitelor U15", "Liga Elitelor U15 Play-Out", "Cupa - Elitelor U15",
+    "Liga Elitelor U13", "Liga Elitelor U14",
+    "Campionatul Național U19", "Cupa - Național U19",
+    "Campionatul Național U17", "Cupa - Național U17",
+    "Campionatul U16 Național", "Cupa - Național U16",
+    "Campionatul U15 Național", "Cupa - Național U15",
+    "Interliga de Iarnă U12", "Interliga de Iarnă U11",
+  ];
   const categoryOptions = ["U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U21", "Seniori"];
 
   const [customPlace, setCustomPlace] = useState(!!palmares.place && !placeOptions.includes(palmares.place));
@@ -977,23 +1046,13 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
           </Select>
         )}
       </div>
-      <div>
-        <Label className="text-xs text-foreground font-medium">Campionat</Label>
-        {customChampionship ? (
-          <div className="flex gap-1">
-            <Input value={palmares.championship} onChange={(e) => onUpdate(pIdx, "championship", e.target.value)} placeholder="Ex.: Campionat European" className="bg-background text-foreground placeholder:text-foreground/60" />
-            <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomChampionship(false); onUpdate(pIdx, "championship", ""); }}><X className="h-3 w-3" /></Button>
-          </div>
-        ) : (
-          <Select value={palmares.championship} onValueChange={(v) => v === "__custom__" ? setCustomChampionship(true) : onUpdate(pIdx, "championship", v)}>
-            <SelectTrigger className="bg-background text-foreground"><SelectValue placeholder="Selectează..." /></SelectTrigger>
-            <SelectContent>
-              {championshipOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              <SelectItem value="__custom__">Altele...</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+      <ChampionshipCombobox
+        value={palmares.championship}
+        customChampionship={customChampionship}
+        setCustomChampionship={setCustomChampionship}
+        championshipOptions={championshipOptions}
+        onChange={(v) => onUpdate(pIdx, "championship", v)}
+      />
       <div>
         <Label className="text-xs text-foreground font-medium">Categoria</Label>
         {customCategory ? (
