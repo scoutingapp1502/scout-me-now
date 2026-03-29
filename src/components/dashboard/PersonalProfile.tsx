@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
@@ -992,23 +993,13 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
           </Select>
         )}
       </div>
-      <div>
-        <Label className="text-xs text-foreground font-medium">Campionat</Label>
-        {customChampionship ? (
-          <div className="flex gap-1">
-            <Input value={palmares.championship} onChange={(e) => onUpdate(pIdx, "championship", e.target.value)} placeholder="Ex.: Campionat European" className="bg-background text-foreground placeholder:text-foreground/60" />
-            <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomChampionship(false); onUpdate(pIdx, "championship", ""); }}><X className="h-3 w-3" /></Button>
-          </div>
-        ) : (
-          <Select value={palmares.championship} onValueChange={(v) => v === "__custom__" ? setCustomChampionship(true) : onUpdate(pIdx, "championship", v)}>
-            <SelectTrigger className="bg-background text-foreground"><SelectValue placeholder="Selectează..." /></SelectTrigger>
-            <SelectContent>
-              {championshipOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              <SelectItem value="__custom__">Altele...</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+      <ChampionshipCombobox
+        value={palmares.championship}
+        customChampionship={customChampionship}
+        setCustomChampionship={setCustomChampionship}
+        championshipOptions={championshipOptions}
+        onChange={(v) => onUpdate(pIdx, "championship", v)}
+      />
       <div>
         <Label className="text-xs text-foreground font-medium">Categoria</Label>
         {customCategory ? (
