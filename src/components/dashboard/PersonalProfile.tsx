@@ -258,15 +258,31 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const SectionEditButton = ({ section }: { section: EditingSection }) => {
     if (readOnly || !section) return null;
     const isEditing = editingSection === section;
+    if (isEditing) return null; // Save button is shown at section bottom
     return (
       <button
-        onClick={() => isEditing ? handleSave() : setEditingSection(section)}
-        disabled={saving}
+        onClick={() => setEditingSection(section)}
         className="text-muted-foreground hover:text-primary transition-colors p-1"
-        aria-label={isEditing ? "Salvează" : "Editează"}
+        aria-label="Editează"
       >
-        {isEditing ? (saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-primary" />) : <Edit2 className="h-4 w-4" />}
+        <Edit2 className="h-4 w-4" />
       </button>
+    );
+  };
+
+  const SectionSaveButton = () => {
+    if (!editingSection || readOnly) return null;
+    return (
+      <div className="flex justify-end mt-4">
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-3 rounded-lg shadow-lg text-base"
+        >
+          {saving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
+          Salvați
+        </Button>
+      </div>
     );
   };
 
