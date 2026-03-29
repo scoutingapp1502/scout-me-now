@@ -852,6 +852,7 @@ interface PalmaresItem {
   championship: string;
   category: string;
   year: string;
+  document_url?: string;
 }
 
 function parsePalmaresList(description: string | undefined): PalmaresItem[] {
@@ -859,8 +860,7 @@ function parsePalmaresList(description: string | undefined): PalmaresItem[] {
   try {
     const parsed = JSON.parse(description);
     if (Array.isArray(parsed)) return parsed.length > 0 ? parsed : [{ place: "", championship: "", category: "", year: "" }];
-    // Migrate old single-object format to array
-    return [{ place: parsed.place || "", championship: parsed.championship || "", category: parsed.category || "", year: parsed.year || "" }];
+    return [{ place: parsed.place || "", championship: parsed.championship || "", category: parsed.category || "", year: parsed.year || "", document_url: parsed.document_url || "" }];
   } catch {
     return [{ place: "", championship: "", category: "", year: "" }];
   }
@@ -1070,6 +1070,13 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
             })()}
           </SelectContent>
         </Select>
+      </div>
+      {/* Per-palmares document upload */}
+      <div className="col-span-1 sm:col-span-2">
+        <PalmaresDocUpload
+          documentUrl={palmares.document_url || ""}
+          onUpdate={(url) => onUpdate(pIdx, "document_url", url)}
+        />
       </div>
     </div>
   );
@@ -1344,15 +1351,6 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             )}
           </div>
         )}
-        <div className="mt-4">
-          <DocumentUploader
-            documents={aboutDocs}
-            onAdd={(url) => updateForm("about_documents", [...(form.about_documents || []), url])}
-            onRemove={(i) => updateForm("about_documents", (form.about_documents || []).filter((_, idx) => idx !== i))}
-            editing={editingAbout}
-            label="📄 Documente atestare"
-          />
-        </div>
       </div>
 
     </div>
