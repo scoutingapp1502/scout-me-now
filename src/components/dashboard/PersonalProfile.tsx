@@ -932,6 +932,59 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
   );
 }
 
+function ChampionshipCombobox({ value, customChampionship, setCustomChampionship, championshipOptions, onChange }: {
+  value: string; customChampionship: boolean; setCustomChampionship: (v: boolean) => void;
+  championshipOptions: string[]; onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (customChampionship) {
+    return (
+      <div>
+        <Label className="text-xs text-foreground font-medium">Campionat</Label>
+        <div className="flex gap-1">
+          <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Ex.: Campionat European" className="bg-background text-foreground placeholder:text-foreground/60" />
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomChampionship(false); onChange(""); }}><X className="h-3 w-3" /></Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Label className="text-xs text-foreground font-medium">Campionat</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between bg-background text-foreground font-normal h-10 text-sm">
+            {value || "Selectează..."}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[300px] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Caută campionat..." />
+            <CommandList>
+              <CommandEmpty>Nu s-a găsit.</CommandEmpty>
+              <CommandGroup>
+                {championshipOptions.map(o => (
+                  <CommandItem key={o} value={o} onSelect={() => { onChange(o); setOpen(false); }}>
+                    <Check className={`mr-2 h-4 w-4 ${value === o ? "opacity-100" : "opacity-0"}`} />
+                    {o}
+                  </CommandItem>
+                ))}
+                <CommandItem value="__custom__" onSelect={() => { setCustomChampionship(true); setOpen(false); }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Altele...
+                </CommandItem>
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd }: {
   palmares: PalmaresItem; pIdx: number; total: number;
   onUpdate: (pIdx: number, field: string, value: string) => void;
