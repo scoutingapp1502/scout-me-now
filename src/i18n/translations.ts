@@ -157,6 +157,7 @@ export const translations = {
       selectGender: "Selectează genul",
       genderMale: "Masculin",
       genderFemale: "Feminin",
+      genderPreferNotToSay: "Prefer să nu spun",
     },
     // Dashboard
     dashboard: {
@@ -381,6 +382,7 @@ export const translations = {
       selectGender: "Select gender",
       genderMale: "Male",
       genderFemale: "Female",
+      genderPreferNotToSay: "Prefer not to say",
     },
     dashboard: {
       sidebar: {
