@@ -185,6 +185,17 @@ const Auth = () => {
                         <Label htmlFor="fullName" className="font-body">{t.auth.fullName}</Label>
                         <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.auth.fullNamePlaceholder} required />
                       </div>
+                      <div className="space-y-2">
+                        <Label className="font-body text-sm">{t.auth.gender}</Label>
+                        <Select value={gender} onValueChange={setGender}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={t.auth.selectGender} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">{t.auth.genderMale}</SelectItem>
+                            <SelectItem value="female">{t.auth.genderFemale}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       {role === "player" && (
                         <div className="space-y-2">
                           <Label className="font-body text-sm">{t.auth.sport}</Label>
