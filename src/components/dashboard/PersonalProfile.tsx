@@ -1330,7 +1330,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       const validItems = items.filter((p: any) => p.place || p.championship || p.category || p.year);
                       if (validItems.length === 0) return null;
                       return validItems.map((p: any, pIdx: number) => {
-                        const parts = [p.place, p.championship, p.category ? `Grupa/Seria ${p.category}` : null, p.year].filter(Boolean);
+                        const parts = [p.place, p.championship, p.category ? `Grupa/Seria ${p.category}` : null, p.year ? `Sezonul ${p.year}` : null].filter(Boolean);
                         return <p key={pIdx} className="text-xs text-foreground/70 mt-1">🏆 {parts.join(" • ")}</p>;
                       });
                     } catch {
