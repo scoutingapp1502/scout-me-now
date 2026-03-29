@@ -985,6 +985,70 @@ function ChampionshipCombobox({ value, customChampionship, setCustomChampionship
   );
 }
 
+function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onUpdate: (url: string) => void }) {
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Eroare", description: "Format nesuportat. Folosește PDF, JPG, PNG sau WebP.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Eroare", description: "Fișierul trebuie să fie mai mic de 10MB.", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${session.user.id}/palmares/${fileName}`;
+      const { error: uploadError } = await supabase.storage.from("player-documents").upload(path, file, { upsert: false });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
+      onUpdate(urlData.publicUrl);
+      toast({ title: "Document încărcat!" });
+    } catch (err: any) {
+      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  if (documentUrl) {
+    return (
+      <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5 mt-1">
+        <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+        <button type="button" onClick={() => window.open(documentUrl, '_blank')} className="text-xs text-foreground font-body hover:text-primary truncate flex-1 text-left">
+          Document atașat
+        </button>
+        <button type="button" onClick={() => onUpdate("")} className="text-destructive hover:text-destructive/80 shrink-0">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <label className="block mt-1">
+      <div className="flex items-center justify-center gap-1.5 border border-dashed border-border rounded-md p-1.5 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
+        {uploading ? (
+          <><Loader2 className="h-3.5 w-3.5 text-primary animate-spin" /><span className="text-xs text-muted-foreground font-body">Se încarcă...</span></>
+        ) : (
+          <><Upload className="h-3.5 w-3.5 text-muted-foreground" /><span className="text-xs text-muted-foreground font-body">Atașează document</span></>
+        )}
+      </div>
+      <input type="file" accept=".pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} disabled={uploading} />
+    </label>
+  );
+}
+
 function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd }: {
   palmares: PalmaresItem; pIdx: number; total: number;
   onUpdate: (pIdx: number, field: string, value: string) => void;
