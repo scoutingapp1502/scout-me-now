@@ -247,7 +247,8 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       toast({ title: t.dashboard.profile.profileUpdated });
       setEditingSection(null);
       setAvatarFile(null);
-      window.location.reload();
+      await fetchProfile();
+      await fetchCareerEntries();
     } catch (err: any) {
       toast({ title: t.dashboard.profile.error, description: err.message, variant: "destructive" });
     } finally {
