@@ -161,34 +161,20 @@ const Auth = () => {
                     <>
                       <div className="space-y-2">
                         <Label className="font-body text-sm">{t.auth.accountType}</Label>
-                        <RadioGroup value={role} onValueChange={(v) => setRole(v as "player" | "scout" | "agent")} className="flex gap-3">
-                          <div className="flex-1">
-                            <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${role === "player" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                              <RadioGroupItem value="player" />
-                              <div>
-                                <p className="font-semibold font-body text-sm">{t.auth.player}</p>
-                                <p className="text-xs text-muted-foreground font-body">{t.auth.playerDesc}</p>
+                        <RadioGroup value={role} onValueChange={(v) => setRole(v as "player" | "scout" | "agent")} className="grid grid-cols-3 gap-3">
+                          {([
+                            { value: "player", label: t.auth.player, desc: t.auth.playerDesc },
+                            { value: "scout", label: t.auth.scout, desc: t.auth.scoutDesc },
+                            { value: "agent", label: t.auth.agent, desc: t.auth.agentDesc },
+                          ] as const).map((item) => (
+                            <label key={item.value} className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-all h-full ${role === item.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                              <RadioGroupItem value={item.value} />
+                              <div className="min-w-0">
+                                <p className="font-semibold font-body text-sm">{item.label}</p>
+                                <p className="text-xs text-muted-foreground font-body">{item.desc}</p>
                               </div>
                             </label>
-                          </div>
-                          <div className="flex-1">
-                            <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${role === "scout" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                              <RadioGroupItem value="scout" />
-                              <div>
-                                <p className="font-semibold font-body text-sm">{t.auth.scout}</p>
-                                <p className="text-xs text-muted-foreground font-body">{t.auth.scoutDesc}</p>
-                              </div>
-                            </label>
-                          </div>
-                          <div className="flex-1">
-                            <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${role === "agent" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                              <RadioGroupItem value="agent" />
-                              <div>
-                                <p className="font-semibold font-body text-sm">{t.auth.agent}</p>
-                                <p className="text-xs text-muted-foreground font-body">{t.auth.agentDesc}</p>
-                              </div>
-                            </label>
-                          </div>
+                          ))}
                         </RadioGroup>
                       </div>
                       <div className="space-y-2">
