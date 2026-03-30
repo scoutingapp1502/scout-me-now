@@ -1010,7 +1010,7 @@ function ChampionshipCombobox({ value, customChampionship, setCustomChampionship
               <CommandEmpty>Nu s-a găsit.</CommandEmpty>
               <CommandGroup>
                 {championshipOptions.map((o, i) => (
-                  <CommandItem key={o} value={`${i}-${o}`} onSelect={() => { onChange(o); setOpen(false); }}>
+                  <CommandItem key={o} value={`option_${i}_${o}`} keywords={[o]} onSelect={() => { onChange(o); setOpen(false); }}>
                     <Check className={`mr-2 h-4 w-4 ${value === o ? "opacity-100" : "opacity-0"}`} />
                     {o}
                   </CommandItem>
