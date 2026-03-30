@@ -477,7 +477,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       {/* Tab content */}
       <div className="mt-6 px-2 sm:px-6">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} />}
         {activeTab === "video" && (
           <VideoTab
             form={form}
@@ -906,8 +906,8 @@ function parsePalmaresList(description: string | undefined): PalmaresItem[] {
   }
 }
 
-function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
-  entry: CareerEntry; idx: number; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>;
+function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries, sport }: {
+  entry: CareerEntry; idx: number; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; sport?: string;
 }) {
   const palmaresList = parsePalmaresList(entry.description);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -968,6 +968,7 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           onDragEnd={handleDragEnd}
           entryStartDate={entry.start_date}
           entryEndDate={entry.end_date}
+          sport={sport}
         />
       ))}
     </div>
@@ -1091,13 +1092,15 @@ function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onU
   );
 }
 
-function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd, entryStartDate, entryEndDate }: {
+const basketballCategories = ["U10", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U20", "Cupa Federației", "Cupa României", "Liga II", "Liga I", "LNB"];
+
+function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd, entryStartDate, entryEndDate, sport }: {
   palmares: PalmaresItem; pIdx: number; total: number;
   onUpdate: (pIdx: number, field: string, value: string) => void;
   onRemove: (pIdx: number) => void;
   isDragging: boolean; isDragOver: boolean;
   onDragStart: () => void; onDragOver: (e: React.DragEvent) => void; onDragEnd: () => void;
-  entryStartDate?: string; entryEndDate?: string;
+  entryStartDate?: string; entryEndDate?: string; sport?: string;
 }) {
   const placeOptions = ["Locul 1", "Locul 2", "Locul 3"];
   const championshipOptions = [
@@ -1159,8 +1162,17 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
         onChange={(v) => onUpdate(pIdx, "championship", v)}
       />
       <div>
-        <Label className="text-xs text-foreground font-medium">Grupa/Serie</Label>
-        <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder="Ex.: Seria 1" className="bg-background text-foreground placeholder:text-foreground/60" />
+        <Label className="text-xs text-foreground font-medium">{sport === "basketball" ? "Categorie" : "Grupa/Serie"}</Label>
+        {sport === "basketball" ? (
+          <Select value={palmares.category} onValueChange={(v) => onUpdate(pIdx, "category", v)}>
+            <SelectTrigger className="bg-background text-foreground"><SelectValue placeholder="Selectează..." /></SelectTrigger>
+            <SelectContent>
+              {basketballCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder="Ex.: Seria 1" className="bg-background text-foreground placeholder:text-foreground/60" />
+        )}
       </div>
       <div>
         <Label className="text-xs text-foreground font-medium">Sezonul</Label>
@@ -1199,8 +1211,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   );
 }
 
-function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string;
 }) {
   const { t } = useLanguage();
 
@@ -1440,6 +1452,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                   idx={idx}
                   careerEntries={careerEntries}
                   setCareerEntries={setCareerEntries}
+                  sport={sport}
                 />
               </div>
             ))}
