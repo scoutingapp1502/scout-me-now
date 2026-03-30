@@ -1092,7 +1092,7 @@ function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onU
   );
 }
 
-const basketballCategories = ["U10", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U20", "Cupa Federației", "Cupa României", "Liga II", "Liga I", "LNB"];
+const basketballCategories = ["U10", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U20"];
 
 function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd, entryStartDate, entryEndDate, sport }: {
   palmares: PalmaresItem; pIdx: number; total: number;
