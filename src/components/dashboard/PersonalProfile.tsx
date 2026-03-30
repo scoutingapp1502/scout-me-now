@@ -1103,7 +1103,7 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   entryStartDate?: string; entryEndDate?: string; sport?: string;
 }) {
   const placeOptions = ["Locul 1", "Locul 2", "Locul 3"];
-  const championshipOptions = [
+  const footballChampionshipOptions = [
     "SuperLiga - Sezon Regular", "SuperLiga - Play-Off", "SuperLiga - Play-Out",
     "Cupa României", "Super Cupa României",
     "Liga 2 Casa Pariurilor", "Liga 2 Casa Pariurilor - Play-Off", "Liga 2 Casa Pariurilor - Play-Out",
@@ -1119,6 +1119,11 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
     "Campionatul U15 Național", "Cupa - Național U15",
     "Interliga de Iarnă U12", "Interliga de Iarnă U11",
   ];
+  const basketballChampionshipOptions = [
+    "Campionat Municipal", "Campionat Regional", "Campionat Național",
+    "Cupa Federației", "Cupa României", "Liga II", "Liga I", "LNB",
+  ];
+  const championshipOptions = sport === "basketball" ? basketballChampionshipOptions : footballChampionshipOptions;
 
   const [customPlace, setCustomPlace] = useState(!!palmares.place && !placeOptions.includes(palmares.place));
   const [customChampionship, setCustomChampionship] = useState(!!palmares.championship && !championshipOptions.includes(palmares.championship));
