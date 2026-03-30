@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import { calcScoutCompletion } from "@/lib/profileCompletion";
 
-interface ScoutCard {
+interface AgentCard {
   user_id: string;
   first_name: string;
   last_name: string;
@@ -27,29 +27,36 @@ const COLORS = [
   "bg-orange-400",
 ];
 
-const ScoutersSection = () => {
-  const [scouts, setScouts] = useState<ScoutCard[]>([]);
+const AgentsSection = () => {
+  const [agents, setAgents] = useState<AgentCard[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedScoutId, setSelectedScoutId] = useState<string | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const { lang } = useLanguage();
 
   useEffect(() => {
-    const fetchScouts = async () => {
+    const fetchAgents = async () => {
       setLoading(true);
 
-      // Fetch agent user_ids to exclude them
-      const { data: agentRoles } = await supabase
+      // Fetch agent role user_ids
+      const { data: roleData } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "agent");
 
-      const agentUserIds = new Set((agentRoles || []).map((r) => r.user_id));
+      const agentUserIds = new Set((roleData || []).map((r) => r.user_id));
+
+      if (agentUserIds.size === 0) {
+        setAgents([]);
+        setLoading(false);
+        return;
+      }
 
       const [profilesRes, expRes, postsRes, eduRes, certRes] = await Promise.all([
         supabase
           .from("scout_profiles")
           .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills, languages")
+          .in("user_id", Array.from(agentUserIds))
           .order("first_name", { ascending: true }),
         supabase.from("scout_experiences").select("user_id"),
         supabase.from("scout_posts").select("user_id"),
@@ -63,32 +70,30 @@ const ScoutersSection = () => {
         const eduUserIds = new Set((eduRes.data || []).map((e) => e.user_id));
         const certUserIds = new Set((certRes.data || []).map((c) => c.user_id));
 
-        const visible = profilesRes.data
-          .filter((s) => !agentUserIds.has(s.user_id))
-          .filter((s) =>
-            calcScoutCompletion(s, expUserIds.has(s.user_id), postUserIds.has(s.user_id), eduUserIds.has(s.user_id), certUserIds.has(s.user_id)) >= 55
-          );
-        setScouts(visible);
+        const visible = profilesRes.data.filter((s) =>
+          calcScoutCompletion(s, expUserIds.has(s.user_id), postUserIds.has(s.user_id), eduUserIds.has(s.user_id), certUserIds.has(s.user_id)) >= 55
+        );
+        setAgents(visible);
       }
       setLoading(false);
     };
-    fetchScouts();
+    fetchAgents();
   }, []);
 
-  const filtered = scouts.filter((s) => {
-    const name = `${s.first_name} ${s.last_name}`.toLowerCase();
+  const filtered = agents.filter((a) => {
+    const name = `${a.first_name} ${a.last_name}`.toLowerCase();
     return name.includes(search.toLowerCase());
   });
 
-  // Track search appearances when user searches
+  // Track search appearances
   useEffect(() => {
     if (!search.trim() || filtered.length === 0) return;
     const timer = setTimeout(async () => {
       const { data } = await supabase.auth.getUser();
       if (!data.user) return;
-      filtered.forEach((s) => {
-        if (s.user_id !== data.user!.id) {
-          trackAnalyticsEvent(s.user_id, "search_appearance", data.user!.id);
+      filtered.forEach((a) => {
+        if (a.user_id !== data.user!.id) {
+          trackAnalyticsEvent(a.user_id, "search_appearance", data.user!.id);
         }
       });
     }, 1500);
@@ -97,11 +102,10 @@ const ScoutersSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Search bar */}
       <div className="flex justify-center">
         <div className="relative w-full max-w-md">
           <Input
-            placeholder={lang === "ro" ? "Caută un scouter" : "Find a scout"}
+            placeholder={lang === "ro" ? "Caută un agent" : "Find an agent"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pr-10 bg-card border-border text-foreground rounded-full h-12 px-5 text-sm"
@@ -110,7 +114,6 @@ const ScoutersSection = () => {
         </div>
       </div>
 
-      {/* Scouts grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -119,55 +122,50 @@ const ScoutersSection = () => {
         </div>
       ) : filtered.length === 0 ? (
         <p className="text-center text-muted-foreground py-12 font-body">
-          {lang === "ro" ? "Niciun scouter găsit." : "No scouts found."}
+          {lang === "ro" ? "Niciun agent găsit." : "No agents found."}
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((scout, idx) => (
+          {filtered.map((agent, idx) => (
             <div
-              key={scout.user_id}
+              key={agent.user_id}
               onClick={() => {
-                setSelectedScoutId(scout.user_id);
+                setSelectedAgentId(agent.user_id);
                 supabase.auth.getUser().then(({ data }) => {
-                  if (data.user && data.user.id !== scout.user_id) {
-                    trackAnalyticsEvent(scout.user_id, "profile_view", data.user.id);
+                  if (data.user && data.user.id !== agent.user_id) {
+                    trackAnalyticsEvent(agent.user_id, "profile_view", data.user.id);
                   }
                 });
               }}
               className="flex items-center bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors cursor-pointer group"
             >
-              {/* Photo area */}
               <div className={`relative w-20 h-24 flex-shrink-0 ${COLORS[idx % COLORS.length]} flex items-end justify-center overflow-hidden`}>
-                {scout.photo_url ? (
+                {agent.photo_url ? (
                   <img
-                    src={scout.photo_url}
-                    alt={`${scout.first_name} ${scout.last_name}`}
+                    src={agent.photo_url}
+                    alt={`${agent.first_name} ${agent.last_name}`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <User className="h-10 w-10 text-white/70 mb-2" />
                 )}
               </div>
-
-              {/* Scout info */}
               <div className="flex-1 px-4 py-3 min-w-0">
                 <p className="text-xs text-muted-foreground font-body uppercase tracking-wider truncate">
-                  {scout.first_name}
+                  {agent.first_name}
                 </p>
                 <p className="text-sm font-display text-foreground uppercase tracking-wide truncate">
-                  {scout.last_name}
+                  {agent.last_name}
                 </p>
               </div>
-
-              {/* Organization / Title badge */}
               <div className="pr-3 flex-shrink-0">
-                {scout.organization ? (
+                {agent.organization ? (
                   <span className="text-[10px] text-muted-foreground font-body bg-muted px-2 py-1 rounded">
-                    {scout.organization}
+                    {agent.organization}
                   </span>
-                ) : scout.title ? (
+                ) : agent.title ? (
                   <span className="text-[10px] text-muted-foreground font-body bg-muted px-2 py-1 rounded">
-                    {scout.title}
+                    {agent.title}
                   </span>
                 ) : null}
               </div>
@@ -176,18 +174,17 @@ const ScoutersSection = () => {
         </div>
       )}
 
-      {/* Scout profile dialog */}
-      <Dialog open={!!selectedScoutId} onOpenChange={(open) => !open && setSelectedScoutId(null)}>
-        <DialogContent 
+      <Dialog open={!!selectedAgentId} onOpenChange={(open) => !open && setSelectedAgentId(null)}>
+        <DialogContent
           className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-none sm:rounded-lg border-0 sm:border fixed inset-0 sm:inset-auto translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]"
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogTitle className="sr-only">
-            {lang === "ro" ? "Profil scouter" : "Scout profile"}
+            {lang === "ro" ? "Profil agent" : "Agent profile"}
           </DialogTitle>
-          {selectedScoutId && (
-            <ScoutPersonalProfile userId={selectedScoutId} readOnly />
+          {selectedAgentId && (
+            <ScoutPersonalProfile userId={selectedAgentId} readOnly />
           )}
         </DialogContent>
       </Dialog>
@@ -195,4 +192,4 @@ const ScoutersSection = () => {
   );
 };
 
-export default ScoutersSection;
+export default AgentsSection;

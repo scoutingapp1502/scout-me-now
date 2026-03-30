@@ -5,6 +5,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
+import AgentsSection from "@/components/dashboard/AgentsSection";
 import ScoutersSection from "@/components/dashboard/ScoutersSection";
 import PlayersSection from "@/components/dashboard/PlayersSection";
 import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
@@ -189,7 +190,7 @@ const Dashboard = () => {
         );
       case "players": return <PlayersSection />;
       case "scouters": return <ScoutersSection />;
-      case "agents": return <PlaceholderSection title="AGENTS" />;
+      case "agents": return <AgentsSection />;
       case "clubs": return <PlaceholderSection title="CLUBS" />;
       default:
         return (
