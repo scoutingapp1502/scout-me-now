@@ -336,6 +336,8 @@ export const translations = {
       playerDesc: "Create your profile",
       scout: "🔍 Scout",
       scoutDesc: "Discover talent",
+      agent: "📋 Agent",
+      agentDesc: "Represent players",
       sport: "Sport",
       selectSport: "Select sport",
       sportFootball: "Football",
