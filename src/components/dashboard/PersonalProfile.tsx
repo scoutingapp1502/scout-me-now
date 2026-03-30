@@ -1167,7 +1167,7 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
         customChampionship={customChampionship}
         setCustomChampionship={setCustomChampionship}
         championshipOptions={championshipOptions}
-        onChange={(v) => onUpdate(pIdx, "championship", v)}
+        onChange={(v) => { onUpdate(pIdx, "championship", v); if (sport === "basketball" && seniorChampionships.includes(v)) { onUpdate(pIdx, "category", ""); setCustomCategory(false); } }}
       />
       <div>
         <Label className="text-xs text-foreground font-medium">{sport === "basketball" ? "Categorie" : "Grupa/Serie"}</Label>
