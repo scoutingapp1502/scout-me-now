@@ -477,7 +477,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       {/* Tab content */}
       <div className="mt-6 px-2 sm:px-6">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} />}
         {activeTab === "video" && (
           <VideoTab
             form={form}
@@ -1211,8 +1211,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   );
 }
 
-function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string;
 }) {
   const { t } = useLanguage();
 
@@ -1452,7 +1452,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                   idx={idx}
                   careerEntries={careerEntries}
                   setCareerEntries={setCareerEntries}
-                  sport={currentSport}
+                  sport={sport}
                 />
               </div>
             ))}
