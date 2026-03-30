@@ -109,6 +109,8 @@ export const translations = {
       playerDesc: "Creează-ți profilul",
       scout: "🔍 Scouter",
       scoutDesc: "Descoperă talente",
+      agent: "📋 Agent",
+      agentDesc: "Reprezintă jucători",
       sport: "Sport",
       selectSport: "Selectează sportul",
       sportFootball: "Fotbal",

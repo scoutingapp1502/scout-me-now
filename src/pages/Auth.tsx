@@ -22,8 +22,8 @@ const Auth = () => {
   const [tab, setTab] = useState<"login" | "register" | "forgot">(
     searchParams.get("tab") === "login" ? "login" : "register"
   );
-  const [role, setRole] = useState<"player" | "scout">(
-    searchParams.get("role") === "scout" ? "scout" : "player"
+  const [role, setRole] = useState<"player" | "scout" | "agent">(
+    searchParams.get("role") === "scout" ? "scout" : searchParams.get("role") === "agent" ? "agent" : "player"
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,6 +59,7 @@ const Auth = () => {
         if (role === "player") {
           await supabase.from("player_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "", sport, gender: gender || null } as any);
         } else {
+          // Both scout and agent use scout_profiles
           await supabase.from("scout_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "", gender: gender || null } as any);
         }
         toast({ title: t.auth.successTitle, description: t.auth.successDesc });
@@ -160,7 +161,7 @@ const Auth = () => {
                     <>
                       <div className="space-y-2">
                         <Label className="font-body text-sm">{t.auth.accountType}</Label>
-                        <RadioGroup value={role} onValueChange={(v) => setRole(v as "player" | "scout")} className="flex gap-4">
+                        <RadioGroup value={role} onValueChange={(v) => setRole(v as "player" | "scout" | "agent")} className="flex gap-3">
                           <div className="flex-1">
                             <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${role === "player" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
                               <RadioGroupItem value="player" />
@@ -176,6 +177,15 @@ const Auth = () => {
                               <div>
                                 <p className="font-semibold font-body text-sm">{t.auth.scout}</p>
                                 <p className="text-xs text-muted-foreground font-body">{t.auth.scoutDesc}</p>
+                              </div>
+                            </label>
+                          </div>
+                          <div className="flex-1">
+                            <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${role === "agent" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                              <RadioGroupItem value="agent" />
+                              <div>
+                                <p className="font-semibold font-body text-sm">{t.auth.agent}</p>
+                                <p className="text-xs text-muted-foreground font-body">{t.auth.agentDesc}</p>
                               </div>
                             </label>
                           </div>

@@ -21,7 +21,7 @@ const Dashboard = () => {
   const [playerName, setPlayerName] = useState("");
   const [playerSport, setPlayerSport] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userRole, setUserRole] = useState<"player" | "scout" | null>(null);
+  const [userRole, setUserRole] = useState<"player" | "scout" | "agent" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const isMobile = useIsMobile();
@@ -40,14 +40,14 @@ const Dashboard = () => {
 
       if (roleData) {
         if (isMounted) {
-          setUserRole(roleData.role as "player" | "scout");
+          setUserRole(roleData.role as "player" | "scout" | "agent");
           setRoleLoading(false);
         }
         return;
       }
 
       // Role missing — create from user metadata (set during registration)
-      const metaRole = userMeta?.role as "player" | "scout" | undefined;
+      const metaRole = userMeta?.role as "player" | "scout" | "agent" | undefined;
       if (!metaRole) {
         if (isMounted) setRoleLoading(false);
         return;
@@ -72,6 +72,7 @@ const Dashboard = () => {
           { onConflict: "user_id" }
         );
       } else {
+        // Both scout and agent use scout_profiles
         await supabase.from("scout_profiles").upsert(
           { user_id: userId, first_name: firstName, last_name: lastName },
           { onConflict: "user_id" }
@@ -111,7 +112,7 @@ const Dashboard = () => {
   // Fetch display name based on role
   useEffect(() => {
     if (!user || !userRole) return;
-    if (userRole === "scout") {
+    if (userRole === "scout" || userRole === "agent") {
       supabase
         .from("scout_profiles")
         .select("first_name, last_name")
@@ -181,7 +182,7 @@ const Dashboard = () => {
         return (
           <>
             {completionBar}
-            {userRole === "scout"
+            {(userRole === "scout" || userRole === "agent")
               ? <ScoutPersonalProfile userId={user.id} />
               : <PersonalProfile userId={user.id} />}
           </>
@@ -194,7 +195,7 @@ const Dashboard = () => {
         return (
           <>
             {completionBar}
-            {userRole === "scout"
+            {(userRole === "scout" || userRole === "agent")
               ? <ScoutPersonalProfile userId={user.id} />
               : <PersonalProfile userId={user.id} />}
           </>
@@ -202,7 +203,7 @@ const Dashboard = () => {
     }
   };
 
-  const sidebarFirstLabel = userRole === "scout" ? "Personal Area" : undefined;
+  const sidebarFirstLabel = (userRole === "scout" || userRole === "agent") ? "Personal Area" : undefined;
 
   return (
     <div className="flex min-h-screen bg-background dark">
