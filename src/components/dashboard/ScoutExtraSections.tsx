@@ -85,6 +85,10 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
     fetchAll();
   }, [userId]);
 
+  const notifyProfileUpdated = () => {
+    window.dispatchEvent(new Event("profile-updated"));
+  };
+
   const fetchAll = async () => {
     const [eduRes, certRes, profileRes] = await Promise.all([
       supabase.from("scout_education").select("*").eq("user_id", userId).order("sort_order", { ascending: true }),
@@ -122,6 +126,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       const { data } = await supabase.from("scout_education").select("*").eq("user_id", userId).order("sort_order", { ascending: true });
       if (data) setEducation(data as Education[]);
       setShowEduDialog(false);
+      notifyProfileUpdated();
       toast({ title: "Studiu adăugat!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
@@ -132,6 +137,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
     try {
       await supabase.from("scout_education").delete().eq("id", id);
       setEducation(prev => prev.filter(e => e.id !== id));
+      notifyProfileUpdated();
       toast({ title: "Studiu eliminat!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
@@ -183,6 +189,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       const { data } = await supabase.from("scout_certifications").select("*").eq("user_id", userId).order("sort_order", { ascending: true });
       if (data) setCertifications(data as Certification[]);
       setShowCertDialog(false);
+      notifyProfileUpdated();
       toast({ title: "Licență/atestat adăugat!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
@@ -193,6 +200,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
     try {
       await supabase.from("scout_certifications").delete().eq("id", id);
       setCertifications(prev => prev.filter(c => c.id !== id));
+      notifyProfileUpdated();
       toast({ title: "Licență/atestat eliminat!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
@@ -243,6 +251,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       setLanguages(updated);
       setShowLangDialog(false);
       setLangInput(""); setLangLevel(""); setLangError(""); setLangSuggestions([]);
+      notifyProfileUpdated();
       toast({ title: "Limbă adăugată!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
@@ -255,6 +264,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       const { error } = await supabase.from("scout_profiles").update({ languages: updated } as any).eq("user_id", userId);
       if (error) throw error;
       setLanguages(updated);
+      notifyProfileUpdated();
       toast({ title: "Limbă eliminată!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });

@@ -13,9 +13,24 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
   const [sections, setSections] = useState<ProfileSection[]>([]);
   const [percentage, setPercentage] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
-    if (!userId || !role) return;
+    const handleProfileUpdated = () => {
+      setRefreshToken((prev) => prev + 1);
+    };
+
+    window.addEventListener("profile-updated", handleProfileUpdated);
+    return () => window.removeEventListener("profile-updated", handleProfileUpdated);
+  }, []);
+
+  useEffect(() => {
+    if (!userId || !role) {
+      setSections([]);
+      setPercentage(0);
+      setLoading(false);
+      return;
+    }
 
     const calculate = async () => {
       setLoading(true);
@@ -89,7 +104,6 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
         setSections(s);
         setPercentage(s.reduce((acc, sec) => acc + (sec.completed ? sec.weight : 0), 0));
       } else {
-        // Scout
         const [profileRes, expRes, postsRes, eduRes, certRes] = await Promise.all([
           supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
           supabase.from("scout_experiences").select("id").eq("user_id", userId).limit(1),
@@ -194,13 +208,12 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
     };
 
     calculate();
-  }, [userId, role]);
+  }, [userId, role, refreshToken]);
 
-  return { sections, percentage, loading, refetch: () => {
-    if (userId && role) {
-      setLoading(true);
-      const event = new Event("profile-updated");
-      window.dispatchEvent(event);
-    }
-  }};
+  return {
+    sections,
+    percentage,
+    loading,
+    refetch: () => setRefreshToken((prev) => prev + 1),
+  };
 }

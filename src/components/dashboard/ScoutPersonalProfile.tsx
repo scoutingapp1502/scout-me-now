@@ -44,6 +44,10 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
     fetchData();
   }, [userId]);
 
+  const notifyProfileUpdated = () => {
+    window.dispatchEvent(new Event("profile-updated"));
+  };
+
   const fetchData = async () => {
     const [profileRes, expRes, postsRes] = await Promise.all([
       supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
@@ -88,9 +92,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
       setNewPostContent("");
       setNewPostImage(null);
       setNewPostImagePreview(null);
-      // Refresh posts
       const { data: refreshed } = await supabase.from("scout_posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
       if (refreshed) setPosts(refreshed);
+      notifyProfileUpdated();
       toast({ title: "Postare publicată!" });
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
@@ -102,6 +106,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const handleDeletePost = async (postId: string) => {
     await supabase.from("scout_posts").delete().eq("id", postId);
     setPosts(prev => prev.filter(p => p.id !== postId));
+    notifyProfileUpdated();
   };
 
   const handlePostImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,6 +175,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
       setEditingSection(null);
       setAvatarFile(null);
       setCoverFile(null);
+      notifyProfileUpdated();
       fetchData();
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
@@ -189,6 +195,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
       toast({ title: "Secțiunea Despre actualizată!" });
       setEditingSection(null);
+      notifyProfileUpdated();
       fetchData();
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
@@ -229,6 +236,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
       toast({ title: "Experiența actualizată!" });
       setEditingSection(null);
+      notifyProfileUpdated();
       fetchData();
     } catch (err: any) {
       toast({ title: "Eroare", description: err.message, variant: "destructive" });
