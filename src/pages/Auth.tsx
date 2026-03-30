@@ -49,19 +49,10 @@ const Auth = () => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: window.location.origin, data: { full_name: fullName, role, gender } },
+        options: { emailRedirectTo: window.location.origin, data: { full_name: fullName, role, gender, sport } },
       });
       if (error) throw error;
       if (data.user) {
-        const { error: roleError } = await supabase.from("user_roles").insert({ user_id: data.user.id, role });
-        if (roleError) console.error("Role insert error:", roleError);
-        await supabase.from("profiles").insert({ user_id: data.user.id, full_name: fullName });
-        if (role === "player") {
-          await supabase.from("player_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "", sport, gender: gender || null } as any);
-        } else {
-          // Both scout and agent use scout_profiles
-          await supabase.from("scout_profiles").insert({ user_id: data.user.id, first_name: fullName.split(" ")[0] || "", last_name: fullName.split(" ").slice(1).join(" ") || "", gender: gender || null } as any);
-        }
         toast({ title: t.auth.successTitle, description: t.auth.successDesc });
       }
     } catch (error: any) {
