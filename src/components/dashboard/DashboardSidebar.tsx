@@ -10,7 +10,7 @@ interface DashboardSidebarProps {
   playerName?: string;
   playerSport?: string;
   profileLabel?: string;
-  userRole?: "player" | "scout" | null;
+  userRole?: "player" | "scout" | "agent" | null;
 }
 
 const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole }: DashboardSidebarProps) => {
@@ -33,7 +33,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   return (
     <aside className="w-64 min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="p-6 border-b border-sidebar-border">
-        <span className="font-display text-2xl text-primary">{userRole === "scout" ? "" : "⚽ "}SPORTRISE</span>
+        <span className="font-display text-2xl text-primary">{(userRole === "scout" || userRole === "agent") ? "" : "⚽ "}SPORTRISE</span>
         {playerName && (
           <p className="text-sm text-sidebar-foreground/60 font-body mt-1 truncate">
             {playerName}{userRole === "player" && playerSport ? ` · ${playerSport.charAt(0).toUpperCase() + playerSport.slice(1)}` : ""}
@@ -41,6 +41,9 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         )}
         {userRole === "scout" && (
           <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">SCOUTER</p>
+        )}
+        {userRole === "agent" && (
+          <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">AGENT</p>
         )}
       </div>
 
