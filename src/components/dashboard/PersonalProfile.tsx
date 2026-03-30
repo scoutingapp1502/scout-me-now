@@ -949,6 +949,8 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries }: {
           onDragStart={() => setDragIdx(pIdx)}
           onDragOver={(e: React.DragEvent) => { e.preventDefault(); setDragOverIdx(pIdx); }}
           onDragEnd={handleDragEnd}
+          entryStartDate={entry.start_date}
+          entryEndDate={entry.end_date}
         />
       ))}
     </div>
@@ -1072,12 +1074,13 @@ function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onU
   );
 }
 
-function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd }: {
+function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd, entryStartDate, entryEndDate }: {
   palmares: PalmaresItem; pIdx: number; total: number;
   onUpdate: (pIdx: number, field: string, value: string) => void;
   onRemove: (pIdx: number) => void;
   isDragging: boolean; isDragOver: boolean;
   onDragStart: () => void; onDragOver: (e: React.DragEvent) => void; onDragEnd: () => void;
+  entryStartDate?: string; entryEndDate?: string;
 }) {
   const placeOptions = ["Locul 1", "Locul 2", "Locul 3"];
   const championshipOptions = [
@@ -1149,8 +1152,18 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
           <SelectContent>
             {(() => {
               const currentYear = new Date().getFullYear();
+              let startYear = 1970;
+              let endYear = currentYear;
+              if (entryStartDate) {
+                const parsed = new Date(entryStartDate);
+                if (!isNaN(parsed.getTime())) startYear = parsed.getFullYear();
+              }
+              if (entryEndDate) {
+                const parsed = new Date(entryEndDate);
+                if (!isNaN(parsed.getTime())) endYear = parsed.getFullYear();
+              }
               const seasons: string[] = [];
-              for (let y = currentYear; y >= 1970; y--) {
+              for (let y = endYear; y >= startYear; y--) {
                 seasons.push(`${y}-${y + 1}`);
               }
               return seasons.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>);
