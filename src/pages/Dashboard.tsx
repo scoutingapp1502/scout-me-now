@@ -190,7 +190,7 @@ const Dashboard = () => {
         );
       case "players": return <PlayersSection />;
       case "scouters": return <ScoutersSection />;
-      case "agents": return <PlaceholderSection title="AGENTS" />;
+      case "agents": return <AgentsSection />;
       case "clubs": return <PlaceholderSection title="CLUBS" />;
       default:
         return (
