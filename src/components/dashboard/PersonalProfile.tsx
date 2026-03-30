@@ -1127,6 +1127,9 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
 
   const [customPlace, setCustomPlace] = useState(!!palmares.place && !placeOptions.includes(palmares.place));
   const [customChampionship, setCustomChampionship] = useState(!!palmares.championship && !championshipOptions.includes(palmares.championship));
+  const seniorChampionships = ["Cupa Federației", "Cupa României", "Liga II", "Liga I", "LNB"];
+  const isCategoryDisabled = sport === "basketball" && seniorChampionships.includes(palmares.championship);
+  const [customCategory, setCustomCategory] = useState(!!palmares.category && !basketballCategories.includes(palmares.category) && !isCategoryDisabled);
 
   return (
     <div
@@ -1164,17 +1167,27 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
         customChampionship={customChampionship}
         setCustomChampionship={setCustomChampionship}
         championshipOptions={championshipOptions}
-        onChange={(v) => onUpdate(pIdx, "championship", v)}
+        onChange={(v) => { onUpdate(pIdx, "championship", v); if (sport === "basketball" && seniorChampionships.includes(v)) { onUpdate(pIdx, "category", ""); setCustomCategory(false); } }}
       />
       <div>
         <Label className="text-xs text-foreground font-medium">{sport === "basketball" ? "Categorie" : "Grupa/Serie"}</Label>
         {sport === "basketball" ? (
-          <Select value={palmares.category} onValueChange={(v) => onUpdate(pIdx, "category", v)}>
-            <SelectTrigger className="bg-background text-foreground"><SelectValue placeholder="Selectează..." /></SelectTrigger>
-            <SelectContent>
-              {basketballCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          isCategoryDisabled ? (
+            <Input value="" disabled placeholder="—" className="bg-muted text-muted-foreground" />
+          ) : customCategory ? (
+            <div className="flex gap-1">
+              <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder="Ex.: U21" className="bg-background text-foreground placeholder:text-foreground/60" />
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomCategory(false); onUpdate(pIdx, "category", ""); }}><X className="h-3 w-3" /></Button>
+            </div>
+          ) : (
+            <Select value={palmares.category} onValueChange={(v) => v === "__custom__" ? setCustomCategory(true) : onUpdate(pIdx, "category", v)}>
+              <SelectTrigger className="bg-background text-foreground"><SelectValue placeholder="Selectează..." /></SelectTrigger>
+              <SelectContent>
+                {basketballCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                <SelectItem value="__custom__">Altele...</SelectItem>
+              </SelectContent>
+            </Select>
+          )
         ) : (
           <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder="Ex.: Seria 1" className="bg-background text-foreground placeholder:text-foreground/60" />
         )}
