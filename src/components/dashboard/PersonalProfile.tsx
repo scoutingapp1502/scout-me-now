@@ -226,6 +226,23 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 
       // Save career entries if editing about section
       if (editingSection === "about") {
+        // Check for date overlaps
+        const hasOverlap = careerEntries.some((entry, idx) => {
+          if (!entry.start_date) return false;
+          return careerEntries.some((other, otherIdx) => {
+            if (idx >= otherIdx || !other.start_date) return false;
+            const s1 = new Date(entry.start_date).getTime();
+            const e1 = entry.currently_active ? Infinity : (entry.end_date ? new Date(entry.end_date).getTime() : s1);
+            const s2 = new Date(other.start_date).getTime();
+            const e2 = other.currently_active ? Infinity : (other.end_date ? new Date(other.end_date).getTime() : s2);
+            return s1 <= e2 && s2 <= e1;
+          });
+        });
+        if (hasOverlap) {
+          toast({ title: "Perioadele echipelor se suprapun. Corectează datele înainte de a salva.", variant: "destructive" });
+          setSaving(false);
+          return;
+        }
         // Delete existing entries
         await supabase.from("player_career_entries").delete().eq("user_id", userId);
         // Insert new entries
@@ -1359,6 +1376,21 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     className="bg-background"
                   />
                 </div>
+                {/* Date overlap validation */}
+                {(() => {
+                  const otherEntries = careerEntries.filter((_, i) => i !== idx).filter(e => e.start_date);
+                  const hasOverlap = otherEntries.some(other => {
+                    if (!entry.start_date) return false;
+                    const s1 = new Date(entry.start_date).getTime();
+                    const e1 = entry.currently_active ? Infinity : (entry.end_date ? new Date(entry.end_date).getTime() : s1);
+                    const s2 = new Date(other.start_date).getTime();
+                    const e2 = other.currently_active ? Infinity : (other.end_date ? new Date(other.end_date).getTime() : s2);
+                    return s1 <= e2 && s2 <= e1;
+                  });
+                  return hasOverlap ? (
+                    <p className="text-xs text-destructive font-medium">⚠ Perioadele se suprapun cu o altă echipă. Verifică datele.</p>
+                  ) : null;
+                })()}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-foreground font-medium">Data început</Label>
