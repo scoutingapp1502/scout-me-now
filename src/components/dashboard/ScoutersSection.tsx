@@ -63,9 +63,11 @@ const ScoutersSection = () => {
         const eduUserIds = new Set((eduRes.data || []).map((e) => e.user_id));
         const certUserIds = new Set((certRes.data || []).map((c) => c.user_id));
 
-        const visible = profilesRes.data.filter((s) =>
-          calcScoutCompletion(s, expUserIds.has(s.user_id), postUserIds.has(s.user_id), eduUserIds.has(s.user_id), certUserIds.has(s.user_id)) >= 55
-        );
+        const visible = profilesRes.data
+          .filter((s) => !agentUserIds.has(s.user_id))
+          .filter((s) =>
+            calcScoutCompletion(s, expUserIds.has(s.user_id), postUserIds.has(s.user_id), eduUserIds.has(s.user_id), certUserIds.has(s.user_id)) >= 55
+          );
         setScouts(visible);
       }
       setLoading(false);

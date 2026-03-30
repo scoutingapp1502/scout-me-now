@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
-import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
+import AgentsSection from "@/components/dashboard/AgentsSection";
 import ScoutersSection from "@/components/dashboard/ScoutersSection";
 import PlayersSection from "@/components/dashboard/PlayersSection";
 import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
