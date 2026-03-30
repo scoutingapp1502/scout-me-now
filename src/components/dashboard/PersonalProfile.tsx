@@ -914,9 +914,12 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries, sport }: 
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   const updateList = (newList: PalmaresItem[]) => {
-    const updated = [...careerEntries];
-    updated[idx] = { ...entry, description: JSON.stringify(newList) };
-    setCareerEntries(updated);
+    setCareerEntries((prev) => {
+      const updated = [...prev];
+      const currentEntry = updated[idx] ?? entry;
+      updated[idx] = { ...currentEntry, description: JSON.stringify(newList) };
+      return updated;
+    });
   };
 
   const addPalmares = () => {
@@ -929,9 +932,15 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries, sport }: 
   };
 
   const updatePalmaresItem = (pIdx: number, field: string, value: string) => {
-    const newList = [...palmaresList];
-    newList[pIdx] = { ...newList[pIdx], [field]: value };
-    updateList(newList);
+    setCareerEntries((prev) => {
+      const updated = [...prev];
+      const currentEntry = updated[idx] ?? entry;
+      const currentList = parsePalmaresList(currentEntry.description);
+      const newList = [...currentList];
+      newList[pIdx] = { ...newList[pIdx], [field]: value };
+      updated[idx] = { ...currentEntry, description: JSON.stringify(newList) };
+      return updated;
+    });
   };
 
   const handleDragEnd = () => {
