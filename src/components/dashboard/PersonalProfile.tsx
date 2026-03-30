@@ -226,6 +226,23 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 
       // Save career entries if editing about section
       if (editingSection === "about") {
+        // Check for date overlaps
+        const hasOverlap = careerEntries.some((entry, idx) => {
+          if (!entry.start_date) return false;
+          return careerEntries.some((other, otherIdx) => {
+            if (idx >= otherIdx || !other.start_date) return false;
+            const s1 = new Date(entry.start_date).getTime();
+            const e1 = entry.currently_active ? Infinity : (entry.end_date ? new Date(entry.end_date).getTime() : s1);
+            const s2 = new Date(other.start_date).getTime();
+            const e2 = other.currently_active ? Infinity : (other.end_date ? new Date(other.end_date).getTime() : s2);
+            return s1 <= e2 && s2 <= e1;
+          });
+        });
+        if (hasOverlap) {
+          toast({ title: "Perioadele echipelor se suprapun. Corectează datele înainte de a salva.", variant: "destructive" });
+          setSaving(false);
+          return;
+        }
         // Delete existing entries
         await supabase.from("player_career_entries").delete().eq("user_id", userId);
         // Insert new entries
