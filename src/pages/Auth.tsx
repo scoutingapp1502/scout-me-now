@@ -27,6 +27,7 @@ const Auth = () => {
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [sport, setSport] = useState("football");
   const [gender, setGender] = useState("");
