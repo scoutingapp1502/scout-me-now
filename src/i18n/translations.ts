@@ -223,7 +223,7 @@ export const translations = {
         profileUpdated: "Profil actualizat cu succes!",
         addNationality: "Adaugă naționalitate",
         addDob: "Adaugă data nașterii",
-        addSocial: "Adaugă social media",
+        addSocial: "Social media",
         error: "Eroare",
       },
       placeholder: {
