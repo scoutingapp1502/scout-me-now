@@ -634,6 +634,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
               </>
             )}
           </div>
+          {editing && <SectionSaveButton />}
         </div>
 
         {/* Teste Tehnice Specifice section */}
