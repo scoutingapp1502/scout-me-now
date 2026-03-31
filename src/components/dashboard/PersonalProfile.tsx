@@ -716,9 +716,19 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                           <Info className="h-4 w-4" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="text-sm font-body" side="top">
+                      <PopoverContent className="text-sm font-body w-80" side="top">
                         <p className="font-semibold mb-1">{test.icon} {test.label}</p>
                         <p className="text-muted-foreground text-xs whitespace-pre-line">{test.description}</p>
+                        {test.key === "control_pass_video" && (
+                          <video
+                            src="/videos/control-pass.mp4"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full rounded-md mt-2"
+                          />
+                        )}
                       </PopoverContent>
                     </Popover>
                   </div>
