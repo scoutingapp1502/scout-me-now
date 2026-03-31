@@ -223,7 +223,7 @@ export const translations = {
         profileUpdated: "Profil actualizat cu succes!",
         addNationality: "Adaugă naționalitate",
         addDob: "Adaugă data nașterii",
-        addSocial: "Adaugă social media",
+        addSocial: "Social media",
         error: "Eroare",
       },
       placeholder: {
@@ -449,7 +449,7 @@ export const translations = {
         profileUpdated: "Profile updated successfully!",
         addNationality: "Add nationality",
         addDob: "Add date of birth",
-        addSocial: "Add social media",
+        addSocial: "Social media",
         error: "Error",
       },
       placeholder: {
