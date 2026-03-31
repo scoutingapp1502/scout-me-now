@@ -228,9 +228,16 @@ const Auth = () => {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                  </div>
+                   </div>
 
-                  {tab === "login" && (
+                   {tab === "register" && (
+                     <div className="space-y-2">
+                       <Label htmlFor="confirmPassword" className="font-body">{t.auth.confirmPassword || "Confirmă parola"}</Label>
+                       <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.auth.confirmPasswordPlaceholder || "Reintrodu parola"} required minLength={6} />
+                     </div>
+                   )}
+
+                   {tab === "login" && (
                     <div className="text-right">
                       <button type="button" onClick={() => setTab("forgot")} className="text-sm text-primary hover:underline font-body">
                         {t.auth.forgotPassword}
