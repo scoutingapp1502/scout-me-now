@@ -746,40 +746,46 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
         </div>
 
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {editing ? (
-          <>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.goals}</Label>
-              <Input type="number" value={form.goals ?? 0} onChange={(e) => updateForm("goals", parseInt(e.target.value) || 0)} className="mt-1 text-white" />
-            </div>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.assists}</Label>
-              <Input type="number" value={form.assists ?? 0} onChange={(e) => updateForm("assists", parseInt(e.target.value) || 0)} className="mt-1 text-white" />
-            </div>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.matches}</Label>
-              <Input type="number" value={form.matches_played ?? 0} onChange={(e) => updateForm("matches_played", parseInt(e.target.value) || 0)} className="mt-1 text-white" />
-            </div>
-          </>
-        ) : (
-          <>
-            {[
-              { label: t.dashboard.profile.goals, value: profile?.goals ?? 0, icon: "⚽" },
-              { label: t.dashboard.profile.assists, value: profile?.assists ?? 0, icon: "🅰️" },
-              { label: t.dashboard.profile.matches, value: profile?.matches_played ?? 0, icon: "🏟️" },
-            ].map((s) => (
-              <div key={s.label} className="bg-card border border-border rounded-xl p-4 sm:p-5 text-center group hover:border-primary/30 transition-colors">
-                <span className="text-2xl block">{s.icon}</span>
-                <p className="font-display text-3xl sm:text-4xl text-foreground mt-1">{s.value}</p>
-                <p className="text-xs text-muted-foreground font-body uppercase tracking-wide mt-1">{s.label}</p>
+      <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Statistici Meciuri</h4>
+          <SectionEditButton section="match_stats" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {editingMatchStats ? (
+            <>
+              <div className="bg-muted/50 border border-border rounded-xl p-4">
+                <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.goals}</Label>
+                <Input type="number" value={form.goals ?? 0} onChange={(e) => updateForm("goals", parseInt(e.target.value) || 0)} className="mt-1 text-white" />
               </div>
-            ))}
-          </>
-        )}
+              <div className="bg-muted/50 border border-border rounded-xl p-4">
+                <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.assists}</Label>
+                <Input type="number" value={form.assists ?? 0} onChange={(e) => updateForm("assists", parseInt(e.target.value) || 0)} className="mt-1 text-white" />
+              </div>
+              <div className="bg-muted/50 border border-border rounded-xl p-4">
+                <Label className="font-body text-xs text-muted-foreground">{t.dashboard.profile.matches}</Label>
+                <Input type="number" value={form.matches_played ?? 0} onChange={(e) => updateForm("matches_played", parseInt(e.target.value) || 0)} className="mt-1 text-white" />
+              </div>
+            </>
+          ) : (
+            <>
+              {[
+                { label: t.dashboard.profile.goals, value: profile?.goals ?? 0, icon: "⚽" },
+                { label: t.dashboard.profile.assists, value: profile?.assists ?? 0, icon: "🅰️" },
+                { label: t.dashboard.profile.matches, value: profile?.matches_played ?? 0, icon: "🏟️" },
+              ].map((s) => (
+                <div key={s.label} className="bg-muted/50 border border-border rounded-xl p-4 sm:p-5 text-center group hover:border-primary/30 transition-colors">
+                  <span className="text-2xl block">{s.icon}</span>
+                  <p className="font-display text-3xl sm:text-4xl text-foreground mt-1">{s.value}</p>
+                  <p className="text-xs text-muted-foreground font-body uppercase tracking-wide mt-1">{s.label}</p>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+        {editingMatchStats && <SectionSaveButton />}
       </div>
     </div>
-    <SectionSaveButton />
     </>
   );
 }
