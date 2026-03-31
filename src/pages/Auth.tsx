@@ -27,6 +27,7 @@ const Auth = () => {
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [sport, setSport] = useState("football");
   const [gender, setGender] = useState("");
@@ -45,6 +46,10 @@ const Auth = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      toast({ title: t.auth.errorRegister, description: t.auth.passwordsMismatch, variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -223,9 +228,16 @@ const Auth = () => {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                  </div>
+                   </div>
 
-                  {tab === "login" && (
+                   {tab === "register" && (
+                     <div className="space-y-2">
+                       <Label htmlFor="confirmPassword" className="font-body">{t.auth.confirmPassword}</Label>
+                       <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
+                     </div>
+                   )}
+
+                   {tab === "login" && (
                     <div className="text-right">
                       <button type="button" onClick={() => setTab("forgot")} className="text-sm text-primary hover:underline font-body">
                         {t.auth.forgotPassword}
