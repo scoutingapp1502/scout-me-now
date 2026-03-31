@@ -703,6 +703,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                   </div>
                 </div>
               ))}
+              <SectionSaveButton />
             </div>
           ) : (
             <div className="space-y-4">
