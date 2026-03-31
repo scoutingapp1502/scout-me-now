@@ -47,7 +47,7 @@ const Auth = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast({ title: t.auth.errorRegister, description: t.resetPassword.passwordsMismatch, variant: "destructive" });
+      toast({ title: t.auth.errorRegister, description: t.auth.passwordsMismatch, variant: "destructive" });
       return;
     }
     setLoading(true);
