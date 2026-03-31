@@ -502,6 +502,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
   const editing = editingSection === "stats";
+  const editingMatchStats = editingSection === "match_stats";
   const editingTechnical = editingSection === "technical";
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
   const { t } = useLanguage();
