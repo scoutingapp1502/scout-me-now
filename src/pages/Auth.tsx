@@ -232,7 +232,7 @@ const Auth = () => {
 
                    {tab === "register" && (
                      <div className="space-y-2">
-                       <Label htmlFor="confirmPassword" className="font-body">{t.resetPassword.confirmPassword}</Label>
+                       <Label htmlFor="confirmPassword" className="font-body">{t.auth.confirmPassword}</Label>
                        <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
                      </div>
                    )}
