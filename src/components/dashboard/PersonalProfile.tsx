@@ -243,6 +243,12 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Validate agent email if editing agent section
+      if (editingSection === "agent" && form.agent_email && !form.agent_email.includes("@")) {
+        toast({ title: "Adresa de email a agentului trebuie să conțină simbolul @", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
       let photoUrl = form.photo_url;
 
       if (avatarFile) {
