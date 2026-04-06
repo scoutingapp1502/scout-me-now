@@ -259,6 +259,11 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           const { error: careerError } = await supabase.from("player_career_entries").insert(entries);
           if (careerError) throw careerError;
         }
+        // Sync current_team from active career entry
+        const activeEntry = careerEntries.find(e => e.currently_active);
+        const newCurrentTeam = activeEntry?.team_name || "";
+        await supabase.from("player_profiles").update({ current_team: newCurrentTeam }).eq("user_id", userId);
+        updateForm("current_team", newCurrentTeam);
       }
 
       toast({ title: t.dashboard.profile.profileUpdated });
@@ -1404,6 +1409,10 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       const updated = [...careerEntries];
                       updated[idx] = { ...entry, team_name: e.target.value };
                       setCareerEntries(updated);
+                      // Sync to header if this entry is currently active
+                      if (entry.currently_active) {
+                        updateForm("current_team", e.target.value);
+                      }
                     }}
                     placeholder="Ex.: FC Barcelona"
                     className="bg-background"
@@ -1460,8 +1469,20 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     checked={entry.currently_active}
                     onCheckedChange={(checked) => {
                       const updated = [...careerEntries];
+                      // If checking this one, uncheck all others
+                      if (checked) {
+                        updated.forEach((e, i) => { if (i !== idx) updated[i] = { ...e, currently_active: false }; });
+                      }
                       updated[idx] = { ...entry, currently_active: !!checked, end_date: checked ? "" : entry.end_date };
                       setCareerEntries(updated);
+                      // Sync current_team in header
+                      if (checked && entry.team_name) {
+                        updateForm("current_team", entry.team_name);
+                      } else if (!checked) {
+                        // Check if any other entry is still active
+                        const otherActive = updated.find((e, i) => i !== idx && e.currently_active);
+                        updateForm("current_team", otherActive?.team_name || "");
+                      }
                     }}
                   />
                   <Label htmlFor={`currently-active-${idx}`} className="text-xs text-foreground cursor-pointer">
