@@ -1151,6 +1151,13 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
           <Trash2 className="h-3 w-3" />
         </Button>
       )}
+      <ChampionshipCombobox
+        value={palmares.championship}
+        customChampionship={customChampionship}
+        setCustomChampionship={setCustomChampionship}
+        championshipOptions={championshipOptions}
+        onChange={(v) => { onUpdate(pIdx, "championship", v); if (sport === "basketball" && seniorChampionships.includes(v)) { onUpdate(pIdx, "category", ""); setCustomCategory(false); } }}
+      />
       <div>
         <Label className="text-xs text-foreground font-medium">Loc</Label>
         {customPlace ? (
@@ -1168,13 +1175,6 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
           </Select>
         )}
       </div>
-      <ChampionshipCombobox
-        value={palmares.championship}
-        customChampionship={customChampionship}
-        setCustomChampionship={setCustomChampionship}
-        championshipOptions={championshipOptions}
-        onChange={(v) => { onUpdate(pIdx, "championship", v); if (sport === "basketball" && seniorChampionships.includes(v)) { onUpdate(pIdx, "category", ""); setCustomCategory(false); } }}
-      />
       <div>
         <Label className="text-xs text-foreground font-medium">{sport === "basketball" ? "Categorie" : "Grupa/Serie"}</Label>
         {sport === "basketball" ? (
