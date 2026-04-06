@@ -1404,6 +1404,10 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       const updated = [...careerEntries];
                       updated[idx] = { ...entry, team_name: e.target.value };
                       setCareerEntries(updated);
+                      // Sync to header if this entry is currently active
+                      if (entry.currently_active) {
+                        updateForm("current_team", e.target.value);
+                      }
                     }}
                     placeholder="Ex.: FC Barcelona"
                     className="bg-background"
