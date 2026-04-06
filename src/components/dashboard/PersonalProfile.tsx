@@ -15,6 +15,8 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import PlayerStats from "./PlayerStats";
 import NationalityInput from "@/components/ui/nationality-input";
 
+type PlayerProfile = Tables<"player_profiles">;
+
 const COUNTRY_PHONE_PREFIXES = [
   { code: "RO", prefix: "+40", label: "🇷🇴 România (+40)", maxDigits: 9 },
   { code: "IT", prefix: "+39", label: "🇮🇹 Italia (+39)", maxDigits: 10 },
