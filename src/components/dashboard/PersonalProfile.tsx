@@ -1235,7 +1235,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
       <PlayerStats userId={userId} isOwner={!readOnly} />
 
       {/* Physical + details */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 ${!readOnly || profile?.agent_name || profile?.agent_email || profile?.agent_phone ? "sm:grid-cols-2" : ""} gap-4`}>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.physicalData}</h3>
