@@ -335,7 +335,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
           backgroundSize: '30px 30px'
         }} />
-        <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 p-4 sm:p-8">
+        <div className="relative flex flex-col sm:flex-row flex-wrap items-center sm:items-end gap-4 sm:gap-6 p-4 sm:p-8">
           {/* Info */}
           <div className="flex-1 min-w-0 w-full text-center sm:text-left order-2 sm:order-1">
             {editingSection === "header" ? (
