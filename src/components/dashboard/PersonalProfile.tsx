@@ -1460,8 +1460,20 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     checked={entry.currently_active}
                     onCheckedChange={(checked) => {
                       const updated = [...careerEntries];
+                      // If checking this one, uncheck all others
+                      if (checked) {
+                        updated.forEach((e, i) => { if (i !== idx) updated[i] = { ...e, currently_active: false }; });
+                      }
                       updated[idx] = { ...entry, currently_active: !!checked, end_date: checked ? "" : entry.end_date };
                       setCareerEntries(updated);
+                      // Sync current_team in header
+                      if (checked && entry.team_name) {
+                        updateForm("current_team", entry.team_name);
+                      } else if (!checked) {
+                        // Check if any other entry is still active
+                        const otherActive = updated.find((e, i) => i !== idx && e.currently_active);
+                        updateForm("current_team", otherActive?.team_name || "");
+                      }
                     }}
                   />
                   <Label htmlFor={`currently-active-${idx}`} className="text-xs text-foreground cursor-pointer">
