@@ -1429,6 +1429,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     <Input
                       type="date"
                       value={entry.end_date}
+                      min={entry.start_date || undefined}
                       onChange={(e) => {
                         const updated = [...careerEntries];
                         updated[idx] = { ...entry, end_date: e.target.value };
