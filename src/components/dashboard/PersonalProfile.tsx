@@ -445,7 +445,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             </div>
           )}
           {editingSection === "header" && (
-            <div className="absolute bottom-3 right-3 z-10">
+            <div className="w-full flex justify-end mt-4 order-3">
               <Button
                 onClick={handleSave}
                 disabled={saving}
