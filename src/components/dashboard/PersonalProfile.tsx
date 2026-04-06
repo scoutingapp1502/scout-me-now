@@ -15,7 +15,94 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import PlayerStats from "./PlayerStats";
 import NationalityInput from "@/components/ui/nationality-input";
 
-type PlayerProfile = Tables<"player_profiles">;
+const COUNTRY_PHONE_PREFIXES = [
+  { code: "RO", prefix: "+40", label: "🇷🇴 România (+40)", maxDigits: 9 },
+  { code: "IT", prefix: "+39", label: "🇮🇹 Italia (+39)", maxDigits: 10 },
+  { code: "ES", prefix: "+34", label: "🇪🇸 Spania (+34)", maxDigits: 9 },
+  { code: "DE", prefix: "+49", label: "🇩🇪 Germania (+49)", maxDigits: 11 },
+  { code: "FR", prefix: "+33", label: "🇫🇷 Franța (+33)", maxDigits: 9 },
+  { code: "GB", prefix: "+44", label: "🇬🇧 Marea Britanie (+44)", maxDigits: 10 },
+  { code: "US", prefix: "+1", label: "🇺🇸 SUA (+1)", maxDigits: 10 },
+  { code: "PT", prefix: "+351", label: "🇵🇹 Portugalia (+351)", maxDigits: 9 },
+  { code: "NL", prefix: "+31", label: "🇳🇱 Olanda (+31)", maxDigits: 9 },
+  { code: "BE", prefix: "+32", label: "🇧🇪 Belgia (+32)", maxDigits: 9 },
+  { code: "AT", prefix: "+43", label: "🇦🇹 Austria (+43)", maxDigits: 10 },
+  { code: "CH", prefix: "+41", label: "🇨🇭 Elveția (+41)", maxDigits: 9 },
+  { code: "GR", prefix: "+30", label: "🇬🇷 Grecia (+30)", maxDigits: 10 },
+  { code: "TR", prefix: "+90", label: "🇹🇷 Turcia (+90)", maxDigits: 10 },
+  { code: "PL", prefix: "+48", label: "🇵🇱 Polonia (+48)", maxDigits: 9 },
+  { code: "HU", prefix: "+36", label: "🇭🇺 Ungaria (+36)", maxDigits: 9 },
+  { code: "RS", prefix: "+381", label: "🇷🇸 Serbia (+381)", maxDigits: 9 },
+  { code: "HR", prefix: "+385", label: "🇭🇷 Croația (+385)", maxDigits: 9 },
+  { code: "BG", prefix: "+359", label: "🇧🇬 Bulgaria (+359)", maxDigits: 9 },
+  { code: "MD", prefix: "+373", label: "🇲🇩 Moldova (+373)", maxDigits: 8 },
+  { code: "BR", prefix: "+55", label: "🇧🇷 Brazilia (+55)", maxDigits: 11 },
+  { code: "AR", prefix: "+54", label: "🇦🇷 Argentina (+54)", maxDigits: 10 },
+];
+
+function AgentPhoneInput({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  // Parse existing value to extract prefix and number
+  const findPrefix = (val: string) => {
+    if (!val) return { prefix: COUNTRY_PHONE_PREFIXES[0], number: "" };
+    for (const p of [...COUNTRY_PHONE_PREFIXES].sort((a, b) => b.prefix.length - a.prefix.length)) {
+      if (val.startsWith(p.prefix)) {
+        return { prefix: p, number: val.slice(p.prefix.length).replace(/\s/g, "") };
+      }
+    }
+    return { prefix: COUNTRY_PHONE_PREFIXES[0], number: val.replace(/[^\d]/g, "") };
+  };
+
+  const parsed = findPrefix(value);
+  const [selectedPrefix, setSelectedPrefix] = useState(parsed.prefix);
+  const [phoneNumber, setPhoneNumber] = useState(parsed.number);
+
+  const handlePrefixChange = (prefixCode: string) => {
+    const found = COUNTRY_PHONE_PREFIXES.find(p => p.code === prefixCode);
+    if (found) {
+      setSelectedPrefix(found);
+      onChange(phoneNumber ? `${found.prefix}${phoneNumber}` : "");
+    }
+  };
+
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/[^\d]/g, "").slice(0, selectedPrefix.maxDigits);
+    setPhoneNumber(digits);
+    onChange(digits ? `${selectedPrefix.prefix}${digits}` : "");
+  };
+
+  const isValid = !phoneNumber || phoneNumber.length === selectedPrefix.maxDigits;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-2">
+        <Select value={selectedPrefix.code} onValueChange={handlePrefixChange}>
+          <SelectTrigger className="w-[180px] text-white text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="max-h-60">
+            {COUNTRY_PHONE_PREFIXES.map((p) => (
+              <SelectItem key={p.code} value={p.code} className="text-sm">
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          type="tel"
+          value={phoneNumber}
+          onChange={handleNumberChange}
+          placeholder={`${"0".repeat(selectedPrefix.maxDigits)}`}
+          className={`flex-1 text-white ${phoneNumber && !isValid ? "border-destructive focus-visible:ring-destructive" : ""}`}
+        />
+      </div>
+      {phoneNumber && !isValid && (
+        <p className="text-xs text-destructive">Numărul trebuie să aibă {selectedPrefix.maxDigits} cifre (ai introdus {phoneNumber.length})</p>
+      )}
+    </div>
+  );
+}
+
+
 
 interface PersonalProfileProps {
   userId: string;
