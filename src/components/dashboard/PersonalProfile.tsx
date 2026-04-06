@@ -1299,6 +1299,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           {editingPhysical && <SectionSaveButton />}
         </div>
 
+        {(!readOnly || profile?.agent_name || profile?.agent_email || profile?.agent_phone) && (
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.agentContact}</h3>
@@ -1344,6 +1345,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           )}
           {editingAgent && <SectionSaveButton />}
         </div>
+        )}
       </div>
 
       {/* About */}
