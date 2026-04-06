@@ -1344,8 +1344,23 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           {editingAgent ? (
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label><Input value={form.agent_email || ""} onChange={(e) => updateForm("agent_email", e.target.value)} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentPhone}</Label><Input value={form.agent_phone || ""} onChange={(e) => updateForm("agent_phone", e.target.value)} className="text-white" /></div>
+              <div>
+                <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label>
+                <Input
+                  type="email"
+                  value={form.agent_email || ""}
+                  onChange={(e) => updateForm("agent_email", e.target.value)}
+                  className={`text-white ${form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                  placeholder="agent@example.com"
+                />
+                {form.agent_email && !form.agent_email.includes("@") && (
+                  <p className="text-xs text-destructive mt-1">Adresa de email trebuie să conțină simbolul @</p>
+                )}
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentPhone}</Label>
+                <AgentPhoneInput value={form.agent_phone || ""} onChange={(val) => updateForm("agent_phone", val)} />
+              </div>
             </div>
           ) : (
             <div className="font-body text-sm space-y-1">
