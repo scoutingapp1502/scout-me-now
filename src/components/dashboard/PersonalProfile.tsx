@@ -259,6 +259,11 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           const { error: careerError } = await supabase.from("player_career_entries").insert(entries);
           if (careerError) throw careerError;
         }
+        // Sync current_team from active career entry
+        const activeEntry = careerEntries.find(e => e.currently_active);
+        const newCurrentTeam = activeEntry?.team_name || "";
+        await supabase.from("player_profiles").update({ current_team: newCurrentTeam }).eq("user_id", userId);
+        updateForm("current_team", newCurrentTeam);
       }
 
       toast({ title: t.dashboard.profile.profileUpdated });
