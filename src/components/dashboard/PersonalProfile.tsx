@@ -444,7 +444,19 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
               <SectionEditButton section="header" />
             </div>
           )}
-          {editingSection === "header" && <SectionSaveButton />}
+          {editingSection === "header" && (
+            <div className="absolute bottom-3 right-3 z-10">
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                size="sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                Salvați
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
