@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
 import PlayerStats from "./PlayerStats";
-import NationalityInput from "@/components/ui/nationality-input";
+import NationalityInput, { getDisplayNationality } from "@/components/ui/nationality-input";
 
 type PlayerProfile = Tables<"player_profiles">;
 
