@@ -1,0 +1,1 @@
+ALTER TABLE public.scout_profiles ADD COLUMN sports text[] DEFAULT '{}'::text[];

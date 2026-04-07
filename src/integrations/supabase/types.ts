@@ -472,6 +472,7 @@ export type Database = {
           organization: string | null
           photo_url: string | null
           skills: string[] | null
+          sports: string[] | null
           title: string | null
           updated_at: string
           user_id: string
@@ -489,6 +490,7 @@ export type Database = {
           organization?: string | null
           photo_url?: string | null
           skills?: string[] | null
+          sports?: string[] | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -506,6 +508,7 @@ export type Database = {
           organization?: string | null
           photo_url?: string | null
           skills?: string[] | null
+          sports?: string[] | null
           title?: string | null
           updated_at?: string
           user_id?: string
