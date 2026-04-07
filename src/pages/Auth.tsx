@@ -54,9 +54,13 @@ const Auth = () => {
     }
     setLoading(true);
     try {
+      const metadata: Record<string, any> = { full_name: fullName, role, gender, sport };
+      if (role === "scout" || role === "agent") {
+        metadata.sports = selectedSports;
+      }
       const { data, error } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: window.location.origin, data: { full_name: fullName, role, gender, sport } },
+        options: { emailRedirectTo: window.location.origin, data: metadata },
       });
       if (error) throw error;
       if (data.user) {
