@@ -32,6 +32,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [sport, setSport] = useState("football");
   const [gender, setGender] = useState("");
+  const [selectedSports, setSelectedSports] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
