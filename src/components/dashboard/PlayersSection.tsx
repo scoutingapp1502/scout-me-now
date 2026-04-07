@@ -56,11 +56,35 @@ const PlayersSection = () => {
   const [filterHeightMax, setFilterHeightMax] = useState("");
   const [filterWeightMin, setFilterWeightMin] = useState("");
   const [filterWeightMax, setFilterWeightMax] = useState("");
+  const [scoutSports, setScoutSports] = useState<string[] | null>(null);
   const { lang, t } = useLanguage();
 
   useEffect(() => {
-    const fetchPlayers = async () => {
+    const fetchData = async () => {
       setLoading(true);
+
+      // Get current user and their role/sports
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .single();
+
+        if (roleData && (roleData.role === "scout" || roleData.role === "agent")) {
+          const { data: scoutProfile } = await supabase
+            .from("scout_profiles")
+            .select("sports")
+            .eq("user_id", user.id)
+            .single();
+
+          if (scoutProfile?.sports && scoutProfile.sports.length > 0) {
+            setScoutSports(scoutProfile.sports);
+          }
+        }
+      }
+
       const { data, error } = await supabase
         .from("player_profiles")
         .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot, speed, jumping, endurance, acceleration, defense, career_description, video_highlights, instagram_url, tiktok_url, twitter_url")
@@ -73,7 +97,7 @@ const PlayersSection = () => {
       }
       setLoading(false);
     };
-    fetchPlayers();
+    fetchData();
   }, []);
 
   const uniqueSports = useMemo(() => [...new Set(players.map(p => p.sport).filter(Boolean))].sort(), [players]);
@@ -97,6 +121,10 @@ const PlayersSection = () => {
 
   const filtered = useMemo(() => {
     return players.filter((p) => {
+      // Auto-filter by scout's sports preferences
+      if (scoutSports && scoutSports.length > 0 && filterSport === "all") {
+        if (!p.sport || !scoutSports.includes(p.sport)) return false;
+      }
       const name = `${p.first_name} ${p.last_name}`.toLowerCase();
       if (!name.includes(search.toLowerCase())) return false;
       if (filterSport !== "all" && p.sport !== filterSport) return false;
@@ -113,7 +141,7 @@ const PlayersSection = () => {
       if (filterWeightMax && (!p.weight_kg || p.weight_kg > Number(filterWeightMax))) return false;
       return true;
     });
-  }, [players, search, filterSport, filterPosition, filterNationality, filterFoot, filterDobFrom, filterDobTo, filterHeightMin, filterHeightMax, filterWeightMin, filterWeightMax]);
+  }, [players, search, filterSport, filterPosition, filterNationality, filterFoot, filterDobFrom, filterDobTo, filterHeightMin, filterHeightMax, filterWeightMin, filterWeightMax, scoutSports]);
 
   const clearFilters = () => {
     setFilterSport("all");

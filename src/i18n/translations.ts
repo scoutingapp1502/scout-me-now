@@ -160,6 +160,9 @@ export const translations = {
       genderMale: "Masculin",
       genderFemale: "Feminin",
       genderPreferNotToSay: "Prefer să nu spun",
+      sportsInterest: "Sporturi de interes",
+      selectSports: "Selectează sporturile",
+      sportsSelected: "sporturi selectate",
     },
     // Dashboard
     dashboard: {
@@ -387,6 +390,9 @@ export const translations = {
       genderMale: "Male",
       genderFemale: "Female",
       genderPreferNotToSay: "Prefer not to say",
+      sportsInterest: "Sports of interest",
+      selectSports: "Select sports",
+      sportsSelected: "sports selected",
     },
     dashboard: {
       sidebar: {
