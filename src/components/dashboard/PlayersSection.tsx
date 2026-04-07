@@ -53,6 +53,8 @@ const PlayersSection = () => {
   const [filterDobTo, setFilterDobTo] = useState<Date | undefined>();
   const [filterDobFromMonth, setFilterDobFromMonth] = useState<Date>(new Date());
   const [filterDobToMonth, setFilterDobToMonth] = useState<Date>(new Date());
+  const [dobFromOpen, setDobFromOpen] = useState(false);
+  const [dobToOpen, setDobToOpen] = useState(false);
   const [filterHeightMin, setFilterHeightMin] = useState("");
   const [filterHeightMax, setFilterHeightMax] = useState("");
   const [filterWeightMin, setFilterWeightMin] = useState("");
