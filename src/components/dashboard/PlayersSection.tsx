@@ -269,8 +269,9 @@ const PlayersSection = () => {
         }`}
       >
         <div className="bg-card border border-border rounded-xl p-4 sm:p-5 space-y-4">
-          {/* Row 1: Sport, Position, Nationality, Foot */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Row 1: Sport (only for players), Position, Nationality, Foot */}
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${scoutSports && scoutSports.length > 0 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4`}>
+            {!(scoutSports && scoutSports.length > 0) && (
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.sport}</label>
               <Select value={filterSport} onValueChange={setFilterSport}>
@@ -283,6 +284,7 @@ const PlayersSection = () => {
                 </SelectContent>
               </Select>
             </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.position}</label>
