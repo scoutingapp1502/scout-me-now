@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { getDisplayNationality } from "@/components/ui/nationality-input";
 import { calcPlayerCompletion } from "@/lib/profileCompletion";
 import { supabase } from "@/integrations/supabase/client";
 import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
@@ -102,7 +103,7 @@ const PlayersSection = () => {
 
   const uniqueSports = useMemo(() => [...new Set(players.map(p => p.sport).filter(Boolean))].sort(), [players]);
   const uniquePositions = useMemo(() => [...new Set(players.map(p => p.position).filter(Boolean))].sort(), [players]);
-  const uniqueNationalities = useMemo(() => [...new Set(players.map(p => p.nationality).filter(Boolean))].sort(), [players]);
+  const uniqueNationalities = useMemo(() => [...new Set(players.map(p => p.nationality).filter(Boolean))].sort((a, b) => getDisplayNationality(a, lang).localeCompare(getDisplayNationality(b, lang))), [players, lang]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
