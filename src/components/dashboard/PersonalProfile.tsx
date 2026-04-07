@@ -588,7 +588,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 
       {/* Tab content */}
       <div className="mt-6 px-2 sm:px-6">
-        {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} />}
+        {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} readOnly={readOnly} />}
         {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} />}
         {activeTab === "video" && (
           <VideoTab
@@ -610,8 +610,8 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 };
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, SectionEditButton, SectionSaveButton }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
+function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, SectionEditButton, SectionSaveButton, readOnly = false }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC; readOnly?: boolean;
 }) {
   const editing = editingSection === "stats";
   const editingMatchStats = editingSection === "match_stats";
@@ -825,7 +825,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                     <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label={`Info ${test.label}`}>
+                        <button className={`text-muted-foreground hover:text-primary transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`Info ${test.label}`}>
                           <Info className="h-4 w-4" />
                         </button>
                       </PopoverTrigger>
