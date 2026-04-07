@@ -121,6 +121,10 @@ const PlayersSection = () => {
 
   const filtered = useMemo(() => {
     return players.filter((p) => {
+      // Auto-filter by scout's sports preferences
+      if (scoutSports && scoutSports.length > 0 && filterSport === "all") {
+        if (!p.sport || !scoutSports.includes(p.sport)) return false;
+      }
       const name = `${p.first_name} ${p.last_name}`.toLowerCase();
       if (!name.includes(search.toLowerCase())) return false;
       if (filterSport !== "all" && p.sport !== filterSport) return false;
@@ -137,7 +141,7 @@ const PlayersSection = () => {
       if (filterWeightMax && (!p.weight_kg || p.weight_kg > Number(filterWeightMax))) return false;
       return true;
     });
-  }, [players, search, filterSport, filterPosition, filterNationality, filterFoot, filterDobFrom, filterDobTo, filterHeightMin, filterHeightMax, filterWeightMin, filterWeightMax]);
+  }, [players, search, filterSport, filterPosition, filterNationality, filterFoot, filterDobFrom, filterDobTo, filterHeightMin, filterHeightMax, filterWeightMin, filterWeightMax, scoutSports]);
 
   const clearFilters = () => {
     setFilterSport("all");
