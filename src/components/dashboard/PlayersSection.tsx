@@ -221,7 +221,7 @@ const PlayersSection = () => {
   const activeChips: { label: string; clear: () => void }[] = [];
   if (filterSport !== "all") activeChips.push({ label: filterSport, clear: () => setFilterSport("all") });
   if (filterPosition !== "all") activeChips.push({ label: filterPosition, clear: () => setFilterPosition("all") });
-  if (filterNationality !== "all") activeChips.push({ label: filterNationality, clear: () => setFilterNationality("all") });
+  if (filterNationality !== "all") activeChips.push({ label: getDisplayNationality(filterNationality, lang), clear: () => setFilterNationality("all") });
   if (filterFoot !== "all") activeChips.push({ label: `${tr.foot}: ${filterFoot}`, clear: () => setFilterFoot("all") });
   if (filterDobFrom) activeChips.push({ label: `${tr.dobFrom}: ${format(filterDobFrom, "dd/MM/yyyy")}`, clear: () => setFilterDobFrom(undefined) });
   if (filterDobTo) activeChips.push({ label: `${tr.dobTo}: ${format(filterDobTo, "dd/MM/yyyy")}`, clear: () => setFilterDobTo(undefined) });
@@ -308,7 +308,7 @@ const PlayersSection = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{tr.allNationalities}</SelectItem>
-                  {uniqueNationalities.map(n => <SelectItem key={n} value={n!}>{n}</SelectItem>)}
+                  {uniqueNationalities.map(n => <SelectItem key={n} value={n!}>{getDisplayNationality(n, lang)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
