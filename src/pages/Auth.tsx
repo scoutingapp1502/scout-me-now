@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, ChevronDown } from "lucide-react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 
@@ -201,34 +201,43 @@ const Auth = () => {
                       {(role === "scout" || role === "agent") && (
                         <div className="space-y-2">
                           <Label className="font-body text-sm">{t.auth.sportsInterest}</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {([
-                              { value: "football", label: t.auth.sportFootball },
-                              { value: "basketball", label: t.auth.sportBasketball },
-                              { value: "tennis", label: t.auth.sportTennis },
-                              { value: "handball", label: t.auth.sportHandball },
-                              { value: "volleyball", label: t.auth.sportVolleyball },
-                              { value: "rugby", label: t.auth.sportRugby },
-                              { value: "swimming", label: t.auth.sportSwimming },
-                              { value: "athletics", label: t.auth.sportAthletics },
-                              { value: "other", label: t.auth.sportOther },
-                            ]).map((item) => (
-                              <label key={item.value} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all text-sm font-body ${selectedSports.includes(item.value) ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                                <Checkbox
-                                  checked={selectedSports.includes(item.value)}
-                                  onCheckedChange={(checked) => {
-                                    setSelectedSports(prev =>
-                                      checked ? [...prev, item.value] : prev.filter(s => s !== item.value)
-                                    );
-                                  }}
-                                />
-                                <span>{item.label}</span>
-                              </label>
-                            ))}
-                          </div>
-                          {selectedSports.length > 0 && (
-                            <p className="text-xs text-muted-foreground">{selectedSports.length} {t.auth.sportsSelected}</p>
-                          )}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between font-normal text-sm font-body h-10">
+                                {selectedSports.length > 0
+                                  ? `${selectedSports.length} ${t.auth.sportsSelected}`
+                                  : t.auth.selectSports}
+                                <ChevronDown className="h-4 w-4 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
+                              <div className="space-y-1">
+                                {([
+                                  { value: "football", label: t.auth.sportFootball },
+                                  { value: "basketball", label: t.auth.sportBasketball },
+                                  { value: "tennis", label: t.auth.sportTennis },
+                                  { value: "handball", label: t.auth.sportHandball },
+                                  { value: "volleyball", label: t.auth.sportVolleyball },
+                                  { value: "rugby", label: t.auth.sportRugby },
+                                  { value: "swimming", label: t.auth.sportSwimming },
+                                  { value: "athletics", label: t.auth.sportAthletics },
+                                  { value: "other", label: t.auth.sportOther },
+                                ]).map((item) => (
+                                  <label key={item.value} className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all text-sm font-body hover:bg-muted">
+                                    <Checkbox
+                                      checked={selectedSports.includes(item.value)}
+                                      onCheckedChange={(checked) => {
+                                        setSelectedSports(prev =>
+                                          checked ? [...prev, item.value] : prev.filter(s => s !== item.value)
+                                        );
+                                      }}
+                                    />
+                                    <span>{item.label}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         </div>
                       )}
                     </>
