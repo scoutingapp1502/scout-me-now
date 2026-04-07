@@ -485,7 +485,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 <div className="flex flex-col">
                   <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
                   <span className="text-sm font-semibold text-white font-body mt-0.5">
-                    {profile?.nationality || (readOnly ? "" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>)}
+                    {profile?.nationality ? getDisplayNationality(profile.nationality, lang) : (readOnly ? "" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>)}
                   </span>
                 </div>
                 <div className="flex flex-col">
@@ -1405,7 +1405,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.height}</span><span className="text-foreground font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.weight}</span><span className="text-foreground font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{(profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality ? getDisplayNationality(profile.nationality, lang) : "—"}</span></div>
             </div>
            )}
           {editingPhysical && <SectionSaveButton />}
