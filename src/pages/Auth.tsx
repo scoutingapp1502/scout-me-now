@@ -198,25 +198,37 @@ const Auth = () => {
                           </Select>
                         </div>
                       )}
-                      {role === "player" && (
+                      {(role === "scout" || role === "agent") && (
                         <div className="space-y-2">
-                          <Label className="font-body text-sm">{t.auth.sport}</Label>
-                          <Select value={sport} onValueChange={setSport}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder={t.auth.selectSport} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="football">{t.auth.sportFootball}</SelectItem>
-                              <SelectItem value="basketball">{t.auth.sportBasketball}</SelectItem>
-                              <SelectItem value="tennis">{t.auth.sportTennis}</SelectItem>
-                              <SelectItem value="handball">{t.auth.sportHandball}</SelectItem>
-                              <SelectItem value="volleyball">{t.auth.sportVolleyball}</SelectItem>
-                              <SelectItem value="rugby">{t.auth.sportRugby}</SelectItem>
-                              <SelectItem value="swimming">{t.auth.sportSwimming}</SelectItem>
-                              <SelectItem value="athletics">{t.auth.sportAthletics}</SelectItem>
-                              <SelectItem value="other">{t.auth.sportOther}</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <Label className="font-body text-sm">{t.auth.sportsInterest}</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {([
+                              { value: "football", label: t.auth.sportFootball },
+                              { value: "basketball", label: t.auth.sportBasketball },
+                              { value: "tennis", label: t.auth.sportTennis },
+                              { value: "handball", label: t.auth.sportHandball },
+                              { value: "volleyball", label: t.auth.sportVolleyball },
+                              { value: "rugby", label: t.auth.sportRugby },
+                              { value: "swimming", label: t.auth.sportSwimming },
+                              { value: "athletics", label: t.auth.sportAthletics },
+                              { value: "other", label: t.auth.sportOther },
+                            ]).map((item) => (
+                              <label key={item.value} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all text-sm font-body ${selectedSports.includes(item.value) ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                                <Checkbox
+                                  checked={selectedSports.includes(item.value)}
+                                  onCheckedChange={(checked) => {
+                                    setSelectedSports(prev =>
+                                      checked ? [...prev, item.value] : prev.filter(s => s !== item.value)
+                                    );
+                                  }}
+                                />
+                                <span>{item.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                          {selectedSports.length > 0 && (
+                            <p className="text-xs text-muted-foreground">{selectedSports.length} {t.auth.sportsSelected}</p>
+                          )}
                         </div>
                       )}
                     </>
