@@ -337,7 +337,7 @@ const PlayersSection = () => {
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.birthDate}</label>
               <div className="flex gap-2">
-                <Popover>
+                <Popover open={dobFromOpen} onOpenChange={setDobFromOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -366,9 +366,14 @@ const PlayersSection = () => {
                       disabled={(date) => date > new Date()}
                       className={cn("p-3 pointer-events-auto")}
                     />
+                    <div className="p-2 pt-0 flex justify-end">
+                      <Button size="sm" className="w-full font-body text-xs" onClick={() => setDobFromOpen(false)}>
+                        {lang === "ro" ? "SELECTEAZĂ" : "SELECT"}
+                      </Button>
+                    </div>
                   </PopoverContent>
                 </Popover>
-                <Popover>
+                <Popover open={dobToOpen} onOpenChange={setDobToOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -397,6 +402,11 @@ const PlayersSection = () => {
                       disabled={(date) => date > new Date()}
                       className={cn("p-3 pointer-events-auto")}
                     />
+                    <div className="p-2 pt-0 flex justify-end">
+                      <Button size="sm" className="w-full font-body text-xs" onClick={() => setDobToOpen(false)}>
+                        {lang === "ro" ? "SELECTEAZĂ" : "SELECT"}
+                      </Button>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
