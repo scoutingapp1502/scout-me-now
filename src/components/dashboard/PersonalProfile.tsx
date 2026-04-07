@@ -825,7 +825,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                     <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label={`Info ${test.label}`}>
+                        <button className={`text-muted-foreground hover:text-primary transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`Info ${test.label}`}>
                           <Info className="h-4 w-4" />
                         </button>
                       </PopoverTrigger>
