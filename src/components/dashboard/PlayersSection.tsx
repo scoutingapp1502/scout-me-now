@@ -527,8 +527,8 @@ const PlayersSection = () => {
                 <p className="text-sm font-display text-foreground uppercase tracking-wide truncate">{player.last_name}</p>
               </div>
               <div className="pr-3 flex-shrink-0">
-                {player.sport ? (
-                  <span className="text-[10px] text-muted-foreground font-body bg-muted px-2 py-1 rounded uppercase">{player.sport}</span>
+                {player.current_team ? (
+                  <span className="text-[10px] text-muted-foreground font-body bg-muted px-2 py-1 rounded uppercase">{player.current_team}</span>
                 ) : null}
               </div>
             </div>
