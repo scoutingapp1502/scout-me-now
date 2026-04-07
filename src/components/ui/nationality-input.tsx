@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/i18n/LanguageContext";
 
-const NATIONALITIES = [
+const NATIONALITIES_EN = [
   "Afghan", "Albanian", "Algerian", "American", "Andorran", "Angolan", "Argentine", "Armenian",
   "Australian", "Austrian", "Azerbaijani", "Bahamian", "Bahraini", "Bangladeshi", "Barbadian",
   "Belarusian", "Belgian", "Belizean", "Beninese", "Bhutanese", "Bolivian", "Bosnian",
@@ -30,6 +31,72 @@ const NATIONALITIES = [
   "Yemeni", "Zambian", "Zimbabwean",
 ];
 
+const EN_TO_RO: Record<string, string> = {
+  "Afghan": "Afgan", "Albanian": "Albanez", "Algerian": "Algerian", "American": "American",
+  "Andorran": "Andorran", "Angolan": "Angolan", "Argentine": "Argentinian", "Armenian": "Armean",
+  "Australian": "Australian", "Austrian": "Austriac", "Azerbaijani": "Azer", "Bahamian": "Bahamez",
+  "Bahraini": "Bahrainez", "Bangladeshi": "Bangladeș", "Barbadian": "Barbadian",
+  "Belarusian": "Bielorus", "Belgian": "Belgian", "Belizean": "Belizan", "Beninese": "Beninez",
+  "Bhutanese": "Bhutanez", "Bolivian": "Bolivian", "Bosnian": "Bosniac",
+  "Brazilian": "Brazilian", "British": "Britanic", "Bruneian": "Bruneian", "Bulgarian": "Bulgar",
+  "Burkinabe": "Burkinabez", "Burmese": "Birman", "Burundian": "Burundez",
+  "Cambodian": "Cambodgian", "Cameroonian": "Camerunez", "Canadian": "Canadian",
+  "Cape Verdean": "Capverdian", "Central African": "Centrafican", "Chadian": "Ciadian",
+  "Chilean": "Chilean", "Chinese": "Chinez", "Colombian": "Colombian", "Comorian": "Comorian",
+  "Congolese": "Congolez", "Costa Rican": "Costarican", "Croatian": "Croat",
+  "Cuban": "Cuban", "Cypriot": "Cipriot", "Czech": "Ceh", "Danish": "Danez",
+  "Djiboutian": "Djiboutian", "Dominican": "Dominican", "Dutch": "Olandez",
+  "Ecuadorian": "Ecuadorian", "Egyptian": "Egiptean", "Emirati": "Emiratez",
+  "English": "Englez", "Equatorial Guinean": "Guinean Ecuatorial", "Eritrean": "Eritrean",
+  "Estonian": "Eston", "Ethiopian": "Etiopian", "Fijian": "Fijian", "Filipino": "Filipino",
+  "Finnish": "Finlandez", "French": "Francez",
+  "Gabonese": "Gabonez", "Gambian": "Gambian", "Georgian": "Georgian", "German": "German",
+  "Ghanaian": "Ghanez", "Greek": "Grec", "Grenadian": "Grenadian",
+  "Guatemalan": "Guatemalez", "Guinean": "Guinean", "Guyanese": "Guyanez",
+  "Haitian": "Haitian", "Honduran": "Hondurian", "Hungarian": "Maghiar",
+  "Icelandic": "Islandez", "Indian": "Indian", "Indonesian": "Indonezian",
+  "Iranian": "Iranian", "Iraqi": "Irakian", "Irish": "Irlandez", "Israeli": "Israelian",
+  "Italian": "Italian", "Ivorian": "Ivorian", "Jamaican": "Jamaican", "Japanese": "Japonez",
+  "Jordanian": "Iordanian", "Kazakh": "Kazah", "Kenyan": "Kenyan", "Kosovar": "Kosovar",
+  "Kuwaiti": "Kuweitian", "Kyrgyz": "Kârgâz", "Laotian": "Laoțian", "Latvian": "Leton",
+  "Lebanese": "Libanez", "Liberian": "Liberian", "Libyan": "Libian",
+  "Lithuanian": "Lituanian", "Luxembourgish": "Luxemburghez", "Macedonian": "Macedonean",
+  "Malagasy": "Malgaș", "Malawian": "Malawian", "Malaysian": "Malaezan",
+  "Maldivian": "Maldivian", "Malian": "Malian", "Maltese": "Maltez",
+  "Mauritanian": "Mauritan", "Mauritian": "Mauritian", "Mexican": "Mexican",
+  "Moldovan": "Moldovean", "Mongolian": "Mongol", "Montenegrin": "Muntenegrean",
+  "Moroccan": "Marocan", "Mozambican": "Mozambican", "Namibian": "Namibian",
+  "Nepalese": "Nepalez", "New Zealander": "Neozeelandez", "Nicaraguan": "Nicaraguan",
+  "Nigerian": "Nigerian", "North Korean": "Nord-Coreean", "Norwegian": "Norvegian",
+  "Omani": "Omanez", "Pakistani": "Pakistani", "Palestinian": "Palestinian",
+  "Panamanian": "Panamez", "Paraguayan": "Paraguayan", "Peruvian": "Peruan",
+  "Polish": "Polonez", "Portuguese": "Portughez", "Qatari": "Qatarez",
+  "Romanian": "Român", "Russian": "Rus", "Rwandan": "Rwandez",
+  "Saudi": "Saudit", "Scottish": "Scoțian", "Senegalese": "Senegalez",
+  "Serbian": "Sârb", "Singaporean": "Singaporean", "Slovak": "Slovac", "Slovenian": "Sloven",
+  "Somali": "Somalez", "South African": "Sud-African", "South Korean": "Sud-Coreean",
+  "Spanish": "Spaniol", "Sri Lankan": "Srilankez", "Sudanese": "Sudanez",
+  "Surinamese": "Surinamez", "Swedish": "Suedez", "Swiss": "Elvețian",
+  "Syrian": "Sirian", "Taiwanese": "Taiwanez", "Tajik": "Tadjic", "Tanzanian": "Tanzanian",
+  "Thai": "Tailandez", "Togolese": "Togolez", "Trinidadian": "Trinidadian",
+  "Tunisian": "Tunisian", "Turkish": "Turc", "Turkmen": "Turkmen", "Ugandan": "Ugandez",
+  "Ukrainian": "Ucrainean", "Uruguayan": "Uruguayan", "Uzbek": "Uzbek",
+  "Venezuelan": "Venezuelan", "Vietnamese": "Vietnamez", "Welsh": "Galez",
+  "Yemeni": "Yemenit", "Zambian": "Zambian", "Zimbabwean": "Zimbabwean",
+};
+
+// Reverse map for RO → EN lookup
+const RO_TO_EN: Record<string, string> = {};
+for (const [en, ro] of Object.entries(EN_TO_RO)) {
+  RO_TO_EN[ro.toLowerCase()] = en;
+}
+
+export function getDisplayNationality(enValue: string | null | undefined, lang: "ro" | "en"): string {
+  if (!enValue) return "";
+  if (lang === "ro") return EN_TO_RO[enValue] || enValue;
+  return enValue;
+}
+
 interface NationalityInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -39,17 +106,32 @@ interface NationalityInputProps {
 
 const NationalityInput = ({ value, onChange, placeholder, className }: NationalityInputProps) => {
   const [open, setOpen] = useState(false);
-  const [filtered, setFiltered] = useState<string[]>([]);
+  const [inputText, setInputText] = useState("");
+  const [filtered, setFiltered] = useState<{ en: string; display: string }[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const { lang } = useLanguage();
+
+  // Sync display text when value (EN) changes externally
+  useEffect(() => {
+    if (value) {
+      setInputText(lang === "ro" ? (EN_TO_RO[value] || value) : value);
+    } else {
+      setInputText("");
+    }
+  }, [value, lang]);
 
   useEffect(() => {
-    if (value && value.length > 0) {
-      const lower = value.toLowerCase();
-      setFiltered(NATIONALITIES.filter((n) => n.toLowerCase().includes(lower)).slice(0, 8));
+    if (inputText && inputText.length > 0) {
+      const lower = inputText.toLowerCase();
+      const results = NATIONALITIES_EN
+        .map((en) => ({ en, display: lang === "ro" ? (EN_TO_RO[en] || en) : en }))
+        .filter((item) => item.display.toLowerCase().includes(lower))
+        .slice(0, 8);
+      setFiltered(results);
     } else {
       setFiltered([]);
     }
-  }, [value]);
+  }, [inputText, lang]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -64,29 +146,32 @@ const NationalityInput = ({ value, onChange, placeholder, className }: Nationali
   return (
     <div ref={wrapperRef} className="relative">
       <Input
-        value={value}
+        value={inputText}
         onChange={(e) => {
-          onChange(e.target.value);
+          setInputText(e.target.value);
           setOpen(true);
+          // If user clears the input, clear the value
+          if (!e.target.value) onChange("");
         }}
-        onFocus={() => value && setOpen(true)}
+        onFocus={() => inputText && setOpen(true)}
         placeholder={placeholder}
         className={className}
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
         <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-          {filtered.map((nat) => (
+          {filtered.map((item) => (
             <button
-              key={nat}
+              key={item.en}
               type="button"
               onClick={() => {
-                onChange(nat);
+                onChange(item.en); // Always save English value
+                setInputText(item.display);
                 setOpen(false);
               }}
               className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent/50 transition-colors"
             >
-              {nat}
+              {item.display}
             </button>
           ))}
         </div>

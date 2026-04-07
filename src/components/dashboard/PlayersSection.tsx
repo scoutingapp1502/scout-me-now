@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { getDisplayNationality } from "@/components/ui/nationality-input";
 import { calcPlayerCompletion } from "@/lib/profileCompletion";
 import { supabase } from "@/integrations/supabase/client";
 import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
@@ -102,7 +103,7 @@ const PlayersSection = () => {
 
   const uniqueSports = useMemo(() => [...new Set(players.map(p => p.sport).filter(Boolean))].sort(), [players]);
   const uniquePositions = useMemo(() => [...new Set(players.map(p => p.position).filter(Boolean))].sort(), [players]);
-  const uniqueNationalities = useMemo(() => [...new Set(players.map(p => p.nationality).filter(Boolean))].sort(), [players]);
+  const uniqueNationalities = useMemo(() => [...new Set(players.map(p => p.nationality).filter(Boolean))].sort((a, b) => getDisplayNationality(a, lang).localeCompare(getDisplayNationality(b, lang))), [players, lang]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -220,7 +221,7 @@ const PlayersSection = () => {
   const activeChips: { label: string; clear: () => void }[] = [];
   if (filterSport !== "all") activeChips.push({ label: filterSport, clear: () => setFilterSport("all") });
   if (filterPosition !== "all") activeChips.push({ label: filterPosition, clear: () => setFilterPosition("all") });
-  if (filterNationality !== "all") activeChips.push({ label: filterNationality, clear: () => setFilterNationality("all") });
+  if (filterNationality !== "all") activeChips.push({ label: getDisplayNationality(filterNationality, lang), clear: () => setFilterNationality("all") });
   if (filterFoot !== "all") activeChips.push({ label: `${tr.foot}: ${filterFoot}`, clear: () => setFilterFoot("all") });
   if (filterDobFrom) activeChips.push({ label: `${tr.dobFrom}: ${format(filterDobFrom, "dd/MM/yyyy")}`, clear: () => setFilterDobFrom(undefined) });
   if (filterDobTo) activeChips.push({ label: `${tr.dobTo}: ${format(filterDobTo, "dd/MM/yyyy")}`, clear: () => setFilterDobTo(undefined) });
@@ -307,7 +308,7 @@ const PlayersSection = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{tr.allNationalities}</SelectItem>
-                  {uniqueNationalities.map(n => <SelectItem key={n} value={n!}>{n}</SelectItem>)}
+                  {uniqueNationalities.map(n => <SelectItem key={n} value={n!}>{getDisplayNationality(n, lang)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
