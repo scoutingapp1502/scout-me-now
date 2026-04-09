@@ -687,66 +687,35 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
           <div className="flex-1 w-full bg-card border border-border rounded-2xl p-5 sm:p-6">
             <div className="flex items-center justify-between mb-1">
               <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
-              <SectionEditButton section="stats" />
             </div>
-            {editing ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3">
-                {stats.map((stat) => {
-                  const value = (form as any)[stat.key] ?? 0;
-                  return (
-                    <div key={stat.key} className="bg-muted/50 border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center">
-                      <p className="text-xs text-muted-foreground font-body mb-2 text-center">{stat.icon} {stat.label}</p>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={value}
-                        onChange={(e) => updateForm(stat.key, Math.min(100, parseInt(e.target.value) || 0))}
-                        className="text-center text-lg font-display text-white"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
               <>
                 <div className="space-y-4">
-                  {stats.map((stat) => {
-                    const value = (form as any)[stat.key] ?? 0;
-                    const percentage = Math.min(value, 100);
-                    return (
-                      <div key={stat.key} className="group">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
-                          <span className="font-display text-xl text-foreground">{value}</span>
-                        </div>
-                        <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-700 ease-out"
-                            style={{
-                              width: `${percentage}%`,
-                              background: percentage >= 80
-                                ? 'linear-gradient(90deg, hsl(var(--primary)), hsl(145 80% 50%))'
-                                : percentage >= 50
-                                  ? 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))'
-                                  : 'linear-gradient(90deg, hsl(var(--destructive) / 0.6), hsl(var(--destructive)))',
-                            }}
-                          />
-                        </div>
+                  {stats.map((stat) => (
+                    <div key={stat.key} className="group">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
+                        <span className="font-display text-xl text-foreground">?</span>
                       </div>
-                    );
-                  })}
+                      <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700 ease-out"
+                          style={{
+                            width: '0%',
+                            background: 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
                   <span className="text-sm text-muted-foreground font-body uppercase tracking-wide">Rating General</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-display text-3xl text-primary">{overallRating}</span>
+                    <span className="font-display text-3xl text-primary">?</span>
                     <span className="text-xs text-muted-foreground font-body">/100</span>
                   </div>
                 </div>
               </>
-            )}
-            {editing && <SectionSaveButton />}
           </div>
         </div>
 
