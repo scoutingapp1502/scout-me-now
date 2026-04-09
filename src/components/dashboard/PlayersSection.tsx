@@ -146,6 +146,23 @@ const PlayersSection = () => {
     });
   }, [players, search, filterSport, filterPosition, filterNationality, filterFoot, filterDobFrom, filterDobTo, filterHeightMin, filterHeightMax, filterWeightMin, filterWeightMax, scoutSports]);
 
+  // Track search_appearance for filtered players (debounced)
+  const searchTrackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (searchTrackTimer.current) clearTimeout(searchTrackTimer.current);
+    searchTrackTimer.current = setTimeout(() => {
+      supabase.auth.getUser().then(({ data }) => {
+        if (!data.user) return;
+        filtered.forEach((p) => {
+          if (p.user_id !== data.user!.id) {
+            trackAnalyticsEvent(p.user_id, "search_appearance", data.user!.id);
+          }
+        });
+      });
+    }, 1500);
+    return () => { if (searchTrackTimer.current) clearTimeout(searchTrackTimer.current); };
+  }, [filtered]);
+
   const clearFilters = () => {
     setFilterSport("all");
     setFilterPosition("all");
