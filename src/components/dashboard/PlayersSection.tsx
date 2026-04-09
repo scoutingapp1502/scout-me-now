@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { getDisplayNationality } from "@/components/ui/nationality-input";
 import { calcPlayerCompletion } from "@/lib/profileCompletion";
 import { supabase } from "@/integrations/supabase/client";
