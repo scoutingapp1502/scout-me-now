@@ -146,10 +146,15 @@ const PlayersSection = () => {
     });
   }, [players, search, filterSport, filterPosition, filterNationality, filterFoot, filterDobFrom, filterDobTo, filterHeightMin, filterHeightMax, filterWeightMin, filterWeightMax, scoutSports]);
 
-  // Track search_appearance for filtered players (debounced)
+  // Track search_appearance only when filters or search are actively used
+  const isSearchActive = useMemo(() => {
+    return search.trim().length > 0 || activeFilterCount > 0;
+  }, [search, activeFilterCount]);
+
   const searchTrackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (searchTrackTimer.current) clearTimeout(searchTrackTimer.current);
+    if (!isSearchActive) return;
     searchTrackTimer.current = setTimeout(() => {
       supabase.auth.getUser().then(({ data }) => {
         if (!data.user) return;
@@ -161,7 +166,7 @@ const PlayersSection = () => {
       });
     }, 1500);
     return () => { if (searchTrackTimer.current) clearTimeout(searchTrackTimer.current); };
-  }, [filtered]);
+  }, [filtered, isSearchActive]);
 
   const clearFilters = () => {
     setFilterSport("all");
