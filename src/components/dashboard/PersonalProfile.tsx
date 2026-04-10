@@ -342,7 +342,15 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
         await supabase.from("player_career_entries").delete().eq("user_id", userId);
         // Insert new entries
         if (careerEntries.length > 0) {
-          const entries = careerEntries.map((e, i) => ({
+          // Sort chronologically by start_date before saving
+          const sorted = [...careerEntries].sort((a, b) => {
+            if (!a.start_date && !b.start_date) return 0;
+            if (!a.start_date) return 1;
+            if (!b.start_date) return -1;
+            return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+          });
+          setCareerEntries(sorted);
+          const entries = sorted.map((e, i) => ({
             user_id: userId,
             team_name: e.team_name,
             start_date: e.start_date || null,
