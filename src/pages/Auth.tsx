@@ -184,19 +184,40 @@ const Auth = () => {
                         <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.auth.fullNamePlaceholder} required />
                       </div>
                       {role === "player" && (
-                        <div className="space-y-2">
-                          <Label className="font-body text-sm">{t.auth.gender}</Label>
-                          <Select value={gender} onValueChange={setGender}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder={t.auth.selectGender} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="male">{t.auth.genderMale}</SelectItem>
-                              <SelectItem value="female">{t.auth.genderFemale}</SelectItem>
-                              <SelectItem value="prefer_not_to_say">{t.auth.genderPreferNotToSay}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <>
+                          <div className="space-y-2">
+                            <Label className="font-body text-sm">{t.auth.sport}</Label>
+                            <Select value={sport} onValueChange={setSport}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder={t.auth.selectSport} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="football">{t.auth.sportFootball}</SelectItem>
+                                <SelectItem value="basketball">{t.auth.sportBasketball}</SelectItem>
+                                <SelectItem value="tennis">{t.auth.sportTennis}</SelectItem>
+                                <SelectItem value="handball">{t.auth.sportHandball}</SelectItem>
+                                <SelectItem value="volleyball">{t.auth.sportVolleyball}</SelectItem>
+                                <SelectItem value="rugby">{t.auth.sportRugby}</SelectItem>
+                                <SelectItem value="swimming">{t.auth.sportSwimming}</SelectItem>
+                                <SelectItem value="athletics">{t.auth.sportAthletics}</SelectItem>
+                                <SelectItem value="other">{t.auth.sportOther}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="font-body text-sm">{t.auth.gender}</Label>
+                            <Select value={gender} onValueChange={setGender}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder={t.auth.selectGender} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="male">{t.auth.genderMale}</SelectItem>
+                                <SelectItem value="female">{t.auth.genderFemale}</SelectItem>
+                                <SelectItem value="prefer_not_to_say">{t.auth.genderPreferNotToSay}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
                       )}
                       {(role === "scout" || role === "agent") && (
                         <div className="space-y-2">
