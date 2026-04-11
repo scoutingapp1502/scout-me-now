@@ -581,7 +581,9 @@ const PlayersSection = () => {
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogTitle className="sr-only">{tr.playerProfile}</DialogTitle>
-          {selectedPlayerId && <PersonalProfile userId={selectedPlayerId} readOnly />}
+          <div className="overflow-y-auto h-full sm:max-h-[90vh]">
+            {selectedPlayerId && <PersonalProfile userId={selectedPlayerId} readOnly />}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
