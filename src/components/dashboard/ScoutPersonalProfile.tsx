@@ -40,6 +40,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null);
   const [postingActivity, setPostingActivity] = useState(false);
   const [activityFilter, setActivityFilter] = useState<"all" | "posts" | "images">("all");
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   useEffect(() => {
     fetchData();
