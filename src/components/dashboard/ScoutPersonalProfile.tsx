@@ -372,6 +372,17 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                 </div>
               )}
             </div>
+            {/* Message button for readOnly */}
+            {readOnly && editingSection !== "header" && (
+              <Button
+                onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
+                size="sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 mt-2 sm:mt-0"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Mesaj
+              </Button>
+            )}
           </div>
 
           {/* Save button for header */}
