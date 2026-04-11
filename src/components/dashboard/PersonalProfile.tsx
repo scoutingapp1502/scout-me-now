@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle } from "lucide-react";
+import MessageDialog from "./MessageDialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -523,6 +524,19 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                   <Input value={form.twitter_url || ""} onChange={(e) => updateForm("twitter_url", e.target.value)} placeholder="Twitter/X URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
                   <Input value={form.tiktok_url || ""} onChange={(e) => updateForm("tiktok_url", e.target.value)} placeholder="TikTok URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
                 </div>
+              </div>
+            )}
+            {/* Message button for readOnly */}
+            {readOnly && (
+              <div className="mt-3">
+                <Button
+                  onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {lang === "ro" ? "Mesaj" : "Message"}
+                </Button>
               </div>
             )}
           </div>
