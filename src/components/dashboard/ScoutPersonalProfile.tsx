@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle } from "lucide-react";
+import MessageDialog from "./MessageDialog";
 import ScoutExtraSections from "./ScoutExtraSections";
 import ScoutStats from "./ScoutStats";
 import SkillsEditor from "./SkillsEditor";
@@ -39,6 +40,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null);
   const [postingActivity, setPostingActivity] = useState(false);
   const [activityFilter, setActivityFilter] = useState<"all" | "posts" | "images">("all");
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -370,6 +372,17 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                 </div>
               )}
             </div>
+            {/* Message button for readOnly */}
+            {readOnly && editingSection !== "header" && (
+              <Button
+                onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
+                size="sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 mt-2 sm:mt-0"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Mesaj
+              </Button>
+            )}
           </div>
 
           {/* Save button for header */}
@@ -740,6 +753,16 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
       {/* Extra sections: Studii, Licențe, Limbi */}
       <ScoutExtraSections userId={userId} readOnly={readOnly} />
+
+      {/* Message Dialog */}
+      {readOnly && (
+        <MessageDialog
+          open={showMessageDialog}
+          onOpenChange={setShowMessageDialog}
+          recipientUserId={userId}
+          recipientName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()}
+        />
+      )}
     </div>
   );
 };

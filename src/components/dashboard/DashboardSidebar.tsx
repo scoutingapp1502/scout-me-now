@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Users, Search, Briefcase, Building2, LogOut } from "lucide-react";
+import { User, Users, Search, Briefcase, Building2, LogOut, MessageCircle } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 
@@ -15,10 +15,11 @@ interface DashboardSidebarProps {
 
 const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole }: DashboardSidebarProps) => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const sections = [
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
+    { id: "messages", label: lang === "ro" ? "Mesaje" : "Messages", icon: MessageCircle },
     { id: "players", label: t.dashboard.sidebar.players, icon: Users },
     { id: "scouters", label: t.dashboard.sidebar.scouters, icon: Search },
     { id: "agents", label: t.dashboard.sidebar.agents, icon: Briefcase },

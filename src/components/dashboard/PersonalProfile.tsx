@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle } from "lucide-react";
+import MessageDialog from "./MessageDialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -180,6 +181,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("stats");
   const [newVideoUrl, setNewVideoUrl] = useState("");
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
 
@@ -525,6 +527,19 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 </div>
               </div>
             )}
+            {/* Message button for readOnly */}
+            {readOnly && (
+              <div className="mt-3">
+                <Button
+                  onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {lang === "ro" ? "Mesaj" : "Message"}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Avatar */}
@@ -613,6 +628,16 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           />
         )}
       </div>
+
+      {/* Message Dialog */}
+      {readOnly && (
+        <MessageDialog
+          open={showMessageDialog}
+          onOpenChange={setShowMessageDialog}
+          recipientUserId={userId}
+          recipientName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()}
+        />
+      )}
     </div>
   );
 };
