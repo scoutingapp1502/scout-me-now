@@ -15,7 +15,7 @@ interface DashboardSidebarProps {
 
 const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole }: DashboardSidebarProps) => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const sections = [
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
