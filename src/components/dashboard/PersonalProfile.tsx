@@ -628,6 +628,16 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           />
         )}
       </div>
+
+      {/* Message Dialog */}
+      {readOnly && (
+        <MessageDialog
+          open={showMessageDialog}
+          onOpenChange={setShowMessageDialog}
+          recipientUserId={userId}
+          recipientName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()}
+        />
+      )}
     </div>
   );
 };

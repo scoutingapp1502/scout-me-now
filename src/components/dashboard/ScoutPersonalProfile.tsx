@@ -741,6 +741,16 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
 
       {/* Extra sections: Studii, Licențe, Limbi */}
       <ScoutExtraSections userId={userId} readOnly={readOnly} />
+
+      {/* Message Dialog */}
+      {readOnly && (
+        <MessageDialog
+          open={showMessageDialog}
+          onOpenChange={setShowMessageDialog}
+          recipientUserId={userId}
+          recipientName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()}
+        />
+      )}
     </div>
   );
 };
