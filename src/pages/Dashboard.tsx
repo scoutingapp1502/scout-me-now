@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import MessagesSection from "@/components/dashboard/MessagesSection";
+import ActivitySection from "@/components/dashboard/ActivitySection";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
@@ -192,6 +193,7 @@ const Dashboard = () => {
       case "players": return <PlayersSection />;
       case "scouters": return <ScoutersSection />;
       case "agents": return <AgentsSection />;
+      case "activity": return <ActivitySection />;
       case "messages": return <MessagesSection />;
       case "clubs": return <PlaceholderSection title="CLUBS" />;
       default:
