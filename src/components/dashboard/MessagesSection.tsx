@@ -178,7 +178,7 @@ const MessagesSection = () => {
   useEffect(() => {
     if (!selectedConversation) return;
     const channel = supabase
-      .channel(`chat-${selectedConversation.conversation_id}`)
+      .channel(`chat-${selectedConversation.conversation_id}-${Date.now()}`)
       .on(
         "postgres_changes",
         {
