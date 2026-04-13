@@ -241,7 +241,6 @@ const ActivitySection = () => {
               author={{ user_id: post.user_id, name: post.author_name, photo: post.author_photo, role: post.author_role, title: post.author_title }}
               currentUserId={currentUserId}
               onDelete={handleDelete}
-              onUnfollow={handleUnfollow}
               onViewProfile={handleViewProfile}
             />
           ))}
