@@ -465,17 +465,6 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
       </div>
 
 
-      {/* Followers list (only in personal profile, non-readOnly) */}
-      {!readOnly && showFollowersList && (
-        <div className="mt-4">
-          <FollowersList
-            followers={followers}
-            onRemove={removeFollower}
-            onViewProfile={() => {}}
-            onClose={() => setShowFollowersList(false)}
-          />
-        </div>
-      )}
 
       {/* ===== STATISTICI ===== */}
       <ScoutStats userId={userId} isOwner={!readOnly} />
