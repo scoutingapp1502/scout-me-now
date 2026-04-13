@@ -230,7 +230,7 @@ const ActivitySection = () => {
             {lang === "ro" ? "Publică" : "Post"}
           </Button>
         </div>
-      </div>
+      </div>}
 
       {/* Feed Tab Toggle */}
       <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
