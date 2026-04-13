@@ -199,7 +199,7 @@ const ActivitySection = () => {
         <button
           onClick={() => {
             setFeedTab("following");
-            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
+            if (currentUserId) { markFollowingSeen(currentUserId); refetchNotifications(); }
           }}
           className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
@@ -213,7 +213,7 @@ const ActivitySection = () => {
         <button
           onClick={() => {
             setFeedTab("mine");
-            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
+            if (currentUserId) { markMineSeen(currentUserId); refetchNotifications(); }
           }}
           className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
