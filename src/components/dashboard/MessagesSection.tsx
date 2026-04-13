@@ -49,9 +49,10 @@ interface Message {
 interface MessagesSectionProps {
   initialChatUserId?: string | null;
   onInitialChatHandled?: () => void;
+  onNavigateToChat?: (userId: string) => void;
 }
 
-const MessagesSection = ({ initialChatUserId, onInitialChatHandled }: MessagesSectionProps = {}) => {
+const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateToChat }: MessagesSectionProps = {}) => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<ConversationItem | null>(null);
