@@ -310,18 +310,28 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="bg-muted/50 rounded-lg px-3 py-1.5">
-                      <p className="text-xs font-medium text-foreground">{c.author_name}</p>
-                      <p className="text-xs text-foreground/80">{c.content}</p>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] text-muted-foreground/60">{timeAgo(c.created_at)}</span>
+                    <div className="flex items-start gap-1">
+                      <div className="flex-1 bg-muted/50 rounded-lg px-3 py-1.5">
+                        <p className="text-xs font-medium text-foreground">{c.author_name}</p>
+                        <p className="text-xs text-foreground/80">{c.content}</p>
+                      </div>
                       {c.user_id === currentUserId && (
-                        <button onClick={() => deleteComment(c.id)} className="text-[10px] text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
-                          {lang === "ro" ? "Șterge" : "Delete"}
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => deleteComment(c.id)} className="text-destructive">
+                              <Trash2 className="h-3.5 w-3.5 mr-2" />
+                              {lang === "ro" ? "Șterge mesajul" : "Delete message"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
+                    <span className="text-[10px] text-muted-foreground/60 ml-1 mt-0.5">{timeAgo(c.created_at)}</span>
                   </div>
                 </div>
               ))}
