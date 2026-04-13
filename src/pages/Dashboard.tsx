@@ -202,12 +202,18 @@ const Dashboard = () => {
               : <PersonalProfile userId={user.id} />}
           </>
         );
-      case "players": return <PlayersSection />;
-      case "scouters": return <ScoutersSection />;
-      case "agents": return <AgentsSection />;
-      case "notifications": return <NotificationsSection />;
-      case "activity": return <ActivitySection />;
-      case "messages": return <MessagesSection />;
+      case "players": return <PlayersSection onNavigateToChat={handleNavigateToChat} />;
+      case "scouters": return <ScoutersSection onNavigateToChat={handleNavigateToChat} />;
+      case "agents": return <AgentsSection onNavigateToChat={handleNavigateToChat} />;
+      case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} />;
+      case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} />;
+      case "messages": return (
+        <MessagesSection
+          initialChatUserId={pendingChatUserId}
+          onInitialChatHandled={() => setPendingChatUserId(null)}
+          onNavigateToChat={handleNavigateToChat}
+        />
+      );
       case "clubs": return <PlaceholderSection title="CLUBS" />;
       default:
         return (
