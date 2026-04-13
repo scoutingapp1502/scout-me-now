@@ -114,12 +114,31 @@ const ActivitySection = () => {
 
   useEffect(() => { if (currentUserId) fetchPosts(currentUserId); }, [currentUserId]);
 
+  feedTabRef.current = feedTab;
+
   useEffect(() => {
-    const channel = supabase.channel("posts-feed").on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
+    const channel = supabase.channel("posts-feed").on("postgres_changes", { event: "*", schema: "public", table: "posts" }, (payload: any) => {
       const uid = currentUserIdRef.current;
-      if (uid) fetchPosts(uid);
+      if (!uid) return;
+
+      // If the change was made by the current user, refresh immediately
+      if (payload.new?.user_id === uid || payload.old?.user_id === uid) {
+        fetchPosts(uid);
+        return;
+      }
+
+      // For others' posts, only notify on Following tab after 1 minute
+      if (feedTabRef.current === "following") {
+        if (newPostTimerRef.current) clearTimeout(newPostTimerRef.current);
+        newPostTimerRef.current = setTimeout(() => {
+          setNewPostsAvailable(true);
+        }, 60000); // 1 minute
+      }
     }).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+      if (newPostTimerRef.current) clearTimeout(newPostTimerRef.current);
+    };
   }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setImageFile(file); setImagePreview(URL.createObjectURL(file)); };
