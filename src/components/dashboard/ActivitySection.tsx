@@ -194,6 +194,27 @@ const ActivitySection = () => {
 
   const handleViewProfile = (userId: string, role: string) => { setViewingProfileId(userId); setViewingProfileRole(role); };
 
+  const handleViewSinglePost = async (postId: string) => {
+    setLoadingSinglePost(true);
+    setViewingSinglePostId(postId);
+    const { data: rawPost } = await supabase.from("posts").select("*").eq("id", postId).maybeSingle();
+    if (!rawPost) { setLoadingSinglePost(false); return; }
+    const uid = rawPost.user_id;
+    const [playerRes, scoutRes, roleRes] = await Promise.all([
+      supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url, position, current_team").eq("user_id", uid).maybeSingle(),
+      supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url, title, organization").eq("user_id", uid).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", uid).maybeSingle(),
+    ]);
+    const role = roleRes.data?.role || "player";
+    const profile = playerRes.data
+      ? { name: `${playerRes.data.first_name} ${playerRes.data.last_name}`.trim(), photo: playerRes.data.photo_url, title: [playerRes.data.position, playerRes.data.current_team].filter(Boolean).join(" · ") }
+      : scoutRes.data
+        ? { name: `${scoutRes.data.first_name} ${scoutRes.data.last_name}`.trim(), photo: scoutRes.data.photo_url, title: [scoutRes.data.title, scoutRes.data.organization].filter(Boolean).join(" | ") }
+        : { name: "User", photo: null, title: "" };
+    setSinglePost({ ...rawPost, author_name: profile.name, author_photo: profile.photo, author_role: role, author_title: profile.title });
+    setLoadingSinglePost(false);
+  };
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <h2 className="font-display text-2xl text-foreground">{lang === "ro" ? "Activitate" : "Activity"}</h2>
