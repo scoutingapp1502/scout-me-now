@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle, UserPlus, UserCheck } from "lucide-react";
 import MessageDialog from "./MessageDialog";
+import PostCard from "./PostCard";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -123,7 +124,7 @@ const positionsBySport: Record<string, string[]> = {
   ],
 };
 
-type TabType = "stats" | "profile" | "video";
+type TabType = "stats" | "profile" | "video" | "posts";
 
 interface TechnicalTest {
   key: string;
@@ -625,6 +626,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             { key: "stats" as TabType, label: "Stats" },
             { key: "profile" as TabType, label: "Profile" },
             { key: "video" as TabType, label: "Video" },
+            { key: "posts" as TabType, label: lang === "ro" ? "Postări" : "Posts" },
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -663,6 +665,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             SectionSaveButton={SectionSaveButton}
           />
         )}
+        {activeTab === "posts" && <PostsTab userId={userId} readOnly={readOnly} />}
       </div>
 
       {/* Message Dialog */}
@@ -1915,6 +1918,100 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
         </div>
       )}
       <SectionSaveButton />
+    </div>
+  );
+}
+
+/* ======================== POSTS TAB ======================== */
+function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boolean }) {
+  const { lang } = useLanguage();
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [authorInfo, setAuthorInfo] = useState<{ name: string; photo: string | null; role: string; title: string } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true);
+
+      // Fetch posts from both tables
+      const [postsRes, scoutPostsRes] = await Promise.all([
+        supabase.from("posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+        supabase.from("scout_posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+      ]);
+
+      const allPosts = [
+        ...(postsRes.data || []).map(p => ({ ...p, video_url: p.video_url || null })),
+        ...(scoutPostsRes.data || []).map(p => ({ ...p, post_type: "scout", video_url: null })),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setPosts(allPosts);
+
+      // Fetch author info
+      const [playerRes, scoutRes, roleRes] = await Promise.all([
+        supabase.from("player_profiles").select("first_name, last_name, photo_url").eq("user_id", userId).maybeSingle(),
+        supabase.from("scout_profiles").select("first_name, last_name, photo_url, title").eq("user_id", userId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
+      ]);
+
+      const role = roleRes.data?.role || "player";
+      if (role === "player" && playerRes.data) {
+        setAuthorInfo({ name: `${playerRes.data.first_name} ${playerRes.data.last_name}`.trim(), photo: playerRes.data.photo_url, role, title: "" });
+      } else if (scoutRes.data) {
+        setAuthorInfo({ name: `${scoutRes.data.first_name} ${scoutRes.data.last_name}`.trim(), photo: scoutRes.data.photo_url, role, title: scoutRes.data.title || "" });
+      }
+
+      setLoading(false);
+    };
+    fetchPosts();
+  }, [userId]);
+
+  const handleDelete = useCallback(async (postId: string) => {
+    await supabase.from("posts").delete().eq("id", postId);
+    await supabase.from("scout_posts").delete().eq("id", postId);
+    setPosts(prev => prev.filter(p => p.id !== postId));
+  }, []);
+
+  const handleViewProfile = useCallback(() => {}, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <p className="text-center text-muted-foreground py-12 font-body">
+        {lang === "ro" ? "Nicio postare încă." : "No posts yet."}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4 max-w-2xl mx-auto">
+      {posts.map(post => (
+        <PostCard
+          key={post.id}
+          post={post}
+          author={{
+            user_id: userId,
+            name: authorInfo?.name || "",
+            photo: authorInfo?.photo || null,
+            role: authorInfo?.role || "player",
+            title: authorInfo?.title || "",
+          }}
+          currentUserId={currentUserId}
+          onDelete={handleDelete}
+          onViewProfile={handleViewProfile}
+        />
+      ))}
     </div>
   );
 }
