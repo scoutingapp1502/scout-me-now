@@ -228,7 +228,13 @@ const MessagesSection = () => {
         (payload) => {
           const newMsg = payload.new as Message;
           setMessages((prev) => {
+            // Skip if already present (real id) or replace optimistic with same content from same sender
             if (prev.some((m) => m.id === newMsg.id)) return prev;
+            // If it's our own message, it was already added optimistically - skip realtime duplicate
+            if (newMsg.sender_id === currentUserId) {
+              const hasOptimistic = prev.some((m) => m.id.startsWith("optimistic-") && m.content === newMsg.content);
+              if (hasOptimistic) return prev;
+            }
             return [...prev, newMsg];
           });
           if (newMsg.sender_id !== currentUserId) {
