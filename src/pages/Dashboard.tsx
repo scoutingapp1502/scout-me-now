@@ -29,6 +29,7 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState<"player" | "scout" | "agent" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
+  const [pendingChatUserId, setPendingChatUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const { sections, percentage, loading: completionLoading } = useProfileCompletion(user?.id ?? null, userRole);
 
