@@ -13,6 +13,7 @@ interface DashboardSidebarProps {
   playerSport?: string;
   profileLabel?: string;
   userRole?: "player" | "scout" | "agent" | null;
+  userId?: string | null;
 }
 
 const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole }: DashboardSidebarProps) => {
