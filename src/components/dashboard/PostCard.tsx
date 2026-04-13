@@ -237,21 +237,21 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
               <p className="text-[10px] text-muted-foreground/60">{timeAgo(post.created_at)}</p>
             </div>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {isOwnPost && (
+          {isOwnPost && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onDelete(post.id)} className="text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
                   {lang === "ro" ? "Șterge" : "Delete"}
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {/* Type badge */}
