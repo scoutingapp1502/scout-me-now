@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Users, Search, Briefcase, Building2, LogOut, MessageCircle, Newspaper } from "lucide-react";
@@ -16,6 +17,77 @@ interface DashboardSidebarProps {
 const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole }: DashboardSidebarProps) => {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let userId: string | null = null;
+
+    const fetchUnread = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      userId = user.id;
+
+      // Get all conversation IDs for this user
+      const { data: convs } = await supabase
+        .from("conversations")
+        .select("id")
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+
+      if (!convs || convs.length === 0) { setUnreadCount(0); return; }
+
+      const convIds = convs.map(c => c.id);
+
+      const { count } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .in("conversation_id", convIds)
+        .eq("read", false)
+        .neq("sender_id", user.id);
+
+      setUnreadCount(count || 0);
+    };
+
+    fetchUnread();
+
+    // Realtime: listen for new messages
+    const channel = supabase
+      .channel("sidebar-unread")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "messages" },
+        () => { fetchUnread(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // Reset unread when viewing messages
+  useEffect(() => {
+    if (activeSection === "messages") {
+      // Small delay to let messages be marked as read
+      const timer = setTimeout(() => {
+        const refetch = async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+          const { data: convs } = await supabase
+            .from("conversations")
+            .select("id")
+            .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+          if (!convs || convs.length === 0) { setUnreadCount(0); return; }
+          const { count } = await supabase
+            .from("messages")
+            .select("*", { count: "exact", head: true })
+            .in("conversation_id", convs.map(c => c.id))
+            .eq("read", false)
+            .neq("sender_id", user.id);
+          setUnreadCount(count || 0);
+        };
+        refetch();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeSection]);
 
   const sections = [
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
@@ -53,11 +125,12 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         {sections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
+          const showBadge = section.id === "messages" && unreadCount > 0 && !isActive;
           return (
             <button
               key={section.id}
               onClick={() => onSectionChange(section.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all relative ${
                 isActive
                   ? "bg-primary text-primary-foreground shadow-lg"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -65,6 +138,11 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
             >
               <Icon className="h-5 w-5" />
               {section.label}
+              {showBadge && (
+                <span className="ml-auto w-5 h-5 rounded-full bg-destructive flex items-center justify-center shrink-0">
+                  <span className="text-[10px] text-white font-bold">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                </span>
+              )}
             </button>
           );
         })}
