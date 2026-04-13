@@ -361,7 +361,6 @@ const MessagesSection = () => {
                       </span>
                     )}
                   </div>
-                  </p>
                   <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
                     {new Date(conv.last_message_at).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", {
                       day: "numeric",
