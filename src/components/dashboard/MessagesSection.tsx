@@ -10,10 +10,21 @@ interface ConversationItem {
   other_user_id: string;
   other_name: string;
   other_photo: string | null;
+  other_role: string | null;
   last_message: string;
   last_message_at: string;
   unread_count: number;
 }
+
+const getRoleLabel = (role: string | null, lang: string) => {
+  if (!role) return "";
+  const labels: Record<string, Record<string, string>> = {
+    player: { ro: "Jucător", en: "Player" },
+    scout: { ro: "Scouter", en: "Scout" },
+    agent: { ro: "Agent", en: "Agent" },
+  };
+  return labels[role]?.[lang] || role;
+};
 
 interface Message {
   id: string;
@@ -59,10 +70,14 @@ const MessagesSection = () => {
       c.user1_id === user.id ? c.user2_id : c.user1_id
     );
 
-    const [playerRes, scoutRes] = await Promise.all([
+    const [playerRes, scoutRes, rolesRes] = await Promise.all([
       supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", otherUserIds),
       supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", otherUserIds),
+      supabase.from("user_roles").select("user_id, role").in("user_id", otherUserIds),
     ]);
+
+    const roleMap = new Map<string, string>();
+    (rolesRes.data || []).forEach((r: any) => { roleMap.set(r.user_id, r.role); });
 
     const profileMap = new Map<string, { name: string; photo: string | null }>();
     (playerRes.data || []).forEach((p) => {
@@ -99,6 +114,7 @@ const MessagesSection = () => {
           other_user_id: otherUserId,
           other_name: profile?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
           other_photo: profile?.photo || null,
+          other_role: roleMap.get(otherUserId) || null,
           last_message: lastMsgs[0].content,
           last_message_at: lastMsgs[0].created_at,
           unread_count: count || 0,
