@@ -174,10 +174,12 @@ const ActivitySection = () => {
   useEffect(() => {
     const channel = supabase
       .channel("posts-feed")
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchPosts())
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
+        if (currentUserId) fetchPosts();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [currentUserId]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
