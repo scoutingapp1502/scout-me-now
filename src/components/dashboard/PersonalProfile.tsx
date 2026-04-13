@@ -463,7 +463,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const photoSrc = avatarPreview || profile?.photo_url;
 
   return (
-    <div className="max-w-4xl mx-auto relative">
+    <div className="max-w-4xl mx-auto relative -mt-4 sm:-mt-8">
       {/* SECTION 1: Header / Hero - sticky */}
       <div className="sticky top-0 z-20 rounded-xl overflow-hidden">
       <div className="relative bg-gradient-to-br from-sidebar to-sidebar-accent rounded-t-xl overflow-hidden">
