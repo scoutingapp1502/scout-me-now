@@ -191,7 +191,7 @@ const ActivitySection = () => {
     <div className="space-y-6 max-w-2xl mx-auto">
       <h2 className="font-display text-2xl text-foreground">{lang === "ro" ? "Activitate" : "Activity"}</h2>
 
-      {/* Composer */}
+      {feedTab === "mine" && /* Composer */
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
@@ -230,7 +230,7 @@ const ActivitySection = () => {
             {lang === "ro" ? "Publică" : "Post"}
           </Button>
         </div>
-      </div>
+      </div>}
 
       {/* Feed Tab Toggle */}
       <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
