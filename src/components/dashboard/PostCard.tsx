@@ -32,6 +32,8 @@ interface Comment {
   created_at: string;
   author_name: string;
   author_photo: string | null;
+  likes_count: number;
+  liked_by_me: boolean;
 }
 
 interface PostCardProps {
@@ -123,12 +125,29 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
     (playerRes.data || []).forEach(p => profileMap.set(p.user_id, { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url }));
     (scoutRes.data || []).forEach(s => { if (!profileMap.has(s.user_id)) profileMap.set(s.user_id, { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url }); });
 
+    // Fetch comment likes
+    const commentIds = rawComments.map((c: any) => c.id);
+    const [likesRes, myLikesRes] = await Promise.all([
+      supabase.from("comment_likes").select("comment_id", { count: "exact" }).in("comment_id", commentIds),
+      currentUserId
+        ? supabase.from("comment_likes").select("comment_id").in("comment_id", commentIds).eq("user_id", currentUserId)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const likesCountMap = new Map<string, number>();
+    (likesRes.data || []).forEach((l: any) => {
+      likesCountMap.set(l.comment_id, (likesCountMap.get(l.comment_id) || 0) + 1);
+    });
+    const myLikedSet = new Set((myLikesRes.data || []).map((l: any) => l.comment_id));
+
     setComments(rawComments.map((c: any) => {
       const profile = profileMap.get(c.user_id);
       return {
         ...c,
         author_name: profile?.name || (lang === "ro" ? "Utilizator" : "User"),
         author_photo: profile?.photo || null,
+        likes_count: likesCountMap.get(c.id) || 0,
+        liked_by_me: myLikedSet.has(c.id),
       };
     }));
     setLoadingComments(false);
@@ -159,6 +178,19 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
     setCommentText("");
     setCommentsCount(c => c + 1);
     loadComments();
+  };
+
+  const toggleCommentLike = async (commentId: string) => {
+    if (!currentUserId) return;
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) return;
+    if (comment.liked_by_me) {
+      await supabase.from("comment_likes").delete().eq("comment_id", commentId).eq("user_id", currentUserId);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, liked_by_me: false, likes_count: Math.max(0, c.likes_count - 1) } : c));
+    } else {
+      await supabase.from("comment_likes").insert({ comment_id: commentId, user_id: currentUserId } as any);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, liked_by_me: true, likes_count: c.likes_count + 1 } : c));
+    }
   };
 
   const deleteComment = async (commentId: string) => {
@@ -331,7 +363,16 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
                         </DropdownMenu>
                       )}
                     </div>
-                    <span className="text-[10px] text-muted-foreground/60 ml-1 mt-0.5">{timeAgo(c.created_at)}</span>
+                    <div className="flex items-center gap-2 ml-1 mt-0.5">
+                      <span className="text-[10px] text-muted-foreground/60">{timeAgo(c.created_at)}</span>
+                      <button
+                        onClick={() => toggleCommentLike(c.id)}
+                        className={`flex items-center gap-0.5 text-[10px] transition-colors ${c.liked_by_me ? "text-red-500" : "text-muted-foreground/60 hover:text-foreground"}`}
+                      >
+                        <Heart className={`h-3 w-3 ${c.liked_by_me ? "fill-red-500" : ""}`} />
+                        {c.likes_count > 0 && <span>{c.likes_count}</span>}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
