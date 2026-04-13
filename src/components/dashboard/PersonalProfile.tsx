@@ -664,6 +664,18 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       </div>
       </div>
 
+      {/* Followers list (only in personal profile, non-readOnly) */}
+      {!readOnly && showFollowersList && (
+        <div className="mt-4">
+          <FollowersList
+            followers={followers}
+            onRemove={removeFollower}
+            onViewProfile={() => {}}
+            onClose={() => setShowFollowersList(false)}
+          />
+        </div>
+      )}
+
       {/* SECTION 2: Tab content */}
       <div className="mt-6 px-2 sm:px-6 pb-8">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} readOnly={readOnly} />}
