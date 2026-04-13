@@ -462,9 +462,9 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const photoSrc = avatarPreview || profile?.photo_url;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-0 overflow-hidden relative">
-      {/* Header / Hero - sticky wrapper */}
-      <div className="sticky top-0 z-20">
+    <div className="max-w-4xl mx-auto relative">
+      {/* SECTION 1: Header / Hero - sticky */}
+      <div className="sticky top-0 z-20 rounded-xl overflow-hidden">
       <div className="relative bg-gradient-to-br from-sidebar to-sidebar-accent rounded-t-xl overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
