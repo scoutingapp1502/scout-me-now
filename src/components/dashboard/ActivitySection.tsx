@@ -451,7 +451,6 @@ const ActivitySection = () => {
 };
 
 export default ActivitySection;
-    <div className="space-y-6 max-w-2xl mx-auto">
       <h2 className="font-display text-2xl text-foreground">
         {lang === "ro" ? "Activitate" : "Activity"}
       </h2>
