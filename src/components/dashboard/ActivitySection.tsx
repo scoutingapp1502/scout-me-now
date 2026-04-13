@@ -258,6 +258,19 @@ const ActivitySection = () => {
         </button>
       </div>
 
+      {/* New posts banner */}
+      {newPostsAvailable && feedTab === "following" && (
+        <button
+          onClick={() => {
+            setNewPostsAvailable(false);
+            if (currentUserId) fetchPosts(currentUserId);
+          }}
+          className="w-full py-2.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+        >
+          {lang === "ro" ? "🔄 Sunt postări noi. Apasă pentru a le vedea." : "🔄 New posts available. Tap to refresh."}
+        </button>
+      )}
+
       {/* Feed */}
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
