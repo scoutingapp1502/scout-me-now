@@ -190,7 +190,29 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   useEffect(() => {
     fetchProfile();
     fetchCareerEntries();
+    if (readOnly) checkFollowStatus();
   }, [userId]);
+
+  const checkFollowStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle();
+    setIsFollowing(!!data);
+  };
+
+  const toggleFollow = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setFollowLoading(true);
+    if (isFollowing) {
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
+      setIsFollowing(false);
+    } else {
+      await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
+      setIsFollowing(true);
+    }
+    setFollowLoading(false);
+  };
 
   const fetchCareerEntries = async () => {
     const { data } = await supabase
