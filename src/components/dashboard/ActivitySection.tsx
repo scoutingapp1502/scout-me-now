@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useActivityNotifications } from "@/hooks/useActivityNotifications";
+import { useActivityNotifications, markActivitySeen } from "@/hooks/useActivityNotifications";
 import { Loader2, User, ImagePlus, Video, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,7 +40,7 @@ const ActivitySection = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [newContent, setNewContent] = useState("");
   const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
-  const { followingCount, mineCount } = useActivityNotifications(currentUserId);
+  const { followingCount, mineCount, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const newPostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedTabRef = useRef<"following" | "mine">("following");
@@ -235,7 +235,10 @@ const ActivitySection = () => {
       {/* Feed Tab Toggle */}
       <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
         <button
-          onClick={() => setFeedTab("following")}
+          onClick={() => {
+            setFeedTab("following");
+            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
+          }}
           className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           {lang === "ro" ? "Urmăritori" : "Following"}
@@ -246,7 +249,10 @@ const ActivitySection = () => {
           )}
         </button>
         <button
-          onClick={() => setFeedTab("mine")}
+          onClick={() => {
+            setFeedTab("mine");
+            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
+          }}
           className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           {lang === "ro" ? "Postările mele" : "My Posts"}
