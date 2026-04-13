@@ -193,7 +193,39 @@ const ActivitySection = () => {
     <div className="space-y-6 max-w-2xl mx-auto">
       <h2 className="font-display text-2xl text-foreground">{lang === "ro" ? "Activitate" : "Activity"}</h2>
 
-      {feedTab === "mine" && /* Composer */
+      {/* Feed Tab Toggle */}
+      <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => {
+            setFeedTab("following");
+            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
+          }}
+          className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          {lang === "ro" ? "Urmăritori" : "Following"}
+          {followingCount > 0 && feedTab !== "following" && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+              {followingCount > 99 ? "99+" : followingCount}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => {
+            setFeedTab("mine");
+            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
+          }}
+          className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          {lang === "ro" ? "Postările mele" : "My Posts"}
+          {mineCount > 0 && feedTab !== "mine" && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+              {mineCount > 99 ? "99+" : mineCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {feedTab === "mine" &&
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
@@ -233,38 +265,6 @@ const ActivitySection = () => {
           </Button>
         </div>
       </div>}
-
-      {/* Feed Tab Toggle */}
-      <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
-        <button
-          onClick={() => {
-            setFeedTab("following");
-            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
-          }}
-          className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-        >
-          {lang === "ro" ? "Urmăritori" : "Following"}
-          {followingCount > 0 && feedTab !== "following" && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-              {followingCount > 99 ? "99+" : followingCount}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => {
-            setFeedTab("mine");
-            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
-          }}
-          className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-        >
-          {lang === "ro" ? "Postările mele" : "My Posts"}
-          {mineCount > 0 && feedTab !== "mine" && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-              {mineCount > 99 ? "99+" : mineCount}
-            </span>
-          )}
-        </button>
-      </div>
 
       {/* New posts banner */}
       {newPostsAvailable && feedTab === "following" && (
