@@ -27,7 +27,7 @@ const COLORS = [
   "bg-orange-400",
 ];
 
-const ScoutersSection = () => {
+const ScoutersSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: string) => void }) => {
   const [scouts, setScouts] = useState<ScoutCard[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -107,7 +107,7 @@ const ScoutersSection = () => {
           <ArrowLeft className="h-4 w-4" />
           {lang === "ro" ? "Înapoi la scouteri" : "Back to scouts"}
         </Button>
-        <ScoutPersonalProfile userId={selectedScoutId} readOnly />
+        <ScoutPersonalProfile userId={selectedScoutId} readOnly onNavigateToChat={onNavigateToChat} />
       </div>
     );
   }

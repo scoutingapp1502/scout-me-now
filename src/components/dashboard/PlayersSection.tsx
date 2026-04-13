@@ -38,7 +38,7 @@ const COLORS = [
   "bg-orange-400",
 ];
 
-const PlayersSection = () => {
+const PlayersSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: string) => void }) => {
   const [players, setPlayers] = useState<PlayerCard[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -265,7 +265,7 @@ const PlayersSection = () => {
           <ArrowLeft className="h-4 w-4" />
           {lang === "ro" ? "Înapoi la jucători" : "Back to players"}
         </Button>
-        <PersonalProfile userId={selectedPlayerId} readOnly />
+        <PersonalProfile userId={selectedPlayerId} readOnly onNavigateToChat={onNavigateToChat} />
       </div>
     );
   }
