@@ -42,7 +42,6 @@ const ActivitySection = () => {
   const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
   const { followingCount, mineCount, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
-  const newPostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedTabRef = useRef<"following" | "mine">("following");
   const [newType, setNewType] = useState("general");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -132,10 +131,7 @@ const ActivitySection = () => {
         setNewPostsAvailable(true);
       }
     }).subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-      if (newPostTimerRef.current) clearTimeout(newPostTimerRef.current);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setImageFile(file); setImagePreview(URL.createObjectURL(file)); };
