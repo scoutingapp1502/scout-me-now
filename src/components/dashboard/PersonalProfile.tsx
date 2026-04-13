@@ -123,7 +123,7 @@ const positionsBySport: Record<string, string[]> = {
   ],
 };
 
-type TabType = "stats" | "profile" | "video";
+type TabType = "stats" | "profile" | "video" | "posts";
 
 interface TechnicalTest {
   key: string;
@@ -625,6 +625,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             { key: "stats" as TabType, label: "Stats" },
             { key: "profile" as TabType, label: "Profile" },
             { key: "video" as TabType, label: "Video" },
+            { key: "posts" as TabType, label: lang === "ro" ? "Postări" : "Posts" },
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -663,6 +664,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             SectionSaveButton={SectionSaveButton}
           />
         )}
+        {activeTab === "posts" && <PostsTab userId={userId} readOnly={readOnly} />}
       </div>
 
       {/* Message Dialog */}
