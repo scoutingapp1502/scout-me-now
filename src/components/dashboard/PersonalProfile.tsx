@@ -643,6 +643,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
           ))}
         </div>
       </div>
+      </div>
 
       {/* Tab content */}
       <div className="mt-6 px-2 sm:px-6">
