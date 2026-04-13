@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, User, Loader2, ArrowLeft, Send } from "lucide-react";
+import { MessageSquare, User, Loader2, ArrowLeft, Send, Search } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,15 @@ const getRoleLabel = (role: string | null, lang: string) => {
   return labels[role]?.[lang] || role;
 };
 
+type RoleFilter = "player" | "scout" | "agent" | "club";
+
+const ROLE_FILTERS: { key: RoleFilter; labelRo: string; labelEn: string }[] = [
+  { key: "player", labelRo: "Jucători", labelEn: "Players" },
+  { key: "scout", labelRo: "Scouteri", labelEn: "Scouts" },
+  { key: "agent", labelRo: "Agenți", labelEn: "Agents" },
+  { key: "club", labelRo: "Cluburi", labelEn: "Clubs" },
+];
+
 interface Message {
   id: string;
   sender_id: string;
@@ -39,6 +48,10 @@ const MessagesSection = () => {
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<ConversationItem | null>(null);
   const { lang } = useLanguage();
+
+  // Filter state
+  const [activeFilter, setActiveFilter] = useState<RoleFilter>("player");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -131,7 +144,6 @@ const MessagesSection = () => {
     fetchConversations();
   }, []);
 
-  // Realtime: refresh inbox
   useEffect(() => {
     const channel = supabase
       .channel("messages-inbox")
@@ -147,6 +159,26 @@ const MessagesSection = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Filtered conversations
+  const filteredConversations = useMemo(() => {
+    let filtered = conversations;
+
+    // Filter by role
+    if (activeFilter === "club") {
+      filtered = []; // No club role yet
+    } else {
+      filtered = filtered.filter((c) => c.other_role === activeFilter);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter((c) => c.other_name.toLowerCase().includes(q));
+    }
+
+    return filtered;
+  }, [conversations, activeFilter, searchQuery]);
+
   // Load chat messages when conversation selected
   useEffect(() => {
     if (!selectedConversation) return;
@@ -160,7 +192,6 @@ const MessagesSection = () => {
 
       setMessages((msgs as Message[]) || []);
 
-      // Mark unread as read
       if (msgs && currentUserId) {
         const unread = msgs.filter((m: any) => !m.read && m.sender_id !== currentUserId);
         if (unread.length > 0) {
@@ -175,7 +206,6 @@ const MessagesSection = () => {
     load();
   }, [selectedConversation, currentUserId]);
 
-  // Realtime for active chat
   useEffect(() => {
     if (!selectedConversation) return;
     const channel = supabase
@@ -204,7 +234,6 @@ const MessagesSection = () => {
     return () => { supabase.removeChannel(channel); };
   }, [selectedConversation, currentUserId]);
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     chatInputRef.current?.focus();
@@ -239,11 +268,10 @@ const MessagesSection = () => {
     fetchConversations();
   };
 
-  // ---- CHAT VIEW (inline, full area) ----
+  // ---- CHAT VIEW ----
   if (selectedConversation) {
     return (
       <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
-        {/* Header */}
         <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
           <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
             <ArrowLeft className="h-5 w-5" />
@@ -263,7 +291,6 @@ const MessagesSection = () => {
           </div>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto py-4 space-y-3 min-h-0">
           {chatLoading ? (
             <div className="flex items-center justify-center h-full">
@@ -300,7 +327,6 @@ const MessagesSection = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <div className="border-t border-border pt-3 flex gap-2 shrink-0">
           <Input
             ref={chatInputRef}
@@ -327,20 +353,48 @@ const MessagesSection = () => {
         {lang === "ro" ? "Mesaje" : "Messages"}
       </h2>
 
+      {/* Role filter tabs */}
+      <div className="flex rounded-lg bg-muted p-1 gap-1">
+        {ROLE_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setActiveFilter(f.key)}
+            className={`flex-1 text-xs sm:text-sm font-medium py-2 px-2 rounded-md transition-colors ${
+              activeFilter === f.key
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {lang === "ro" ? f.labelRo : f.labelEn}
+          </button>
+        ))}
+      </div>
+
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={lang === "ro" ? "Caută după nume..." : "Search by name..."}
+          className="pl-9"
+        />
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
-      ) : conversations.length === 0 ? (
+      ) : filteredConversations.length === 0 ? (
         <div className="text-center py-16">
           <MessageSquare className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground font-body">
-            {lang === "ro" ? "Niciun mesaj încă." : "No messages yet."}
+            {lang === "ro" ? "Niciun mesaj în această categorie." : "No messages in this category."}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {conversations.map((conv) => (
+          {filteredConversations.map((conv) => (
             <div
               key={conv.conversation_id}
               onClick={() => setSelectedConversation(conv)}
