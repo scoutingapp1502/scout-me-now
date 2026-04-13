@@ -22,6 +22,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   const { t, lang } = useLanguage();
   const [unreadCount, setUnreadCount] = useState(0);
   const { count: activityCount } = useActivityNotifications(userId ?? null);
+  const notifCount = useNotificationCount(userId ?? null);
 
   useEffect(() => {
     let userId: string | null = null;
