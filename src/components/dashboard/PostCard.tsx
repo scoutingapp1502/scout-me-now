@@ -357,17 +357,17 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {comments.map(c => (
                 <div key={c.id} className="flex items-start gap-2 group">
-                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                  <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
                     {c.author_photo ? (
                       <img src={c.author_photo} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <User className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
-                  </div>
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-1">
                       <div className="flex-1 bg-muted/50 rounded-lg px-3 py-1.5">
-                        <p className="text-xs font-medium text-foreground">{c.author_name}</p>
+                        <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="text-xs font-medium text-foreground hover:underline cursor-pointer text-left">{c.author_name}</button>
                         <p className="text-xs text-foreground/80">{c.content}</p>
                       </div>
                       {c.user_id === currentUserId && (
