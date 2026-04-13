@@ -211,7 +211,7 @@ const Dashboard = () => {
   const sidebarFirstLabel = (userRole === "scout" || userRole === "agent") ? "Personal Area" : undefined;
 
   return (
-    <div className="flex min-h-screen bg-background dark">
+    <div className="flex h-screen bg-background dark overflow-hidden">
       {showWizard && userRole && (
         <OnboardingWizard
           sections={sections}
