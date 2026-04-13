@@ -292,7 +292,7 @@ const ActivitySection = () => {
         </div>
       ) : posts.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
-          {lang === "ro" ? "Nicio postare încă. Fii primul care împărtășește ceva!" : "No posts yet. Be the first to share something!"}
+          {lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor!" : "No posts yet. Follow people to see their activity!"}
         </div>
       ) : (
         <div className="space-y-4">
