@@ -466,6 +466,17 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
 
   const photoSrc = avatarPreview || profile?.photo_url;
 
+  if (!readOnly && showFollowersList) {
+    return (
+      <FollowersList
+        followers={followers}
+        onRemove={removeFollower}
+        onViewProfile={() => {}}
+        onClose={() => setShowFollowersList(false)}
+      />
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto relative">
       {/* SECTION 1: Header / Hero - sticky */}
