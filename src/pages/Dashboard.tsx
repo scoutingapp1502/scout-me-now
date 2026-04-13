@@ -168,6 +168,9 @@ const Dashboard = () => {
   }
 
   const handleSectionChange = (section: string) => {
+    if (section === "activity" && user?.id) {
+      markActivitySeen(user.id);
+    }
     setActiveSection(section);
     if (isMobile) setSidebarOpen(false);
   };
