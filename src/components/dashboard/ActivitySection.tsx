@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useActivityNotifications, markActivitySeen } from "@/hooks/useActivityNotifications";
-import { Loader2, User, ImagePlus, Video, X, Send } from "lucide-react";
+import { useActivityNotifications, markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotifications";
+import { Loader2, User, ImagePlus, Video, X, Send, Bell, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import PostCard from "./PostCard";
 import PersonalProfile from "./PersonalProfile";
 import ScoutPersonalProfile from "./ScoutPersonalProfile";
+import ActivityNotificationsList from "./ActivityNotificationsList";
 
 interface Post {
   id: string;
@@ -40,7 +41,11 @@ const ActivitySection = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [newContent, setNewContent] = useState("");
   const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
-  const { followingCount, mineCount, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
+  const { followingCount, mineCount, notifications: activityNotifs, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
+  const [viewingSinglePostId, setViewingSinglePostId] = useState<string | null>(null);
+  const [singlePost, setSinglePost] = useState<Post | null>(null);
+  const [loadingSinglePost, setLoadingSinglePost] = useState(false);
+  const [activitySubTab, setActivitySubTab] = useState<"feed" | "notifications">("feed");
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const feedTabRef = useRef<"following" | "mine">("following");
   const [newType, setNewType] = useState("general");
@@ -189,126 +194,209 @@ const ActivitySection = () => {
 
   const handleViewProfile = (userId: string, role: string) => { setViewingProfileId(userId); setViewingProfileRole(role); };
 
+  const handleViewSinglePost = async (postId: string) => {
+    setLoadingSinglePost(true);
+    setViewingSinglePostId(postId);
+    const { data: rawPost } = await supabase.from("posts").select("*").eq("id", postId).maybeSingle();
+    if (!rawPost) { setLoadingSinglePost(false); return; }
+    const uid = rawPost.user_id;
+    const [playerRes, scoutRes, roleRes] = await Promise.all([
+      supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url, position, current_team").eq("user_id", uid).maybeSingle(),
+      supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url, title, organization").eq("user_id", uid).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", uid).maybeSingle(),
+    ]);
+    const role = roleRes.data?.role || "player";
+    const profile = playerRes.data
+      ? { name: `${playerRes.data.first_name} ${playerRes.data.last_name}`.trim(), photo: playerRes.data.photo_url, title: [playerRes.data.position, playerRes.data.current_team].filter(Boolean).join(" · ") }
+      : scoutRes.data
+        ? { name: `${scoutRes.data.first_name} ${scoutRes.data.last_name}`.trim(), photo: scoutRes.data.photo_url, title: [scoutRes.data.title, scoutRes.data.organization].filter(Boolean).join(" | ") }
+        : { name: "User", photo: null, title: "" };
+    setSinglePost({ ...rawPost, author_name: profile.name, author_photo: profile.photo, author_role: role, author_title: profile.title });
+    setLoadingSinglePost(false);
+  };
+
+  // Single post view
+  if (viewingSinglePostId) {
+    return (
+      <div className="space-y-4 max-w-2xl mx-auto">
+        <Button variant="ghost" size="sm" className="gap-2" onClick={() => { setViewingSinglePostId(null); setSinglePost(null); }}>
+          <ArrowLeft className="h-4 w-4" />
+          {lang === "ro" ? "Înapoi la activitate" : "Back to activity"}
+        </Button>
+        {loadingSinglePost ? (
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        ) : singlePost ? (
+          <PostCard
+            post={{ id: singlePost.id, user_id: singlePost.user_id, content: singlePost.content, image_url: singlePost.image_url, video_url: (singlePost as any).video_url || null, post_type: singlePost.post_type, created_at: singlePost.created_at }}
+            author={{ user_id: singlePost.user_id, name: singlePost.author_name, photo: singlePost.author_photo, role: singlePost.author_role, title: singlePost.author_title }}
+            currentUserId={currentUserId}
+            onDelete={handleDelete}
+            onViewProfile={handleViewProfile}
+          />
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            {lang === "ro" ? "Postarea nu a fost găsită." : "Post not found."}
+          </div>
+        )}
+
+        <Dialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)}>
+          <DialogContent className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-background border-0 sm:border sm:border-border rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%]" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+            <DialogTitle className="sr-only">{lang === "ro" ? "Profil" : "Profile"}</DialogTitle>
+            <div className="overflow-y-auto h-full sm:max-h-[90vh]">
+              {viewingProfileId && (
+                viewingProfileRole === "player"
+                  ? <PersonalProfile userId={viewingProfileId} readOnly />
+                  : <ScoutPersonalProfile userId={viewingProfileId} readOnly />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      <h2 className="font-display text-2xl text-foreground">{lang === "ro" ? "Activitate" : "Activity"}</h2>
-
-      {/* Feed Tab Toggle */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2 flex justify-center">
-        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-2xl text-foreground">{lang === "ro" ? "Activitate" : "Activity"}</h2>
         <button
-          onClick={() => {
-            setFeedTab("following");
-            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
-          }}
-          className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          onClick={() => setActivitySubTab(activitySubTab === "notifications" ? "feed" : "notifications")}
+          className={`relative p-2 rounded-lg transition-colors ${activitySubTab === "notifications" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
         >
-          {lang === "ro" ? "Urmăritori" : "Following"}
-          {followingCount > 0 && feedTab !== "following" && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-              {followingCount > 99 ? "99+" : followingCount}
+          <Bell className="h-5 w-5" />
+          {activityNotifs.length > 0 && activitySubTab !== "notifications" && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+              {activityNotifs.length > 99 ? "99+" : activityNotifs.length}
             </span>
           )}
         </button>
-        <button
-          onClick={() => {
-            setFeedTab("mine");
-            if (currentUserId) { markActivitySeen(currentUserId); refetchNotifications(); }
-          }}
-          className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-        >
-          {lang === "ro" ? "Postările mele" : "My Posts"}
-          {mineCount > 0 && feedTab !== "mine" && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-              {mineCount > 99 ? "99+" : mineCount}
-            </span>
-          )}
-        </button>
-        </div>
       </div>
 
-      {feedTab === "mine" &&
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-            {myPhoto ? <img src={myPhoto} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-muted-foreground" />}
+      {activitySubTab === "notifications" ? (
+        <ActivityNotificationsList
+          notifications={activityNotifs}
+          onViewPost={handleViewSinglePost}
+        />
+      ) : (
+        <>
+          {/* Feed Tab Toggle */}
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2 flex justify-center">
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+            <button
+              onClick={() => {
+                setFeedTab("following");
+                if (currentUserId) { markFollowingSeen(currentUserId); refetchNotifications(); }
+              }}
+              className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {lang === "ro" ? "Urmăritori" : "Following"}
+              {followingCount > 0 && feedTab !== "following" && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                  {followingCount > 99 ? "99+" : followingCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setFeedTab("mine");
+                if (currentUserId) { markMineSeen(currentUserId); refetchNotifications(); }
+              }}
+              className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {lang === "ro" ? "Postările mele" : "My Posts"}
+              {mineCount > 0 && feedTab !== "mine" && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                  {mineCount > 99 ? "99+" : mineCount}
+                </span>
+              )}
+            </button>
+            </div>
           </div>
-          <Textarea value={newContent} onChange={(e) => setNewContent(e.target.value)} placeholder={lang === "ro" ? "Împărtășește o idee, un eveniment, o provocare..." : "Share an idea, event, challenge..."} className="min-h-[60px] resize-none bg-background border-border" />
-        </div>
 
-        {imagePreview && (
-          <div className="relative inline-block">
-            <img src={imagePreview} alt="" className="max-h-48 rounded-lg object-cover" />
-            <button onClick={removeImage} className="absolute top-1 right-1 bg-black/60 rounded-full p-1"><X className="h-3 w-3 text-white" /></button>
-          </div>
-        )}
-        {videoPreview && (
-          <div className="relative inline-block">
-            <video src={videoPreview} className="max-h-48 rounded-lg" controls />
-            <button onClick={removeVideo} className="absolute top-1 right-1 bg-black/60 rounded-full p-1"><X className="h-3 w-3 text-white" /></button>
-          </div>
-        )}
+          {feedTab === "mine" &&
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                {myPhoto ? <img src={myPhoto} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-muted-foreground" />}
+              </div>
+              <Textarea value={newContent} onChange={(e) => setNewContent(e.target.value)} placeholder={lang === "ro" ? "Împărtășește o idee, un eveniment, o provocare..." : "Share an idea, event, challenge..."} className="min-h-[60px] resize-none bg-background border-border" />
+            </div>
 
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
-            <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} />
-            <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-muted-foreground"><ImagePlus className="h-4 w-4 mr-1" />{lang === "ro" ? "Fotografie" : "Photo"}</Button>
-            <Button variant="ghost" size="sm" onClick={() => videoInputRef.current?.click()} className="text-muted-foreground"><Video className="h-4 w-4 mr-1" />{lang === "ro" ? "Videoclip" : "Video"}</Button>
-            
-            <Select value={newType} onValueChange={setNewType}>
-              <SelectTrigger className="w-auto h-8 text-xs bg-background border-border"><SelectValue /></SelectTrigger>
-              <SelectContent>{POST_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{lang === "ro" ? t.labelRo : t.labelEn}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <Button size="sm" onClick={handlePost} disabled={posting || !newContent.trim()}>
-            {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
-            {lang === "ro" ? "Publică" : "Post"}
-          </Button>
-        </div>
-      </div>}
+            {imagePreview && (
+              <div className="relative inline-block">
+                <img src={imagePreview} alt="" className="max-h-48 rounded-lg object-cover" />
+                <button onClick={removeImage} className="absolute top-1 right-1 bg-black/60 rounded-full p-1"><X className="h-3 w-3 text-white" /></button>
+              </div>
+            )}
+            {videoPreview && (
+              <div className="relative inline-block">
+                <video src={videoPreview} className="max-h-48 rounded-lg" controls />
+                <button onClick={removeVideo} className="absolute top-1 right-1 bg-black/60 rounded-full p-1"><X className="h-3 w-3 text-white" /></button>
+              </div>
+            )}
 
-      {/* New posts banner */}
-      {newPostsAvailable && feedTab === "following" && (
-        <button
-          onClick={() => {
-            setNewPostsAvailable(false);
-            if (currentUserId) fetchPosts(currentUserId);
-          }}
-          className="w-full py-2.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
-        >
-          {lang === "ro" ? "🔄 Sunt postări noi. Apasă pentru a le vedea." : "🔄 New posts available. Tap to refresh."}
-        </button>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+                <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} />
+                <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-muted-foreground"><ImagePlus className="h-4 w-4 mr-1" />{lang === "ro" ? "Fotografie" : "Photo"}</Button>
+                <Button variant="ghost" size="sm" onClick={() => videoInputRef.current?.click()} className="text-muted-foreground"><Video className="h-4 w-4 mr-1" />{lang === "ro" ? "Videoclip" : "Video"}</Button>
+                
+                <Select value={newType} onValueChange={setNewType}>
+                  <SelectTrigger className="w-auto h-8 text-xs bg-background border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>{POST_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{lang === "ro" ? t.labelRo : t.labelEn}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <Button size="sm" onClick={handlePost} disabled={posting || !newContent.trim()}>
+                {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+                {lang === "ro" ? "Publică" : "Post"}
+              </Button>
+            </div>
+          </div>}
+
+          {/* New posts banner */}
+          {newPostsAvailable && feedTab === "following" && (
+            <button
+              onClick={() => {
+                setNewPostsAvailable(false);
+                if (currentUserId) fetchPosts(currentUserId);
+              }}
+              className="w-full py-2.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+            >
+              {lang === "ro" ? "🔄 Sunt postări noi. Apasă pentru a le vedea." : "🔄 New posts available. Tap to refresh."}
+            </button>
+          )}
+
+          {/* Feed */}
+          {loading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : (() => {
+            const filteredPosts = feedTab === "mine"
+              ? posts.filter(p => p.user_id === currentUserId)
+              : posts.filter(p => p.user_id !== currentUserId);
+            return filteredPosts.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                {feedTab === "mine"
+                  ? (lang === "ro" ? "Nu ai publicat nicio postare încă." : "You haven't posted anything yet.")
+                  : (lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor!" : "No posts yet. Follow people to see their activity!")}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredPosts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={{ id: post.id, user_id: post.user_id, content: post.content, image_url: post.image_url, video_url: (post as any).video_url || null, post_type: post.post_type, created_at: post.created_at }}
+                    author={{ user_id: post.user_id, name: post.author_name, photo: post.author_photo, role: post.author_role, title: post.author_title }}
+                    currentUserId={currentUserId}
+                    onDelete={handleDelete}
+                    onViewProfile={handleViewProfile}
+                  />
+                ))}
+              </div>
+            );
+          })()}
+        </>
       )}
-
-      {/* Feed */}
-      {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-      ) : (() => {
-        const filteredPosts = feedTab === "mine"
-          ? posts.filter(p => p.user_id === currentUserId)
-          : posts.filter(p => p.user_id !== currentUserId);
-        return filteredPosts.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            {feedTab === "mine"
-              ? (lang === "ro" ? "Nu ai publicat nicio postare încă." : "You haven't posted anything yet.")
-              : (lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor!" : "No posts yet. Follow people to see their activity!")}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={{ id: post.id, user_id: post.user_id, content: post.content, image_url: post.image_url, video_url: (post as any).video_url || null, post_type: post.post_type, created_at: post.created_at }}
-                author={{ user_id: post.user_id, name: post.author_name, photo: post.author_photo, role: post.author_role, title: post.author_title }}
-                currentUserId={currentUserId}
-                onDelete={handleDelete}
-                onViewProfile={handleViewProfile}
-              />
-            ))}
-          </div>
-        );
-      })()}
 
       {/* Profile View Dialog */}
       <Dialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)}>
