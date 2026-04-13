@@ -318,7 +318,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
                       {c.user_id === currentUserId && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground">
                               <MoreHorizontal className="h-3.5 w-3.5" />
                             </Button>
                           </DropdownMenuTrigger>
