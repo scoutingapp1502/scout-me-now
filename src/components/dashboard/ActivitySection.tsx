@@ -194,7 +194,8 @@ const ActivitySection = () => {
       <h2 className="font-display text-2xl text-foreground">{lang === "ro" ? "Activitate" : "Activity"}</h2>
 
       {/* Feed Tab Toggle */}
-      <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2 flex justify-center">
+        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
         <button
           onClick={() => {
             setFeedTab("following");
