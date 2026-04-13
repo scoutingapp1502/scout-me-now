@@ -46,7 +46,12 @@ interface Message {
   read: boolean;
 }
 
-const MessagesSection = () => {
+interface MessagesSectionProps {
+  initialChatUserId?: string | null;
+  onInitialChatHandled?: () => void;
+}
+
+const MessagesSection = ({ initialChatUserId, onInitialChatHandled }: MessagesSectionProps = {}) => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<ConversationItem | null>(null);
