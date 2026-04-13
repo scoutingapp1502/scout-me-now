@@ -275,15 +275,58 @@ const MessagesSection = () => {
     fetchConversations();
   };
 
+  // ---- PROFILE VIEW from chat ----
+  if (viewProfileUserId) {
+    return (
+      <div className="space-y-0">
+        <Button variant="ghost" size="sm" onClick={() => { setViewProfileUserId(null); setViewProfileRole(null); }} className="mb-4 gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          {lang === "ro" ? "Înapoi la conversație" : "Back to conversation"}
+        </Button>
+        {viewProfileRole === "player" ? (
+          <PersonalProfile userId={viewProfileUserId} readOnly />
+        ) : (
+          <ScoutPersonalProfile userId={viewProfileUserId} readOnly />
+        )}
+      </div>
+    );
+  }
+
   // ---- CHAT VIEW ----
   if (selectedConversation) {
+    const openPhotoModal = () => {
+      if (selectedConversation.other_photo) {
+        setPhotoModal({ url: selectedConversation.other_photo, name: selectedConversation.other_name });
+      }
+    };
+
+    const openProfile = () => {
+      setViewProfileUserId(selectedConversation.other_user_id);
+      setViewProfileRole(selectedConversation.other_role);
+    };
+
     return (
       <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+        {/* Photo modal */}
+        {photoModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPhotoModal(null)}>
+            <div className="relative max-w-lg max-h-[80vh] w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" onClick={() => setPhotoModal(null)} className="absolute -top-10 right-0 text-white hover:text-white/80">
+                <X className="h-5 w-5" />
+              </Button>
+              <img src={photoModal.url} alt={photoModal.name} className="w-full h-auto rounded-xl object-contain max-h-[80vh]" />
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
           <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+          <div
+            className={`w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 ${selectedConversation.other_photo ? "cursor-pointer hover:ring-2 hover:ring-primary" : ""}`}
+            onClick={openPhotoModal}
+          >
             {selectedConversation.other_photo ? (
               <img src={selectedConversation.other_photo} alt={selectedConversation.other_name} className="w-full h-full object-cover" />
             ) : (
@@ -291,7 +334,12 @@ const MessagesSection = () => {
             )}
           </div>
           <div className="flex flex-col">
-            <h2 className="font-display text-lg text-foreground truncate">{selectedConversation.other_name}</h2>
+            <h2
+              className="font-display text-lg text-foreground truncate cursor-pointer hover:text-primary transition-colors"
+              onClick={openProfile}
+            >
+              {selectedConversation.other_name}
+            </h2>
             <div className="flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${isOnline(selectedConversation.other_user_id) ? "bg-green-500" : "bg-muted-foreground/40"}`} />
               <span className="text-xs text-muted-foreground">
