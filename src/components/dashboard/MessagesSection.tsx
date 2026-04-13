@@ -413,20 +413,48 @@ const MessagesSection = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="border-t border-border pt-3 flex gap-2 shrink-0">
-          <Input
-            ref={chatInputRef}
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."}
-            className="flex-1"
-            disabled={sending}
-            autoFocus
-          />
-          <Button onClick={handleSend} disabled={!newMessage.trim() || sending} size="icon" className="shrink-0">
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </Button>
+        <div className="border-t border-border pt-3 shrink-0">
+          {/* Emoji picker */}
+          {showEmojiPicker && (
+            <div className="mb-2 p-2 bg-card border border-border rounded-lg flex flex-wrap gap-1 max-h-36 overflow-y-auto">
+              {["😀","😂","😍","🥰","😎","🤩","😢","😡","🔥","❤️","👍","👎","👏","🙌","💪","⚽","🏀","🏆","🥇","🎯","✅","❌","💬","🎉","🤝","👋","🙏","💯","⭐","🚀","😊","🤔","😅","🥺","😏","🤣","😘","😁","🫡","🤗","😤","💀","🫶","👀","🤞","✌️","🫰","💥","💫","🎶"].map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="text-xl hover:bg-muted rounded p-1 transition-colors"
+                  onClick={() => {
+                    setNewMessage((prev) => prev + emoji);
+                    chatInputRef.current?.focus();
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              onClick={() => setShowEmojiPicker((prev) => !prev)}
+              className="shrink-0"
+            >
+              <Smile className="h-5 w-5 text-muted-foreground" />
+            </Button>
+            <Input
+              ref={chatInputRef}
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."}
+              className="flex-1"
+              autoFocus
+            />
+            <Button onClick={handleSend} disabled={!newMessage.trim()} size="icon" className="shrink-0">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
