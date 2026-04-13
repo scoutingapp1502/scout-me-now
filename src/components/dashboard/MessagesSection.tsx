@@ -4,6 +4,7 @@ import { MessageSquare, User, Loader2, ArrowLeft, Send, Search } from "lucide-re
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { usePresence } from "@/hooks/usePresence";
 
 interface ConversationItem {
   conversation_id: string;
