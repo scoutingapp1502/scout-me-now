@@ -618,7 +618,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       </div>
 
       {/* Tabs row (no edit button) */}
-      <div className="flex items-stretch border-b border-border bg-card rounded-b-xl">
+      <div className="flex items-stretch border-b border-border bg-card rounded-b-xl sticky top-0 z-20">
         <div className="flex flex-1 overflow-x-auto">
           {([
             { key: "stats" as TabType, label: "Stats" },
