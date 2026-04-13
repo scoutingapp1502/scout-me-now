@@ -16,10 +16,11 @@ interface DashboardSidebarProps {
   userId?: string | null;
 }
 
-const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole, userId }: DashboardSidebarProps) => {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const [unreadCount, setUnreadCount] = useState(0);
+  const { count: activityCount } = useActivityNotifications(userId ?? null);
 
   useEffect(() => {
     let userId: string | null = null;
