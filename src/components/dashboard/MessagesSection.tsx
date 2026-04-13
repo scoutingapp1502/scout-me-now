@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, User, Loader2, ArrowLeft, Send, Search, X } from "lucide-react";
+import { MessageSquare, User, Loader2, ArrowLeft, Send, Search, X, Smile } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -60,12 +60,13 @@ const MessagesSection = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [newMessage, setNewMessage] = useState("");
-  const [sending, setSending] = useState(false);
+  const [sending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const { isOnline } = usePresence(currentUserId);
   const [photoModal, setPhotoModal] = useState<{ url: string; name: string } | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
   const [viewProfileRole, setViewProfileRole] = useState<string | null>(null);
 
@@ -228,7 +229,13 @@ const MessagesSection = () => {
         (payload) => {
           const newMsg = payload.new as Message;
           setMessages((prev) => {
+            // Skip if already present (real id) or replace optimistic with same content from same sender
             if (prev.some((m) => m.id === newMsg.id)) return prev;
+            // If it's our own message, it was already added optimistically - skip realtime duplicate
+            if (newMsg.sender_id === currentUserId) {
+              const hasOptimistic = prev.some((m) => m.id.startsWith("optimistic-") && m.content === newMsg.content);
+              if (hasOptimistic) return prev;
+            }
             return [...prev, newMsg];
           });
           if (newMsg.sender_id !== currentUserId) {
@@ -248,18 +255,34 @@ const MessagesSection = () => {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedConversation || !currentUserId) return;
-    setSending(true);
     const content = newMessage.trim();
     setNewMessage("");
 
-    const { error } = await supabase.from("messages").insert({
+    // Optimistic: add message instantly
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      sender_id: currentUserId,
+      content,
+      created_at: new Date().toISOString(),
+      read: false,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
+    const { data, error } = await supabase.from("messages").insert({
       conversation_id: selectedConversation.conversation_id,
       sender_id: currentUserId,
       content,
-    });
+    }).select().single();
 
-    if (error) setNewMessage(content);
-    setSending(false);
+    if (error) {
+      // Remove optimistic message on error, restore input
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      setNewMessage(content);
+    } else if (data) {
+      // Replace optimistic with real message
+      setMessages((prev) => prev.map((m) => m.id === optimisticId ? (data as Message) : m));
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -390,20 +413,48 @@ const MessagesSection = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="border-t border-border pt-3 flex gap-2 shrink-0">
-          <Input
-            ref={chatInputRef}
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."}
-            className="flex-1"
-            disabled={sending}
-            autoFocus
-          />
-          <Button onClick={handleSend} disabled={!newMessage.trim() || sending} size="icon" className="shrink-0">
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </Button>
+        <div className="border-t border-border pt-3 shrink-0">
+          {/* Emoji picker */}
+          {showEmojiPicker && (
+            <div className="mb-2 p-2 bg-card border border-border rounded-lg flex flex-wrap gap-1 max-h-36 overflow-y-auto">
+              {["😀","😂","😍","🥰","😎","🤩","😢","😡","🔥","❤️","👍","👎","👏","🙌","💪","⚽","🏀","🏆","🥇","🎯","✅","❌","💬","🎉","🤝","👋","🙏","💯","⭐","🚀","😊","🤔","😅","🥺","😏","🤣","😘","😁","🫡","🤗","😤","💀","🫶","👀","🤞","✌️","🫰","💥","💫","🎶"].map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="text-xl hover:bg-muted rounded p-1 transition-colors"
+                  onClick={() => {
+                    setNewMessage((prev) => prev + emoji);
+                    chatInputRef.current?.focus();
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              onClick={() => setShowEmojiPicker((prev) => !prev)}
+              className="shrink-0"
+            >
+              <Smile className="h-5 w-5 text-muted-foreground" />
+            </Button>
+            <Input
+              ref={chatInputRef}
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."}
+              className="flex-1"
+              autoFocus
+            />
+            <Button onClick={handleSend} disabled={!newMessage.trim()} size="icon" className="shrink-0">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
