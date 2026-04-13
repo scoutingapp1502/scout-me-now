@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle, UserPlus, UserCheck } from "lucide-react";
 import MessageDialog from "./MessageDialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -183,12 +183,36 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
 
   useEffect(() => {
     fetchProfile();
     fetchCareerEntries();
+    if (readOnly) checkFollowStatus();
   }, [userId]);
+
+  const checkFollowStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle();
+    setIsFollowing(!!data);
+  };
+
+  const toggleFollow = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setFollowLoading(true);
+    if (isFollowing) {
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
+      setIsFollowing(false);
+    } else {
+      await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
+      setIsFollowing(true);
+    }
+    setFollowLoading(false);
+  };
 
   const fetchCareerEntries = async () => {
     const { data } = await supabase
@@ -527,9 +551,9 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 </div>
               </div>
             )}
-            {/* Message button for readOnly */}
+            {/* Action buttons for readOnly */}
             {readOnly && (
-              <div className="mt-3">
+              <div className="mt-3 flex gap-2">
                 <Button
                   onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
                   size="sm"
@@ -537,6 +561,16 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 >
                   <MessageCircle className="h-4 w-4" />
                   {lang === "ro" ? "Mesaj" : "Message"}
+                </Button>
+                <Button
+                  onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
+                  size="sm"
+                  variant={isFollowing ? "secondary" : "outline"}
+                  disabled={followLoading}
+                  className="font-body gap-2"
+                >
+                  {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                  {isFollowing ? (lang === "ro" ? "Urmărești" : "Following") : (lang === "ro" ? "Urmărește" : "Follow")}
                 </Button>
               </div>
             )}

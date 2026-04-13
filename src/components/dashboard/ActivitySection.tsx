@@ -66,9 +66,22 @@ const ActivitySection = () => {
 
   const fetchPosts = async () => {
     setLoading(true);
+    if (!currentUserId) { setLoading(false); return; }
+
+    // Get followed user IDs
+    const { data: followsData } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", currentUserId);
+
+    const followedIds = (followsData || []).map(f => f.following_id);
+    // Include own posts + followed users' posts
+    const allIds = [...new Set([currentUserId, ...followedIds])];
+
     const { data: rawPosts } = await supabase
       .from("posts")
       .select("*")
+      .in("user_id", allIds)
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -119,7 +132,7 @@ const ActivitySection = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => { if (currentUserId) fetchPosts(); }, [currentUserId]);
 
   // Realtime
   useEffect(() => {
@@ -279,7 +292,7 @@ const ActivitySection = () => {
         </div>
       ) : posts.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
-          {lang === "ro" ? "Nicio postare încă. Fii primul care împărtășește ceva!" : "No posts yet. Be the first to share something!"}
+          {lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor!" : "No posts yet. Follow people to see their activity!"}
         </div>
       ) : (
         <div className="space-y-4">

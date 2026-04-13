@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck } from "lucide-react";
 import MessageDialog from "./MessageDialog";
 import ScoutExtraSections from "./ScoutExtraSections";
 import ScoutStats from "./ScoutStats";
@@ -41,10 +41,34 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const [postingActivity, setPostingActivity] = useState(false);
   const [activityFilter, setActivityFilter] = useState<"all" | "posts" | "images">("all");
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
+    if (readOnly) checkFollowStatus();
   }, [userId]);
+
+  const checkFollowStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle();
+    setIsFollowing(!!data);
+  };
+
+  const toggleFollow = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setFollowLoading(true);
+    if (isFollowing) {
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
+      setIsFollowing(false);
+    } else {
+      await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
+      setIsFollowing(true);
+    }
+    setFollowLoading(false);
+  };
 
   const notifyProfileUpdated = () => {
     window.dispatchEvent(new Event("profile-updated"));
@@ -372,16 +396,28 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                 </div>
               )}
             </div>
-            {/* Message button for readOnly */}
+            {/* Action buttons for readOnly */}
             {readOnly && editingSection !== "header" && (
-              <Button
-                onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
-                size="sm"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 mt-2 sm:mt-0"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Mesaj
-              </Button>
+              <div className="flex gap-2 mt-2 sm:mt-0">
+                <Button
+                  onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Mesaj
+                </Button>
+                <Button
+                  onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
+                  size="sm"
+                  variant={isFollowing ? "secondary" : "outline"}
+                  disabled={followLoading}
+                  className="font-body gap-2"
+                >
+                  {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                  {isFollowing ? "Urmărești" : "Urmărește"}
+                </Button>
+              </div>
             )}
           </div>
 
