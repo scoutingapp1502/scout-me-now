@@ -551,9 +551,9 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 </div>
               </div>
             )}
-            {/* Message button for readOnly */}
+            {/* Action buttons for readOnly */}
             {readOnly && (
-              <div className="mt-3">
+              <div className="mt-3 flex gap-2">
                 <Button
                   onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
                   size="sm"
@@ -561,6 +561,16 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
                 >
                   <MessageCircle className="h-4 w-4" />
                   {lang === "ro" ? "Mesaj" : "Message"}
+                </Button>
+                <Button
+                  onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
+                  size="sm"
+                  variant={isFollowing ? "secondary" : "outline"}
+                  disabled={followLoading}
+                  className="font-body gap-2"
+                >
+                  {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                  {isFollowing ? (lang === "ro" ? "Urmărești" : "Following") : (lang === "ro" ? "Urmărește" : "Follow")}
                 </Button>
               </div>
             )}

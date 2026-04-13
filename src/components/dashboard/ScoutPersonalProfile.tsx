@@ -396,16 +396,28 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                 </div>
               )}
             </div>
-            {/* Message button for readOnly */}
+            {/* Action buttons for readOnly */}
             {readOnly && editingSection !== "header" && (
-              <Button
-                onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
-                size="sm"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 mt-2 sm:mt-0"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Mesaj
-              </Button>
+              <div className="flex gap-2 mt-2 sm:mt-0">
+                <Button
+                  onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Mesaj
+                </Button>
+                <Button
+                  onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
+                  size="sm"
+                  variant={isFollowing ? "secondary" : "outline"}
+                  disabled={followLoading}
+                  className="font-body gap-2"
+                >
+                  {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                  {isFollowing ? "Urmărești" : "Urmărește"}
+                </Button>
+              </div>
             )}
           </div>
 
