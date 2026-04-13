@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Heart, MessageCircle, User, MoreHorizontal, Trash2, UserMinus, Send } from "lucide-react";
+import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -39,11 +39,11 @@ interface PostCardProps {
   author: PostAuthor;
   currentUserId: string | null;
   onDelete: (postId: string) => void;
-  onUnfollow: (userId: string) => void;
+  
   onViewProfile: (userId: string, role: string) => void;
 }
 
-const PostCard = ({ post, author, currentUserId, onDelete, onUnfollow, onViewProfile }: PostCardProps) => {
+const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: PostCardProps) => {
   const { lang } = useLanguage();
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
@@ -248,12 +248,6 @@ const PostCard = ({ post, author, currentUserId, onDelete, onUnfollow, onViewPro
                 <DropdownMenuItem onClick={() => onDelete(post.id)} className="text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
                   {lang === "ro" ? "Șterge" : "Delete"}
-                </DropdownMenuItem>
-              )}
-              {!isOwnPost && (
-                <DropdownMenuItem onClick={() => onUnfollow(author.user_id)}>
-                  <UserMinus className="h-4 w-4 mr-2" />
-                  {lang === "ro" ? "Nu mai urmări" : "Unfollow"}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
