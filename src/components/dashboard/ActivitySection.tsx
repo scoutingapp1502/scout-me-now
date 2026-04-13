@@ -41,6 +41,9 @@ const ActivitySection = () => {
   const [newContent, setNewContent] = useState("");
   const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
   const { followingCount, mineCount } = useActivityNotifications(currentUserId);
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
+  const newPostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedTabRef = useRef<"following" | "mine">("following");
   const [newType, setNewType] = useState("general");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -111,12 +114,31 @@ const ActivitySection = () => {
 
   useEffect(() => { if (currentUserId) fetchPosts(currentUserId); }, [currentUserId]);
 
+  feedTabRef.current = feedTab;
+
   useEffect(() => {
-    const channel = supabase.channel("posts-feed").on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
+    const channel = supabase.channel("posts-feed").on("postgres_changes", { event: "*", schema: "public", table: "posts" }, (payload: any) => {
       const uid = currentUserIdRef.current;
-      if (uid) fetchPosts(uid);
+      if (!uid) return;
+
+      // If the change was made by the current user, refresh immediately
+      if (payload.new?.user_id === uid || payload.old?.user_id === uid) {
+        fetchPosts(uid);
+        return;
+      }
+
+      // For others' posts, only notify on Following tab after 1 minute
+      if (feedTabRef.current === "following") {
+        if (newPostTimerRef.current) clearTimeout(newPostTimerRef.current);
+        newPostTimerRef.current = setTimeout(() => {
+          setNewPostsAvailable(true);
+        }, 60000); // 1 minute
+      }
     }).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+      if (newPostTimerRef.current) clearTimeout(newPostTimerRef.current);
+    };
   }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setImageFile(file); setImagePreview(URL.createObjectURL(file)); };
@@ -235,6 +257,19 @@ const ActivitySection = () => {
           )}
         </button>
       </div>
+
+      {/* New posts banner */}
+      {newPostsAvailable && feedTab === "following" && (
+        <button
+          onClick={() => {
+            setNewPostsAvailable(false);
+            if (currentUserId) fetchPosts(currentUserId);
+          }}
+          className="w-full py-2.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+        >
+          {lang === "ro" ? "🔄 Sunt postări noi. Apasă pentru a le vedea." : "🔄 New posts available. Tap to refresh."}
+        </button>
+      )}
 
       {/* Feed */}
       {loading ? (
