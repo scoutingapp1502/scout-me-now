@@ -100,19 +100,18 @@ const ActivitySection = () => {
     }
   };
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (userId: string) => {
     setLoading(true);
-    if (!currentUserId) { setLoading(false); return; }
 
     // Get followed user IDs
     const { data: followsData } = await supabase
       .from("follows")
       .select("following_id")
-      .eq("follower_id", currentUserId);
+      .eq("follower_id", userId);
 
     const followedIds = (followsData || []).map(f => f.following_id);
     // Include own posts + followed users' posts
-    const allIds = [...new Set([currentUserId, ...followedIds])];
+    const allIds = [...new Set([userId, ...followedIds])];
 
     const { data: rawPosts } = await supabase
       .from("posts")
@@ -168,18 +167,23 @@ const ActivitySection = () => {
     setLoading(false);
   };
 
-  useEffect(() => { if (currentUserId) fetchPosts(); }, [currentUserId]);
+  // Keep a ref to currentUserId so the realtime callback always has the latest value
+  const currentUserIdRef = useRef<string | null>(null);
+  currentUserIdRef.current = currentUserId;
 
-  // Realtime
+  useEffect(() => { if (currentUserId) fetchPosts(currentUserId); }, [currentUserId]);
+
+  // Realtime — stable subscription, uses ref to avoid stale closures
   useEffect(() => {
     const channel = supabase
       .channel("posts-feed")
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
-        if (currentUserId) fetchPosts();
+        const uid = currentUserIdRef.current;
+        if (uid) fetchPosts(uid);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [currentUserId]);
+  }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
