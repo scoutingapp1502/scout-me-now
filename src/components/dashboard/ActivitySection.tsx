@@ -66,9 +66,22 @@ const ActivitySection = () => {
 
   const fetchPosts = async () => {
     setLoading(true);
+    if (!currentUserId) { setLoading(false); return; }
+
+    // Get followed user IDs
+    const { data: followsData } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", currentUserId);
+
+    const followedIds = (followsData || []).map(f => f.following_id);
+    // Include own posts + followed users' posts
+    const allIds = [...new Set([currentUserId, ...followedIds])];
+
     const { data: rawPosts } = await supabase
       .from("posts")
       .select("*")
+      .in("user_id", allIds)
       .order("created_at", { ascending: false })
       .limit(50);
 
