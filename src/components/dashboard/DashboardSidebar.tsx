@@ -128,7 +128,9 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         {sections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
-          const showBadge = section.id === "messages" && unreadCount > 0 && !isActive;
+          const showBadge = (section.id === "messages" && unreadCount > 0 && !isActive) ||
+            (section.id === "activity" && activityCount > 0 && !isActive);
+          const badgeCount = section.id === "messages" ? unreadCount : activityCount;
           return (
             <button
               key={section.id}
