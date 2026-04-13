@@ -161,6 +161,11 @@ const Dashboard = () => {
     setActiveSection("profile");
   };
 
+  const handleNavigateToChat = (targetUserId: string) => {
+    setPendingChatUserId(targetUserId);
+    setActiveSection("messages");
+  };
+
   if (!user || roleLoading) {
     return (
       <div className="flex min-h-screen bg-background dark items-center justify-center">
