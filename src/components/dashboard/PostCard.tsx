@@ -363,7 +363,16 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
                         </DropdownMenu>
                       )}
                     </div>
-                    <span className="text-[10px] text-muted-foreground/60 ml-1 mt-0.5">{timeAgo(c.created_at)}</span>
+                    <div className="flex items-center gap-2 ml-1 mt-0.5">
+                      <span className="text-[10px] text-muted-foreground/60">{timeAgo(c.created_at)}</span>
+                      <button
+                        onClick={() => toggleCommentLike(c.id)}
+                        className={`flex items-center gap-0.5 text-[10px] transition-colors ${c.liked_by_me ? "text-red-500" : "text-muted-foreground/60 hover:text-foreground"}`}
+                      >
+                        <Heart className={`h-3 w-3 ${c.liked_by_me ? "fill-red-500" : ""}`} />
+                        {c.likes_count > 0 && <span>{c.likes_count}</span>}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
