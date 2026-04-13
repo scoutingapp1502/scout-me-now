@@ -65,6 +65,9 @@ const MessagesSection = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const { isOnline } = usePresence(currentUserId);
+  const [photoModal, setPhotoModal] = useState<{ url: string; name: string } | null>(null);
+  const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
+  const [viewProfileRole, setViewProfileRole] = useState<string | null>(null);
 
   const fetchConversations = async () => {
     setLoading(true);
