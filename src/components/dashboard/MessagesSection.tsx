@@ -135,6 +135,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled }: MessagesSe
         .eq("read", false)
         .neq("sender_id", user.id);
 
+      const draft = localStorage.getItem(`draft-${conv.id}`);
+
       if (lastMsgs && lastMsgs.length > 0) {
         items.push({
           conversation_id: conv.id,
@@ -142,10 +144,26 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled }: MessagesSe
           other_name: profile?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
           other_photo: profile?.photo || null,
           other_role: roleMap.get(otherUserId) || null,
-          last_message: lastMsgs[0].content,
+          last_message: draft ? `[${lang === "ro" ? "Ciornă" : "Draft"}] ${draft}` : lastMsgs[0].content,
           last_message_at: lastMsgs[0].created_at,
           unread_count: count || 0,
         });
+      } else {
+        // Empty conversation — show if created within 24h or has draft
+        const createdAt = new Date(conv.created_at).getTime();
+        const isRecent = Date.now() - createdAt < 24 * 60 * 60 * 1000;
+        if (isRecent || draft) {
+          items.push({
+            conversation_id: conv.id,
+            other_user_id: otherUserId,
+            other_name: profile?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
+            other_photo: profile?.photo || null,
+            other_role: roleMap.get(otherUserId) || null,
+            last_message: draft ? `[${lang === "ro" ? "Ciornă" : "Draft"}] ${draft}` : (lang === "ro" ? "Conversație nouă" : "New conversation"),
+            last_message_at: conv.created_at,
+            unread_count: 0,
+          });
+        }
       }
     }
 
