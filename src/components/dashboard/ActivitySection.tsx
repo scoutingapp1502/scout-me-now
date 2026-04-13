@@ -127,12 +127,9 @@ const ActivitySection = () => {
         return;
       }
 
-      // For others' posts, only notify on Following tab after 1 minute
+      // For others' posts, show refresh hint instantly on Following tab
       if (feedTabRef.current === "following") {
-        if (newPostTimerRef.current) clearTimeout(newPostTimerRef.current);
-        newPostTimerRef.current = setTimeout(() => {
-          setNewPostsAvailable(true);
-        }, 60000); // 1 minute
+        setNewPostsAvailable(true);
       }
     }).subscribe();
     return () => {
