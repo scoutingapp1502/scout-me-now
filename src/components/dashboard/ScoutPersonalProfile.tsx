@@ -382,6 +382,19 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   )}
                 </>
               )}
+              {/* Follower count */}
+              {editingSection !== "header" && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => !readOnly && setShowFollowersList(!showFollowersList)}
+                    className={`flex items-center gap-1.5 text-sm font-body ${!readOnly ? "hover:text-primary cursor-pointer" : "cursor-default"} transition-colors`}
+                  >
+                    <Users className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-foreground">{followerCount}</span>
+                    <span className="text-muted-foreground">{lang === "ro" ? "urmăritori" : "followers"}</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right side: Edit button above Organization badge */}
