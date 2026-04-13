@@ -38,6 +38,7 @@ const ActivitySection = () => {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [newContent, setNewContent] = useState("");
+  const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
   const [newType, setNewType] = useState("general");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
