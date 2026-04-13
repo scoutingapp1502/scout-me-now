@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Users, Search, Briefcase, Building2, LogOut, MessageCircle, Newspaper } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
+import { useActivityNotifications } from "@/hooks/useActivityNotifications";
 
 interface DashboardSidebarProps {
   activeSection: string;
