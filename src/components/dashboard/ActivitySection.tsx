@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Loader2, User, ImagePlus, Video, X, Send, PartyPopper } from "lucide-react";
+import { Loader2, User, ImagePlus, Video, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,12 +31,6 @@ const POST_TYPES = [
   { value: "event", labelRo: "Eveniment", labelEn: "Event" },
 ];
 
-const CELEBRATION_EVENTS = [
-  { value: "trophy", labelRo: "🏆 Câștigarea unui trofeu", labelEn: "🏆 Winning a trophy", prefillRo: "🏆 Sărbătoresc câștigarea unui trofeu! ", prefillEn: "🏆 Celebrating winning a trophy! " },
-  { value: "contract", labelRo: "✍️ Semnare contract cu o echipă nouă", labelEn: "✍️ Signing with a new team", prefillRo: "✍️ Am semnat un contract cu o echipă nouă! ", prefillEn: "✍️ I've signed a contract with a new team! " },
-  { value: "agent", labelRo: "🤝 Colaborarea cu un nou agent", labelEn: "🤝 Collaborating with a new agent", prefillRo: "🤝 Am început o colaborare cu un nou agent! ", prefillEn: "🤝 I've started working with a new agent! " },
-  { value: "other", labelRo: "🎉 Altele", labelEn: "🎉 Other", prefillRo: "🎉 Sărbătoresc un moment special! ", prefillEn: "🎉 Celebrating a special moment! " },
-];
 
 const ActivitySection = () => {
   const { lang } = useLanguage();
@@ -52,7 +46,7 @@ const ActivitySection = () => {
   const [posting, setPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const [showCelebrationDialog, setShowCelebrationDialog] = useState(false);
+  
   const [myPhoto, setMyPhoto] = useState<string | null>(null);
   const [myName, setMyName] = useState("");
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
