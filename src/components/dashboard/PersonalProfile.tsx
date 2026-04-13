@@ -465,7 +465,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   return (
     <div className="max-w-4xl mx-auto relative">
       {/* SECTION 1: Header / Hero - sticky */}
-      <div className="md:sticky md:top-0 z-20 rounded-xl overflow-hidden">
+      <div className="z-20 rounded-xl overflow-hidden">
       <div className="relative bg-gradient-to-br from-sidebar to-sidebar-accent rounded-t-xl overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
@@ -620,7 +620,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       </div>
 
       {/* Tabs row (no edit button) */}
-      <div className="flex items-stretch border-b border-border bg-card rounded-b-xl md:sticky md:top-0 z-20">
+      <div className="flex items-stretch border-b border-border bg-card rounded-b-xl z-20">
         <div className="flex flex-1 overflow-x-auto">
           {([
             { key: "stats" as TabType, label: "Stats" },
