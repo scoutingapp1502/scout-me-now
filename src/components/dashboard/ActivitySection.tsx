@@ -1,13 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Loader2, User, ImagePlus, Video, X, MoreHorizontal, Trash2, Send, PartyPopper } from "lucide-react";
+import { Loader2, User, ImagePlus, Video, X, Send, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import PostCard from "./PostCard";
+import PersonalProfile from "./PersonalProfile";
+import ScoutPersonalProfile from "./ScoutPersonalProfile";
 
 interface Post {
   id: string;
