@@ -345,6 +345,10 @@ const ActivitySection = () => {
               <Video className="h-4 w-4 mr-1" />
               {lang === "ro" ? "Videoclip" : "Video"}
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowCelebrationDialog(true)} className="text-muted-foreground">
+              <PartyPopper className="h-4 w-4 mr-1" />
+              {lang === "ro" ? "Sărbătorește" : "Celebrate"}
+            </Button>
             <Select value={newType} onValueChange={setNewType}>
               <SelectTrigger className="w-auto h-8 text-xs bg-background border-border">
                 <SelectValue />
@@ -358,6 +362,30 @@ const ActivitySection = () => {
               </SelectContent>
             </Select>
           </div>
+
+      {/* Celebration Dialog */}
+      <Dialog open={showCelebrationDialog} onOpenChange={setShowCelebrationDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{lang === "ro" ? "Selectați un eveniment" : "Select an event"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            {CELEBRATION_EVENTS.map(evt => (
+              <button
+                key={evt.value}
+                onClick={() => {
+                  setNewContent(lang === "ro" ? evt.prefillRo : evt.prefillEn);
+                  setNewType("event");
+                  setShowCelebrationDialog(false);
+                }}
+                className="w-full text-left px-4 py-3 rounded-lg hover:bg-muted transition-colors text-sm text-foreground"
+              >
+                {lang === "ro" ? evt.labelRo : evt.labelEn}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
           <Button size="sm" onClick={handlePost} disabled={posting || !newContent.trim()}>
             {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
             {lang === "ro" ? "Publică" : "Post"}
