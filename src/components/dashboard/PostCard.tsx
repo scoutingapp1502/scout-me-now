@@ -32,6 +32,8 @@ interface Comment {
   created_at: string;
   author_name: string;
   author_photo: string | null;
+  likes_count: number;
+  liked_by_me: boolean;
 }
 
 interface PostCardProps {
