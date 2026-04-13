@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { UserPlus, ArrowLeft } from "lucide-react";
+import { UserPlus, ArrowLeft, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PersonalProfile from "./PersonalProfile";
 import ScoutPersonalProfile from "./ScoutPersonalProfile";
+import { markNotificationRead, markAllNotificationsRead, isNotificationRead } from "@/hooks/useNotificationCount";
 
 interface FollowNotification {
   id: string;
@@ -14,20 +15,22 @@ interface FollowNotification {
   follower_name: string;
   follower_photo: string | null;
   follower_role: "player" | "scout" | "agent";
+  isRead: boolean;
 }
 
 const NotificationsSection = () => {
   const { lang } = useLanguage();
   const [notifications, setNotifications] = useState<FollowNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
   const [viewProfileRole, setViewProfileRole] = useState<"player" | "scout" | "agent" | null>(null);
 
   const fetchNotifications = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setCurrentUserId(user.id);
 
-    // Get all followers
     const { data: follows } = await supabase
       .from("follows")
       .select("id, follower_id, created_at")
@@ -42,7 +45,6 @@ const NotificationsSection = () => {
 
     const followerIds = follows.map(f => f.follower_id);
 
-    // Get roles
     const { data: roles } = await supabase
       .from("user_roles")
       .select("user_id, role")
@@ -51,7 +53,6 @@ const NotificationsSection = () => {
     const roleMap: Record<string, string> = {};
     roles?.forEach(r => { roleMap[r.user_id] = r.role; });
 
-    // Get player profiles
     const playerIds = followerIds.filter(id => roleMap[id] === "player");
     const scoutIds = followerIds.filter(id => roleMap[id] === "scout" || roleMap[id] === "agent");
 
@@ -88,6 +89,7 @@ const NotificationsSection = () => {
         follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
         follower_photo: info?.photo || null,
         follower_role: role,
+        isRead: isNotificationRead(user.id, f.id),
       };
     });
 
@@ -108,6 +110,25 @@ const NotificationsSection = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const handleMarkOneRead = (notifId: string) => {
+    if (!currentUserId) return;
+    markNotificationRead(currentUserId, notifId);
+    setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, isRead: true } : n));
+  };
+
+  const handleMarkAllRead = () => {
+    if (!currentUserId) return;
+    const allIds = notifications.map(n => n.id);
+    markAllNotificationsRead(currentUserId, allIds);
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const handleClickNotification = (n: FollowNotification) => {
+    handleMarkOneRead(n.id);
+    setViewProfileUserId(n.follower_id);
+    setViewProfileRole(n.follower_role);
+  };
+
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
@@ -124,6 +145,8 @@ const NotificationsSection = () => {
     if (role === "scout") return "Scouter";
     return "Agent";
   };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   if (viewProfileUserId && viewProfileRole) {
     return (
@@ -146,9 +169,17 @@ const NotificationsSection = () => {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-display text-foreground mb-6">
-        {lang === "ro" ? "Notificări" : "Notifications"}
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-display text-foreground">
+          {lang === "ro" ? "Notificări" : "Notifications"}
+        </h2>
+        {unreadCount > 0 && (
+          <Button variant="outline" size="sm" onClick={handleMarkAllRead} className="gap-2 font-body">
+            <CheckCheck className="h-4 w-4" />
+            {lang === "ro" ? "Marchează toate ca citite" : "Mark all as read"}
+          </Button>
+        )}
+      </div>
 
       {loading ? (
         <div className="text-muted-foreground text-center py-12">
@@ -163,9 +194,19 @@ const NotificationsSection = () => {
           {notifications.map(n => (
             <button
               key={n.id}
-              onClick={() => { setViewProfileUserId(n.follower_id); setViewProfileRole(n.follower_role); }}
-              className="w-full flex items-center gap-3 p-4 rounded-lg bg-card hover:bg-accent/50 border border-border transition-all text-left"
+              onClick={() => handleClickNotification(n)}
+              className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
+                n.isRead
+                  ? "bg-card border-border hover:bg-accent/50"
+                  : "bg-primary/5 border-primary/30 hover:bg-primary/10"
+              }`}
             >
+              {/* Unread dot */}
+              <div className="shrink-0 w-2.5 flex items-center justify-center">
+                {!n.isRead && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                )}
+              </div>
               <Avatar className="h-10 w-10">
                 {n.follower_photo ? <AvatarImage src={n.follower_photo} /> : null}
                 <AvatarFallback className="bg-primary/20 text-primary text-sm">
@@ -173,9 +214,9 @@ const NotificationsSection = () => {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground">
+                <p className={`text-sm ${n.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
                   <span className="font-semibold">{n.follower_name}</span>{" "}
-                  <span className="text-muted-foreground">
+                  <span className={n.isRead ? "text-muted-foreground" : "text-foreground/80"}>
                     {lang === "ro" ? "a început să te urmărească" : "started following you"}
                   </span>
                 </p>
@@ -183,7 +224,7 @@ const NotificationsSection = () => {
                   {roleLabel(n.follower_role)} · {timeAgo(n.created_at)}
                 </p>
               </div>
-              <UserPlus className="h-4 w-4 text-primary shrink-0" />
+              <UserPlus className={`h-4 w-4 shrink-0 ${n.isRead ? "text-primary/50" : "text-primary"}`} />
             </button>
           ))}
         </div>

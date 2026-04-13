@@ -5,6 +5,7 @@ import { User, Users, Search, Briefcase, Building2, LogOut, MessageCircle, Newsp
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
+import { useNotificationCount } from "@/hooks/useNotificationCount";
 
 interface DashboardSidebarProps {
   activeSection: string;
@@ -21,6 +22,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   const { t, lang } = useLanguage();
   const [unreadCount, setUnreadCount] = useState(0);
   const { count: activityCount } = useActivityNotifications(userId ?? null);
+  const notifCount = useNotificationCount(userId ?? null);
 
   useEffect(() => {
     let userId: string | null = null;
@@ -130,8 +132,9 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
           const Icon = section.icon;
           const isActive = activeSection === section.id;
           const showBadge = (section.id === "messages" && unreadCount > 0 && !isActive) ||
-            (section.id === "activity" && activityCount > 0 && !isActive);
-          const badgeCount = section.id === "messages" ? unreadCount : activityCount;
+            (section.id === "activity" && activityCount > 0 && !isActive) ||
+            (section.id === "notifications" && notifCount > 0 && !isActive);
+          const badgeCount = section.id === "messages" ? unreadCount : section.id === "notifications" ? notifCount : activityCount;
           return (
             <button
               key={section.id}
