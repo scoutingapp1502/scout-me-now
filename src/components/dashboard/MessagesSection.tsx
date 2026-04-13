@@ -248,18 +248,34 @@ const MessagesSection = () => {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedConversation || !currentUserId) return;
-    setSending(true);
     const content = newMessage.trim();
     setNewMessage("");
 
-    const { error } = await supabase.from("messages").insert({
+    // Optimistic: add message instantly
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      sender_id: currentUserId,
+      content,
+      created_at: new Date().toISOString(),
+      read: false,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
+    const { data, error } = await supabase.from("messages").insert({
       conversation_id: selectedConversation.conversation_id,
       sender_id: currentUserId,
       content,
-    });
+    }).select().single();
 
-    if (error) setNewMessage(content);
-    setSending(false);
+    if (error) {
+      // Remove optimistic message on error, restore input
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      setNewMessage(content);
+    } else if (data) {
+      // Replace optimistic with real message
+      setMessages((prev) => prev.map((m) => m.id === optimisticId ? (data as Message) : m));
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
