@@ -145,7 +145,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
               {section.label}
               {showBadge && (
                 <span className="ml-auto w-5 h-5 rounded-full bg-destructive flex items-center justify-center shrink-0">
-                  <span className="text-[10px] text-white font-bold">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                  <span className="text-[10px] text-white font-bold">{badgeCount > 99 ? "99+" : badgeCount}</span>
                 </span>
               )}
             </button>
