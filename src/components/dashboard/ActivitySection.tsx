@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useActivityNotifications } from "@/hooks/useActivityNotifications";
 import { Loader2, User, ImagePlus, Video, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,7 @@ const ActivitySection = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [newContent, setNewContent] = useState("");
   const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
+  const { followingCount, mineCount } = useActivityNotifications(currentUserId);
   const [newType, setNewType] = useState("general");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -212,15 +214,25 @@ const ActivitySection = () => {
       <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
         <button
           onClick={() => setFeedTab("following")}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           {lang === "ro" ? "Urmăritori" : "Following"}
+          {followingCount > 0 && feedTab !== "following" && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+              {followingCount > 99 ? "99+" : followingCount}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setFeedTab("mine")}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           {lang === "ro" ? "Postările mele" : "My Posts"}
+          {mineCount > 0 && feedTab !== "mine" && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+              {mineCount > 99 ? "99+" : mineCount}
+            </span>
+          )}
         </button>
       </div>
 
