@@ -240,7 +240,7 @@ const MessagesSection = () => {
   // ---- CHAT VIEW (inline, full area) ----
   if (selectedConversation) {
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)]">
+      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
         {/* Header */}
         <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
           <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
