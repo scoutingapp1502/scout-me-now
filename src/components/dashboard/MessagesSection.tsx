@@ -326,6 +326,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled }: MessagesSe
     if (!newMessage.trim() || !selectedConversation || !currentUserId) return;
     const content = newMessage.trim();
     setNewMessage("");
+    // Clear draft on send
+    localStorage.removeItem(`draft-${selectedConversation.conversation_id}`);
 
     // Optimistic: add message instantly
     const optimisticId = `optimistic-${Date.now()}`;
@@ -362,8 +364,15 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled }: MessagesSe
   };
 
   const handleBack = () => {
+    // Save draft if there's unsent text
+    if (selectedConversation && newMessage.trim()) {
+      localStorage.setItem(`draft-${selectedConversation.conversation_id}`, newMessage.trim());
+    } else if (selectedConversation) {
+      localStorage.removeItem(`draft-${selectedConversation.conversation_id}`);
+    }
     setSelectedConversation(null);
     setMessages([]);
+    setNewMessage("");
     fetchConversations();
   };
 
