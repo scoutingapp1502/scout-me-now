@@ -207,6 +207,7 @@ const MessagesSection = () => {
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    chatInputRef.current?.focus();
   }, [messages]);
 
   const handleSend = async () => {
@@ -302,12 +303,14 @@ const MessagesSection = () => {
         {/* Input */}
         <div className="border-t border-border pt-3 flex gap-2 shrink-0">
           <Input
+            ref={chatInputRef}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."}
             className="flex-1"
             disabled={sending}
+            autoFocus
           />
           <Button onClick={handleSend} disabled={!newMessage.trim() || sending} size="icon" className="shrink-0">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
