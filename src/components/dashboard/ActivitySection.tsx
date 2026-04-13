@@ -40,7 +40,7 @@ const ActivitySection = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [newContent, setNewContent] = useState("");
   const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
-  const { followingCount, mineCount } = useActivityNotifications(currentUserId);
+  const { followingCount, mineCount, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const newPostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedTabRef = useRef<"following" | "mine">("following");
