@@ -130,11 +130,14 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
     }
 
     const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
-    const [playerRes, scoutRes] = await Promise.all([
+    const [playerRes, scoutRes, roleRes] = await Promise.all([
       supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", userIds),
       supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", userIds),
+      supabase.from("user_roles").select("user_id, role").in("user_id", userIds),
     ]);
 
+    const roleMap = new Map<string, string>();
+    (roleRes.data || []).forEach(r => roleMap.set(r.user_id, r.role));
     const profileMap = new Map<string, { name: string; photo: string | null }>();
     (playerRes.data || []).forEach(p => profileMap.set(p.user_id, { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url }));
     (scoutRes.data || []).forEach(s => { if (!profileMap.has(s.user_id)) profileMap.set(s.user_id, { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url }); });
