@@ -18,7 +18,7 @@ interface FollowNotification {
   isRead: boolean;
 }
 
-const NotificationsSection = () => {
+const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: string) => void }) => {
   const { lang } = useLanguage();
   const [notifications, setNotifications] = useState<FollowNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,8 +161,8 @@ const NotificationsSection = () => {
           {lang === "ro" ? "Înapoi la notificări" : "Back to notifications"}
         </Button>
         {viewProfileRole === "player"
-          ? <PersonalProfile userId={viewProfileUserId} readOnly />
-          : <ScoutPersonalProfile userId={viewProfileUserId} readOnly />}
+          ? <PersonalProfile userId={viewProfileUserId} readOnly onNavigateToChat={onNavigateToChat} />
+          : <ScoutPersonalProfile userId={viewProfileUserId} readOnly onNavigateToChat={onNavigateToChat} />}
       </div>
     );
   }
