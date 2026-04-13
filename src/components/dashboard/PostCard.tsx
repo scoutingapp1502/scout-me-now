@@ -32,6 +32,7 @@ interface Comment {
   created_at: string;
   author_name: string;
   author_photo: string | null;
+  author_role: string;
   likes_count: number;
   liked_by_me: boolean;
 }
@@ -129,11 +130,14 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
     }
 
     const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
-    const [playerRes, scoutRes] = await Promise.all([
+    const [playerRes, scoutRes, roleRes] = await Promise.all([
       supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", userIds),
       supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", userIds),
+      supabase.from("user_roles").select("user_id, role").in("user_id", userIds),
     ]);
 
+    const roleMap = new Map<string, string>();
+    (roleRes.data || []).forEach(r => roleMap.set(r.user_id, r.role));
     const profileMap = new Map<string, { name: string; photo: string | null }>();
     (playerRes.data || []).forEach(p => profileMap.set(p.user_id, { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url }));
     (scoutRes.data || []).forEach(s => { if (!profileMap.has(s.user_id)) profileMap.set(s.user_id, { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url }); });
@@ -159,6 +163,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
         ...c,
         author_name: profile?.name || (lang === "ro" ? "Utilizator" : "User"),
         author_photo: profile?.photo || null,
+        author_role: roleMap.get(c.user_id) || "player",
         likes_count: likesCountMap.get(c.id) || 0,
         liked_by_me: myLikedSet.has(c.id),
       };
@@ -352,17 +357,17 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {comments.map(c => (
                 <div key={c.id} className="flex items-start gap-2 group">
-                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                  <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
                     {c.author_photo ? (
                       <img src={c.author_photo} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <User className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
-                  </div>
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-1">
                       <div className="flex-1 bg-muted/50 rounded-lg px-3 py-1.5">
-                        <p className="text-xs font-medium text-foreground">{c.author_name}</p>
+                        <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="text-xs font-medium text-foreground hover:underline cursor-pointer text-left">{c.author_name}</button>
                         <p className="text-xs text-foreground/80">{c.content}</p>
                       </div>
                       {c.user_id === currentUserId && (
