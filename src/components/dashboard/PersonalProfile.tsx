@@ -183,6 +183,8 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
 
   useEffect(() => {
