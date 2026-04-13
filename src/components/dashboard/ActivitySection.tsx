@@ -208,25 +208,50 @@ const ActivitySection = () => {
         </div>
       </div>
 
+      {/* Feed Tab Toggle */}
+      <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => setFeedTab("following")}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          {lang === "ro" ? "Urmăritori" : "Following"}
+        </button>
+        <button
+          onClick={() => setFeedTab("mine")}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          {lang === "ro" ? "Postările mele" : "My Posts"}
+        </button>
+      </div>
+
       {/* Feed */}
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-      ) : posts.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">{lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor!" : "No posts yet. Follow people to see their activity!"}</div>
-      ) : (
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={{ id: post.id, user_id: post.user_id, content: post.content, image_url: post.image_url, video_url: (post as any).video_url || null, post_type: post.post_type, created_at: post.created_at }}
-              author={{ user_id: post.user_id, name: post.author_name, photo: post.author_photo, role: post.author_role, title: post.author_title }}
-              currentUserId={currentUserId}
-              onDelete={handleDelete}
-              onViewProfile={handleViewProfile}
-            />
-          ))}
-        </div>
-      )}
+      ) : (() => {
+        const filteredPosts = feedTab === "mine"
+          ? posts.filter(p => p.user_id === currentUserId)
+          : posts.filter(p => p.user_id !== currentUserId);
+        return filteredPosts.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            {feedTab === "mine"
+              ? (lang === "ro" ? "Nu ai publicat nicio postare încă." : "You haven't posted anything yet.")
+              : (lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor!" : "No posts yet. Follow people to see their activity!")}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredPosts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={{ id: post.id, user_id: post.user_id, content: post.content, image_url: post.image_url, video_url: (post as any).video_url || null, post_type: post.post_type, created_at: post.created_at }}
+                author={{ user_id: post.user_id, name: post.author_name, photo: post.author_photo, role: post.author_role, title: post.author_title }}
+                currentUserId={currentUserId}
+                onDelete={handleDelete}
+                onViewProfile={handleViewProfile}
+              />
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Profile View Dialog */}
       <Dialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)}>
