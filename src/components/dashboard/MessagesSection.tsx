@@ -279,6 +279,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled }: MessagesSe
         }
       }
       setChatLoading(false);
+      // Load draft
+      const draft = localStorage.getItem(`draft-${selectedConversation.conversation_id}`);
+      if (draft) setNewMessage(draft);
     };
     load();
   }, [selectedConversation, currentUserId]);
