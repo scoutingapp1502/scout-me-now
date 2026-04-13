@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle, UserPlus, UserCheck } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle, UserPlus, UserCheck, Users } from "lucide-react";
 import MessageDialog from "./MessageDialog";
 import PostCard from "./PostCard";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -16,6 +16,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
 import PlayerStats from "./PlayerStats";
 import NationalityInput, { getDisplayNationality } from "@/components/ui/nationality-input";
+import { useFollowers } from "@/hooks/useFollowers";
+import FollowersList from "./FollowersList";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -186,6 +188,8 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showFollowersList, setShowFollowersList] = useState(false);
+  const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
 
   useEffect(() => {
