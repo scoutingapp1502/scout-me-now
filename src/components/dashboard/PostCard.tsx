@@ -163,6 +163,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
         ...c,
         author_name: profile?.name || (lang === "ro" ? "Utilizator" : "User"),
         author_photo: profile?.photo || null,
+        author_role: roleMap.get(c.user_id) || "player",
         likes_count: likesCountMap.get(c.id) || 0,
         liked_by_me: myLikedSet.has(c.id),
       };
