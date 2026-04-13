@@ -287,9 +287,17 @@ const MessagesSection = () => {
           </div>
           <div className="flex flex-col">
             <h2 className="font-display text-lg text-foreground truncate">{selectedConversation.other_name}</h2>
-            {selectedConversation.other_role && (
-              <span className="text-xs text-muted-foreground">{getRoleLabel(selectedConversation.other_role, lang)}</span>
-            )}
+            <div className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${isOnline(selectedConversation.other_user_id) ? "bg-green-500" : "bg-muted-foreground/40"}`} />
+              <span className="text-xs text-muted-foreground">
+                {isOnline(selectedConversation.other_user_id)
+                  ? "Online"
+                  : "Offline"}
+              </span>
+              {selectedConversation.other_role && (
+                <span className="text-xs text-muted-foreground ml-1">· {getRoleLabel(selectedConversation.other_role, lang)}</span>
+              )}
+            </div>
           </div>
         </div>
 
