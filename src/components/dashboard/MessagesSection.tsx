@@ -60,7 +60,7 @@ const MessagesSection = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [newMessage, setNewMessage] = useState("");
-  const [sending, setSending] = useState(false);
+  const [sending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
