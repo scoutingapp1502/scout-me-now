@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Users, Search, Briefcase, Building2, LogOut, MessageCircle, Newspaper } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
+import { useActivityNotifications } from "@/hooks/useActivityNotifications";
 
 interface DashboardSidebarProps {
   activeSection: string;
@@ -12,12 +13,14 @@ interface DashboardSidebarProps {
   playerSport?: string;
   profileLabel?: string;
   userRole?: "player" | "scout" | "agent" | null;
+  userId?: string | null;
 }
 
-const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole, userId }: DashboardSidebarProps) => {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const [unreadCount, setUnreadCount] = useState(0);
+  const { count: activityCount } = useActivityNotifications(userId ?? null);
 
   useEffect(() => {
     let userId: string | null = null;
@@ -125,7 +128,9 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         {sections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
-          const showBadge = section.id === "messages" && unreadCount > 0 && !isActive;
+          const showBadge = (section.id === "messages" && unreadCount > 0 && !isActive) ||
+            (section.id === "activity" && activityCount > 0 && !isActive);
+          const badgeCount = section.id === "messages" ? unreadCount : activityCount;
           return (
             <button
               key={section.id}
@@ -140,7 +145,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
               {section.label}
               {showBadge && (
                 <span className="ml-auto w-5 h-5 rounded-full bg-destructive flex items-center justify-center shrink-0">
-                  <span className="text-[10px] text-white font-bold">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                  <span className="text-[10px] text-white font-bold">{badgeCount > 99 ? "99+" : badgeCount}</span>
                 </span>
               )}
             </button>

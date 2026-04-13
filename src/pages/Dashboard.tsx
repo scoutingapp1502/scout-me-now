@@ -13,6 +13,7 @@ import PlayersSection from "@/components/dashboard/PlayersSection";
 import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
+import { markActivitySeen } from "@/hooks/useActivityNotifications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Menu, Loader2 } from "lucide-react";
@@ -167,6 +168,9 @@ const Dashboard = () => {
   }
 
   const handleSectionChange = (section: string) => {
+    if (section === "activity" && user?.id) {
+      markActivitySeen(user.id);
+    }
     setActiveSection(section);
     if (isMobile) setSidebarOpen(false);
   };
@@ -232,6 +236,7 @@ const Dashboard = () => {
                 playerSport={playerSport}
                 profileLabel={sidebarFirstLabel}
                 userRole={userRole}
+                userId={user?.id}
               />
             </SheetContent>
           </Sheet>
@@ -251,11 +256,12 @@ const Dashboard = () => {
         <>
           <DashboardSidebar
             activeSection={activeSection}
-            onSectionChange={setActiveSection}
+            onSectionChange={handleSectionChange}
             playerName={playerName}
             playerSport={playerSport}
             profileLabel={sidebarFirstLabel}
             userRole={userRole}
+            userId={user?.id}
           />
           <main className="flex-1 p-8 overflow-y-auto">
             {renderSection()}
