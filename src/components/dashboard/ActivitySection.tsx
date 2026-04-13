@@ -116,21 +116,30 @@ const ActivitySection = () => {
   feedTabRef.current = feedTab;
 
   useEffect(() => {
-    const channel = supabase.channel("posts-feed").on("postgres_changes", { event: "*", schema: "public", table: "posts" }, (payload: any) => {
-      const uid = currentUserIdRef.current;
-      if (!uid) return;
+    const channel = supabase.channel("posts-feed-" + Date.now())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, (payload: any) => {
+        const uid = currentUserIdRef.current;
+        if (!uid) return;
 
-      // If the change was made by the current user, refresh immediately
-      if (payload.new?.user_id === uid || payload.old?.user_id === uid) {
-        fetchPosts(uid);
-        return;
-      }
+        const newUserId = payload.new?.user_id;
 
-      // For others' posts, show refresh hint instantly on Following tab
-      if (feedTabRef.current === "following") {
-        setNewPostsAvailable(true);
-      }
-    }).subscribe();
+        // If the change was made by the current user, refresh immediately
+        if (newUserId === uid) {
+          fetchPosts(uid);
+          return;
+        }
+
+        // For others' posts, show refresh hint instantly on Following tab
+        if (feedTabRef.current === "following") {
+          setNewPostsAvailable(true);
+        }
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts" }, (payload: any) => {
+        const uid = currentUserIdRef.current;
+        if (!uid) return;
+        if (payload.old?.user_id === uid) fetchPosts(uid);
+      })
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
 
