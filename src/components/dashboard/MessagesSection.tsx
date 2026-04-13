@@ -190,6 +190,52 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled }: MessagesSe
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Auto-open chat when initialChatUserId is provided
+  useEffect(() => {
+    if (!initialChatUserId || !currentUserId || loading) return;
+
+    // Check if we already have a conversation with this user
+    const existing = conversations.find(c => c.other_user_id === initialChatUserId);
+    if (existing) {
+      setSelectedConversation(existing);
+      onInitialChatHandled?.();
+      return;
+    }
+
+    // Create conversation and open it
+    const openChat = async () => {
+      const { data: convId } = await supabase.rpc("get_or_create_conversation", {
+        other_user_id: initialChatUserId,
+      });
+      if (!convId) return;
+
+      // Fetch profile info for the other user
+      const [playerRes, scoutRes, roleRes] = await Promise.all([
+        supabase.from("player_profiles").select("first_name, last_name, photo_url").eq("user_id", initialChatUserId).maybeSingle(),
+        supabase.from("scout_profiles").select("first_name, last_name, photo_url").eq("user_id", initialChatUserId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", initialChatUserId).maybeSingle(),
+      ]);
+
+      const p = playerRes.data || scoutRes.data;
+      const newConv: ConversationItem = {
+        conversation_id: convId,
+        other_user_id: initialChatUserId,
+        other_name: p ? `${p.first_name} ${p.last_name}`.trim() : "Unknown",
+        other_photo: p?.photo_url || null,
+        other_role: roleRes.data?.role || null,
+        last_message: lang === "ro" ? "Conversație nouă" : "New conversation",
+        last_message_at: new Date().toISOString(),
+        unread_count: 0,
+      };
+
+      setConversations(prev => [newConv, ...prev.filter(c => c.conversation_id !== convId)]);
+      setSelectedConversation(newConv);
+      onInitialChatHandled?.();
+    };
+
+    openChat();
+  }, [initialChatUserId, currentUserId, loading]);
+
   // Filtered conversations
   const filteredConversations = useMemo(() => {
     let filtered = conversations;
