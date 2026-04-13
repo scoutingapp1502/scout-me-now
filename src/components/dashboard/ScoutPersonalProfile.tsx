@@ -26,6 +26,7 @@ interface ScoutPersonalProfileProps {
 
 const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfileProps) => {
   const { toast } = useToast();
+  const { lang } = useLanguage();
   const [profile, setProfile] = useState<ScoutProfile | null>(null);
   const [experiences, setExperiences] = useState<ScoutExperience[]>([]);
   const [posts, setPosts] = useState<ScoutPost[]>([]);
@@ -46,6 +47,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showFollowersList, setShowFollowersList] = useState(false);
+  const { followers, count: followerCount, removeFollower } = useFollowers(userId);
 
   useEffect(() => {
     fetchData();
