@@ -646,7 +646,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
       </div>
 
       {/* Tab content */}
-      <div className="mt-6 px-2 sm:px-6">
+      <div className="mt-8 px-2 sm:px-6">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} readOnly={readOnly} />}
         {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} />}
         {activeTab === "video" && (
