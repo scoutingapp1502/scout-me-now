@@ -132,7 +132,7 @@ const ActivitySection = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => { if (currentUserId) fetchPosts(); }, [currentUserId]);
 
   // Realtime
   useEffect(() => {
