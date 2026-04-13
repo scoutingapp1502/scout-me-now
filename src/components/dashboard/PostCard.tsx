@@ -55,6 +55,19 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
   const [commentsCount, setCommentsCount] = useState(0);
   const [loadingComments, setLoadingComments] = useState(false);
   const commentInputRef = useRef<HTMLInputElement>(null);
+  const [isNew, setIsNew] = useState(() => {
+    const diff = Date.now() - new Date(post.created_at).getTime();
+    return diff < 5 * 60 * 1000;
+  });
+
+  useEffect(() => {
+    if (!isNew) return;
+    const diff = Date.now() - new Date(post.created_at).getTime();
+    const remaining = 5 * 60 * 1000 - diff;
+    if (remaining <= 0) { setIsNew(false); return; }
+    const timer = setTimeout(() => setIsNew(false), remaining);
+    return () => clearTimeout(timer);
+  }, [post.created_at, isNew]);
 
   // Load likes count + user like status
   useEffect(() => {
@@ -238,7 +251,12 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
   const isOwnPost = post.user_id === currentUserId;
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
+    <div className={`bg-card border rounded-xl overflow-hidden transition-colors ${isNew ? "border-primary/50 ring-1 ring-primary/20" : "border-border"}`}>
+      {isNew && (
+        <div className="px-4 py-1 bg-primary/10 text-primary text-xs font-medium">
+          {lang === "ro" ? "✨ Postare nouă" : "✨ New post"}
+        </div>
+      )}
       <div className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
