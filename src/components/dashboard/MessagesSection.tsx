@@ -138,13 +138,13 @@ const MessagesSection = () => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         () => {
-          if (!selectedConversation) fetchConversations();
+          fetchConversations();
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [selectedConversation]);
+  }, []);
 
   // Load chat messages when conversation selected
   useEffect(() => {
