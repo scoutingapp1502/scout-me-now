@@ -180,6 +180,19 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
     loadComments();
   };
 
+  const toggleCommentLike = async (commentId: string) => {
+    if (!currentUserId) return;
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) return;
+    if (comment.liked_by_me) {
+      await supabase.from("comment_likes").delete().eq("comment_id", commentId).eq("user_id", currentUserId);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, liked_by_me: false, likes_count: Math.max(0, c.likes_count - 1) } : c));
+    } else {
+      await supabase.from("comment_likes").insert({ comment_id: commentId, user_id: currentUserId } as any);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, liked_by_me: true, likes_count: c.likes_count + 1 } : c));
+    }
+  };
+
   const deleteComment = async (commentId: string) => {
     await supabase.from("post_comments").delete().eq("id", commentId);
     setCommentsCount(c => Math.max(0, c - 1));
