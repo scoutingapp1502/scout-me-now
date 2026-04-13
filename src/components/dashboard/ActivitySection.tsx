@@ -41,7 +41,11 @@ const ActivitySection = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [newContent, setNewContent] = useState("");
   const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
-  const { followingCount, mineCount, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
+  const { followingCount, mineCount, notifications: activityNotifs, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
+  const [viewingSinglePostId, setViewingSinglePostId] = useState<string | null>(null);
+  const [singlePost, setSinglePost] = useState<Post | null>(null);
+  const [loadingSinglePost, setLoadingSinglePost] = useState(false);
+  const [activitySubTab, setActivitySubTab] = useState<"feed" | "notifications">("feed");
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const feedTabRef = useRef<"following" | "mine">("following");
   const [newType, setNewType] = useState("general");
