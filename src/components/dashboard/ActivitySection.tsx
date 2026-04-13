@@ -247,7 +247,7 @@ const ActivitySection = () => {
       image_url: imageUrl,
       video_url: videoUrl,
       post_type: newType,
-    } as any);
+    } as any).select().single();
 
     if (error) {
       toast.error(lang === "ro" ? "Eroare la publicare" : "Failed to post");
