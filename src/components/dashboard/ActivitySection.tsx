@@ -256,6 +256,7 @@ const ActivitySection = () => {
       setNewType("general");
       removeImage();
       removeVideo();
+      await fetchPosts(currentUserId);
     }
     setPosting(false);
   };
