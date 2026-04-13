@@ -4,13 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users } from "lucide-react";
 import MessageDialog from "./MessageDialog";
 import ScoutExtraSections from "./ScoutExtraSections";
 import ScoutStats from "./ScoutStats";
 import SkillsEditor from "./SkillsEditor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { useFollowers } from "@/hooks/useFollowers";
+import FollowersList from "./FollowersList";
 
 type ScoutProfile = Tables<"scout_profiles">;
 type ScoutExperience = Tables<"scout_experiences">;
@@ -23,6 +26,7 @@ interface ScoutPersonalProfileProps {
 
 const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfileProps) => {
   const { toast } = useToast();
+  const { lang } = useLanguage();
   const [profile, setProfile] = useState<ScoutProfile | null>(null);
   const [experiences, setExperiences] = useState<ScoutExperience[]>([]);
   const [posts, setPosts] = useState<ScoutPost[]>([]);
@@ -43,6 +47,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showFollowersList, setShowFollowersList] = useState(false);
+  const { followers, count: followerCount, removeFollower } = useFollowers(userId);
 
   useEffect(() => {
     fetchData();
@@ -376,6 +382,19 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
                   )}
                 </>
               )}
+              {/* Follower count */}
+              {editingSection !== "header" && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => !readOnly && setShowFollowersList(!showFollowersList)}
+                    className={`flex items-center gap-1.5 text-sm font-body ${!readOnly ? "hover:text-primary cursor-pointer" : "cursor-default"} transition-colors`}
+                  >
+                    <Users className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-foreground">{followerCount}</span>
+                    <span className="text-muted-foreground">{lang === "ro" ? "urmăritori" : "followers"}</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right side: Edit button above Organization badge */}
@@ -433,6 +452,19 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
         </div>
 
       </div>
+
+
+      {/* Followers list (only in personal profile, non-readOnly) */}
+      {!readOnly && showFollowersList && (
+        <div className="mt-4">
+          <FollowersList
+            followers={followers}
+            onRemove={removeFollower}
+            onViewProfile={() => {}}
+            onClose={() => setShowFollowersList(false)}
+          />
+        </div>
+      )}
 
       {/* ===== STATISTICI ===== */}
       <ScoutStats userId={userId} isOwner={!readOnly} />
