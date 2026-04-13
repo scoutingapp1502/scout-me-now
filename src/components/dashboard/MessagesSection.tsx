@@ -389,9 +389,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           {lang === "ro" ? "Înapoi la conversație" : "Back to conversation"}
         </Button>
         {viewProfileRole === "player" ? (
-          <PersonalProfile userId={viewProfileUserId} readOnly />
+          <PersonalProfile userId={viewProfileUserId} readOnly onNavigateToChat={onNavigateToChat} />
         ) : (
-          <ScoutPersonalProfile userId={viewProfileUserId} readOnly />
+          <ScoutPersonalProfile userId={viewProfileUserId} readOnly onNavigateToChat={onNavigateToChat} />
         )}
       </div>
     );
