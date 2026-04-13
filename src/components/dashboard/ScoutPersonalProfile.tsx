@@ -22,9 +22,10 @@ type ScoutPost = Tables<"scout_posts">;
 interface ScoutPersonalProfileProps {
   userId: string;
   readOnly?: boolean;
+  onNavigateToChat?: (userId: string) => void;
 }
 
-const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfileProps) => {
+const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: ScoutPersonalProfileProps) => {
   const { toast } = useToast();
   const { lang } = useLanguage();
   const [profile, setProfile] = useState<ScoutProfile | null>(null);
@@ -430,7 +431,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
             {readOnly && editingSection !== "header" && (
               <div className="flex gap-2 mt-2 sm:mt-0">
                 <Button
-                  onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
+                  onClick={(e) => { e.stopPropagation(); onNavigateToChat ? onNavigateToChat(userId) : setShowMessageDialog(true); }}
                   size="sm"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2"
                 >

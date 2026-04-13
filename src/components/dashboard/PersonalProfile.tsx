@@ -113,6 +113,7 @@ function AgentPhoneInput({ value, onChange }: { value: string; onChange: (val: s
 interface PersonalProfileProps {
   userId: string;
   readOnly?: boolean;
+  onNavigateToChat?: (userId: string) => void;
 }
 
 const positionsBySport: Record<string, string[]> = {
@@ -172,7 +173,7 @@ interface CareerEntry {
   description: string;
 }
 
-const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => {
+const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { lang, t } = useLanguage();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
@@ -585,7 +586,7 @@ const PersonalProfile = ({ userId, readOnly = false }: PersonalProfileProps) => 
             {readOnly && (
               <div className="mt-3 flex gap-2">
                 <Button
-                  onClick={(e) => { e.stopPropagation(); setShowMessageDialog(true); }}
+                  onClick={(e) => { e.stopPropagation(); onNavigateToChat ? onNavigateToChat(userId) : setShowMessageDialog(true); }}
                   size="sm"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2"
                 >
