@@ -95,6 +95,23 @@ const ScoutersSection = () => {
     return () => clearTimeout(timer);
   }, [search, filtered.length]);
 
+  if (selectedScoutId) {
+    return (
+      <div className="space-y-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedScoutId(null)}
+          className="mb-4 gap-2 text-muted-foreground hover:text-foreground font-body"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {lang === "ro" ? "Înapoi la scouteri" : "Back to scouts"}
+        </Button>
+        <ScoutPersonalProfile userId={selectedScoutId} readOnly />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Search bar */}

@@ -254,6 +254,23 @@ const PlayersSection = () => {
   if (filterWeightMin) activeChips.push({ label: `${tr.weight} ≥ ${filterWeightMin}kg`, clear: () => setFilterWeightMin("") });
   if (filterWeightMax) activeChips.push({ label: `${tr.weight} ≤ ${filterWeightMax}kg`, clear: () => setFilterWeightMax("") });
 
+  if (selectedPlayerId) {
+    return (
+      <div className="space-y-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedPlayerId(null)}
+          className="mb-4 gap-2 text-muted-foreground hover:text-foreground font-body"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {lang === "ro" ? "Înapoi la jucători" : "Back to players"}
+        </Button>
+        <PersonalProfile userId={selectedPlayerId} readOnly />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Search + Filter toggle row */}
