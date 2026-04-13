@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useActivityNotifications, markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotifications";
-import { Loader2, User, ImagePlus, Video, X, Send } from "lucide-react";
+import { Loader2, User, ImagePlus, Video, X, Send, Bell, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import PostCard from "./PostCard";
 import PersonalProfile from "./PersonalProfile";
 import ScoutPersonalProfile from "./ScoutPersonalProfile";
+import ActivityNotificationsList from "./ActivityNotificationsList";
 
 interface Post {
   id: string;
