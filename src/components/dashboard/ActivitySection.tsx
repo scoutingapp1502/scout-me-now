@@ -34,7 +34,7 @@ const POST_TYPES = [
 ];
 
 
-const ActivitySection = () => {
+const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: string) => void }) => {
   const { lang } = useLanguage();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -245,8 +245,8 @@ const ActivitySection = () => {
             <div className="overflow-y-auto h-full sm:max-h-[90vh]">
               {viewingProfileId && (
                 viewingProfileRole === "player"
-                  ? <PersonalProfile userId={viewingProfileId} readOnly />
-                  : <ScoutPersonalProfile userId={viewingProfileId} readOnly />
+                  ? <PersonalProfile userId={viewingProfileId} readOnly onNavigateToChat={onNavigateToChat} />
+                  : <ScoutPersonalProfile userId={viewingProfileId} readOnly onNavigateToChat={onNavigateToChat} />
               )}
             </div>
           </DialogContent>
@@ -405,8 +405,8 @@ const ActivitySection = () => {
           <div className="overflow-y-auto h-full sm:max-h-[90vh]">
             {viewingProfileId && (
               viewingProfileRole === "player"
-                ? <PersonalProfile userId={viewingProfileId} readOnly />
-                : <ScoutPersonalProfile userId={viewingProfileId} readOnly />
+                ? <PersonalProfile userId={viewingProfileId} readOnly onNavigateToChat={onNavigateToChat} />
+                : <ScoutPersonalProfile userId={viewingProfileId} readOnly onNavigateToChat={onNavigateToChat} />
             )}
           </div>
         </DialogContent>

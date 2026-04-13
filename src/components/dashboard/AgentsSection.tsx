@@ -27,7 +27,7 @@ const COLORS = [
   "bg-orange-400",
 ];
 
-const AgentsSection = () => {
+const AgentsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: string) => void }) => {
   const [agents, setAgents] = useState<AgentCard[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -112,7 +112,7 @@ const AgentsSection = () => {
           <ArrowLeft className="h-4 w-4" />
           {lang === "ro" ? "Înapoi la agenți" : "Back to agents"}
         </Button>
-        <ScoutPersonalProfile userId={selectedAgentId} readOnly />
+        <ScoutPersonalProfile userId={selectedAgentId} readOnly onNavigateToChat={onNavigateToChat} />
       </div>
     );
   }

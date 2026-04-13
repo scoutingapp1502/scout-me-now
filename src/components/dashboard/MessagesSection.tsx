@@ -46,7 +46,13 @@ interface Message {
   read: boolean;
 }
 
-const MessagesSection = () => {
+interface MessagesSectionProps {
+  initialChatUserId?: string | null;
+  onInitialChatHandled?: () => void;
+  onNavigateToChat?: (userId: string) => void;
+}
+
+const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateToChat }: MessagesSectionProps = {}) => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<ConversationItem | null>(null);
@@ -130,6 +136,8 @@ const MessagesSection = () => {
         .eq("read", false)
         .neq("sender_id", user.id);
 
+      const draft = localStorage.getItem(`draft-${conv.id}`);
+
       if (lastMsgs && lastMsgs.length > 0) {
         items.push({
           conversation_id: conv.id,
@@ -137,10 +145,26 @@ const MessagesSection = () => {
           other_name: profile?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
           other_photo: profile?.photo || null,
           other_role: roleMap.get(otherUserId) || null,
-          last_message: lastMsgs[0].content,
+          last_message: draft ? `[${lang === "ro" ? "Ciornă" : "Draft"}] ${draft}` : lastMsgs[0].content,
           last_message_at: lastMsgs[0].created_at,
           unread_count: count || 0,
         });
+      } else {
+        // Empty conversation — show if created within 24h or has draft
+        const createdAt = new Date(conv.created_at).getTime();
+        const isRecent = Date.now() - createdAt < 24 * 60 * 60 * 1000;
+        if (isRecent || draft) {
+          items.push({
+            conversation_id: conv.id,
+            other_user_id: otherUserId,
+            other_name: profile?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
+            other_photo: profile?.photo || null,
+            other_role: roleMap.get(otherUserId) || null,
+            last_message: draft ? `[${lang === "ro" ? "Ciornă" : "Draft"}] ${draft}` : (lang === "ro" ? "Conversație nouă" : "New conversation"),
+            last_message_at: conv.created_at,
+            unread_count: 0,
+          });
+        }
       }
     }
 
@@ -166,6 +190,52 @@ const MessagesSection = () => {
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // Auto-open chat when initialChatUserId is provided
+  useEffect(() => {
+    if (!initialChatUserId || !currentUserId || loading) return;
+
+    // Check if we already have a conversation with this user
+    const existing = conversations.find(c => c.other_user_id === initialChatUserId);
+    if (existing) {
+      setSelectedConversation(existing);
+      onInitialChatHandled?.();
+      return;
+    }
+
+    // Create conversation and open it
+    const openChat = async () => {
+      const { data: convId } = await supabase.rpc("get_or_create_conversation", {
+        other_user_id: initialChatUserId,
+      });
+      if (!convId) return;
+
+      // Fetch profile info for the other user
+      const [playerRes, scoutRes, roleRes] = await Promise.all([
+        supabase.from("player_profiles").select("first_name, last_name, photo_url").eq("user_id", initialChatUserId).maybeSingle(),
+        supabase.from("scout_profiles").select("first_name, last_name, photo_url").eq("user_id", initialChatUserId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", initialChatUserId).maybeSingle(),
+      ]);
+
+      const p = playerRes.data || scoutRes.data;
+      const newConv: ConversationItem = {
+        conversation_id: convId,
+        other_user_id: initialChatUserId,
+        other_name: p ? `${p.first_name} ${p.last_name}`.trim() : "Unknown",
+        other_photo: p?.photo_url || null,
+        other_role: roleRes.data?.role || null,
+        last_message: lang === "ro" ? "Conversație nouă" : "New conversation",
+        last_message_at: new Date().toISOString(),
+        unread_count: 0,
+      };
+
+      setConversations(prev => [newConv, ...prev.filter(c => c.conversation_id !== convId)]);
+      setSelectedConversation(newConv);
+      onInitialChatHandled?.();
+    };
+
+    openChat();
+  }, [initialChatUserId, currentUserId, loading]);
 
   // Filtered conversations
   const filteredConversations = useMemo(() => {
@@ -210,6 +280,9 @@ const MessagesSection = () => {
         }
       }
       setChatLoading(false);
+      // Load draft
+      const draft = localStorage.getItem(`draft-${selectedConversation.conversation_id}`);
+      if (draft) setNewMessage(draft);
     };
     load();
   }, [selectedConversation, currentUserId]);
@@ -257,6 +330,8 @@ const MessagesSection = () => {
     if (!newMessage.trim() || !selectedConversation || !currentUserId) return;
     const content = newMessage.trim();
     setNewMessage("");
+    // Clear draft on send
+    localStorage.removeItem(`draft-${selectedConversation.conversation_id}`);
 
     // Optimistic: add message instantly
     const optimisticId = `optimistic-${Date.now()}`;
@@ -293,8 +368,15 @@ const MessagesSection = () => {
   };
 
   const handleBack = () => {
+    // Save draft if there's unsent text
+    if (selectedConversation && newMessage.trim()) {
+      localStorage.setItem(`draft-${selectedConversation.conversation_id}`, newMessage.trim());
+    } else if (selectedConversation) {
+      localStorage.removeItem(`draft-${selectedConversation.conversation_id}`);
+    }
     setSelectedConversation(null);
     setMessages([]);
+    setNewMessage("");
     fetchConversations();
   };
 
@@ -307,9 +389,9 @@ const MessagesSection = () => {
           {lang === "ro" ? "Înapoi la conversație" : "Back to conversation"}
         </Button>
         {viewProfileRole === "player" ? (
-          <PersonalProfile userId={viewProfileUserId} readOnly />
+          <PersonalProfile userId={viewProfileUserId} readOnly onNavigateToChat={onNavigateToChat} />
         ) : (
-          <ScoutPersonalProfile userId={viewProfileUserId} readOnly />
+          <ScoutPersonalProfile userId={viewProfileUserId} readOnly onNavigateToChat={onNavigateToChat} />
         )}
       </div>
     );
