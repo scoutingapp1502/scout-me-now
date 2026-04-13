@@ -5,6 +5,7 @@ import { User, Users, Search, Briefcase, Building2, LogOut, MessageCircle, Newsp
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
+import { useNotificationCount } from "@/hooks/useNotificationCount";
 
 interface DashboardSidebarProps {
   activeSection: string;
