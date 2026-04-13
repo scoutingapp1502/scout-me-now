@@ -224,6 +224,7 @@ const ActivitySection = () => {
             </span>
           )}
         </button>
+        </div>
       </div>
 
       {feedTab === "mine" &&
