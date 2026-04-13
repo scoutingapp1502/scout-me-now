@@ -41,6 +41,9 @@ const ActivitySection = () => {
   const [newContent, setNewContent] = useState("");
   const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
   const { followingCount, mineCount } = useActivityNotifications(currentUserId);
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
+  const newPostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedTabRef = useRef<"following" | "mine">("following");
   const [newType, setNewType] = useState("general");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
