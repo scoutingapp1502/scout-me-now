@@ -3,12 +3,11 @@ import { getDisplayNationality } from "@/components/ui/nationality-input";
 import { calcPlayerCompletion } from "@/lib/profileCompletion";
 import { supabase } from "@/integrations/supabase/client";
 import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
-import { Search, User, SlidersHorizontal, X, ChevronDown, CalendarIcon } from "lucide-react";
+import { Search, User, SlidersHorizontal, X, ChevronDown, CalendarIcon, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -253,6 +252,23 @@ const PlayersSection = () => {
   if (filterHeightMax) activeChips.push({ label: `${tr.height} ≤ ${filterHeightMax}cm`, clear: () => setFilterHeightMax("") });
   if (filterWeightMin) activeChips.push({ label: `${tr.weight} ≥ ${filterWeightMin}kg`, clear: () => setFilterWeightMin("") });
   if (filterWeightMax) activeChips.push({ label: `${tr.weight} ≤ ${filterWeightMax}kg`, clear: () => setFilterWeightMax("") });
+
+  if (selectedPlayerId) {
+    return (
+      <div className="space-y-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedPlayerId(null)}
+          className="mb-4 gap-2 text-muted-foreground hover:text-foreground font-body"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {lang === "ro" ? "Înapoi la jucători" : "Back to players"}
+        </Button>
+        <PersonalProfile userId={selectedPlayerId} readOnly />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -572,20 +588,6 @@ const PlayersSection = () => {
           ))}
         </div>
       )}
-
-      {/* Player profile dialog */}
-      <Dialog open={!!selectedPlayerId} onOpenChange={(open) => !open && setSelectedPlayerId(null)}>
-        <DialogContent 
-          className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-background border-0 sm:border sm:border-border rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%]"
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-        >
-          <DialogTitle className="sr-only">{tr.playerProfile}</DialogTitle>
-          <div className="overflow-y-auto h-full sm:max-h-[90vh]">
-            {selectedPlayerId && <PersonalProfile userId={selectedPlayerId} readOnly />}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

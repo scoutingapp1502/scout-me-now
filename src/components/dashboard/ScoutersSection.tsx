@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, User } from "lucide-react";
+import { Search, User, ArrowLeft } from "lucide-react";
 import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import { calcScoutCompletion } from "@/lib/profileCompletion";
 
@@ -95,6 +95,23 @@ const ScoutersSection = () => {
     return () => clearTimeout(timer);
   }, [search, filtered.length]);
 
+  if (selectedScoutId) {
+    return (
+      <div className="space-y-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedScoutId(null)}
+          className="mb-4 gap-2 text-muted-foreground hover:text-foreground font-body"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {lang === "ro" ? "Înapoi la scouteri" : "Back to scouts"}
+        </Button>
+        <ScoutPersonalProfile userId={selectedScoutId} readOnly />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Search bar */}
@@ -175,22 +192,6 @@ const ScoutersSection = () => {
           ))}
         </div>
       )}
-
-      {/* Scout profile dialog */}
-      <Dialog open={!!selectedScoutId} onOpenChange={(open) => !open && setSelectedScoutId(null)}>
-        <DialogContent 
-          className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-none sm:rounded-lg border-0 sm:border fixed inset-0 sm:inset-auto translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]"
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-        >
-          <DialogTitle className="sr-only">
-            {lang === "ro" ? "Profil scouter" : "Scout profile"}
-          </DialogTitle>
-          {selectedScoutId && (
-            <ScoutPersonalProfile userId={selectedScoutId} readOnly />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
