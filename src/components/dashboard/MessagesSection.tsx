@@ -253,7 +253,12 @@ const MessagesSection = () => {
               <User className="h-5 w-5 text-muted-foreground" />
             )}
           </div>
-          <h2 className="font-display text-lg text-foreground truncate">{selectedConversation.other_name}</h2>
+          <div className="flex flex-col">
+            <h2 className="font-display text-lg text-foreground truncate">{selectedConversation.other_name}</h2>
+            {selectedConversation.other_role && (
+              <span className="text-xs text-muted-foreground">{getRoleLabel(selectedConversation.other_role, lang)}</span>
+            )}
+          </div>
         </div>
 
         {/* Messages */}
@@ -346,8 +351,16 @@ const MessagesSection = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className={`text-sm font-display truncate ${conv.unread_count > 0 ? "text-foreground font-bold" : "text-foreground"}`}>
-                    {conv.other_name}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className={`text-sm font-display truncate ${conv.unread_count > 0 ? "text-foreground font-bold" : "text-foreground"}`}>
+                      {conv.other_name}
+                    </p>
+                    {conv.other_role && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">
+                        {getRoleLabel(conv.other_role, lang)}
+                      </span>
+                    )}
+                  </div>
                   </p>
                   <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
                     {new Date(conv.last_message_at).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", {
