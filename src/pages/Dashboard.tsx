@@ -7,6 +7,7 @@ import ActivitySection from "@/components/dashboard/ActivitySection";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
+import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import AgentsSection from "@/components/dashboard/AgentsSection";
 import ScoutersSection from "@/components/dashboard/ScoutersSection";
 import PlayersSection from "@/components/dashboard/PlayersSection";
@@ -197,6 +198,7 @@ const Dashboard = () => {
       case "players": return <PlayersSection />;
       case "scouters": return <ScoutersSection />;
       case "agents": return <AgentsSection />;
+      case "notifications": return <NotificationsSection />;
       case "activity": return <ActivitySection />;
       case "messages": return <MessagesSection />;
       case "clubs": return <PlaceholderSection title="CLUBS" />;
