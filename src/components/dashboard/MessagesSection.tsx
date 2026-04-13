@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, User, Loader2, ArrowLeft, Send, Search } from "lucide-react";
+import { MessageSquare, User, Loader2, ArrowLeft, Send, Search, X } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePresence } from "@/hooks/usePresence";
+import PersonalProfile from "@/components/dashboard/PersonalProfile";
+import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 
 interface ConversationItem {
   conversation_id: string;
