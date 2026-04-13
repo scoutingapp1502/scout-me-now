@@ -266,38 +266,191 @@ const ActivitySection = () => {
   const handleDelete = async (postId: string) => {
     const { error } = await supabase.from("posts").delete().eq("id", postId);
     if (error) toast.error(lang === "ro" ? "Eroare la ștergere" : "Failed to delete");
+    else if (currentUserId) fetchPosts(currentUserId);
   };
 
-  const getTypeLabel = (type: string) => {
-    const t = POST_TYPES.find(p => p.value === type);
-    return t ? (lang === "ro" ? t.labelRo : t.labelEn) : type;
-  };
-
-  const getTypeBadgeColor = (type: string) => {
-    switch (type) {
-      case "transfer": return "bg-blue-500/20 text-blue-400";
-      case "challenge": return "bg-orange-500/20 text-orange-400";
-      case "event": return "bg-green-500/20 text-green-400";
-      default: return "bg-muted text-muted-foreground";
+  const handleUnfollow = async (userId: string) => {
+    if (!currentUserId) return;
+    const { error } = await supabase.from("follows").delete().eq("follower_id", currentUserId).eq("following_id", userId);
+    if (error) {
+      toast.error(lang === "ro" ? "Eroare" : "Error");
+    } else {
+      toast.success(lang === "ro" ? "Nu mai urmărești acest utilizator" : "Unfollowed successfully");
+      fetchPosts(currentUserId);
     }
   };
 
-  const timeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return lang === "ro" ? "acum" : "now";
-    if (mins < 60) return `${mins}m`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d`;
-    return new Date(dateStr).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", { day: "numeric", month: "short" });
+  const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
+  const [viewingProfileRole, setViewingProfileRole] = useState<string>("player");
+
+  const handleViewProfile = (userId: string, role: string) => {
+    setViewingProfileId(userId);
+    setViewingProfileRole(role);
   };
 
-  const getRoleLabel = (role: string) => {
-    if (role === "scout") return "Scouter";
-    if (role === "agent") return "Agent";
-    return lang === "ro" ? "Jucător" : "Player";
+  return (
+    <div className="space-y-6 max-w-2xl mx-auto">
+      <h2 className="font-display text-2xl text-foreground">
+        {lang === "ro" ? "Activitate" : "Activity"}
+      </h2>
+
+      {/* Composer */}
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+            {myPhoto ? (
+              <img src={myPhoto} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <User className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
+          <Textarea
+            value={newContent}
+            onChange={(e) => setNewContent(e.target.value)}
+            placeholder={lang === "ro" ? "Împărtășește o idee, un eveniment, o provocare..." : "Share an idea, event, challenge..."}
+            className="min-h-[60px] resize-none bg-background border-border"
+          />
+        </div>
+
+        {imagePreview && (
+          <div className="relative inline-block">
+            <img src={imagePreview} alt="" className="max-h-48 rounded-lg object-cover" />
+            <button onClick={removeImage} className="absolute top-1 right-1 bg-black/60 rounded-full p-1">
+              <X className="h-3 w-3 text-white" />
+            </button>
+          </div>
+        )}
+
+        {videoPreview && (
+          <div className="relative inline-block">
+            <video src={videoPreview} className="max-h-48 rounded-lg" controls />
+            <button onClick={removeVideo} className="absolute top-1 right-1 bg-black/60 rounded-full p-1">
+              <X className="h-3 w-3 text-white" />
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+            <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} />
+            <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-muted-foreground">
+              <ImagePlus className="h-4 w-4 mr-1" />
+              {lang === "ro" ? "Fotografie" : "Photo"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => videoInputRef.current?.click()} className="text-muted-foreground">
+              <Video className="h-4 w-4 mr-1" />
+              {lang === "ro" ? "Videoclip" : "Video"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowCelebrationDialog(true)} className="text-muted-foreground">
+              <PartyPopper className="h-4 w-4 mr-1" />
+              {lang === "ro" ? "Sărbătorește" : "Celebrate"}
+            </Button>
+            <Select value={newType} onValueChange={setNewType}>
+              <SelectTrigger className="w-auto h-8 text-xs bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {POST_TYPES.map(t => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {lang === "ro" ? t.labelRo : t.labelEn}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button size="sm" onClick={handlePost} disabled={posting || !newContent.trim()}>
+            {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+            {lang === "ro" ? "Publică" : "Post"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Celebration Dialog */}
+      <Dialog open={showCelebrationDialog} onOpenChange={setShowCelebrationDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{lang === "ro" ? "Selectați un eveniment" : "Select an event"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            {CELEBRATION_EVENTS.map(evt => (
+              <button
+                key={evt.value}
+                onClick={() => {
+                  setNewContent(lang === "ro" ? evt.prefillRo : evt.prefillEn);
+                  setNewType("event");
+                  setShowCelebrationDialog(false);
+                }}
+                className="w-full text-left px-4 py-3 rounded-lg hover:bg-muted transition-colors text-sm text-foreground"
+              >
+                {lang === "ro" ? evt.labelRo : evt.labelEn}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Feed */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          {lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor!" : "No posts yet. Follow people to see their activity!"}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={{
+                id: post.id,
+                user_id: post.user_id,
+                content: post.content,
+                image_url: post.image_url,
+                video_url: (post as any).video_url || null,
+                post_type: post.post_type,
+                created_at: post.created_at,
+              }}
+              author={{
+                user_id: post.user_id,
+                name: post.author_name,
+                photo: post.author_photo,
+                role: post.author_role,
+                title: post.author_title,
+              }}
+              currentUserId={currentUserId}
+              onDelete={handleDelete}
+              onUnfollow={handleUnfollow}
+              onViewProfile={handleViewProfile}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Profile View Dialog */}
+      <Dialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)}>
+        <DialogContent
+          className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-background border-0 sm:border sm:border-border rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%]"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogTitle className="sr-only">{lang === "ro" ? "Profil" : "Profile"}</DialogTitle>
+          <div className="overflow-y-auto h-full sm:max-h-[90vh]">
+            {viewingProfileId && (
+              viewingProfileRole === "player"
+                ? <PersonalProfile userId={viewingProfileId} readOnly />
+                : <ScoutPersonalProfile userId={viewingProfileId} readOnly />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ActivitySection;
   };
 
   return (
