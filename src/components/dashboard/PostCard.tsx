@@ -32,6 +32,7 @@ interface Comment {
   created_at: string;
   author_name: string;
   author_photo: string | null;
+  author_role: string;
   likes_count: number;
   liked_by_me: boolean;
 }
