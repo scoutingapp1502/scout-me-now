@@ -62,6 +62,7 @@ const MessagesSection = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  const { isOnline } = usePresence(currentUserId);
 
   const fetchConversations = async () => {
     setLoading(true);
