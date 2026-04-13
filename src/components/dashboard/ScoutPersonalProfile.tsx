@@ -285,6 +285,17 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
   const coverSrc = coverPreview || profile?.cover_photo_url;
   const skillsArray = form.skills || [];
 
+  if (!readOnly && showFollowersList) {
+    return (
+      <FollowersList
+        followers={followers}
+        onRemove={removeFollower}
+        onViewProfile={() => {}}
+        onClose={() => setShowFollowersList(false)}
+      />
+    );
+  }
+
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-3 sm:p-6">
       {/* ===== HEADER CARD (LinkedIn-style) ===== */}
@@ -454,17 +465,6 @@ const ScoutPersonalProfile = ({ userId, readOnly = false }: ScoutPersonalProfile
       </div>
 
 
-      {/* Followers list (only in personal profile, non-readOnly) */}
-      {!readOnly && showFollowersList && (
-        <div className="mt-4">
-          <FollowersList
-            followers={followers}
-            onRemove={removeFollower}
-            onViewProfile={() => {}}
-            onClose={() => setShowFollowersList(false)}
-          />
-        </div>
-      )}
 
       {/* ===== STATISTICI ===== */}
       <ScoutStats userId={userId} isOwner={!readOnly} />

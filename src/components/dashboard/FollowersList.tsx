@@ -1,7 +1,7 @@
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { X, Users } from "lucide-react";
+import { X, Users, ArrowLeft } from "lucide-react";
 
 interface Follower {
   id: string;
@@ -28,27 +28,28 @@ const FollowersList = ({ followers, onRemove, onViewProfile, onClose }: Follower
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-display text-foreground flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
+    <div className="max-w-2xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-display text-foreground flex items-center gap-2">
+          <Users className="h-6 w-6 text-primary" />
           {lang === "ro" ? "Urmăritori" : "Followers"} ({followers.length})
-        </h3>
+        </h2>
         <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          {lang === "ro" ? "Înapoi" : "Back"}
         </Button>
       </div>
 
       {followers.length === 0 ? (
-        <p className="text-muted-foreground text-sm text-center py-6">
+        <p className="text-muted-foreground text-sm text-center py-12">
           {lang === "ro" ? "Nu ai urmăritori încă." : "No followers yet."}
         </p>
       ) : (
-        <div className="space-y-2 max-h-80 overflow-y-auto">
+        <div className="space-y-2">
           {followers.map(f => (
-            <div key={f.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
+            <div key={f.id} className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border hover:bg-accent/50 transition-colors">
               <button onClick={() => onViewProfile(f.follower_id, f.role)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                <Avatar className="h-9 w-9">
+                <Avatar className="h-10 w-10">
                   {f.photo ? <AvatarImage src={f.photo} /> : null}
                   <AvatarFallback className="bg-primary/20 text-primary text-sm">
                     {f.name.charAt(0).toUpperCase()}
