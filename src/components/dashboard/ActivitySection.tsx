@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Loader2, User, ImagePlus, Video, X, MoreHorizontal, Trash2, Send } from "lucide-react";
+import { Loader2, User, ImagePlus, Video, X, MoreHorizontal, Trash2, Send, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 interface Post {
@@ -28,6 +29,37 @@ const POST_TYPES = [
   { value: "event", labelRo: "Eveniment", labelEn: "Event" },
 ];
 
+const CELEBRATION_EVENTS = [
+  { 
+    value: "trophy", 
+    labelRo: "🏆 Câștigarea unui trofeu", 
+    labelEn: "🏆 Winning a trophy",
+    prefillRo: "🏆 Sărbătoresc câștigarea unui trofeu! ",
+    prefillEn: "🏆 Celebrating winning a trophy! ",
+  },
+  { 
+    value: "contract", 
+    labelRo: "✍️ Semnare contract cu o echipă nouă", 
+    labelEn: "✍️ Signing with a new team",
+    prefillRo: "✍️ Am semnat un contract cu o echipă nouă! ",
+    prefillEn: "✍️ I've signed a contract with a new team! ",
+  },
+  { 
+    value: "agent", 
+    labelRo: "🤝 Colaborarea cu un nou agent", 
+    labelEn: "🤝 Collaborating with a new agent",
+    prefillRo: "🤝 Am început o colaborare cu un nou agent! ",
+    prefillEn: "🤝 I've started working with a new agent! ",
+  },
+  { 
+    value: "other", 
+    labelRo: "🎉 Altele", 
+    labelEn: "🎉 Other",
+    prefillRo: "🎉 Sărbătoresc un moment special! ",
+    prefillEn: "🎉 Celebrating a special moment! ",
+  },
+];
+
 const ActivitySection = () => {
   const { lang } = useLanguage();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -42,6 +74,7 @@ const ActivitySection = () => {
   const [posting, setPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const [showCelebrationDialog, setShowCelebrationDialog] = useState(false);
 
   // Current user photo/name for composer
   const [myPhoto, setMyPhoto] = useState<string | null>(null);
@@ -312,6 +345,10 @@ const ActivitySection = () => {
               <Video className="h-4 w-4 mr-1" />
               {lang === "ro" ? "Videoclip" : "Video"}
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowCelebrationDialog(true)} className="text-muted-foreground">
+              <PartyPopper className="h-4 w-4 mr-1" />
+              {lang === "ro" ? "Sărbătorește" : "Celebrate"}
+            </Button>
             <Select value={newType} onValueChange={setNewType}>
               <SelectTrigger className="w-auto h-8 text-xs bg-background border-border">
                 <SelectValue />
@@ -325,6 +362,30 @@ const ActivitySection = () => {
               </SelectContent>
             </Select>
           </div>
+
+      {/* Celebration Dialog */}
+      <Dialog open={showCelebrationDialog} onOpenChange={setShowCelebrationDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{lang === "ro" ? "Selectați un eveniment" : "Select an event"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            {CELEBRATION_EVENTS.map(evt => (
+              <button
+                key={evt.value}
+                onClick={() => {
+                  setNewContent(lang === "ro" ? evt.prefillRo : evt.prefillEn);
+                  setNewType("event");
+                  setShowCelebrationDialog(false);
+                }}
+                className="w-full text-left px-4 py-3 rounded-lg hover:bg-muted transition-colors text-sm text-foreground"
+              >
+                {lang === "ro" ? evt.labelRo : evt.labelEn}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
           <Button size="sm" onClick={handlePost} disabled={posting || !newContent.trim()}>
             {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
             {lang === "ro" ? "Publică" : "Post"}
