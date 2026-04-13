@@ -18,11 +18,14 @@ export function markActivitySeen(userId: string) {
 
 export function useActivityNotifications(userId: string | null) {
   const [count, setCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [mineCount, setMineCount] = useState(0);
 
   const fetchCount = useCallback(async () => {
     if (!userId) return;
     const lastSeen = getLastSeen(userId);
-    let total = 0;
+    let followingTotal = 0;
+    let mineTotal = 0;
 
     try {
       // 1. Get who I follow
@@ -41,10 +44,9 @@ export function useActivityNotifications(userId: string | null) {
           .select("*", { count: "exact", head: true })
           .in("user_id", followingIds)
           .gt("created_at", lastSeen);
-        total += newPosts || 0;
+        followingTotal += newPosts || 0;
 
         // b) Likes on MY comments on followed users' posts
-        // Get my comments on others' posts
         const { data: myComments } = await supabase
           .from("post_comments")
           .select("id")
@@ -58,12 +60,11 @@ export function useActivityNotifications(userId: string | null) {
             .in("comment_id", myCommentIds)
             .neq("user_id", userId)
             .gt("created_at", lastSeen);
-          total += commentLikes || 0;
+          followingTotal += commentLikes || 0;
         }
       }
 
       // MY POSTS TAB notifications:
-      // a) Likes on my posts
       const { data: myPosts } = await supabase
         .from("posts")
         .select("id")
@@ -78,28 +79,28 @@ export function useActivityNotifications(userId: string | null) {
           .in("post_id", myPostIds)
           .neq("user_id", userId)
           .gt("created_at", lastSeen);
-        total += postLikes || 0;
+        mineTotal += postLikes || 0;
 
-        // b) Comments on my posts
         const { count: postComments } = await supabase
           .from("post_comments")
           .select("*", { count: "exact", head: true })
           .in("post_id", myPostIds)
           .neq("user_id", userId)
           .gt("created_at", lastSeen);
-        total += postComments || 0;
+        mineTotal += postComments || 0;
       }
     } catch (e) {
       console.error("Activity notification count error:", e);
     }
 
-    setCount(total);
+    setFollowingCount(followingTotal);
+    setMineCount(mineTotal);
+    setCount(followingTotal + mineTotal);
   }, [userId]);
 
   useEffect(() => {
     fetchCount();
 
-    // Listen for realtime changes on relevant tables
     const channel = supabase
       .channel("activity-notif")
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchCount())
@@ -111,5 +112,5 @@ export function useActivityNotifications(userId: string | null) {
     return () => { supabase.removeChannel(channel); };
   }, [fetchCount]);
 
-  return { count, refetch: fetchCount };
+  return { count, followingCount, mineCount, refetch: fetchCount };
 }
