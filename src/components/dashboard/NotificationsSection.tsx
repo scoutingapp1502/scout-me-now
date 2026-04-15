@@ -177,17 +177,38 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
           aMap[a.user_id] = { name: `${a.first_name} ${a.last_name}`.trim(), photo: a.photo_url };
         });
 
-        collabNotifs.push(...sentRequests.map(r => ({
-          id: r.id,
-          type: "collab_request" as const,
-          other_user_id: r.agent_user_id,
-          created_at: r.updated_at || r.created_at,
-          other_name: aMap[r.agent_user_id]?.name || (lang === "ro" ? "Agent necunoscut" : "Unknown agent"),
-          other_photo: aMap[r.agent_user_id]?.photo || null,
-          status: r.status,
-          perspective: "player" as const,
-          isRead: r.status === "pending" || isNotificationRead(user.id, r.id),
-        })));
+        sentRequests.forEach(r => {
+          const agentName = aMap[r.agent_user_id]?.name || (lang === "ro" ? "Agent necunoscut" : "Unknown agent");
+          const agentPhoto = aMap[r.agent_user_id]?.photo || null;
+
+          // Notification 1: Confirmation that the request was sent
+          collabNotifs.push({
+            id: `${r.id}-sent`,
+            type: "collab_request" as const,
+            other_user_id: r.agent_user_id,
+            created_at: r.created_at,
+            other_name: agentName,
+            other_photo: agentPhoto,
+            status: "sent",
+            perspective: "player" as const,
+            isRead: true, // always read - it's just a confirmation
+          });
+
+          // Notification 2: Agent's response (only if responded)
+          if (r.status === "accepted" || r.status === "rejected") {
+            collabNotifs.push({
+              id: `${r.id}-response`,
+              type: "collab_request" as const,
+              other_user_id: r.agent_user_id,
+              created_at: r.updated_at || r.created_at,
+              other_name: agentName,
+              other_photo: agentPhoto,
+              status: r.status,
+              perspective: "player" as const,
+              isRead: isNotificationRead(user.id, `${r.id}-response`),
+            });
+          }
+        });
       }
     }
 
