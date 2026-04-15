@@ -274,8 +274,8 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
       toast({
         title: lang === "ro" ? "Colaborare acceptată!" : "Collaboration accepted!",
         description: lang === "ro"
-          ? `Datele tale de contact au fost adăugate pe profilul lui ${n.player_name}`
-          : `Your contact info has been added to ${n.player_name}'s profile`,
+          ? `Datele tale de contact au fost adăugate pe profilul lui ${n.other_name}`
+          : `Your contact info has been added to ${n.other_name}'s profile`,
       });
       fetchNotifications();
     } catch (err) {
