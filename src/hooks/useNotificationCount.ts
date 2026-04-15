@@ -29,14 +29,22 @@ export function useNotificationCount(userId: string | null) {
     const unreadFollows = follows ? follows.filter(f => !readIds.has(f.id)).length : 0;
 
     // Count pending collaboration requests (for agents)
-    const { data: collabRequests } = await supabase
+    const { data: agentCollabs } = await supabase
       .from("agent_collaboration_requests")
       .select("id")
       .eq("agent_user_id", userId)
       .eq("status", "pending");
-    const unreadCollabs = collabRequests ? collabRequests.filter(r => !readIds.has(r.id)).length : 0;
+    const unreadAgentCollabs = agentCollabs ? agentCollabs.filter(r => !readIds.has(r.id)).length : 0;
 
-    setCount(unreadFollows + unreadCollabs);
+    // Count responded collaboration requests (for players - accepted/rejected)
+    const { data: playerCollabs } = await supabase
+      .from("agent_collaboration_requests")
+      .select("id, status")
+      .eq("player_user_id", userId)
+      .in("status", ["accepted", "rejected"]);
+    const unreadPlayerCollabs = playerCollabs ? playerCollabs.filter(r => !readIds.has(r.id)).length : 0;
+
+    setCount(unreadFollows + unreadAgentCollabs + unreadPlayerCollabs);
   }, [userId]);
 
   useEffect(() => {

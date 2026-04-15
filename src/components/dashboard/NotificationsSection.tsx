@@ -23,11 +23,12 @@ interface FollowNotification {
 interface CollabNotification {
   id: string;
   type: "collab_request";
-  player_user_id: string;
+  other_user_id: string;
   created_at: string;
-  player_name: string;
-  player_photo: string | null;
+  other_name: string;
+  other_photo: string | null;
   status: string;
+  perspective: "agent" | "player"; // agent = received request, player = sent request
   isRead: boolean;
 }
 
@@ -119,8 +120,10 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
       });
     }
 
-    // Fetch collaboration requests for agents
+    // Fetch collaboration requests
     let collabNotifs: CollabNotification[] = [];
+
+    // For agents: requests received
     if (userRole === "agent" || userRole === "scout") {
       const { data: collabRequests } = await supabase
         .from("agent_collaboration_requests")
@@ -129,27 +132,62 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
         .order("created_at", { ascending: false });
 
       if (collabRequests && collabRequests.length > 0) {
-        const playerIds = collabRequests.map(r => r.player_user_id);
+        const pIds = collabRequests.map(r => r.player_user_id);
         const { data: players } = await supabase
           .from("player_profiles")
           .select("user_id, first_name, last_name, photo_url")
-          .in("user_id", playerIds);
+          .in("user_id", pIds);
 
-        const playerMap: Record<string, { name: string; photo: string | null }> = {};
+        const pMap: Record<string, { name: string; photo: string | null }> = {};
         players?.forEach(p => {
-          playerMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
+          pMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
         });
 
-        collabNotifs = collabRequests.map(r => ({
+        collabNotifs.push(...collabRequests.map(r => ({
           id: r.id,
           type: "collab_request" as const,
-          player_user_id: r.player_user_id,
+          other_user_id: r.player_user_id,
           created_at: r.created_at,
-          player_name: playerMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player"),
-          player_photo: playerMap[r.player_user_id]?.photo || null,
+          other_name: pMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player"),
+          other_photo: pMap[r.player_user_id]?.photo || null,
           status: r.status,
+          perspective: "agent" as const,
           isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
-        }));
+        })));
+      }
+    }
+
+    // For players: requests sent (show status updates)
+    if (userRole === "player") {
+      const { data: sentRequests } = await supabase
+        .from("agent_collaboration_requests")
+        .select("*")
+        .eq("player_user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (sentRequests && sentRequests.length > 0) {
+        const agentIds = sentRequests.map(r => r.agent_user_id);
+        const { data: agents } = await supabase
+          .from("scout_profiles")
+          .select("user_id, first_name, last_name, photo_url")
+          .in("user_id", agentIds);
+
+        const aMap: Record<string, { name: string; photo: string | null }> = {};
+        agents?.forEach(a => {
+          aMap[a.user_id] = { name: `${a.first_name} ${a.last_name}`.trim(), photo: a.photo_url };
+        });
+
+        collabNotifs.push(...sentRequests.map(r => ({
+          id: r.id,
+          type: "collab_request" as const,
+          other_user_id: r.agent_user_id,
+          created_at: r.updated_at || r.created_at,
+          other_name: aMap[r.agent_user_id]?.name || (lang === "ro" ? "Agent necunoscut" : "Unknown agent"),
+          other_photo: aMap[r.agent_user_id]?.photo || null,
+          status: r.status,
+          perspective: "player" as const,
+          isRead: r.status === "pending" || isNotificationRead(user.id, r.id),
+        })));
       }
     }
 
@@ -198,8 +236,8 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
 
   const handleClickCollabNotification = (n: CollabNotification) => {
     handleMarkOneRead(n.id);
-    setViewProfileUserId(n.player_user_id);
-    setViewProfileRole("player");
+    setViewProfileUserId(n.other_user_id);
+    setViewProfileRole(n.perspective === "agent" ? "player" : "agent");
   };
 
   const handleAcceptCollab = async (n: CollabNotification) => {
@@ -230,14 +268,14 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
           agent_name: agentName,
           agent_email: agentEmail,
         })
-        .eq("user_id", n.player_user_id);
+        .eq("user_id", n.other_user_id);
 
       handleMarkOneRead(n.id);
       toast({
         title: lang === "ro" ? "Colaborare acceptată!" : "Collaboration accepted!",
         description: lang === "ro"
-          ? `Datele tale de contact au fost adăugate pe profilul lui ${n.player_name}`
-          : `Your contact info has been added to ${n.player_name}'s profile`,
+          ? `Datele tale de contact au fost adăugate pe profilul lui ${n.other_name}`
+          : `Your contact info has been added to ${n.other_name}'s profile`,
       });
       fetchNotifications();
     } catch (err) {
@@ -366,6 +404,23 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
 
             if (n.type === "collab_request") {
               const cn = n as CollabNotification;
+
+              const collabMessage = () => {
+                if (cn.perspective === "agent") {
+                  if (cn.status === "pending") return lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you";
+                  if (cn.status === "accepted") return lang === "ro" ? "– colaborare acceptată" : "– collaboration accepted";
+                  return lang === "ro" ? "– cerere respinsă" : "– request rejected";
+                } else {
+                  if (cn.status === "pending") return lang === "ro" ? "– cerere de colaborare trimisă" : "– collaboration request sent";
+                  if (cn.status === "accepted") return lang === "ro" ? "ți-a acceptat cererea de colaborare ✅" : "accepted your collaboration request ✅";
+                  return lang === "ro" ? "ți-a respins cererea de colaborare" : "rejected your collaboration request";
+                }
+              };
+
+              const roleText = cn.perspective === "agent"
+                ? (lang === "ro" ? "Jucător" : "Player")
+                : "Agent";
+
               return (
                 <div
                   key={cn.id}
@@ -381,27 +436,23 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                     )}
                   </div>
                   <Avatar className="h-10 w-10 cursor-pointer" onClick={() => handleClickCollabNotification(cn)}>
-                    {cn.player_photo ? <AvatarImage src={cn.player_photo} /> : null}
+                    {cn.other_photo ? <AvatarImage src={cn.other_photo} /> : null}
                     <AvatarFallback className="bg-primary/20 text-primary text-sm">
-                      {cn.player_name.charAt(0).toUpperCase()}
+                      {cn.other_name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleClickCollabNotification(cn)}>
                     <p className={`text-sm ${cn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
-                      <span className="font-semibold">{cn.player_name}</span>{" "}
+                      <span className="font-semibold">{cn.other_name}</span>{" "}
                       <span className={cn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
-                        {cn.status === "pending"
-                          ? (lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you")
-                          : cn.status === "accepted"
-                            ? (lang === "ro" ? "– colaborare acceptată" : "– collaboration accepted")
-                            : (lang === "ro" ? "– cerere respinsă" : "– request rejected")}
+                        {collabMessage()}
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {lang === "ro" ? "Jucător" : "Player"} · {timeAgo(cn.created_at)}
+                      {roleText} · {timeAgo(cn.created_at)}
                     </p>
                   </div>
-                  {cn.status === "pending" ? (
+                  {cn.perspective === "agent" && cn.status === "pending" ? (
                     <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
@@ -421,7 +472,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                       </Button>
                     </div>
                   ) : (
-                    <Handshake className={`h-4 w-4 shrink-0 ${cn.status === "accepted" ? "text-green-500" : "text-muted-foreground"}`} />
+                    <Handshake className={`h-4 w-4 shrink-0 ${cn.status === "accepted" ? "text-green-500" : cn.status === "pending" ? "text-yellow-500" : "text-muted-foreground"}`} />
                   )}
                 </div>
               );
