@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_collaboration_requests: {
+        Row: {
+          agent_user_id: string
+          created_at: string
+          id: string
+          player_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_user_id: string
+          created_at?: string
+          id?: string
+          player_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_user_id?: string
+          created_at?: string
+          id?: string
+          player_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comment_likes: {
         Row: {
           comment_id: string
