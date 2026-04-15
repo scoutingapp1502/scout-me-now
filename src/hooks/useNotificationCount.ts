@@ -19,14 +19,24 @@ export function useNotificationCount(userId: string | null) {
 
   const recalc = useCallback(async () => {
     if (!userId) return;
+
+    // Count unread follows
     const { data: follows } = await supabase
       .from("follows")
       .select("id")
       .eq("following_id", userId);
-    if (!follows) { setCount(0); return; }
     const readIds = getReadIds(userId);
-    const unread = follows.filter(f => !readIds.has(f.id)).length;
-    setCount(unread);
+    const unreadFollows = follows ? follows.filter(f => !readIds.has(f.id)).length : 0;
+
+    // Count pending collaboration requests (for agents)
+    const { data: collabRequests } = await supabase
+      .from("agent_collaboration_requests")
+      .select("id")
+      .eq("agent_user_id", userId)
+      .eq("status", "pending");
+    const unreadCollabs = collabRequests ? collabRequests.filter(r => !readIds.has(r.id)).length : 0;
+
+    setCount(unreadFollows + unreadCollabs);
   }, [userId]);
 
   useEffect(() => {
@@ -37,7 +47,6 @@ export function useNotificationCount(userId: string | null) {
     };
     window.addEventListener("storage", onStorage);
 
-    // Listen for custom event for same-tab updates
     const onCustom = () => recalc();
     window.addEventListener("notification-read-update", onCustom);
 
@@ -45,6 +54,7 @@ export function useNotificationCount(userId: string | null) {
       .channel(`notif-count-${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "follows" }, () => recalc())
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "follows" }, () => recalc())
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests" }, () => recalc())
       .subscribe();
 
     return () => {
