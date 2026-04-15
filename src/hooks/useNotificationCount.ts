@@ -42,7 +42,7 @@ export function useNotificationCount(userId: string | null) {
       .select("id, status")
       .eq("player_user_id", userId)
       .in("status", ["accepted", "rejected"]);
-    const unreadPlayerCollabs = playerCollabs ? playerCollabs.filter(r => !readIds.has(r.id)).length : 0;
+    const unreadPlayerCollabs = playerCollabs ? playerCollabs.filter(r => !readIds.has(`${r.id}-response`)).length : 0;
 
     setCount(unreadFollows + unreadAgentCollabs + unreadPlayerCollabs);
   }, [userId]);
