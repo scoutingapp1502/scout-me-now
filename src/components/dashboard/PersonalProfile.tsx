@@ -206,6 +206,37 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [showAgentSuggestions, setShowAgentSuggestions] = useState(false);
   const [selectedRegisteredAgent, setSelectedRegisteredAgent] = useState<AgentSuggestion | null>(null);
   const [agentSearchTimeout, setAgentSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [collaborationStatus, setCollaborationStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
+  const [collaborationLoading, setCollaborationLoading] = useState(false);
+
+  // Fetch existing collaboration request on mount
+  useEffect(() => {
+    if (readOnly || !userId) return;
+    const fetchCollab = async () => {
+      const { data } = await supabase
+        .from("agent_collaboration_requests")
+        .select("*")
+        .eq("player_user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) {
+        const req = data[0];
+        setCollaborationStatus(req.status as any);
+        if (req.status === "pending") {
+          // Fetch agent info to show pending state
+          const { data: agentData } = await supabase
+            .from("scout_profiles")
+            .select("user_id, first_name, last_name, photo_url")
+            .eq("user_id", req.agent_user_id)
+            .maybeSingle();
+          if (agentData) {
+            setSelectedRegisteredAgent({ ...agentData, email: null });
+          }
+        }
+      }
+    };
+    fetchCollab();
+  }, [userId, readOnly]);
 
   const searchAgents = useCallback(async (term: string) => {
     if (term.length < 2) {
@@ -218,9 +249,9 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 
   const handleAgentNameChange = (value: string) => {
     updateForm("agent_name", value);
-    // If user edits after selecting a registered agent, clear the lock
     if (selectedRegisteredAgent && value !== `${selectedRegisteredAgent.first_name} ${selectedRegisteredAgent.last_name}`) {
       setSelectedRegisteredAgent(null);
+      setCollaborationStatus("none");
       updateForm("agent_email", "");
       updateForm("agent_phone", "");
     }
@@ -230,13 +261,65 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
     setShowAgentSuggestions(true);
   };
 
-  const selectAgent = (agent: AgentSuggestion) => {
+  const selectAgent = async (agent: AgentSuggestion) => {
     setSelectedRegisteredAgent(agent);
-    updateForm("agent_name", `${agent.first_name} ${agent.last_name}`);
-    updateForm("agent_email", agent.email || "");
-    // No phone available from profile, keep existing or clear
     setAgentSuggestions([]);
     setShowAgentSuggestions(false);
+    setCollaborationLoading(true);
+
+    try {
+      // Delete any existing request from this player
+      await supabase
+        .from("agent_collaboration_requests")
+        .delete()
+        .eq("player_user_id", userId);
+
+      // Create new collaboration request
+      const { error } = await supabase
+        .from("agent_collaboration_requests")
+        .insert({
+          player_user_id: userId,
+          agent_user_id: agent.user_id,
+          status: "pending",
+        });
+
+      if (error) throw error;
+
+      setCollaborationStatus("pending");
+      // Clear agent fields - they'll be filled when accepted
+      updateForm("agent_name", "");
+      updateForm("agent_email", "");
+      updateForm("agent_phone", "");
+
+      toast({
+        title: lang === "ro" ? "Cerere trimisă!" : "Request sent!",
+        description: lang === "ro"
+          ? `O cerere de colaborare a fost trimisă către ${agent.first_name} ${agent.last_name}`
+          : `A collaboration request was sent to ${agent.first_name} ${agent.last_name}`,
+      });
+    } catch (err) {
+      console.error(err);
+      toast({ title: lang === "ro" ? "Eroare la trimiterea cererii" : "Failed to send request", variant: "destructive" });
+    } finally {
+      setCollaborationLoading(false);
+    }
+  };
+
+  const cancelCollaborationRequest = async () => {
+    setCollaborationLoading(true);
+    try {
+      await supabase
+        .from("agent_collaboration_requests")
+        .delete()
+        .eq("player_user_id", userId);
+      setCollaborationStatus("none");
+      setSelectedRegisteredAgent(null);
+      toast({ title: lang === "ro" ? "Cererea a fost anulată" : "Request cancelled" });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCollaborationLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -727,7 +810,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       {/* SECTION 2: Tab content */}
       <div className="mt-6 px-2 sm:px-6 pb-8">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} readOnly={readOnly} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} collaborationStatus={collaborationStatus} collaborationLoading={collaborationLoading} cancelCollaborationRequest={cancelCollaborationRequest} />}
         {activeTab === "video" && (
           <VideoTab
             form={form}
@@ -1448,8 +1531,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   );
 }
 
-function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport, agentSuggestions, showAgentSuggestions, setShowAgentSuggestions, selectedRegisteredAgent, handleAgentNameChange, selectAgent }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string; agentSuggestions: AgentSuggestion[]; showAgentSuggestions: boolean; setShowAgentSuggestions: (v: boolean) => void; selectedRegisteredAgent: AgentSuggestion | null; handleAgentNameChange: (v: string) => void; selectAgent: (a: AgentSuggestion) => void;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport, agentSuggestions, showAgentSuggestions, setShowAgentSuggestions, selectedRegisteredAgent, handleAgentNameChange, selectAgent, collaborationStatus, collaborationLoading, cancelCollaborationRequest }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string; agentSuggestions: AgentSuggestion[]; showAgentSuggestions: boolean; setShowAgentSuggestions: (v: boolean) => void; selectedRegisteredAgent: AgentSuggestion | null; handleAgentNameChange: (v: string) => void; selectAgent: (a: AgentSuggestion) => void; collaborationStatus: "none" | "pending" | "accepted" | "rejected"; collaborationLoading: boolean; cancelCollaborationRequest: () => void;
 }) {
   const { lang, t } = useLanguage();
 
@@ -1556,75 +1639,104 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           </div>
           {editingAgent ? (
             <div className="space-y-3">
-              <div className="relative">
-                <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label>
-                <Input
-                  value={form.agent_name || ""}
-                  onChange={(e) => handleAgentNameChange(e.target.value)}
-                  onFocus={() => { if (agentSuggestions.length > 0) setShowAgentSuggestions(true); }}
-                  onBlur={() => setTimeout(() => setShowAgentSuggestions(false), 200)}
-                  className="text-foreground"
-                  placeholder="Caută agent după nume..."
-                  autoComplete="off"
-                />
-                {showAgentSuggestions && agentSuggestions.length > 0 && (
-                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                    {agentSuggestions.map((agent) => (
-                      <button
-                        key={agent.user_id}
-                        type="button"
-                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left transition-colors"
-                        onMouseDown={(e) => { e.preventDefault(); selectAgent(agent); }}
-                      >
-                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {agent.photo_url ? (
-                            <img src={agent.photo_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <span className="text-xs font-semibold text-muted-foreground">{agent.first_name?.[0]}{agent.last_name?.[0]}</span>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{agent.first_name} {agent.last_name}</p>
-                          {agent.email && <p className="text-xs text-muted-foreground">{agent.email}</p>}
-                        </div>
-                        <Check className="h-4 w-4 ml-auto text-primary opacity-0 group-hover:opacity-100" />
-                      </button>
-                    ))}
+              {/* Pending collaboration request */}
+              {collaborationStatus === "pending" && selectedRegisteredAgent && (
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {selectedRegisteredAgent.photo_url ? (
+                        <img src={selectedRegisteredAgent.photo_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-semibold text-muted-foreground">{selectedRegisteredAgent.first_name?.[0]}{selectedRegisteredAgent.last_name?.[0]}</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">{selectedRegisteredAgent.first_name} {selectedRegisteredAgent.last_name}</p>
+                      <p className="text-xs text-yellow-500">{lang === "ro" ? "⏳ Cerere în așteptare..." : "⏳ Request pending..."}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={cancelCollaborationRequest}
+                      disabled={collaborationLoading}
+                      className="text-destructive hover:text-destructive text-xs"
+                    >
+                      {lang === "ro" ? "Anulează" : "Cancel"}
+                    </Button>
                   </div>
-                )}
-                {selectedRegisteredAgent && (
-                  <p className="text-xs text-primary mt-1 flex items-center gap-1">
-                    <Check className="h-3 w-3" /> Agent înregistrat în platformă
-                  </p>
-                )}
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label>
-                <Input
-                  type="email"
-                  value={form.agent_email || ""}
-                  onChange={(e) => updateForm("agent_email", e.target.value)}
-                  className={`text-foreground ${selectedRegisteredAgent ? "opacity-70 cursor-not-allowed" : ""} ${!selectedRegisteredAgent && form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                  placeholder="agent@example.com"
-                  readOnly={!!selectedRegisteredAgent}
-                />
-                {!selectedRegisteredAgent && form.agent_email && !form.agent_email.includes("@") && (
-                  <p className="text-xs text-destructive mt-1">Adresa de email trebuie să conțină simbolul @</p>
-                )}
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentPhone}</Label>
-                {selectedRegisteredAgent ? (
+                </div>
+              )}
+
+              {/* Search field - only show when no pending request */}
+              {collaborationStatus !== "pending" && (
+                <div className="relative">
+                  <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label>
                   <Input
-                    value={form.agent_phone || ""}
-                    className="text-foreground opacity-70 cursor-not-allowed"
-                    readOnly
-                    placeholder="—"
+                    value={form.agent_name || ""}
+                    onChange={(e) => handleAgentNameChange(e.target.value)}
+                    onFocus={() => { if (agentSuggestions.length > 0) setShowAgentSuggestions(true); }}
+                    onBlur={() => setTimeout(() => setShowAgentSuggestions(false), 200)}
+                    className="text-foreground"
+                    placeholder={lang === "ro" ? "Caută agent după nume..." : "Search agent by name..."}
+                    autoComplete="off"
                   />
-                ) : (
-                  <AgentPhoneInput value={form.agent_phone || ""} onChange={(val) => updateForm("agent_phone", val)} />
-                )}
-              </div>
+                  {showAgentSuggestions && agentSuggestions.length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {agentSuggestions.map((agent) => (
+                        <button
+                          key={agent.user_id}
+                          type="button"
+                          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left transition-colors"
+                          onMouseDown={(e) => { e.preventDefault(); selectAgent(agent); }}
+                        >
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {agent.photo_url ? (
+                              <img src={agent.photo_url} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-xs font-semibold text-muted-foreground">{agent.first_name?.[0]}{agent.last_name?.[0]}</span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{agent.first_name} {agent.last_name}</p>
+                            {agent.email && <p className="text-xs text-muted-foreground">{agent.email}</p>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {lang === "ro" ? "Selectează un agent înregistrat pentru a trimite o cerere de colaborare" : "Select a registered agent to send a collaboration request"}
+                  </p>
+                </div>
+              )}
+
+              {/* Manual agent fields - only when NOT selecting a registered agent */}
+              {collaborationStatus !== "pending" && (
+                <>
+                  <div className="flex items-center gap-2 my-2">
+                    <div className="flex-1 border-t border-border" />
+                    <span className="text-xs text-muted-foreground">{lang === "ro" ? "sau adaugă manual" : "or add manually"}</span>
+                    <div className="flex-1 border-t border-border" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label>
+                    <Input
+                      type="email"
+                      value={form.agent_email || ""}
+                      onChange={(e) => updateForm("agent_email", e.target.value)}
+                      className={`text-foreground ${form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                      placeholder="agent@example.com"
+                    />
+                    {form.agent_email && !form.agent_email.includes("@") && (
+                      <p className="text-xs text-destructive mt-1">{lang === "ro" ? "Adresa de email trebuie să conțină simbolul @" : "Email must contain @"}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentPhone}</Label>
+                    <AgentPhoneInput value={form.agent_phone || ""} onChange={(val) => updateForm("agent_phone", val)} />
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="font-body text-sm space-y-1">
@@ -1634,12 +1746,19 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                   {profile.agent_email && <p className="text-muted-foreground">{profile.agent_email}</p>}
                   {profile.agent_phone && <p className="text-muted-foreground">{profile.agent_phone}</p>}
                 </>
+              ) : collaborationStatus === "pending" && selectedRegisteredAgent ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-yellow-500">⏳</span>
+                  <span className="text-muted-foreground">
+                    {lang === "ro" ? `Cerere trimisă către ${selectedRegisteredAgent.first_name} ${selectedRegisteredAgent.last_name}` : `Request sent to ${selectedRegisteredAgent.first_name} ${selectedRegisteredAgent.last_name}`}
+                  </span>
+                </div>
               ) : (
                 <p className="text-muted-foreground">{t.dashboard.profile.noAgent}</p>
               )}
             </div>
           )}
-          {editingAgent && <SectionSaveButton />}
+          {editingAgent && collaborationStatus !== "pending" && <SectionSaveButton />}
         </div>
         )}
       </div>

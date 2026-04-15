@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { UserPlus, ArrowLeft, CheckCheck } from "lucide-react";
+import { UserPlus, ArrowLeft, CheckCheck, Handshake, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PersonalProfile from "./PersonalProfile";
 import ScoutPersonalProfile from "./ScoutPersonalProfile";
 import { markNotificationRead, markAllNotificationsRead, isNotificationRead } from "@/hooks/useNotificationCount";
+import { useToast } from "@/hooks/use-toast";
 
 interface FollowNotification {
   id: string;
+  type: "follow";
   follower_id: string;
   created_at: string;
   follower_name: string;
@@ -18,11 +20,26 @@ interface FollowNotification {
   isRead: boolean;
 }
 
+interface CollabNotification {
+  id: string;
+  type: "collab_request";
+  player_user_id: string;
+  created_at: string;
+  player_name: string;
+  player_photo: string | null;
+  status: string;
+  isRead: boolean;
+}
+
+type Notification = FollowNotification | CollabNotification;
+
 const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: string) => void }) => {
   const { lang } = useLanguage();
-  const [notifications, setNotifications] = useState<FollowNotification[]>([]);
+  const { toast } = useToast();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
   const [viewProfileRole, setViewProfileRole] = useState<"player" | "scout" | "agent" | null>(null);
 
@@ -31,69 +48,116 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
     if (!user) return;
     setCurrentUserId(user.id);
 
+    // Get user role
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const userRole = roleData?.role || "player";
+    setCurrentUserRole(userRole);
+
+    // Fetch follow notifications
     const { data: follows } = await supabase
       .from("follows")
       .select("id, follower_id, created_at")
       .eq("following_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (!follows || follows.length === 0) {
-      setNotifications([]);
-      setLoading(false);
-      return;
-    }
+    let followNotifs: FollowNotification[] = [];
 
-    const followerIds = follows.map(f => f.follower_id);
+    if (follows && follows.length > 0) {
+      const followerIds = follows.map(f => f.follower_id);
 
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id, role")
-      .in("user_id", followerIds);
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", followerIds);
 
-    const roleMap: Record<string, string> = {};
-    roles?.forEach(r => { roleMap[r.user_id] = r.role; });
+      const roleMap: Record<string, string> = {};
+      roles?.forEach(r => { roleMap[r.user_id] = r.role; });
 
-    const playerIds = followerIds.filter(id => roleMap[id] === "player");
-    const scoutIds = followerIds.filter(id => roleMap[id] === "scout" || roleMap[id] === "agent");
+      const playerIds = followerIds.filter(id => roleMap[id] === "player");
+      const scoutIds = followerIds.filter(id => roleMap[id] === "scout" || roleMap[id] === "agent");
 
-    let playerMap: Record<string, { name: string; photo: string | null }> = {};
-    let scoutMap: Record<string, { name: string; photo: string | null }> = {};
+      let playerMap: Record<string, { name: string; photo: string | null }> = {};
+      let scoutMap: Record<string, { name: string; photo: string | null }> = {};
 
-    if (playerIds.length > 0) {
-      const { data: players } = await supabase
-        .from("player_profiles")
-        .select("user_id, first_name, last_name, photo_url")
-        .in("user_id", playerIds);
-      players?.forEach(p => {
-        playerMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
+      if (playerIds.length > 0) {
+        const { data: players } = await supabase
+          .from("player_profiles")
+          .select("user_id, first_name, last_name, photo_url")
+          .in("user_id", playerIds);
+        players?.forEach(p => {
+          playerMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
+        });
+      }
+
+      if (scoutIds.length > 0) {
+        const { data: scouts } = await supabase
+          .from("scout_profiles")
+          .select("user_id, first_name, last_name, photo_url")
+          .in("user_id", scoutIds);
+        scouts?.forEach(s => {
+          scoutMap[s.user_id] = { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url };
+        });
+      }
+
+      followNotifs = follows.map(f => {
+        const role = (roleMap[f.follower_id] || "player") as "player" | "scout" | "agent";
+        const info = role === "player" ? playerMap[f.follower_id] : scoutMap[f.follower_id];
+        return {
+          id: f.id,
+          type: "follow" as const,
+          follower_id: f.follower_id,
+          created_at: f.created_at,
+          follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
+          follower_photo: info?.photo || null,
+          follower_role: role,
+          isRead: isNotificationRead(user.id, f.id),
+        };
       });
     }
 
-    if (scoutIds.length > 0) {
-      const { data: scouts } = await supabase
-        .from("scout_profiles")
-        .select("user_id, first_name, last_name, photo_url")
-        .in("user_id", scoutIds);
-      scouts?.forEach(s => {
-        scoutMap[s.user_id] = { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url };
-      });
+    // Fetch collaboration requests for agents
+    let collabNotifs: CollabNotification[] = [];
+    if (userRole === "agent" || userRole === "scout") {
+      const { data: collabRequests } = await supabase
+        .from("agent_collaboration_requests")
+        .select("*")
+        .eq("agent_user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (collabRequests && collabRequests.length > 0) {
+        const playerIds = collabRequests.map(r => r.player_user_id);
+        const { data: players } = await supabase
+          .from("player_profiles")
+          .select("user_id, first_name, last_name, photo_url")
+          .in("user_id", playerIds);
+
+        const playerMap: Record<string, { name: string; photo: string | null }> = {};
+        players?.forEach(p => {
+          playerMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
+        });
+
+        collabNotifs = collabRequests.map(r => ({
+          id: r.id,
+          type: "collab_request" as const,
+          player_user_id: r.player_user_id,
+          created_at: r.created_at,
+          player_name: playerMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player"),
+          player_photo: playerMap[r.player_user_id]?.photo || null,
+          status: r.status,
+          isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
+        }));
+      }
     }
 
-    const mapped: FollowNotification[] = follows.map(f => {
-      const role = (roleMap[f.follower_id] || "player") as "player" | "scout" | "agent";
-      const info = role === "player" ? playerMap[f.follower_id] : scoutMap[f.follower_id];
-      return {
-        id: f.id,
-        follower_id: f.follower_id,
-        created_at: f.created_at,
-        follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
-        follower_photo: info?.photo || null,
-        follower_role: role,
-        isRead: isNotificationRead(user.id, f.id),
-      };
-    });
+    // Merge and sort by date
+    const allNotifs: Notification[] = [...followNotifs, ...collabNotifs]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    setNotifications(mapped);
+    setNotifications(allNotifs);
     setLoading(false);
   };
 
@@ -101,8 +165,11 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
     fetchNotifications();
 
     const channel = supabase
-      .channel("notifications-follows")
+      .channel("notifications-all")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "follows" }, () => {
+        fetchNotifications();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests" }, () => {
         fetchNotifications();
       })
       .subscribe();
@@ -123,10 +190,76 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
   };
 
-  const handleClickNotification = (n: FollowNotification) => {
+  const handleClickFollowNotification = (n: FollowNotification) => {
     handleMarkOneRead(n.id);
     setViewProfileUserId(n.follower_id);
     setViewProfileRole(n.follower_role);
+  };
+
+  const handleClickCollabNotification = (n: CollabNotification) => {
+    handleMarkOneRead(n.id);
+    setViewProfileUserId(n.player_user_id);
+    setViewProfileRole("player");
+  };
+
+  const handleAcceptCollab = async (n: CollabNotification) => {
+    try {
+      // Update the request status
+      const { error } = await supabase
+        .from("agent_collaboration_requests")
+        .update({ status: "accepted" })
+        .eq("id", n.id);
+      if (error) throw error;
+
+      // Get agent's info to fill in the player's profile
+      if (!currentUserId) return;
+      const { data: agentProfile } = await supabase
+        .from("scout_profiles")
+        .select("first_name, last_name")
+        .eq("user_id", currentUserId)
+        .maybeSingle();
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const agentEmail = user?.email || "";
+      const agentName = agentProfile ? `${agentProfile.first_name} ${agentProfile.last_name}`.trim() : "";
+
+      // Update the player's profile with agent info
+      await supabase
+        .from("player_profiles")
+        .update({
+          agent_name: agentName,
+          agent_email: agentEmail,
+        })
+        .eq("user_id", n.player_user_id);
+
+      handleMarkOneRead(n.id);
+      toast({
+        title: lang === "ro" ? "Colaborare acceptată!" : "Collaboration accepted!",
+        description: lang === "ro"
+          ? `Datele tale de contact au fost adăugate pe profilul lui ${n.player_name}`
+          : `Your contact info has been added to ${n.player_name}'s profile`,
+      });
+      fetchNotifications();
+    } catch (err) {
+      console.error(err);
+      toast({ title: lang === "ro" ? "Eroare" : "Error", variant: "destructive" });
+    }
+  };
+
+  const handleRejectCollab = async (n: CollabNotification) => {
+    try {
+      const { error } = await supabase
+        .from("agent_collaboration_requests")
+        .update({ status: "rejected" })
+        .eq("id", n.id);
+      if (error) throw error;
+
+      handleMarkOneRead(n.id);
+      toast({ title: lang === "ro" ? "Cerere respinsă" : "Request rejected" });
+      fetchNotifications();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const timeAgo = (dateStr: string) => {
@@ -191,42 +324,111 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
         </div>
       ) : (
         <div className="space-y-2">
-          {notifications.map(n => (
-            <button
-              key={n.id}
-              onClick={() => handleClickNotification(n)}
-              className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
-                n.isRead
-                  ? "bg-card border-border hover:bg-accent/50"
-                  : "bg-primary/5 border-primary/30 hover:bg-primary/10"
-              }`}
-            >
-              {/* Unread dot */}
-              <div className="shrink-0 w-2.5 flex items-center justify-center">
-                {!n.isRead && (
-                  <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-                )}
-              </div>
-              <Avatar className="h-10 w-10">
-                {n.follower_photo ? <AvatarImage src={n.follower_photo} /> : null}
-                <AvatarFallback className="bg-primary/20 text-primary text-sm">
-                  {n.follower_name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm ${n.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
-                  <span className="font-semibold">{n.follower_name}</span>{" "}
-                  <span className={n.isRead ? "text-muted-foreground" : "text-foreground/80"}>
-                    {lang === "ro" ? "a început să te urmărească" : "started following you"}
-                  </span>
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {roleLabel(n.follower_role)} · {timeAgo(n.created_at)}
-                </p>
-              </div>
-              <UserPlus className={`h-4 w-4 shrink-0 ${n.isRead ? "text-primary/50" : "text-primary"}`} />
-            </button>
-          ))}
+          {notifications.map(n => {
+            if (n.type === "follow") {
+              const fn = n as FollowNotification;
+              return (
+                <button
+                  key={fn.id}
+                  onClick={() => handleClickFollowNotification(fn)}
+                  className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
+                    fn.isRead
+                      ? "bg-card border-border hover:bg-accent/50"
+                      : "bg-primary/5 border-primary/30 hover:bg-primary/10"
+                  }`}
+                >
+                  <div className="shrink-0 w-2.5 flex items-center justify-center">
+                    {!fn.isRead && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                    )}
+                  </div>
+                  <Avatar className="h-10 w-10">
+                    {fn.follower_photo ? <AvatarImage src={fn.follower_photo} /> : null}
+                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                      {fn.follower_name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${fn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                      <span className="font-semibold">{fn.follower_name}</span>{" "}
+                      <span className={fn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
+                        {lang === "ro" ? "a început să te urmărească" : "started following you"}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {roleLabel(fn.follower_role)} · {timeAgo(fn.created_at)}
+                    </p>
+                  </div>
+                  <UserPlus className={`h-4 w-4 shrink-0 ${fn.isRead ? "text-primary/50" : "text-primary"}`} />
+                </button>
+              );
+            }
+
+            if (n.type === "collab_request") {
+              const cn = n as CollabNotification;
+              return (
+                <div
+                  key={cn.id}
+                  className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all ${
+                    cn.isRead
+                      ? "bg-card border-border"
+                      : "bg-primary/5 border-primary/30"
+                  }`}
+                >
+                  <div className="shrink-0 w-2.5 flex items-center justify-center">
+                    {!cn.isRead && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                    )}
+                  </div>
+                  <Avatar className="h-10 w-10 cursor-pointer" onClick={() => handleClickCollabNotification(cn)}>
+                    {cn.player_photo ? <AvatarImage src={cn.player_photo} /> : null}
+                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                      {cn.player_name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleClickCollabNotification(cn)}>
+                    <p className={`text-sm ${cn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                      <span className="font-semibold">{cn.player_name}</span>{" "}
+                      <span className={cn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
+                        {cn.status === "pending"
+                          ? (lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you")
+                          : cn.status === "accepted"
+                            ? (lang === "ro" ? "– colaborare acceptată" : "– collaboration accepted")
+                            : (lang === "ro" ? "– cerere respinsă" : "– request rejected")}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {lang === "ro" ? "Jucător" : "Player"} · {timeAgo(cn.created_at)}
+                    </p>
+                  </div>
+                  {cn.status === "pending" ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                        onClick={() => handleAcceptCollab(cn)}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleRejectCollab(cn)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Handshake className={`h-4 w-4 shrink-0 ${cn.status === "accepted" ? "text-green-500" : "text-muted-foreground"}`} />
+                  )}
+                </div>
+              );
+            }
+
+            return null;
+          })}
         </div>
       )}
     </div>
