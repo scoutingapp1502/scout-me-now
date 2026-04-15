@@ -23,11 +23,12 @@ interface FollowNotification {
 interface CollabNotification {
   id: string;
   type: "collab_request";
-  player_user_id: string;
+  other_user_id: string;
   created_at: string;
-  player_name: string;
-  player_photo: string | null;
+  other_name: string;
+  other_photo: string | null;
   status: string;
+  perspective: "agent" | "player"; // agent = received request, player = sent request
   isRead: boolean;
 }
 
