@@ -120,8 +120,10 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
       });
     }
 
-    // Fetch collaboration requests for agents
+    // Fetch collaboration requests
     let collabNotifs: CollabNotification[] = [];
+
+    // For agents: requests received
     if (userRole === "agent" || userRole === "scout") {
       const { data: collabRequests } = await supabase
         .from("agent_collaboration_requests")
@@ -130,27 +132,62 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
         .order("created_at", { ascending: false });
 
       if (collabRequests && collabRequests.length > 0) {
-        const playerIds = collabRequests.map(r => r.player_user_id);
+        const pIds = collabRequests.map(r => r.player_user_id);
         const { data: players } = await supabase
           .from("player_profiles")
           .select("user_id, first_name, last_name, photo_url")
-          .in("user_id", playerIds);
+          .in("user_id", pIds);
 
-        const playerMap: Record<string, { name: string; photo: string | null }> = {};
+        const pMap: Record<string, { name: string; photo: string | null }> = {};
         players?.forEach(p => {
-          playerMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
+          pMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
         });
 
-        collabNotifs = collabRequests.map(r => ({
+        collabNotifs.push(...collabRequests.map(r => ({
           id: r.id,
           type: "collab_request" as const,
-          player_user_id: r.player_user_id,
+          other_user_id: r.player_user_id,
           created_at: r.created_at,
-          player_name: playerMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player"),
-          player_photo: playerMap[r.player_user_id]?.photo || null,
+          other_name: pMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player"),
+          other_photo: pMap[r.player_user_id]?.photo || null,
           status: r.status,
+          perspective: "agent" as const,
           isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
-        }));
+        })));
+      }
+    }
+
+    // For players: requests sent (show status updates)
+    if (userRole === "player") {
+      const { data: sentRequests } = await supabase
+        .from("agent_collaboration_requests")
+        .select("*")
+        .eq("player_user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (sentRequests && sentRequests.length > 0) {
+        const agentIds = sentRequests.map(r => r.agent_user_id);
+        const { data: agents } = await supabase
+          .from("scout_profiles")
+          .select("user_id, first_name, last_name, photo_url")
+          .in("user_id", agentIds);
+
+        const aMap: Record<string, { name: string; photo: string | null }> = {};
+        agents?.forEach(a => {
+          aMap[a.user_id] = { name: `${a.first_name} ${a.last_name}`.trim(), photo: a.photo_url };
+        });
+
+        collabNotifs.push(...sentRequests.map(r => ({
+          id: r.id,
+          type: "collab_request" as const,
+          other_user_id: r.agent_user_id,
+          created_at: r.updated_at || r.created_at,
+          other_name: aMap[r.agent_user_id]?.name || (lang === "ro" ? "Agent necunoscut" : "Unknown agent"),
+          other_photo: aMap[r.agent_user_id]?.photo || null,
+          status: r.status,
+          perspective: "player" as const,
+          isRead: r.status === "pending" || isNotificationRead(user.id, r.id),
+        })));
       }
     }
 
