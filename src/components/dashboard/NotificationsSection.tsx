@@ -236,8 +236,8 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
 
   const handleClickCollabNotification = (n: CollabNotification) => {
     handleMarkOneRead(n.id);
-    setViewProfileUserId(n.player_user_id);
-    setViewProfileRole("player");
+    setViewProfileUserId(n.other_user_id);
+    setViewProfileRole(n.perspective === "agent" ? "player" : "agent");
   };
 
   const handleAcceptCollab = async (n: CollabNotification) => {
