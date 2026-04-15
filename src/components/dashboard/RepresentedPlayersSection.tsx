@@ -6,15 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-
-const SPORTS_LIST = [
-  "Fotbal", "Baschet", "Tenis", "Handbal", "Volei", "Rugby", "Box",
-  "Atletism", "Natație", "Ciclism", "Gimnastică", "Judo", "Karate",
-  "Taekwondo", "Lupte", "Scrimă", "Haltere", "Tir", "Canotaj",
-  "Kayak-Canoe", "Hochei", "Polo", "Baseball", "Softball", "Cricket",
-  "Golf", "Badminton", "Tenis de masă", "Patinaj", "Schi", "Snowboard",
-  "MMA", "Kickboxing", "Squash", "Padel", "Futsal",
-];
+import SportInput, { SPORTS_LIST } from "@/components/ui/sport-input";
 
 const POSITIONS_BY_SPORT: Record<string, string[]> = {
   Fotbal: ["Portar", "Fundaș central", "Fundaș stânga", "Fundaș dreapta", "Mijlocaș central", "Mijlocaș ofensiv", "Mijlocaș defensiv", "Extremă stânga", "Extremă dreapta", "Atacant", "Vârf"],
@@ -346,19 +338,12 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
 
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Sport</label>
-                <Select
+                <SportInput
                   value={manualForm.sport}
-                  onValueChange={(val) => setManualForm((f) => ({ ...f, sport: val, position: "" }))}
-                >
-                  <SelectTrigger className="bg-muted border-border text-foreground">
-                    <SelectValue placeholder="Selectează sportul" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {SPORTS_LIST.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(val) => setManualForm((f) => ({ ...f, sport: val, position: "" }))}
+                  placeholder="Caută sportul..."
+                  className="bg-muted border-border text-foreground"
+                />
               </div>
 
               <div>
