@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users } from "lucide-react";
 import MessageDialog from "./MessageDialog";
 import ScoutExtraSections from "./ScoutExtraSections";
+import RepresentedPlayersSection from "./RepresentedPlayersSection";
 import ScoutStats from "./ScoutStats";
 import SkillsEditor from "./SkillsEditor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -50,10 +51,14 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
+  const [isAgent, setIsAgent] = useState(false);
 
   useEffect(() => {
     fetchData();
     if (readOnly) checkFollowStatus();
+    // Check if this profile belongs to an agent
+    supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "agent").maybeSingle()
+      .then(({ data }) => setIsAgent(!!data));
   }, [userId]);
 
   const checkFollowStatus = async () => {
@@ -555,6 +560,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
           )}
         </div>
       </div>
+
+      {/* ===== JUCĂTORI REPREZENTAȚI (doar agenți) ===== */}
+      {isAgent && <RepresentedPlayersSection userId={userId} readOnly={readOnly} />}
 
       {/* ===== ACTIVITATE ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
