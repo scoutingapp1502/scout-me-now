@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, User, X, Loader2, Search } from "lucide-react";
+import { Users, User, X, Loader2, Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface RepresentedPlayer {
-  user_id: string;
+  id: string;
+  type: "linked" | "manual";
+  user_id?: string;
   first_name: string;
   last_name: string;
   photo_url: string | null;
   position: string | null;
   current_team: string | null;
-  sport: string | null;
+  birth_year?: number | null;
 }
 
 interface RepresentedPlayersSectionProps {
@@ -30,6 +32,8 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
   const [searchResults, setSearchResults] = useState<RepresentedPlayer[]>([]);
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualForm, setManualForm] = useState({ first_name: "", last_name: "", position: "", birth_year: "", current_team: "" });
 
   useEffect(() => {
     fetchRepresentedPlayers();
@@ -37,26 +41,55 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
 
   const fetchRepresentedPlayers = async () => {
     setLoading(true);
-    // Get accepted collaboration requests for this agent
+
+    // Fetch linked players (from collaboration requests)
     const { data: collabs } = await supabase
       .from("agent_collaboration_requests")
-      .select("player_user_id")
+      .select("id, player_user_id")
       .eq("agent_user_id", userId)
       .eq("status", "accepted");
 
-    if (!collabs || collabs.length === 0) {
-      setPlayers([]);
-      setLoading(false);
-      return;
+    let linkedPlayers: RepresentedPlayer[] = [];
+    if (collabs && collabs.length > 0) {
+      const playerIds = collabs.map((c) => c.player_user_id);
+      const { data: profiles } = await supabase
+        .from("player_profiles")
+        .select("user_id, first_name, last_name, photo_url, position, current_team")
+        .in("user_id", playerIds);
+
+      linkedPlayers = (profiles || []).map((p) => {
+        const collab = collabs.find((c) => c.player_user_id === p.user_id);
+        return {
+          id: collab?.id || p.user_id,
+          type: "linked" as const,
+          user_id: p.user_id,
+          first_name: p.first_name,
+          last_name: p.last_name,
+          photo_url: p.photo_url,
+          position: p.position,
+          current_team: p.current_team,
+        };
+      });
     }
 
-    const playerIds = collabs.map((c) => c.player_user_id);
-    const { data: profiles } = await supabase
-      .from("player_profiles")
-      .select("user_id, first_name, last_name, photo_url, position, current_team, sport")
-      .in("user_id", playerIds);
+    // Fetch manual players
+    const { data: manualData } = await supabase
+      .from("agent_manual_players")
+      .select("*")
+      .eq("agent_user_id", userId);
 
-    setPlayers(profiles || []);
+    const manualPlayers: RepresentedPlayer[] = (manualData || []).map((m: any) => ({
+      id: m.id,
+      type: "manual" as const,
+      first_name: m.first_name,
+      last_name: m.last_name,
+      photo_url: m.photo_url,
+      position: m.position,
+      current_team: m.current_team,
+      birth_year: m.birth_year,
+    }));
+
+    setPlayers([...linkedPlayers, ...manualPlayers]);
     setLoading(false);
   };
 
@@ -66,28 +99,35 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
     const term = searchTerm.toLowerCase();
     const { data } = await supabase
       .from("player_profiles")
-      .select("user_id, first_name, last_name, photo_url, position, current_team, sport");
+      .select("user_id, first_name, last_name, photo_url, position, current_team");
 
-    const existing = new Set(players.map((p) => p.user_id));
+    const existingLinked = new Set(players.filter((p) => p.type === "linked").map((p) => p.user_id));
     const filtered = (data || []).filter(
       (p) =>
-        !existing.has(p.user_id) &&
+        !existingLinked.has(p.user_id) &&
         `${p.first_name} ${p.last_name}`.toLowerCase().includes(term)
     );
-    setSearchResults(filtered.slice(0, 10));
+    setSearchResults(filtered.slice(0, 10).map((p) => ({
+      id: p.user_id,
+      type: "linked" as const,
+      user_id: p.user_id,
+      first_name: p.first_name,
+      last_name: p.last_name,
+      photo_url: p.photo_url,
+      position: p.position,
+      current_team: p.current_team,
+    })));
     setSearching(false);
   };
 
-  const handleAddPlayer = async (playerUserId: string) => {
+  const handleAddLinkedPlayer = async (playerUserId: string) => {
     setAdding(true);
-    // Create an accepted collaboration request directly (agent-initiated)
     const { error } = await supabase.from("agent_collaboration_requests").insert({
       agent_user_id: userId,
       player_user_id: playerUserId,
       status: "accepted",
     });
     if (error) {
-      // Might already exist, try updating
       const { error: updateErr } = await supabase
         .from("agent_collaboration_requests")
         .update({ status: "accepted" })
@@ -100,21 +140,55 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       }
     }
     await fetchRepresentedPlayers();
-    setShowAddDialog(false);
-    setSearchTerm("");
-    setSearchResults([]);
-    setAdding(false);
+    closeDialog();
     toast({ title: "Jucător adăugat!" });
   };
 
-  const handleRemovePlayer = async (playerUserId: string) => {
-    await supabase
-      .from("agent_collaboration_requests")
-      .delete()
-      .eq("agent_user_id", userId)
-      .eq("player_user_id", playerUserId);
-    setPlayers((prev) => prev.filter((p) => p.user_id !== playerUserId));
+  const handleAddManualPlayer = async () => {
+    if (!manualForm.first_name.trim() || !manualForm.last_name.trim()) {
+      toast({ title: "Eroare", description: "Numele și prenumele sunt obligatorii.", variant: "destructive" });
+      return;
+    }
+    setAdding(true);
+    const { error } = await supabase.from("agent_manual_players").insert({
+      agent_user_id: userId,
+      first_name: manualForm.first_name.trim(),
+      last_name: manualForm.last_name.trim(),
+      position: manualForm.position.trim() || null,
+      birth_year: manualForm.birth_year ? parseInt(manualForm.birth_year) : null,
+      current_team: manualForm.current_team.trim() || null,
+    });
+    if (error) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      setAdding(false);
+      return;
+    }
+    await fetchRepresentedPlayers();
+    closeDialog();
+    toast({ title: "Jucător adăugat manual!" });
+  };
+
+  const handleRemovePlayer = async (player: RepresentedPlayer) => {
+    if (player.type === "linked" && player.user_id) {
+      await supabase
+        .from("agent_collaboration_requests")
+        .delete()
+        .eq("agent_user_id", userId)
+        .eq("player_user_id", player.user_id);
+    } else {
+      await supabase.from("agent_manual_players").delete().eq("id", player.id);
+    }
+    setPlayers((prev) => prev.filter((p) => p.id !== player.id));
     toast({ title: "Jucător eliminat." });
+  };
+
+  const closeDialog = () => {
+    setShowAddDialog(false);
+    setSearchTerm("");
+    setSearchResults([]);
+    setShowManualForm(false);
+    setManualForm({ first_name: "", last_name: "", position: "", birth_year: "", current_team: "" });
+    setAdding(false);
   };
 
   return (
@@ -130,7 +204,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
             className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50"
             title="Adaugă jucător"
           >
-            <Users className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -146,17 +220,10 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       ) : (
         <div className="space-y-3">
           {players.map((player) => (
-            <div
-              key={player.user_id}
-              className="flex items-center gap-3 group"
-            >
+            <div key={player.id} className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                 {player.photo_url ? (
-                  <img
-                    src={player.photo_url}
-                    alt={`${player.first_name} ${player.last_name}`}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={player.photo_url} alt={`${player.first_name} ${player.last_name}`} className="w-full h-full object-cover" />
                 ) : (
                   <User className="h-5 w-5 text-muted-foreground" />
                 )}
@@ -164,14 +231,17 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
               <div className="flex-1 min-w-0">
                 <p className="font-body font-semibold text-foreground text-sm truncate">
                   {player.first_name} {player.last_name}
+                  {player.type === "manual" && (
+                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">(manual)</span>
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {[player.position, player.current_team].filter(Boolean).join(" • ") || player.sport || ""}
+                  {[player.position, player.current_team, player.birth_year ? `${player.birth_year}` : null].filter(Boolean).join(" • ")}
                 </p>
               </div>
               {!readOnly && (
                 <button
-                  onClick={() => handleRemovePlayer(player.user_id)}
+                  onClick={() => handleRemovePlayer(player)}
                   className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1"
                 >
                   <X className="h-4 w-4" />
@@ -182,54 +252,126 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
         </div>
       )}
 
-      {/* Add player dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+      <Dialog open={showAddDialog} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display text-foreground">Adaugă jucător</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Caută un jucător..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className="bg-muted border-border text-foreground"
-              />
-              <Button onClick={handleSearch} disabled={searching} size="sm" variant="outline">
-                {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              </Button>
-            </div>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {searchResults.map((p) => (
-                <div
-                  key={p.user_id}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-                  onClick={() => !adding && handleAddPlayer(p.user_id)}
+
+          {!showManualForm ? (
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Caută un jucător existent..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  className="bg-muted border-border text-foreground"
+                />
+                <Button onClick={handleSearch} disabled={searching} size="sm" variant="outline">
+                  {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {searchResults.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                    onClick={() => !adding && p.user_id && handleAddLinkedPlayer(p.user_id)}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {p.photo_url ? (
+                        <img src={p.photo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-body text-foreground truncate">{p.first_name} {p.last_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[p.position, p.current_team].filter(Boolean).join(" • ")}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {searchResults.length === 0 && searchTerm && !searching && (
+                  <p className="text-sm text-muted-foreground text-center py-4">Niciun rezultat.</p>
+                )}
+              </div>
+              <div className="border-t border-border pt-3">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowManualForm(true)}
                 >
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {p.photo_url ? (
-                      <img src={p.photo_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-body text-foreground truncate">
-                      {p.first_name} {p.last_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {[p.position, p.current_team].filter(Boolean).join(" • ")}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              {searchResults.length === 0 && searchTerm && !searching && (
-                <p className="text-sm text-muted-foreground text-center py-4">Niciun rezultat.</p>
-              )}
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adaugă manual un jucător
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Prenume *</label>
+                  <Input
+                    placeholder="Prenume"
+                    value={manualForm.first_name}
+                    onChange={(e) => setManualForm((f) => ({ ...f, first_name: e.target.value }))}
+                    className="bg-muted border-border text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Nume *</label>
+                  <Input
+                    placeholder="Nume"
+                    value={manualForm.last_name}
+                    onChange={(e) => setManualForm((f) => ({ ...f, last_name: e.target.value }))}
+                    className="bg-muted border-border text-foreground"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Poziție</label>
+                <Input
+                  placeholder="Ex: Atacant, Fundaș..."
+                  value={manualForm.position}
+                  onChange={(e) => setManualForm((f) => ({ ...f, position: e.target.value }))}
+                  className="bg-muted border-border text-foreground"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Anul nașterii</label>
+                  <Input
+                    placeholder="Ex: 2001"
+                    type="number"
+                    value={manualForm.birth_year}
+                    onChange={(e) => setManualForm((f) => ({ ...f, birth_year: e.target.value }))}
+                    className="bg-muted border-border text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Echipă</label>
+                  <Input
+                    placeholder="Ex: FC Steaua"
+                    value={manualForm.current_team}
+                    onChange={(e) => setManualForm((f) => ({ ...f, current_team: e.target.value }))}
+                    className="bg-muted border-border text-foreground"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowManualForm(false)} disabled={adding}>
+                  Înapoi
+                </Button>
+                <Button className="flex-1" onClick={handleAddManualPlayer} disabled={adding}>
+                  {adding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Adaugă
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
