@@ -6,15 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-
-const SPORTS_LIST = [
-  "Fotbal", "Baschet", "Tenis", "Handbal", "Volei", "Rugby", "Box",
-  "Atletism", "Natație", "Ciclism", "Gimnastică", "Judo", "Karate",
-  "Taekwondo", "Lupte", "Scrimă", "Haltere", "Tir", "Canotaj",
-  "Kayak-Canoe", "Hochei", "Polo", "Baseball", "Softball", "Cricket",
-  "Golf", "Badminton", "Tenis de masă", "Patinaj", "Schi", "Snowboard",
-  "MMA", "Kickboxing", "Squash", "Padel", "Futsal",
-];
+import SportInput, { SPORTS_LIST } from "@/components/ui/sport-input";
 
 const POSITIONS_BY_SPORT: Record<string, string[]> = {
   Fotbal: ["Portar", "Fundaș central", "Fundaș stânga", "Fundaș dreapta", "Mijlocaș central", "Mijlocaș ofensiv", "Mijlocaș defensiv", "Extremă stânga", "Extremă dreapta", "Atacant", "Vârf"],
