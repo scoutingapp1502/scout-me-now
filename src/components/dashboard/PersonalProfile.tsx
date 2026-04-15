@@ -173,6 +173,14 @@ interface CareerEntry {
   description: string;
 }
 
+interface AgentSuggestion {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  photo_url: string | null;
+  email: string | null;
+}
+
 const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { lang, t } = useLanguage();
@@ -192,6 +200,44 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [showFollowersList, setShowFollowersList] = useState(false);
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
+
+  // Agent autocomplete state
+  const [agentSuggestions, setAgentSuggestions] = useState<AgentSuggestion[]>([]);
+  const [showAgentSuggestions, setShowAgentSuggestions] = useState(false);
+  const [selectedRegisteredAgent, setSelectedRegisteredAgent] = useState<AgentSuggestion | null>(null);
+  const [agentSearchTimeout, setAgentSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const searchAgents = useCallback(async (term: string) => {
+    if (term.length < 2) {
+      setAgentSuggestions([]);
+      return;
+    }
+    const { data } = await supabase.rpc("search_agents", { search_term: term });
+    if (data) setAgentSuggestions(data as AgentSuggestion[]);
+  }, []);
+
+  const handleAgentNameChange = (value: string) => {
+    updateForm("agent_name", value);
+    // If user edits after selecting a registered agent, clear the lock
+    if (selectedRegisteredAgent && value !== `${selectedRegisteredAgent.first_name} ${selectedRegisteredAgent.last_name}`) {
+      setSelectedRegisteredAgent(null);
+      updateForm("agent_email", "");
+      updateForm("agent_phone", "");
+    }
+    if (agentSearchTimeout) clearTimeout(agentSearchTimeout);
+    const timeout = setTimeout(() => searchAgents(value), 300);
+    setAgentSearchTimeout(timeout);
+    setShowAgentSuggestions(true);
+  };
+
+  const selectAgent = (agent: AgentSuggestion) => {
+    setSelectedRegisteredAgent(agent);
+    updateForm("agent_name", `${agent.first_name} ${agent.last_name}`);
+    updateForm("agent_email", agent.email || "");
+    // No phone available from profile, keep existing or clear
+    setAgentSuggestions([]);
+    setShowAgentSuggestions(false);
+  };
 
   useEffect(() => {
     fetchProfile();
