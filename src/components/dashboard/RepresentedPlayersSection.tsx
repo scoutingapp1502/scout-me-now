@@ -4,7 +4,31 @@ import { Users, User, X, Loader2, Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+
+const SPORTS_LIST = [
+  "Fotbal", "Baschet", "Tenis", "Handbal", "Volei", "Rugby", "Box",
+  "Atletism", "Natație", "Ciclism", "Gimnastică", "Judo", "Karate",
+  "Taekwondo", "Lupte", "Scrimă", "Haltere", "Tir", "Canotaj",
+  "Kayak-Canoe", "Hochei", "Polo", "Baseball", "Softball", "Cricket",
+  "Golf", "Badminton", "Tenis de masă", "Patinaj", "Schi", "Snowboard",
+  "MMA", "Kickboxing", "Squash", "Padel", "Futsal",
+];
+
+const POSITIONS_BY_SPORT: Record<string, string[]> = {
+  Fotbal: ["Portar", "Fundaș central", "Fundaș stânga", "Fundaș dreapta", "Mijlocaș central", "Mijlocaș ofensiv", "Mijlocaș defensiv", "Extremă stânga", "Extremă dreapta", "Atacant", "Vârf"],
+  Baschet: ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"],
+  Tenis: ["Jucător de simplu", "Jucător de dublu"],
+  Handbal: ["Portar", "Pivot", "Inter stânga", "Inter dreapta", "Extremă stânga", "Extremă dreapta", "Centru"],
+  Volei: ["Ridicător", "Opposite", "Libero", "Outside Hitter", "Middle Blocker"],
+  Rugby: ["Pilier", "Talonator", "A doua linie", "Flanker", "Număr 8", "Deschizător", "Centru", "Aripa", "Fundaș"],
+  Box: ["Categoria muscă", "Categoria bantam", "Categoria ușoară", "Categoria mijlocie", "Categoria grea", "Categoria super-grea"],
+  Hochei: ["Portar", "Fundaș", "Centru", "Aripa stânga", "Aripa dreapta"],
+  Futsal: ["Portar", "Fixo", "Ala", "Pivot"],
+  Baseball: ["Pitcher", "Catcher", "First Base", "Second Base", "Shortstop", "Third Base", "Outfielder"],
+  Polo: ["Portar", "Center Forward", "Driver", "Point"],
+};
 
 interface RepresentedPlayer {
   id: string;
@@ -16,6 +40,7 @@ interface RepresentedPlayer {
   position: string | null;
   current_team: string | null;
   birth_year?: number | null;
+  sport?: string | null;
 }
 
 interface RepresentedPlayersSectionProps {
@@ -33,7 +58,13 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
-  const [manualForm, setManualForm] = useState({ first_name: "", last_name: "", position: "", birth_year: "", current_team: "" });
+  const [manualForm, setManualForm] = useState({
+    first_name: "", last_name: "", position: "", birth_year: "", current_team: "", sport: "",
+  });
+
+  const availablePositions = manualForm.sport && POSITIONS_BY_SPORT[manualForm.sport]
+    ? POSITIONS_BY_SPORT[manualForm.sport]
+    : [];
 
   useEffect(() => {
     fetchRepresentedPlayers();
@@ -41,8 +72,6 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
 
   const fetchRepresentedPlayers = async () => {
     setLoading(true);
-
-    // Fetch linked players (from collaboration requests)
     const { data: collabs } = await supabase
       .from("agent_collaboration_requests")
       .select("id, player_user_id")
@@ -54,7 +83,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       const playerIds = collabs.map((c) => c.player_user_id);
       const { data: profiles } = await supabase
         .from("player_profiles")
-        .select("user_id, first_name, last_name, photo_url, position, current_team")
+        .select("user_id, first_name, last_name, photo_url, position, current_team, sport")
         .in("user_id", playerIds);
 
       linkedPlayers = (profiles || []).map((p) => {
@@ -68,11 +97,11 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
           photo_url: p.photo_url,
           position: p.position,
           current_team: p.current_team,
+          sport: p.sport,
         };
       });
     }
 
-    // Fetch manual players
     const { data: manualData } = await supabase
       .from("agent_manual_players")
       .select("*")
@@ -87,6 +116,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       position: m.position,
       current_team: m.current_team,
       birth_year: m.birth_year,
+      sport: m.sport,
     }));
 
     setPlayers([...linkedPlayers, ...manualPlayers]);
@@ -99,13 +129,11 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
     const term = searchTerm.toLowerCase();
     const { data } = await supabase
       .from("player_profiles")
-      .select("user_id, first_name, last_name, photo_url, position, current_team");
+      .select("user_id, first_name, last_name, photo_url, position, current_team, sport");
 
     const existingLinked = new Set(players.filter((p) => p.type === "linked").map((p) => p.user_id));
     const filtered = (data || []).filter(
-      (p) =>
-        !existingLinked.has(p.user_id) &&
-        `${p.first_name} ${p.last_name}`.toLowerCase().includes(term)
+      (p) => !existingLinked.has(p.user_id) && `${p.first_name} ${p.last_name}`.toLowerCase().includes(term)
     );
     setSearchResults(filtered.slice(0, 10).map((p) => ({
       id: p.user_id,
@@ -116,6 +144,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       photo_url: p.photo_url,
       position: p.position,
       current_team: p.current_team,
+      sport: p.sport,
     })));
     setSearching(false);
   };
@@ -123,9 +152,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
   const handleAddLinkedPlayer = async (playerUserId: string) => {
     setAdding(true);
     const { error } = await supabase.from("agent_collaboration_requests").insert({
-      agent_user_id: userId,
-      player_user_id: playerUserId,
-      status: "accepted",
+      agent_user_id: userId, player_user_id: playerUserId, status: "accepted",
     });
     if (error) {
       const { error: updateErr } = await supabase
@@ -154,9 +181,10 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       agent_user_id: userId,
       first_name: manualForm.first_name.trim(),
       last_name: manualForm.last_name.trim(),
-      position: manualForm.position.trim() || null,
+      position: manualForm.position || null,
       birth_year: manualForm.birth_year ? parseInt(manualForm.birth_year) : null,
       current_team: manualForm.current_team.trim() || null,
+      sport: manualForm.sport || null,
     });
     if (error) {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
@@ -170,11 +198,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
 
   const handleRemovePlayer = async (player: RepresentedPlayer) => {
     if (player.type === "linked" && player.user_id) {
-      await supabase
-        .from("agent_collaboration_requests")
-        .delete()
-        .eq("agent_user_id", userId)
-        .eq("player_user_id", player.user_id);
+      await supabase.from("agent_collaboration_requests").delete().eq("agent_user_id", userId).eq("player_user_id", player.user_id);
     } else {
       await supabase.from("agent_manual_players").delete().eq("id", player.id);
     }
@@ -187,7 +211,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
     setSearchTerm("");
     setSearchResults([]);
     setShowManualForm(false);
-    setManualForm({ first_name: "", last_name: "", position: "", birth_year: "", current_team: "" });
+    setManualForm({ first_name: "", last_name: "", position: "", birth_year: "", current_team: "", sport: "" });
     setAdding(false);
   };
 
@@ -214,9 +238,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : players.length === 0 ? (
-        <p className="text-muted-foreground italic text-sm font-body">
-          Niciun jucător reprezentat.
-        </p>
+        <p className="text-muted-foreground italic text-sm font-body">Niciun jucător reprezentat.</p>
       ) : (
         <div className="space-y-3">
           {players.map((player) => (
@@ -231,12 +253,10 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
               <div className="flex-1 min-w-0">
                 <p className="font-body font-semibold text-foreground text-sm truncate">
                   {player.first_name} {player.last_name}
-                  {player.type === "manual" && (
-                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">(manual)</span>
-                  )}
+                  {player.type === "manual" && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(manual)</span>}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {[player.position, player.current_team, player.birth_year ? `${player.birth_year}` : null].filter(Boolean).join(" • ")}
+                  {[player.sport, player.position, player.current_team, player.birth_year ? `${player.birth_year}` : null].filter(Boolean).join(" • ")}
                 </p>
               </div>
               {!readOnly && (
@@ -280,16 +300,12 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
                     onClick={() => !adding && p.user_id && handleAddLinkedPlayer(p.user_id)}
                   >
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {p.photo_url ? (
-                        <img src={p.photo_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="h-4 w-4 text-muted-foreground" />
-                      )}
+                      {p.photo_url ? <img src={p.photo_url} alt="" className="w-full h-full object-cover" /> : <User className="h-4 w-4 text-muted-foreground" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-body text-foreground truncate">{p.first_name} {p.last_name}</p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {[p.position, p.current_team].filter(Boolean).join(" • ")}
+                        {[p.sport, p.position, p.current_team].filter(Boolean).join(" • ")}
                       </p>
                     </div>
                   </div>
@@ -299,11 +315,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
                 )}
               </div>
               <div className="border-t border-border pt-3">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setShowManualForm(true)}
-                >
+                <Button variant="outline" className="w-full" onClick={() => setShowManualForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Adaugă manual un jucător
                 </Button>
@@ -331,15 +343,50 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Sport</label>
+                <Select
+                  value={manualForm.sport}
+                  onValueChange={(val) => setManualForm((f) => ({ ...f, sport: val, position: "" }))}
+                >
+                  <SelectTrigger className="bg-muted border-border text-foreground">
+                    <SelectValue placeholder="Selectează sportul" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {SPORTS_LIST.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Poziție</label>
-                <Input
-                  placeholder="Ex: Atacant, Fundaș..."
-                  value={manualForm.position}
-                  onChange={(e) => setManualForm((f) => ({ ...f, position: e.target.value }))}
-                  className="bg-muted border-border text-foreground"
-                />
+                {availablePositions.length > 0 ? (
+                  <Select
+                    value={manualForm.position}
+                    onValueChange={(val) => setManualForm((f) => ({ ...f, position: val }))}
+                  >
+                    <SelectTrigger className="bg-muted border-border text-foreground">
+                      <SelectValue placeholder="Selectează poziția" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {availablePositions.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    placeholder="Ex: Atacant, Fundaș..."
+                    value={manualForm.position}
+                    onChange={(e) => setManualForm((f) => ({ ...f, position: e.target.value }))}
+                    className="bg-muted border-border text-foreground"
+                  />
+                )}
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Anul nașterii</label>
@@ -361,6 +408,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
                   />
                 </div>
               </div>
+
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="flex-1" onClick={() => setShowManualForm(false)} disabled={adding}>
                   Înapoi

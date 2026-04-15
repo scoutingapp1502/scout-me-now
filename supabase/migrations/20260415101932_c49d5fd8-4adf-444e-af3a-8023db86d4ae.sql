@@ -1,0 +1,1 @@
+ALTER TABLE public.agent_manual_players ADD COLUMN sport TEXT;

@@ -52,6 +52,7 @@ export type Database = {
           last_name: string
           photo_url: string | null
           position: string | null
+          sport: string | null
         }
         Insert: {
           agent_user_id: string
@@ -63,6 +64,7 @@ export type Database = {
           last_name?: string
           photo_url?: string | null
           position?: string | null
+          sport?: string | null
         }
         Update: {
           agent_user_id?: string
@@ -74,6 +76,7 @@ export type Database = {
           last_name?: string
           photo_url?: string | null
           position?: string | null
+          sport?: string | null
         }
         Relationships: []
       }
