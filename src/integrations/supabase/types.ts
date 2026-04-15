@@ -732,6 +732,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      search_agents: {
+        Args: { search_term: string }
+        Returns: {
+          email: string
+          first_name: string
+          last_name: string
+          photo_url: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "player" | "scout" | "agent"
