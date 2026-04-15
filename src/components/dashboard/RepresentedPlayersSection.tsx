@@ -338,19 +338,12 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
 
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Sport</label>
-                <Select
+                <SportInput
                   value={manualForm.sport}
-                  onValueChange={(val) => setManualForm((f) => ({ ...f, sport: val, position: "" }))}
-                >
-                  <SelectTrigger className="bg-muted border-border text-foreground">
-                    <SelectValue placeholder="Selectează sportul" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {SPORTS_LIST.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(val) => setManualForm((f) => ({ ...f, sport: val, position: "" }))}
+                  placeholder="Caută sportul..."
+                  className="bg-muted border-border text-foreground"
+                />
               </div>
 
               <div>
