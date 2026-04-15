@@ -206,6 +206,37 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [showAgentSuggestions, setShowAgentSuggestions] = useState(false);
   const [selectedRegisteredAgent, setSelectedRegisteredAgent] = useState<AgentSuggestion | null>(null);
   const [agentSearchTimeout, setAgentSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [collaborationStatus, setCollaborationStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
+  const [collaborationLoading, setCollaborationLoading] = useState(false);
+
+  // Fetch existing collaboration request on mount
+  useEffect(() => {
+    if (readOnly || !userId) return;
+    const fetchCollab = async () => {
+      const { data } = await supabase
+        .from("agent_collaboration_requests")
+        .select("*")
+        .eq("player_user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) {
+        const req = data[0];
+        setCollaborationStatus(req.status as any);
+        if (req.status === "pending") {
+          // Fetch agent info to show pending state
+          const { data: agentData } = await supabase
+            .from("scout_profiles")
+            .select("user_id, first_name, last_name, photo_url")
+            .eq("user_id", req.agent_user_id)
+            .maybeSingle();
+          if (agentData) {
+            setSelectedRegisteredAgent({ ...agentData, email: null });
+          }
+        }
+      }
+    };
+    fetchCollab();
+  }, [userId, readOnly]);
 
   const searchAgents = useCallback(async (term: string) => {
     if (term.length < 2) {
@@ -218,9 +249,9 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 
   const handleAgentNameChange = (value: string) => {
     updateForm("agent_name", value);
-    // If user edits after selecting a registered agent, clear the lock
     if (selectedRegisteredAgent && value !== `${selectedRegisteredAgent.first_name} ${selectedRegisteredAgent.last_name}`) {
       setSelectedRegisteredAgent(null);
+      setCollaborationStatus("none");
       updateForm("agent_email", "");
       updateForm("agent_phone", "");
     }
@@ -230,13 +261,65 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
     setShowAgentSuggestions(true);
   };
 
-  const selectAgent = (agent: AgentSuggestion) => {
+  const selectAgent = async (agent: AgentSuggestion) => {
     setSelectedRegisteredAgent(agent);
-    updateForm("agent_name", `${agent.first_name} ${agent.last_name}`);
-    updateForm("agent_email", agent.email || "");
-    // No phone available from profile, keep existing or clear
     setAgentSuggestions([]);
     setShowAgentSuggestions(false);
+    setCollaborationLoading(true);
+
+    try {
+      // Delete any existing request from this player
+      await supabase
+        .from("agent_collaboration_requests")
+        .delete()
+        .eq("player_user_id", userId);
+
+      // Create new collaboration request
+      const { error } = await supabase
+        .from("agent_collaboration_requests")
+        .insert({
+          player_user_id: userId,
+          agent_user_id: agent.user_id,
+          status: "pending",
+        });
+
+      if (error) throw error;
+
+      setCollaborationStatus("pending");
+      // Clear agent fields - they'll be filled when accepted
+      updateForm("agent_name", "");
+      updateForm("agent_email", "");
+      updateForm("agent_phone", "");
+
+      toast({
+        title: lang === "ro" ? "Cerere trimisă!" : "Request sent!",
+        description: lang === "ro"
+          ? `O cerere de colaborare a fost trimisă către ${agent.first_name} ${agent.last_name}`
+          : `A collaboration request was sent to ${agent.first_name} ${agent.last_name}`,
+      });
+    } catch (err) {
+      console.error(err);
+      toast({ title: lang === "ro" ? "Eroare la trimiterea cererii" : "Failed to send request", variant: "destructive" });
+    } finally {
+      setCollaborationLoading(false);
+    }
+  };
+
+  const cancelCollaborationRequest = async () => {
+    setCollaborationLoading(true);
+    try {
+      await supabase
+        .from("agent_collaboration_requests")
+        .delete()
+        .eq("player_user_id", userId);
+      setCollaborationStatus("none");
+      setSelectedRegisteredAgent(null);
+      toast({ title: lang === "ro" ? "Cererea a fost anulată" : "Request cancelled" });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCollaborationLoading(false);
+    }
   };
 
   useEffect(() => {
