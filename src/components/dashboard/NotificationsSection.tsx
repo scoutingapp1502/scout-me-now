@@ -432,7 +432,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                   if (cn.status === "accepted") return lang === "ro" ? "– colaborare acceptată" : "– collaboration accepted";
                   return lang === "ro" ? "– cerere respinsă" : "– request rejected";
                 } else {
-                  if (cn.status === "pending") return lang === "ro" ? "– cerere de colaborare trimisă" : "– collaboration request sent";
+                  if (cn.status === "sent") return lang === "ro" ? "– cerere de colaborare trimisă" : "– collaboration request sent";
                   if (cn.status === "accepted") return lang === "ro" ? "ți-a acceptat cererea de colaborare ✅" : "accepted your collaboration request ✅";
                   return lang === "ro" ? "ți-a respins cererea de colaborare" : "rejected your collaboration request";
                 }
