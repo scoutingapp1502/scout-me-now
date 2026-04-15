@@ -173,6 +173,14 @@ interface CareerEntry {
   description: string;
 }
 
+interface AgentSuggestion {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  photo_url: string | null;
+  email: string | null;
+}
+
 const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { lang, t } = useLanguage();
@@ -192,6 +200,44 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [showFollowersList, setShowFollowersList] = useState(false);
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
+
+  // Agent autocomplete state
+  const [agentSuggestions, setAgentSuggestions] = useState<AgentSuggestion[]>([]);
+  const [showAgentSuggestions, setShowAgentSuggestions] = useState(false);
+  const [selectedRegisteredAgent, setSelectedRegisteredAgent] = useState<AgentSuggestion | null>(null);
+  const [agentSearchTimeout, setAgentSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const searchAgents = useCallback(async (term: string) => {
+    if (term.length < 2) {
+      setAgentSuggestions([]);
+      return;
+    }
+    const { data } = await supabase.rpc("search_agents", { search_term: term });
+    if (data) setAgentSuggestions(data as AgentSuggestion[]);
+  }, []);
+
+  const handleAgentNameChange = (value: string) => {
+    updateForm("agent_name", value);
+    // If user edits after selecting a registered agent, clear the lock
+    if (selectedRegisteredAgent && value !== `${selectedRegisteredAgent.first_name} ${selectedRegisteredAgent.last_name}`) {
+      setSelectedRegisteredAgent(null);
+      updateForm("agent_email", "");
+      updateForm("agent_phone", "");
+    }
+    if (agentSearchTimeout) clearTimeout(agentSearchTimeout);
+    const timeout = setTimeout(() => searchAgents(value), 300);
+    setAgentSearchTimeout(timeout);
+    setShowAgentSuggestions(true);
+  };
+
+  const selectAgent = (agent: AgentSuggestion) => {
+    setSelectedRegisteredAgent(agent);
+    updateForm("agent_name", `${agent.first_name} ${agent.last_name}`);
+    updateForm("agent_email", agent.email || "");
+    // No phone available from profile, keep existing or clear
+    setAgentSuggestions([]);
+    setShowAgentSuggestions(false);
+  };
 
   useEffect(() => {
     fetchProfile();
@@ -1510,23 +1556,74 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           </div>
           {editingAgent ? (
             <div className="space-y-3">
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label><Input value={form.agent_name || ""} onChange={(e) => updateForm("agent_name", e.target.value)} className="text-white" /></div>
+              <div className="relative">
+                <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label>
+                <Input
+                  value={form.agent_name || ""}
+                  onChange={(e) => handleAgentNameChange(e.target.value)}
+                  onFocus={() => { if (agentSuggestions.length > 0) setShowAgentSuggestions(true); }}
+                  onBlur={() => setTimeout(() => setShowAgentSuggestions(false), 200)}
+                  className="text-foreground"
+                  placeholder="Caută agent după nume..."
+                  autoComplete="off"
+                />
+                {showAgentSuggestions && agentSuggestions.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {agentSuggestions.map((agent) => (
+                      <button
+                        key={agent.user_id}
+                        type="button"
+                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left transition-colors"
+                        onMouseDown={(e) => { e.preventDefault(); selectAgent(agent); }}
+                      >
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {agent.photo_url ? (
+                            <img src={agent.photo_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-semibold text-muted-foreground">{agent.first_name?.[0]}{agent.last_name?.[0]}</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{agent.first_name} {agent.last_name}</p>
+                          {agent.email && <p className="text-xs text-muted-foreground">{agent.email}</p>}
+                        </div>
+                        <Check className="h-4 w-4 ml-auto text-primary opacity-0 group-hover:opacity-100" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedRegisteredAgent && (
+                  <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                    <Check className="h-3 w-3" /> Agent înregistrat în platformă
+                  </p>
+                )}
+              </div>
               <div>
                 <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label>
                 <Input
                   type="email"
                   value={form.agent_email || ""}
                   onChange={(e) => updateForm("agent_email", e.target.value)}
-                  className={`text-white ${form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                  className={`text-foreground ${selectedRegisteredAgent ? "opacity-70 cursor-not-allowed" : ""} ${!selectedRegisteredAgent && form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   placeholder="agent@example.com"
+                  readOnly={!!selectedRegisteredAgent}
                 />
-                {form.agent_email && !form.agent_email.includes("@") && (
+                {!selectedRegisteredAgent && form.agent_email && !form.agent_email.includes("@") && (
                   <p className="text-xs text-destructive mt-1">Adresa de email trebuie să conțină simbolul @</p>
                 )}
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentPhone}</Label>
-                <AgentPhoneInput value={form.agent_phone || ""} onChange={(val) => updateForm("agent_phone", val)} />
+                {selectedRegisteredAgent ? (
+                  <Input
+                    value={form.agent_phone || ""}
+                    className="text-foreground opacity-70 cursor-not-allowed"
+                    readOnly
+                    placeholder="—"
+                  />
+                ) : (
+                  <AgentPhoneInput value={form.agent_phone || ""} onChange={(val) => updateForm("agent_phone", val)} />
+                )}
               </div>
             </div>
           ) : (
