@@ -404,6 +404,23 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
 
             if (n.type === "collab_request") {
               const cn = n as CollabNotification;
+
+              const collabMessage = () => {
+                if (cn.perspective === "agent") {
+                  if (cn.status === "pending") return lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you";
+                  if (cn.status === "accepted") return lang === "ro" ? "– colaborare acceptată" : "– collaboration accepted";
+                  return lang === "ro" ? "– cerere respinsă" : "– request rejected";
+                } else {
+                  if (cn.status === "pending") return lang === "ro" ? "– cerere de colaborare trimisă" : "– collaboration request sent";
+                  if (cn.status === "accepted") return lang === "ro" ? "ți-a acceptat cererea de colaborare ✅" : "accepted your collaboration request ✅";
+                  return lang === "ro" ? "ți-a respins cererea de colaborare" : "rejected your collaboration request";
+                }
+              };
+
+              const roleText = cn.perspective === "agent"
+                ? (lang === "ro" ? "Jucător" : "Player")
+                : "Agent";
+
               return (
                 <div
                   key={cn.id}
@@ -419,27 +436,23 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                     )}
                   </div>
                   <Avatar className="h-10 w-10 cursor-pointer" onClick={() => handleClickCollabNotification(cn)}>
-                    {cn.player_photo ? <AvatarImage src={cn.player_photo} /> : null}
+                    {cn.other_photo ? <AvatarImage src={cn.other_photo} /> : null}
                     <AvatarFallback className="bg-primary/20 text-primary text-sm">
-                      {cn.player_name.charAt(0).toUpperCase()}
+                      {cn.other_name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleClickCollabNotification(cn)}>
                     <p className={`text-sm ${cn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
-                      <span className="font-semibold">{cn.player_name}</span>{" "}
+                      <span className="font-semibold">{cn.other_name}</span>{" "}
                       <span className={cn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
-                        {cn.status === "pending"
-                          ? (lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you")
-                          : cn.status === "accepted"
-                            ? (lang === "ro" ? "– colaborare acceptată" : "– collaboration accepted")
-                            : (lang === "ro" ? "– cerere respinsă" : "– request rejected")}
+                        {collabMessage()}
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {lang === "ro" ? "Jucător" : "Player"} · {timeAgo(cn.created_at)}
+                      {roleText} · {timeAgo(cn.created_at)}
                     </p>
                   </div>
-                  {cn.status === "pending" ? (
+                  {cn.perspective === "agent" && cn.status === "pending" ? (
                     <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
@@ -459,7 +472,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                       </Button>
                     </div>
                   ) : (
-                    <Handshake className={`h-4 w-4 shrink-0 ${cn.status === "accepted" ? "text-green-500" : "text-muted-foreground"}`} />
+                    <Handshake className={`h-4 w-4 shrink-0 ${cn.status === "accepted" ? "text-green-500" : cn.status === "pending" ? "text-yellow-500" : "text-muted-foreground"}`} />
                   )}
                 </div>
               );
