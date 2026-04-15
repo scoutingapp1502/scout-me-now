@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_manual_players: {
+        Row: {
+          agent_user_id: string
+          birth_year: number | null
+          created_at: string
+          current_team: string | null
+          first_name: string
+          id: string
+          last_name: string
+          photo_url: string | null
+          position: string | null
+        }
+        Insert: {
+          agent_user_id: string
+          birth_year?: number | null
+          created_at?: string
+          current_team?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          photo_url?: string | null
+          position?: string | null
+        }
+        Update: {
+          agent_user_id?: string
+          birth_year?: number | null
+          created_at?: string
+          current_team?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          photo_url?: string | null
+          position?: string | null
+        }
+        Relationships: []
+      }
       comment_likes: {
         Row: {
           comment_id: string
