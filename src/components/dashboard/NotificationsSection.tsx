@@ -268,7 +268,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
           agent_name: agentName,
           agent_email: agentEmail,
         })
-        .eq("user_id", n.player_user_id);
+        .eq("user_id", n.other_user_id);
 
       handleMarkOneRead(n.id);
       toast({
