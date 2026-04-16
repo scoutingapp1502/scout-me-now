@@ -124,7 +124,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
     // Fetch collaboration requests
     let collabNotifs: CollabNotification[] = [];
 
-    // For agents: requests received
+    // For agents: all collaboration requests involving them
     if (userRole === "agent" || userRole === "scout") {
       const { data: collabRequests } = await supabase
         .from("agent_collaboration_requests")
@@ -144,17 +144,55 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
           pMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
         });
 
-        collabNotifs.push(...collabRequests.map(r => ({
-          id: r.id,
-          type: "collab_request" as const,
-          other_user_id: r.player_user_id,
-          created_at: r.created_at,
-          other_name: pMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player"),
-          other_photo: pMap[r.player_user_id]?.photo || null,
-          status: r.status,
-          perspective: "agent" as const,
-          isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
-        })));
+        collabRequests.forEach(r => {
+          const initiatedBy = (r as any).initiated_by || "player";
+          const playerName = pMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player");
+          const playerPhoto = pMap[r.player_user_id]?.photo || null;
+
+          if (initiatedBy === "agent") {
+            // Agent sent this - show as confirmation
+            collabNotifs.push({
+              id: `${r.id}-sent`,
+              type: "collab_request",
+              other_user_id: r.player_user_id,
+              created_at: r.created_at,
+              other_name: playerName,
+              other_photo: playerPhoto,
+              status: "sent",
+              perspective: "agent",
+              initiated_by: "agent",
+              isRead: true,
+            });
+            if (r.status === "accepted" || r.status === "rejected") {
+              collabNotifs.push({
+                id: `${r.id}-response`,
+                type: "collab_request",
+                other_user_id: r.player_user_id,
+                created_at: r.updated_at || r.created_at,
+                other_name: playerName,
+                other_photo: playerPhoto,
+                status: r.status,
+                perspective: "agent",
+                initiated_by: "agent",
+                isRead: isNotificationRead(user.id, `${r.id}-response`),
+              });
+            }
+          } else {
+            // Player sent this - agent can accept/reject
+            collabNotifs.push({
+              id: r.id,
+              type: "collab_request",
+              other_user_id: r.player_user_id,
+              created_at: r.created_at,
+              other_name: playerName,
+              other_photo: playerPhoto,
+              status: r.status,
+              perspective: "agent",
+              initiated_by: "player",
+              isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
+            });
+          }
+        });
       }
     }
 
