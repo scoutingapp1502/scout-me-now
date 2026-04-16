@@ -155,23 +155,15 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
   const handleAddLinkedPlayer = async (playerUserId: string) => {
     setAdding(true);
     const { error } = await supabase.from("agent_collaboration_requests").insert({
-      agent_user_id: userId, player_user_id: playerUserId, status: "accepted",
+      agent_user_id: userId, player_user_id: playerUserId, status: "pending", initiated_by: "agent",
     });
     if (error) {
-      const { error: updateErr } = await supabase
-        .from("agent_collaboration_requests")
-        .update({ status: "accepted" })
-        .eq("agent_user_id", userId)
-        .eq("player_user_id", playerUserId);
-      if (updateErr) {
-        toast({ title: "Eroare", description: updateErr.message, variant: "destructive" });
-        setAdding(false);
-        return;
-      }
+      toast({ title: "Eroare", description: "Cererea nu a putut fi trimisă. Poate există deja una.", variant: "destructive" });
+      setAdding(false);
+      return;
     }
-    await fetchRepresentedPlayers();
     closeDialog();
-    toast({ title: "Jucător adăugat!" });
+    toast({ title: "Cerere trimisă!", description: "Jucătorul va primi o notificare pentru a accepta colaborarea." });
   };
 
   const handleAddManualPlayer = async () => {

@@ -19,6 +19,7 @@ export type Database = {
           agent_user_id: string
           created_at: string
           id: string
+          initiated_by: string
           player_user_id: string
           status: string
           updated_at: string
@@ -27,6 +28,7 @@ export type Database = {
           agent_user_id: string
           created_at?: string
           id?: string
+          initiated_by?: string
           player_user_id: string
           status?: string
           updated_at?: string
@@ -35,6 +37,7 @@ export type Database = {
           agent_user_id?: string
           created_at?: string
           id?: string
+          initiated_by?: string
           player_user_id?: string
           status?: string
           updated_at?: string

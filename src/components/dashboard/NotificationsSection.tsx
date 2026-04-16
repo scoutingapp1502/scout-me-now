@@ -28,7 +28,8 @@ interface CollabNotification {
   other_name: string;
   other_photo: string | null;
   status: string;
-  perspective: "agent" | "player"; // agent = received request, player = sent request
+  perspective: "agent" | "player";
+  initiated_by: "agent" | "player";
   isRead: boolean;
 }
 
@@ -123,7 +124,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
     // Fetch collaboration requests
     let collabNotifs: CollabNotification[] = [];
 
-    // For agents: requests received
+    // For agents: all collaboration requests involving them
     if (userRole === "agent" || userRole === "scout") {
       const { data: collabRequests } = await supabase
         .from("agent_collaboration_requests")
@@ -143,30 +144,68 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
           pMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
         });
 
-        collabNotifs.push(...collabRequests.map(r => ({
-          id: r.id,
-          type: "collab_request" as const,
-          other_user_id: r.player_user_id,
-          created_at: r.created_at,
-          other_name: pMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player"),
-          other_photo: pMap[r.player_user_id]?.photo || null,
-          status: r.status,
-          perspective: "agent" as const,
-          isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
-        })));
+        collabRequests.forEach(r => {
+          const initiatedBy = (r as any).initiated_by || "player";
+          const playerName = pMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player");
+          const playerPhoto = pMap[r.player_user_id]?.photo || null;
+
+          if (initiatedBy === "agent") {
+            // Agent sent this - show as confirmation
+            collabNotifs.push({
+              id: `${r.id}-sent`,
+              type: "collab_request",
+              other_user_id: r.player_user_id,
+              created_at: r.created_at,
+              other_name: playerName,
+              other_photo: playerPhoto,
+              status: "sent",
+              perspective: "agent",
+              initiated_by: "agent",
+              isRead: true,
+            });
+            if (r.status === "accepted" || r.status === "rejected") {
+              collabNotifs.push({
+                id: `${r.id}-response`,
+                type: "collab_request",
+                other_user_id: r.player_user_id,
+                created_at: r.updated_at || r.created_at,
+                other_name: playerName,
+                other_photo: playerPhoto,
+                status: r.status,
+                perspective: "agent",
+                initiated_by: "agent",
+                isRead: isNotificationRead(user.id, `${r.id}-response`),
+              });
+            }
+          } else {
+            // Player sent this - agent can accept/reject
+            collabNotifs.push({
+              id: r.id,
+              type: "collab_request",
+              other_user_id: r.player_user_id,
+              created_at: r.created_at,
+              other_name: playerName,
+              other_photo: playerPhoto,
+              status: r.status,
+              perspective: "agent",
+              initiated_by: "player",
+              isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
+            });
+          }
+        });
       }
     }
 
-    // For players: requests sent (show status updates)
+    // For players: all collaboration requests involving them
     if (userRole === "player") {
-      const { data: sentRequests } = await supabase
+      const { data: playerRequests } = await supabase
         .from("agent_collaboration_requests")
         .select("*")
         .eq("player_user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (sentRequests && sentRequests.length > 0) {
-        const agentIds = sentRequests.map(r => r.agent_user_id);
+      if (playerRequests && playerRequests.length > 0) {
+        const agentIds = playerRequests.map(r => r.agent_user_id);
         const { data: agents } = await supabase
           .from("scout_profiles")
           .select("user_id, first_name, last_name, photo_url")
@@ -177,36 +216,53 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
           aMap[a.user_id] = { name: `${a.first_name} ${a.last_name}`.trim(), photo: a.photo_url };
         });
 
-        sentRequests.forEach(r => {
+        playerRequests.forEach(r => {
+          const initiatedBy = (r as any).initiated_by || "player";
           const agentName = aMap[r.agent_user_id]?.name || (lang === "ro" ? "Agent necunoscut" : "Unknown agent");
           const agentPhoto = aMap[r.agent_user_id]?.photo || null;
 
-          // Notification 1: Confirmation that the request was sent
-          collabNotifs.push({
-            id: `${r.id}-sent`,
-            type: "collab_request" as const,
-            other_user_id: r.agent_user_id,
-            created_at: r.created_at,
-            other_name: agentName,
-            other_photo: agentPhoto,
-            status: "sent",
-            perspective: "player" as const,
-            isRead: true, // always read - it's just a confirmation
-          });
-
-          // Notification 2: Agent's response (only if responded)
-          if (r.status === "accepted" || r.status === "rejected") {
+          if (initiatedBy === "agent") {
+            // Agent initiated - player can accept/reject
             collabNotifs.push({
-              id: `${r.id}-response`,
-              type: "collab_request" as const,
+              id: r.id,
+              type: "collab_request",
               other_user_id: r.agent_user_id,
-              created_at: r.updated_at || r.created_at,
+              created_at: r.created_at,
               other_name: agentName,
               other_photo: agentPhoto,
               status: r.status,
-              perspective: "player" as const,
-              isRead: isNotificationRead(user.id, `${r.id}-response`),
+              perspective: "player",
+              initiated_by: "agent",
+              isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
             });
+          } else {
+            // Player initiated - show confirmation and response
+            collabNotifs.push({
+              id: `${r.id}-sent`,
+              type: "collab_request",
+              other_user_id: r.agent_user_id,
+              created_at: r.created_at,
+              other_name: agentName,
+              other_photo: agentPhoto,
+              status: "sent",
+              perspective: "player",
+              initiated_by: "player",
+              isRead: true,
+            });
+            if (r.status === "accepted" || r.status === "rejected") {
+              collabNotifs.push({
+                id: `${r.id}-response`,
+                type: "collab_request",
+                other_user_id: r.agent_user_id,
+                created_at: r.updated_at || r.created_at,
+                other_name: agentName,
+                other_photo: agentPhoto,
+                status: r.status,
+                perspective: "player",
+                initiated_by: "player",
+                isRead: isNotificationRead(user.id, `${r.id}-response`),
+              });
+            }
           }
         });
       }
@@ -263,40 +319,46 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
 
   const handleAcceptCollab = async (n: CollabNotification) => {
     try {
-      // Update the request status
       const { error } = await supabase
         .from("agent_collaboration_requests")
         .update({ status: "accepted" })
         .eq("id", n.id);
       if (error) throw error;
 
-      // Get agent's info to fill in the player's profile
       if (!currentUserId) return;
+
+      // Determine agent and player user IDs
+      const agentUserId = n.perspective === "agent" ? currentUserId : n.other_user_id;
+      const playerUserId = n.perspective === "player" ? currentUserId : n.other_user_id;
+
+      // Get agent's info to fill in the player's profile
       const { data: agentProfile } = await supabase
         .from("scout_profiles")
         .select("first_name, last_name")
-        .eq("user_id", currentUserId)
+        .eq("user_id", agentUserId)
         .maybeSingle();
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const agentEmail = user?.email || "";
       const agentName = agentProfile ? `${agentProfile.first_name} ${agentProfile.last_name}`.trim() : "";
+
+      // Get agent email
+      let agentEmail = "";
+      if (n.perspective === "agent") {
+        const { data: { user } } = await supabase.auth.getUser();
+        agentEmail = user?.email || "";
+      }
 
       // Update the player's profile with agent info
       await supabase
         .from("player_profiles")
         .update({
           agent_name: agentName,
-          agent_email: agentEmail,
+          ...(agentEmail ? { agent_email: agentEmail } : {}),
         })
-        .eq("user_id", n.other_user_id);
+        .eq("user_id", playerUserId);
 
       handleMarkOneRead(n.id);
       toast({
         title: lang === "ro" ? "Colaborare acceptată!" : "Collaboration accepted!",
-        description: lang === "ro"
-          ? `Datele tale de contact au fost adăugate pe profilul lui ${n.other_name}`
-          : `Your contact info has been added to ${n.other_name}'s profile`,
       });
       fetchNotifications();
     } catch (err) {
@@ -427,15 +489,13 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
               const cn = n as CollabNotification;
 
               const collabMessage = () => {
-                if (cn.perspective === "agent") {
-                  if (cn.status === "pending") return lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you";
-                  if (cn.status === "accepted") return lang === "ro" ? "– colaborare acceptată" : "– collaboration accepted";
-                  return lang === "ro" ? "– cerere respinsă" : "– request rejected";
-                } else {
-                  if (cn.status === "sent") return lang === "ro" ? "– cerere de colaborare trimisă" : "– collaboration request sent";
-                  if (cn.status === "accepted") return lang === "ro" ? "ți-a acceptat cererea de colaborare ✅" : "accepted your collaboration request ✅";
-                  return lang === "ro" ? "ți-a respins cererea de colaborare" : "rejected your collaboration request";
-                }
+                const isReceiver = (cn.perspective === "agent" && cn.initiated_by === "player") ||
+                                   (cn.perspective === "player" && cn.initiated_by === "agent");
+                if (cn.status === "sent") return lang === "ro" ? "– cerere de colaborare trimisă" : "– collaboration request sent";
+                if (cn.status === "pending" && isReceiver) return lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you";
+                if (cn.status === "pending") return lang === "ro" ? "– cerere în așteptare" : "– request pending";
+                if (cn.status === "accepted") return lang === "ro" ? "– colaborare acceptată ✅" : "– collaboration accepted ✅";
+                return lang === "ro" ? "– cerere respinsă" : "– request rejected";
               };
 
               const roleText = cn.perspective === "agent"
@@ -473,7 +533,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                       {roleText} · {timeAgo(cn.created_at)}
                     </p>
                   </div>
-                  {cn.perspective === "agent" && cn.status === "pending" ? (
+                  {cn.status === "pending" && cn.initiated_by !== cn.perspective ? (
                     <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
