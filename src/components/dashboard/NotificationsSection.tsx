@@ -319,40 +319,46 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
 
   const handleAcceptCollab = async (n: CollabNotification) => {
     try {
-      // Update the request status
       const { error } = await supabase
         .from("agent_collaboration_requests")
         .update({ status: "accepted" })
         .eq("id", n.id);
       if (error) throw error;
 
-      // Get agent's info to fill in the player's profile
       if (!currentUserId) return;
+
+      // Determine agent and player user IDs
+      const agentUserId = n.perspective === "agent" ? currentUserId : n.other_user_id;
+      const playerUserId = n.perspective === "player" ? currentUserId : n.other_user_id;
+
+      // Get agent's info to fill in the player's profile
       const { data: agentProfile } = await supabase
         .from("scout_profiles")
         .select("first_name, last_name")
-        .eq("user_id", currentUserId)
+        .eq("user_id", agentUserId)
         .maybeSingle();
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const agentEmail = user?.email || "";
       const agentName = agentProfile ? `${agentProfile.first_name} ${agentProfile.last_name}`.trim() : "";
+
+      // Get agent email
+      let agentEmail = "";
+      if (n.perspective === "agent") {
+        const { data: { user } } = await supabase.auth.getUser();
+        agentEmail = user?.email || "";
+      }
 
       // Update the player's profile with agent info
       await supabase
         .from("player_profiles")
         .update({
           agent_name: agentName,
-          agent_email: agentEmail,
+          ...(agentEmail ? { agent_email: agentEmail } : {}),
         })
-        .eq("user_id", n.other_user_id);
+        .eq("user_id", playerUserId);
 
       handleMarkOneRead(n.id);
       toast({
         title: lang === "ro" ? "Colaborare acceptată!" : "Collaboration accepted!",
-        description: lang === "ro"
-          ? `Datele tale de contact au fost adăugate pe profilul lui ${n.other_name}`
-          : `Your contact info has been added to ${n.other_name}'s profile`,
       });
       fetchNotifications();
     } catch (err) {
