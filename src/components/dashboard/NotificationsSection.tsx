@@ -489,15 +489,13 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
               const cn = n as CollabNotification;
 
               const collabMessage = () => {
-                if (cn.perspective === "agent") {
-                  if (cn.status === "pending") return lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you";
-                  if (cn.status === "accepted") return lang === "ro" ? "– colaborare acceptată" : "– collaboration accepted";
-                  return lang === "ro" ? "– cerere respinsă" : "– request rejected";
-                } else {
-                  if (cn.status === "sent") return lang === "ro" ? "– cerere de colaborare trimisă" : "– collaboration request sent";
-                  if (cn.status === "accepted") return lang === "ro" ? "ți-a acceptat cererea de colaborare ✅" : "accepted your collaboration request ✅";
-                  return lang === "ro" ? "ți-a respins cererea de colaborare" : "rejected your collaboration request";
-                }
+                const isReceiver = (cn.perspective === "agent" && cn.initiated_by === "player") ||
+                                   (cn.perspective === "player" && cn.initiated_by === "agent");
+                if (cn.status === "sent") return lang === "ro" ? "– cerere de colaborare trimisă" : "– collaboration request sent";
+                if (cn.status === "pending" && isReceiver) return lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you";
+                if (cn.status === "pending") return lang === "ro" ? "– cerere în așteptare" : "– request pending";
+                if (cn.status === "accepted") return lang === "ro" ? "– colaborare acceptată ✅" : "– collaboration accepted ✅";
+                return lang === "ro" ? "– cerere respinsă" : "– request rejected";
               };
 
               const roleText = cn.perspective === "agent"
