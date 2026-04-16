@@ -533,7 +533,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                       {roleText} · {timeAgo(cn.created_at)}
                     </p>
                   </div>
-                  {cn.perspective === "agent" && cn.status === "pending" ? (
+                  {cn.status === "pending" && cn.initiated_by !== cn.perspective ? (
                     <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
