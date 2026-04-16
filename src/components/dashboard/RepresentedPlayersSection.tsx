@@ -272,8 +272,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
 
           {!showManualForm ? (
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <div className="relative">
+               <div className="relative">
                   <Input
                     placeholder="Caută un jucător existent..."
                     value={searchTerm}
