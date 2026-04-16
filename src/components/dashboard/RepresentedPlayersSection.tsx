@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, User, X, Loader2, Search, Plus } from "lucide-react";
+import { Users, User, X, Loader2, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -61,6 +61,17 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
   useEffect(() => {
     fetchRepresentedPlayers();
   }, [userId]);
+
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      handleSearch();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const fetchRepresentedPlayers = async () => {
     setLoading(true);
@@ -272,18 +283,15 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
 
           {!showManualForm ? (
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Caută un jucător existent..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="bg-muted border-border text-foreground"
-                />
-                <Button onClick={handleSearch} disabled={searching} size="sm" variant="outline">
-                  {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                </Button>
-              </div>
+               <div className="relative">
+                  <Input
+                    placeholder="Caută un jucător existent..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-muted border-border text-foreground"
+                  />
+                  {searching && <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />}
+                </div>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {searchResults.map((p) => (
                   <div
