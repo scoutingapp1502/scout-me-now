@@ -28,7 +28,8 @@ interface CollabNotification {
   other_name: string;
   other_photo: string | null;
   status: string;
-  perspective: "agent" | "player"; // agent = received request, player = sent request
+  perspective: "agent" | "player";
+  initiated_by: "agent" | "player";
   isRead: boolean;
 }
 
