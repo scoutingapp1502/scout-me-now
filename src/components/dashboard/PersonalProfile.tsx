@@ -1645,6 +1645,11 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               <SectionEditButton section="agent" />
             </div>
           </div>
+          {editingAgent && (
+            <p className="text-xs text-muted-foreground mb-3">
+              {lang === "ro" ? "Selectează un agent înregistrat sau adaugă manual pentru a trimite o cerere de colaborare" : "Select a registered agent or add manually to send a collaboration request"}
+            </p>
+          )}
           {editingAgent ? (
             <div className="space-y-3">
               {/* Pending collaboration request */}
@@ -1712,37 +1717,24 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       ))}
                     </div>
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {lang === "ro" ? "Selectează un agent înregistrat sau adaugă manual pentru a trimite o cerere de colaborare" : "Select a registered agent or add manually to send a collaboration request"}
-                  </p>
                 </div>
               )}
 
-              {/* Manual agent fields - only when NOT selecting a registered agent */}
+              {/* Manual agent email - only when NOT selecting a registered agent */}
               {collaborationStatus !== "pending" && (
-                <>
-                  <div className="flex items-center gap-2 my-2">
-                    <div className="flex-1 border-t border-border" />
-                    <div className="flex-1 border-t border-border" />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label>
-                    <Input
-                      type="email"
-                      value={form.agent_email || ""}
-                      onChange={(e) => updateForm("agent_email", e.target.value)}
-                      className={`text-foreground ${form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                      placeholder="agent@example.com"
-                    />
-                    {form.agent_email && !form.agent_email.includes("@") && (
-                      <p className="text-xs text-destructive mt-1">{lang === "ro" ? "Adresa de email trebuie să conțină simbolul @" : "Email must contain @"}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentPhone}</Label>
-                    <AgentPhoneInput value={form.agent_phone || ""} onChange={(val) => updateForm("agent_phone", val)} />
-                  </div>
-                </>
+                <div>
+                  <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label>
+                  <Input
+                    type="email"
+                    value={form.agent_email || ""}
+                    onChange={(e) => updateForm("agent_email", e.target.value)}
+                    className={`text-foreground ${form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    placeholder="agent@example.com"
+                  />
+                  {form.agent_email && !form.agent_email.includes("@") && (
+                    <p className="text-xs text-destructive mt-1">{lang === "ro" ? "Adresa de email trebuie să conțină simbolul @" : "Email must contain @"}</p>
+                  )}
+                </div>
               )}
             </div>
           ) : (
