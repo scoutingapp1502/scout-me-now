@@ -154,11 +154,24 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
 
   const handleAddLinkedPlayer = async (playerUserId: string) => {
     setAdding(true);
-    const { error } = await supabase.from("agent_collaboration_requests").insert({
-      agent_user_id: userId, player_user_id: playerUserId, status: "pending", initiated_by: "agent",
+    const { error } = await supabase.rpc("send_collaboration_request", {
+      _agent_user_id: userId,
+      _player_user_id: playerUserId,
+      _initiated_by: "agent",
     });
     if (error) {
-      toast({ title: "Eroare", description: "Cererea nu a putut fi trimisă. Poate există deja una.", variant: "destructive" });
+      const msg = error.message || "";
+      const cooldownMatch = msg.match(/COOLDOWN_ACTIVE:(\d+)/);
+      if (cooldownMatch) {
+        const days = cooldownMatch[1];
+        toast({
+          title: "Așteaptă perioada de pauză",
+          description: `Acest jucător a refuzat o cerere recentă. Mai poți trimite o cerere nouă în ${days} zile.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Eroare", description: "Cererea nu a putut fi trimisă. Poate există deja una.", variant: "destructive" });
+      }
       setAdding(false);
       return;
     }
