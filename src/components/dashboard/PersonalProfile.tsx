@@ -1713,7 +1713,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    {lang === "ro" ? "Selectează un agent înregistrat pentru a trimite o cerere de colaborare" : "Select a registered agent to send a collaboration request"}
+                    {lang === "ro" ? "Selectează un agent înregistrat sau adaugă manual pentru a trimite o cerere de colaborare" : "Select a registered agent or add manually to send a collaboration request"}
                   </p>
                 </div>
               )}
@@ -1723,7 +1723,6 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                 <>
                   <div className="flex items-center gap-2 my-2">
                     <div className="flex-1 border-t border-border" />
-                    <span className="text-xs text-muted-foreground">{lang === "ro" ? "sau adaugă manual" : "or add manually"}</span>
                     <div className="flex-1 border-t border-border" />
                   </div>
                   <div>
