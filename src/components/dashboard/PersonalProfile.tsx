@@ -268,22 +268,30 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
     setCollaborationLoading(true);
 
     try {
-      // Delete any existing request from this player
-      await supabase
-        .from("agent_collaboration_requests")
-        .delete()
-        .eq("player_user_id", userId);
+      const { error } = await supabase.rpc("send_collaboration_request", {
+        _agent_user_id: agent.user_id,
+        _player_user_id: userId,
+        _initiated_by: "player",
+      });
 
-      // Create new collaboration request
-      const { error } = await supabase
-        .from("agent_collaboration_requests")
-        .insert({
-          player_user_id: userId,
-          agent_user_id: agent.user_id,
-          status: "pending",
-        });
-
-      if (error) throw error;
+      if (error) {
+        const msg = error.message || "";
+        const cooldownMatch = msg.match(/COOLDOWN_ACTIVE:(\d+)/);
+        if (cooldownMatch) {
+          const days = cooldownMatch[1];
+          toast({
+            title: lang === "ro" ? "Așteaptă perioada de pauză" : "Cooldown active",
+            description: lang === "ro"
+              ? `Acest agent ți-a refuzat o cerere recentă. Mai poți trimite o cerere nouă în ${days} zile.`
+              : `This agent recently rejected a request. You can send a new one in ${days} days.`,
+            variant: "destructive",
+          });
+          setSelectedRegisteredAgent(null);
+          setCollaborationStatus("none");
+          return;
+        }
+        throw error;
+      }
 
       setCollaborationStatus("pending");
       // Clear agent fields - they'll be filled when accepted

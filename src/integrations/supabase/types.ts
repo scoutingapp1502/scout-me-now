@@ -819,6 +819,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      send_collaboration_request: {
+        Args: {
+          _agent_user_id: string
+          _initiated_by: string
+          _player_user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "player" | "scout" | "agent"
