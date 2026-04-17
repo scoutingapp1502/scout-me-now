@@ -786,6 +786,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_collaboration_request: {
+        Args: { _request_id: string }
+        Returns: undefined
+      }
       get_or_create_conversation: {
         Args: { other_user_id: string }
         Returns: string
@@ -800,6 +804,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      reject_collaboration_request: {
+        Args: { _request_id: string }
+        Returns: undefined
       }
       search_agents: {
         Args: { search_term: string }
