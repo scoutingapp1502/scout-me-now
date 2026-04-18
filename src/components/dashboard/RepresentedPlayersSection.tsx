@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, User, X, Loader2, Plus } from "lucide-react";
+import { Users, User, X, Loader2, Plus, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -259,9 +259,18 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-body font-semibold text-foreground text-sm truncate">
-                  {player.first_name} {player.last_name}
-                  {player.type === "manual" && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(manual)</span>}
+                <p className="font-body font-semibold text-foreground text-sm truncate flex items-center gap-1.5">
+                  <span className="truncate">{player.first_name} {player.last_name}</span>
+                  {player.type === "linked" && (
+                    <button
+                      type="button"
+                      onClick={() => toast({ title: "Cont verificat", description: "Acest jucător are cont în aplicație." })}
+                      className="text-primary hover:scale-110 transition-transform flex-shrink-0"
+                      title="Are cont în aplicație"
+                    >
+                      <Star className="h-3.5 w-3.5 fill-primary" />
+                    </button>
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
                   {[player.sport, player.position, player.current_team, player.birth_year ? `${player.birth_year}` : null].filter(Boolean).join(" • ")}
