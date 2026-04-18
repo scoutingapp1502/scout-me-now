@@ -13,7 +13,7 @@ interface DashboardSidebarProps {
   playerName?: string;
   playerSport?: string;
   profileLabel?: string;
-  userRole?: "player" | "scout" | "agent" | null;
+  userRole?: "player" | "scout" | "agent" | "club_rep" | null;
   userId?: string | null;
 }
 
