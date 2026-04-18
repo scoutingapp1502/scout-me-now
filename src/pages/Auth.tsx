@@ -23,13 +23,17 @@ const Auth = () => {
   const [tab, setTab] = useState<"login" | "register" | "forgot">(
     searchParams.get("tab") === "login" ? "login" : "register"
   );
-  const [role, setRole] = useState<"player" | "scout" | "agent">(
-    searchParams.get("role") === "scout" ? "scout" : searchParams.get("role") === "agent" ? "agent" : "player"
+  const [role, setRole] = useState<"player" | "scout" | "agent" | "club_rep">(
+    searchParams.get("role") === "scout" ? "scout"
+      : searchParams.get("role") === "agent" ? "agent"
+      : searchParams.get("role") === "club_rep" ? "club_rep"
+      : "player"
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [clubName, setClubName] = useState("");
   const [sport, setSport] = useState("football");
   const [gender, setGender] = useState("");
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
@@ -55,8 +59,11 @@ const Auth = () => {
     setLoading(true);
     try {
       const metadata: Record<string, any> = { full_name: fullName, role, gender, sport };
-      if (role === "scout" || role === "agent") {
+      if (role === "scout" || role === "agent" || role === "club_rep") {
         metadata.sports = selectedSports;
+      }
+      if (role === "club_rep") {
+        metadata.club_name = clubName;
       }
       const { data, error } = await supabase.auth.signUp({
         email, password,
