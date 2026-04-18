@@ -10,6 +10,7 @@ import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import AgentsSection from "@/components/dashboard/AgentsSection";
 import ScoutersSection from "@/components/dashboard/ScoutersSection";
+import ClubRepsSection from "@/components/dashboard/ClubRepsSection";
 import PlayersSection from "@/components/dashboard/PlayersSection";
 import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
