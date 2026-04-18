@@ -9,7 +9,7 @@ export interface ProfileSection {
   weight: number; // percentage points
 }
 
-export function useProfileCompletion(userId: string | null, role: "player" | "scout" | "agent" | null) {
+export function useProfileCompletion(userId: string | null, role: "player" | "scout" | "agent" | "club_rep" | null) {
   const [sections, setSections] = useState<ProfileSection[]>([]);
   const [percentage, setPercentage] = useState(0);
   const [loading, setLoading] = useState(true);

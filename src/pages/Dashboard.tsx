@@ -10,6 +10,7 @@ import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import AgentsSection from "@/components/dashboard/AgentsSection";
 import ScoutersSection from "@/components/dashboard/ScoutersSection";
+import ClubRepsSection from "@/components/dashboard/ClubRepsSection";
 import PlayersSection from "@/components/dashboard/PlayersSection";
 import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
@@ -26,7 +27,7 @@ const Dashboard = () => {
   const [playerName, setPlayerName] = useState("");
   const [playerSport, setPlayerSport] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userRole, setUserRole] = useState<"player" | "scout" | "agent" | null>(null);
+  const [userRole, setUserRole] = useState<"player" | "scout" | "agent" | "club_rep" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [pendingChatUserId, setPendingChatUserId] = useState<string | null>(null);
@@ -46,14 +47,14 @@ const Dashboard = () => {
 
       if (roleData) {
         if (isMounted) {
-          setUserRole(roleData.role as "player" | "scout" | "agent");
+          setUserRole(roleData.role as "player" | "scout" | "agent" | "club_rep");
           setRoleLoading(false);
         }
         return;
       }
 
       // Role missing — create from user metadata (set during registration)
-      const metaRole = userMeta?.role as "player" | "scout" | "agent" | undefined;
+      const metaRole = userMeta?.role as "player" | "scout" | "agent" | "club_rep" | undefined;
       if (!metaRole) {
         if (isMounted) setRoleLoading(false);
         return;
@@ -118,7 +119,7 @@ const Dashboard = () => {
   // Fetch display name based on role
   useEffect(() => {
     if (!user || !userRole) return;
-    if (userRole === "scout" || userRole === "agent") {
+    if (userRole === "scout" || userRole === "agent" || userRole === "club_rep") {
       supabase
         .from("scout_profiles")
         .select("first_name, last_name")
@@ -197,7 +198,7 @@ const Dashboard = () => {
         return (
           <>
             {completionBar}
-            {(userRole === "scout" || userRole === "agent")
+            {(userRole === "scout" || userRole === "agent" || userRole === "club_rep")
               ? <ScoutPersonalProfile userId={user.id} />
               : <PersonalProfile userId={user.id} />}
           </>
@@ -214,12 +215,12 @@ const Dashboard = () => {
           onNavigateToChat={handleNavigateToChat}
         />
       );
-      case "clubs": return <PlaceholderSection title="CLUBS" />;
+      case "clubs": return <ClubRepsSection onNavigateToChat={handleNavigateToChat} />;
       default:
         return (
           <>
             {completionBar}
-            {(userRole === "scout" || userRole === "agent")
+            {(userRole === "scout" || userRole === "agent" || userRole === "club_rep")
               ? <ScoutPersonalProfile userId={user.id} />
               : <PersonalProfile userId={user.id} />}
           </>
@@ -227,7 +228,7 @@ const Dashboard = () => {
     }
   };
 
-  const sidebarFirstLabel = (userRole === "scout" || userRole === "agent") ? "Personal Area" : undefined;
+  const sidebarFirstLabel = (userRole === "scout" || userRole === "agent" || userRole === "club_rep") ? "Personal Area" : undefined;
 
   return (
     <div className="flex h-screen bg-background dark overflow-hidden">
