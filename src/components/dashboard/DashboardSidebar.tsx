@@ -102,7 +102,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
     { id: "players", label: t.dashboard.sidebar.players, icon: Users },
     { id: "scouters", label: t.dashboard.sidebar.scouters, icon: Search },
     { id: "agents", label: t.dashboard.sidebar.agents, icon: Briefcase },
-    { id: "clubs", label: t.dashboard.sidebar.clubs, icon: Building2 },
+    { id: "clubs", label: lang === "ro" ? "Reprezentanți Club" : "Club Representative", icon: Building2 },
   ];
 
   const handleLogout = async () => {
@@ -113,7 +113,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   return (
     <aside className="w-64 min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="p-6 border-b border-sidebar-border">
-        <span className="font-display text-2xl text-primary">{(userRole === "scout" || userRole === "agent") ? "" : "⚽ "}SPORTRISE</span>
+        <span className="font-display text-2xl text-primary">{(userRole === "scout" || userRole === "agent" || userRole === "club_rep") ? "" : "⚽ "}SPORTRISE</span>
         {playerName && (
           <p className="text-sm text-sidebar-foreground/60 font-body mt-1 truncate">
             {playerName}{userRole === "player" && playerSport ? ` · ${playerSport.charAt(0).toUpperCase() + playerSport.slice(1)}` : ""}
@@ -124,6 +124,9 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         )}
         {userRole === "agent" && (
           <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">AGENT</p>
+        )}
+        {userRole === "club_rep" && (
+          <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">CLUB REPRESENTATIVE</p>
         )}
       </div>
 
