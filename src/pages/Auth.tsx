@@ -170,26 +170,48 @@ const Auth = () => {
                     <>
                       <div className="space-y-2">
                         <Label className="font-body text-sm">{t.auth.accountType}</Label>
-                        <RadioGroup value={role} onValueChange={(v) => setRole(v as "player" | "scout" | "agent")} className="grid grid-cols-3 gap-3">
-                          {([
-                            { value: "player", label: t.auth.player, desc: t.auth.playerDesc },
-                            { value: "scout", label: t.auth.scout, desc: t.auth.scoutDesc },
-                            { value: "agent", label: t.auth.agent, desc: t.auth.agentDesc },
-                          ] as const).map((item) => (
-                            <label key={item.value} className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-all h-full ${role === item.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                              <RadioGroupItem value={item.value} />
-                              <div className="min-w-0">
-                                <p className="font-semibold font-body text-sm">{item.label}</p>
-                                <p className="text-xs text-muted-foreground font-body">{item.desc}</p>
+                        <Select value={role} onValueChange={(v) => setRole(v as "player" | "scout" | "agent" | "club_rep")}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={t.auth.selectAccountType} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="player">
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-sm">{t.auth.player}</span>
+                                <span className="text-xs text-muted-foreground">{t.auth.playerDesc}</span>
                               </div>
-                            </label>
-                          ))}
-                        </RadioGroup>
+                            </SelectItem>
+                            <SelectItem value="scout">
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-sm">{t.auth.scout}</span>
+                                <span className="text-xs text-muted-foreground">{t.auth.scoutDesc}</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="agent">
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-sm">{t.auth.agent}</span>
+                                <span className="text-xs text-muted-foreground">{t.auth.agentDesc}</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="club_rep">
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-sm">{t.auth.clubRep}</span>
+                                <span className="text-xs text-muted-foreground">{t.auth.clubRepDesc}</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="fullName" className="font-body">{t.auth.fullName}</Label>
                         <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.auth.fullNamePlaceholder} required />
                       </div>
+                      {role === "club_rep" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="clubName" className="font-body">{t.auth.clubName}</Label>
+                          <Input id="clubName" value={clubName} onChange={(e) => setClubName(e.target.value)} placeholder={t.auth.clubNamePlaceholder} required />
+                        </div>
+                      )}
                       {role === "player" && (
                         <>
                           <div className="space-y-2">
@@ -226,7 +248,7 @@ const Auth = () => {
                           </div>
                         </>
                       )}
-                      {(role === "scout" || role === "agent") && (
+                      {(role === "scout" || role === "agent" || role === "club_rep") && (
                         <div className="space-y-2">
                           <Label className="font-body text-sm">{t.auth.sportsInterest}</Label>
                           <Popover>
