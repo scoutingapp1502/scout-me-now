@@ -1805,8 +1805,8 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               ) : profile?.agent_name ? (
                 <>
                   <p className="text-foreground font-semibold">{profile.agent_name}</p>
-                  {profile.agent_email && <p className="text-muted-foreground">{profile.agent_email}</p>}
-                  {profile.agent_phone && <p className="text-muted-foreground">{profile.agent_phone}</p>}
+                  {!readOnly && profile.agent_email && <p className="text-muted-foreground">{profile.agent_email}</p>}
+                  {!readOnly && profile.agent_phone && <p className="text-muted-foreground">{profile.agent_phone}</p>}
                 </>
               ) : collaborationStatus === "pending" && selectedRegisteredAgent ? (
                 <div className="flex items-center gap-2">
