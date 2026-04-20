@@ -18,6 +18,7 @@ import PlayerStats from "./PlayerStats";
 import NationalityInput, { getDisplayNationality } from "@/components/ui/nationality-input";
 import { useFollowers } from "@/hooks/useFollowers";
 import FollowersList from "./FollowersList";
+import AthleticTestRegistrationDialog from "./AthleticTestRegistrationDialog";
 
 type PlayerProfile = Tables<"player_profiles">;
 
