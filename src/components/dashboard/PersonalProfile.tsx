@@ -209,11 +209,35 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [agentSearchTimeout, setAgentSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [collaborationStatus, setCollaborationStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
   const [collaborationLoading, setCollaborationLoading] = useState(false);
+  const [acceptedAgent, setAcceptedAgent] = useState<AgentSuggestion | null>(null);
 
-  // Fetch existing collaboration request on mount
+  // Fetch existing collaboration (pending or accepted) on mount — both for own and visited profiles
   useEffect(() => {
-    if (readOnly || !userId) return;
+    if (!userId) return;
     const fetchCollab = async () => {
+      // Prefer accepted collaboration; fallback to latest pending (only on own profile)
+      const { data: acceptedData } = await supabase
+        .from("agent_collaboration_requests")
+        .select("*")
+        .eq("player_user_id", userId)
+        .eq("status", "accepted")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      if (acceptedData && acceptedData.length > 0) {
+        const req = acceptedData[0];
+        setCollaborationStatus("accepted");
+        const { data: agentData } = await supabase
+          .from("scout_profiles")
+          .select("user_id, first_name, last_name, photo_url")
+          .eq("user_id", req.agent_user_id)
+          .maybeSingle();
+        if (agentData) setAcceptedAgent({ ...agentData, email: null });
+        return;
+      }
+
+      if (readOnly) return;
+
       const { data } = await supabase
         .from("agent_collaboration_requests")
         .select("*")
@@ -224,7 +248,6 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
         const req = data[0];
         setCollaborationStatus(req.status as any);
         if (req.status === "pending") {
-          // Fetch agent info to show pending state
           const { data: agentData } = await supabase
             .from("scout_profiles")
             .select("user_id, first_name, last_name, photo_url")
