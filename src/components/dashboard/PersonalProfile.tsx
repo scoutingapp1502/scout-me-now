@@ -209,11 +209,35 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [agentSearchTimeout, setAgentSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [collaborationStatus, setCollaborationStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
   const [collaborationLoading, setCollaborationLoading] = useState(false);
+  const [acceptedAgent, setAcceptedAgent] = useState<AgentSuggestion | null>(null);
 
-  // Fetch existing collaboration request on mount
+  // Fetch existing collaboration (pending or accepted) on mount — both for own and visited profiles
   useEffect(() => {
-    if (readOnly || !userId) return;
+    if (!userId) return;
     const fetchCollab = async () => {
+      // Prefer accepted collaboration; fallback to latest pending (only on own profile)
+      const { data: acceptedData } = await supabase
+        .from("agent_collaboration_requests")
+        .select("*")
+        .eq("player_user_id", userId)
+        .eq("status", "accepted")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      if (acceptedData && acceptedData.length > 0) {
+        const req = acceptedData[0];
+        setCollaborationStatus("accepted");
+        const { data: agentData } = await supabase
+          .from("scout_profiles")
+          .select("user_id, first_name, last_name, photo_url")
+          .eq("user_id", req.agent_user_id)
+          .maybeSingle();
+        if (agentData) setAcceptedAgent({ ...agentData, email: null });
+        return;
+      }
+
+      if (readOnly) return;
+
       const { data } = await supabase
         .from("agent_collaboration_requests")
         .select("*")
@@ -224,7 +248,6 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
         const req = data[0];
         setCollaborationStatus(req.status as any);
         if (req.status === "pending") {
-          // Fetch agent info to show pending state
           const { data: agentData } = await supabase
             .from("scout_profiles")
             .select("user_id, first_name, last_name, photo_url")
@@ -819,7 +842,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       {/* SECTION 2: Tab content */}
       <div className="mt-6 px-2 sm:px-6 pb-8">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} readOnly={readOnly} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} collaborationStatus={collaborationStatus} collaborationLoading={collaborationLoading} cancelCollaborationRequest={cancelCollaborationRequest} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} collaborationStatus={collaborationStatus} collaborationLoading={collaborationLoading} cancelCollaborationRequest={cancelCollaborationRequest} acceptedAgent={acceptedAgent} />}
         {activeTab === "video" && (
           <VideoTab
             form={form}
@@ -1565,8 +1588,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   );
 }
 
-function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport, agentSuggestions, showAgentSuggestions, setShowAgentSuggestions, selectedRegisteredAgent, handleAgentNameChange, selectAgent, collaborationStatus, collaborationLoading, cancelCollaborationRequest }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string; agentSuggestions: AgentSuggestion[]; showAgentSuggestions: boolean; setShowAgentSuggestions: (v: boolean) => void; selectedRegisteredAgent: AgentSuggestion | null; handleAgentNameChange: (v: string) => void; selectAgent: (a: AgentSuggestion) => void; collaborationStatus: "none" | "pending" | "accepted" | "rejected"; collaborationLoading: boolean; cancelCollaborationRequest: () => void;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport, agentSuggestions, showAgentSuggestions, setShowAgentSuggestions, selectedRegisteredAgent, handleAgentNameChange, selectAgent, collaborationStatus, collaborationLoading, cancelCollaborationRequest, acceptedAgent }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string; agentSuggestions: AgentSuggestion[]; showAgentSuggestions: boolean; setShowAgentSuggestions: (v: boolean) => void; selectedRegisteredAgent: AgentSuggestion | null; handleAgentNameChange: (v: string) => void; selectAgent: (a: AgentSuggestion) => void; collaborationStatus: "none" | "pending" | "accepted" | "rejected"; collaborationLoading: boolean; cancelCollaborationRequest: () => void; acceptedAgent: AgentSuggestion | null;
 }) {
   const { lang, t } = useLanguage();
 
@@ -1646,7 +1669,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           {editingPhysical && <SectionSaveButton />}
         </div>
 
-        {(!readOnly || profile?.agent_name || profile?.agent_email || profile?.agent_phone) && (
+        {(!readOnly || profile?.agent_name || profile?.agent_email || profile?.agent_phone || acceptedAgent) && (
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.agentContact}</h3>
@@ -1764,8 +1787,22 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               )}
             </div>
           ) : (
-            <div className="font-body text-sm space-y-1">
-              {profile?.agent_name ? (
+            <div className="font-body text-sm space-y-2">
+              {acceptedAgent ? (
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {acceptedAgent.photo_url ? (
+                      <img src={acceptedAgent.photo_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-semibold text-muted-foreground">{acceptedAgent.first_name?.[0]}{acceptedAgent.last_name?.[0]}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-foreground font-semibold">{acceptedAgent.first_name} {acceptedAgent.last_name}</p>
+                    <p className="text-xs text-primary">{lang === "ro" ? "✓ Colaborare activă" : "✓ Active collaboration"}</p>
+                  </div>
+                </div>
+              ) : profile?.agent_name ? (
                 <>
                   <p className="text-foreground font-semibold">{profile.agent_name}</p>
                   {profile.agent_email && <p className="text-muted-foreground">{profile.agent_email}</p>}
