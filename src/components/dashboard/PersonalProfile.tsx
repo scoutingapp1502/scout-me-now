@@ -955,6 +955,23 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                     <span className="text-xs text-muted-foreground font-body">/100</span>
                   </div>
                 </div>
+
+                {!readOnly && (
+                  <div className="mt-6 pt-5 border-t border-border text-center space-y-4">
+                    <p className="text-sm font-body text-muted-foreground leading-relaxed">
+                      E momentul să treci la următorul nivel.<br />
+                      Înscrie-te la testările atletice și demonstrează-ți<br />
+                      abilitățile în fața evaluatorilor.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => setAthleticRegOpen(true)}
+                      className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-display uppercase tracking-wider shadow-lg"
+                    >
+                      Înscrie-te aici
+                    </Button>
+                  </div>
+                )}
               </>
           </div>
         </div>
