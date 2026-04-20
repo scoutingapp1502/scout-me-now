@@ -18,6 +18,7 @@ import PlayerStats from "./PlayerStats";
 import NationalityInput, { getDisplayNationality } from "@/components/ui/nationality-input";
 import { useFollowers } from "@/hooks/useFollowers";
 import FollowersList from "./FollowersList";
+import AthleticTestRegistrationDialog from "./AthleticTestRegistrationDialog";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -859,6 +860,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
   const { t } = useLanguage();
   const { toast } = useToast();
+  const [athleticRegOpen, setAthleticRegOpen] = useState(false);
   const stats = [
     { key: "speed", label: "Pro Line Drill", icon: "⚡" },
     { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘" },
@@ -955,6 +957,23 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                     <span className="text-xs text-muted-foreground font-body">/100</span>
                   </div>
                 </div>
+
+                {!readOnly && (
+                  <div className="mt-6 pt-5 border-t border-border text-center space-y-4">
+                    <p className="text-sm font-body text-muted-foreground leading-relaxed">
+                      E momentul să treci la următorul nivel.<br />
+                      Înscrie-te la testările atletice și demonstrează-ți<br />
+                      abilitățile în fața evaluatorilor.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => setAthleticRegOpen(true)}
+                      className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-display uppercase tracking-wider shadow-lg"
+                    >
+                      Înscrie-te aici
+                    </Button>
+                  </div>
+                )}
               </>
           </div>
         </div>
@@ -1079,6 +1098,13 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
 
 
     </div>
+    <AthleticTestRegistrationDialog
+      open={athleticRegOpen}
+      onOpenChange={setAthleticRegOpen}
+      userId={userId}
+      defaultFirstName={(form as any).first_name || ""}
+      defaultLastName={(form as any).last_name || ""}
+    />
     </>
   );
 }

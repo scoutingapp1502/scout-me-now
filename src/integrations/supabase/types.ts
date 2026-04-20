@@ -83,6 +83,42 @@ export type Database = {
         }
         Relationships: []
       }
+      athletic_test_registrations: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          notification_method: string
+          phone: string
+          scheduled_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          notification_method?: string
+          phone: string
+          scheduled_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          notification_method?: string
+          phone?: string
+          scheduled_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       comment_likes: {
         Row: {
           comment_id: string
