@@ -859,6 +859,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
   const { t } = useLanguage();
   const { toast } = useToast();
+  const [athleticRegOpen, setAthleticRegOpen] = useState(false);
   const stats = [
     { key: "speed", label: "Pro Line Drill", icon: "⚡" },
     { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘" },
