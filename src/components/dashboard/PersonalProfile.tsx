@@ -1097,6 +1097,13 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
 
 
     </div>
+    <AthleticTestRegistrationDialog
+      open={athleticRegOpen}
+      onOpenChange={setAthleticRegOpen}
+      userId={userId}
+      defaultFirstName={(form as any).first_name || ""}
+      defaultLastName={(form as any).last_name || ""}
+    />
     </>
   );
 }
