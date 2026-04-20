@@ -1787,8 +1787,22 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               )}
             </div>
           ) : (
-            <div className="font-body text-sm space-y-1">
-              {profile?.agent_name ? (
+            <div className="font-body text-sm space-y-2">
+              {acceptedAgent ? (
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {acceptedAgent.photo_url ? (
+                      <img src={acceptedAgent.photo_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-semibold text-muted-foreground">{acceptedAgent.first_name?.[0]}{acceptedAgent.last_name?.[0]}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-foreground font-semibold">{acceptedAgent.first_name} {acceptedAgent.last_name}</p>
+                    <p className="text-xs text-primary">{lang === "ro" ? "✓ Colaborare activă" : "✓ Active collaboration"}</p>
+                  </div>
+                </div>
+              ) : profile?.agent_name ? (
                 <>
                   <p className="text-foreground font-semibold">{profile.agent_name}</p>
                   {profile.agent_email && <p className="text-muted-foreground">{profile.agent_email}</p>}
