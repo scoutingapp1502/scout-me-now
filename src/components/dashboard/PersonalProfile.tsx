@@ -1798,7 +1798,21 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-foreground font-semibold">{acceptedAgent.first_name} {acceptedAgent.last_name}</p>
+                    {!readOnly && profile?.agent_email ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button type="button" className="text-foreground font-semibold hover:underline text-left">
+                            {acceptedAgent.first_name} {acceptedAgent.last_name}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-auto p-3">
+                          <p className="text-xs text-muted-foreground mb-1">{lang === "ro" ? "Email agent" : "Agent email"}</p>
+                          <p className="text-sm text-foreground select-all">{profile.agent_email}</p>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <p className="text-foreground font-semibold">{acceptedAgent.first_name} {acceptedAgent.last_name}</p>
+                    )}
                     <p className="text-xs text-primary">{lang === "ro" ? "✓ Colaborare activă" : "✓ Active collaboration"}</p>
                   </div>
                 </div>
