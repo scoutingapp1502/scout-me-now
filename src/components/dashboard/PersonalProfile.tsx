@@ -993,7 +993,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                       onClick={() => setAthleticRegOpen(true)}
                       className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-display uppercase tracking-wider shadow-lg"
                     >
-                      Înscrie-te aici
+                      Înscrie-te gratuit aici
                     </Button>
                   </div>
                 )}
