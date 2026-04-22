@@ -31,19 +31,6 @@ interface ScoutExtraSectionsProps {
   readOnly?: boolean;
 }
 
-type Education = {
-  id?: string;
-  user_id: string;
-  institution: string;
-  degree: string;
-  field_of_study?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  description?: string | null;
-  documents?: string[] | null;
-  sort_order: number;
-};
-
 type Certification = {
   id?: string;
   user_id: string;
