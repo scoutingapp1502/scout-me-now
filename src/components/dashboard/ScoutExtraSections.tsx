@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Plus, Trash2, Loader2, GraduationCap, BadgeCheck, Languages, Info, X, Upload, FileText } from "lucide-react";
+import { Edit2, Plus, Trash2, Loader2, BadgeCheck, Languages, Info, X, Upload, FileText } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -287,77 +287,6 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
 
   return (
     <>
-      {/* ===== STUDII ===== */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h2 className="font-display text-2xl text-foreground">Studii</h2>
-            {!readOnly && <Popover>
-              <PopoverTrigger asChild>
-                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru studii">
-                  <Info className="h-4 w-4" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru secțiunea Studii:</p>
-                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>Adaugă studiile universitare și postuniversitare relevante</li>
-                  <li>Menționează cursuri de specialitate în sport sau management sportiv</li>
-                  <li>Include instituția, diploma obținută și domeniul de studiu</li>
-                  <li>Adaugă perioada studiilor pentru un profil complet</li>
-                </ul>
-              </PopoverContent>
-            </Popover>}
-          </div>
-          {!readOnly && (
-            <button onClick={openEduDialog} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Adaugă studiu">
-              <Edit2 className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          {education.length === 0 && (
-            <p className="text-muted-foreground italic text-sm font-body">Niciun studiu adăugat.</p>
-          )}
-          {education.map((edu) => (
-            <div key={edu.id} className="flex gap-4 group">
-              <div className="flex-shrink-0 mt-1">
-                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                  <GraduationCap className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-body font-semibold text-foreground">{edu.degree || "Diplomă nespecificată"}</h3>
-                <p className="text-foreground/70 font-body text-sm">{edu.institution}</p>
-                {edu.field_of_study && <p className="text-muted-foreground font-body text-xs">{edu.field_of_study}</p>}
-                <p className="text-muted-foreground font-body text-xs mt-0.5">
-                  {edu.start_date && <span>{edu.start_date}</span>}
-                  {edu.start_date && edu.end_date && <span> – </span>}
-                  {edu.end_date && <span>{edu.end_date}</span>}
-                </p>
-                {edu.description && <p className="text-foreground/70 font-body text-sm mt-2 whitespace-pre-line">{edu.description}</p>}
-                {edu.documents && edu.documents.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {edu.documents.map((doc, di) => (
-                      <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md text-xs text-foreground/70 hover:text-primary transition-colors font-body">
-                        <FileText className="h-3.5 w-3.5" />
-                        {decodeURIComponent(doc.split("/").pop() || "Document")}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {!readOnly && edu.id && (
-                <button onClick={() => handleDeleteEducation(edu.id!)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 self-start">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ===== LICENȚE ȘI ATESTATE ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
