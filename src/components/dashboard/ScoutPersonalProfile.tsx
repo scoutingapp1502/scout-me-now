@@ -8,7 +8,6 @@ import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcas
 import MessageDialog from "./MessageDialog";
 import ScoutExtraSections from "./ScoutExtraSections";
 import RepresentedPlayersSection from "./RepresentedPlayersSection";
-import ScoutStats from "./ScoutStats";
 import SkillsEditor from "./SkillsEditor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Tables } from "@/integrations/supabase/types";
@@ -471,9 +470,6 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       </div>
 
 
-
-      {/* ===== STATISTICI ===== */}
-      <ScoutStats userId={userId} isOwner={!readOnly} />
 
       {/* ===== DESPRE / BIO ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
