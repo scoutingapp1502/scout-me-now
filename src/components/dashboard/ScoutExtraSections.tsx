@@ -47,12 +47,6 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [uploadingEduDoc, setUploadingEduDoc] = useState(false);
-
-  // Education
-  const [education, setEducation] = useState<Education[]>([]);
-  const [showEduDialog, setShowEduDialog] = useState(false);
-  const [eduForm, setEduForm] = useState<Partial<Education>>({});
 
   // Certifications
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -77,79 +71,13 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   };
 
   const fetchAll = async () => {
-    const [eduRes, certRes, profileRes] = await Promise.all([
-      supabase.from("scout_education").select("*").eq("user_id", userId).order("sort_order", { ascending: true }),
+    const [certRes, profileRes] = await Promise.all([
       supabase.from("scout_certifications").select("*").eq("user_id", userId).order("sort_order", { ascending: true }),
       supabase.from("scout_profiles").select("languages").eq("user_id", userId).maybeSingle(),
     ]);
-    if (eduRes.data) setEducation(eduRes.data as Education[]);
     if (certRes.data) setCertifications(certRes.data as Certification[]);
     const langs = (profileRes.data as any)?.languages as string[] | null;
     if (langs) setLanguages(langs);
-  };
-
-  // === Education ===
-  const openEduDialog = () => {
-    setEduForm({ user_id: userId, institution: "", degree: "", field_of_study: "", start_date: "", end_date: "", description: "", documents: [] });
-    setShowEduDialog(true);
-  };
-
-  const handleSaveEducation = async () => {
-    if (!eduForm.institution && !eduForm.degree) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase.from("scout_education").insert({
-        user_id: userId,
-        institution: eduForm.institution || "",
-        degree: eduForm.degree || "",
-        field_of_study: eduForm.field_of_study || null,
-        start_date: eduForm.start_date || null,
-        end_date: eduForm.end_date || null,
-        description: eduForm.description || null,
-        documents: eduForm.documents || [],
-        sort_order: education.length,
-      });
-      if (error) throw error;
-      const { data } = await supabase.from("scout_education").select("*").eq("user_id", userId).order("sort_order", { ascending: true });
-      if (data) setEducation(data as Education[]);
-      setShowEduDialog(false);
-      notifyProfileUpdated();
-      toast({ title: "Studiu adăugat!" });
-    } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
-    } finally { setSaving(false); }
-  };
-
-  const handleDeleteEducation = async (id: string) => {
-    try {
-      await supabase.from("scout_education").delete().eq("id", id);
-      setEducation(prev => prev.filter(e => e.id !== id));
-      notifyProfileUpdated();
-      toast({ title: "Studiu eliminat!" });
-    } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const handleEduDocUpload = async (file: File) => {
-    setUploadingEduDoc(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `${userId}/edu-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("scout-documents").upload(path, file);
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("scout-documents").getPublicUrl(path);
-      const currentDocs = eduForm.documents || [];
-      setEduForm(prev => ({ ...prev, documents: [...currentDocs, urlData.publicUrl] }));
-      toast({ title: "Document încărcat!" });
-    } catch (err: any) {
-      toast({ title: "Eroare la încărcare", description: err.message, variant: "destructive" });
-    } finally { setUploadingEduDoc(false); }
-  };
-
-  const removeEduDoc = (docIndex: number) => {
-    const currentDocs = eduForm.documents || [];
-    setEduForm(prev => ({ ...prev, documents: currentDocs.filter((_, i) => i !== docIndex) }));
   };
 
   // === Certifications ===
