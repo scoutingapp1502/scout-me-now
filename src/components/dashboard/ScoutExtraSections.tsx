@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Plus, Trash2, Loader2, GraduationCap, BadgeCheck, Languages, Info, X, Upload, FileText } from "lucide-react";
+import { Edit2, Plus, Trash2, Loader2, BadgeCheck, Languages, Info, X, Upload, FileText } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,19 +31,6 @@ interface ScoutExtraSectionsProps {
   readOnly?: boolean;
 }
 
-type Education = {
-  id?: string;
-  user_id: string;
-  institution: string;
-  degree: string;
-  field_of_study?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  description?: string | null;
-  documents?: string[] | null;
-  sort_order: number;
-};
-
 type Certification = {
   id?: string;
   user_id: string;
@@ -60,12 +47,6 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [uploadingEduDoc, setUploadingEduDoc] = useState(false);
-
-  // Education
-  const [education, setEducation] = useState<Education[]>([]);
-  const [showEduDialog, setShowEduDialog] = useState(false);
-  const [eduForm, setEduForm] = useState<Partial<Education>>({});
 
   // Certifications
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -90,79 +71,13 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   };
 
   const fetchAll = async () => {
-    const [eduRes, certRes, profileRes] = await Promise.all([
-      supabase.from("scout_education").select("*").eq("user_id", userId).order("sort_order", { ascending: true }),
+    const [certRes, profileRes] = await Promise.all([
       supabase.from("scout_certifications").select("*").eq("user_id", userId).order("sort_order", { ascending: true }),
       supabase.from("scout_profiles").select("languages").eq("user_id", userId).maybeSingle(),
     ]);
-    if (eduRes.data) setEducation(eduRes.data as Education[]);
     if (certRes.data) setCertifications(certRes.data as Certification[]);
     const langs = (profileRes.data as any)?.languages as string[] | null;
     if (langs) setLanguages(langs);
-  };
-
-  // === Education ===
-  const openEduDialog = () => {
-    setEduForm({ user_id: userId, institution: "", degree: "", field_of_study: "", start_date: "", end_date: "", description: "", documents: [] });
-    setShowEduDialog(true);
-  };
-
-  const handleSaveEducation = async () => {
-    if (!eduForm.institution && !eduForm.degree) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase.from("scout_education").insert({
-        user_id: userId,
-        institution: eduForm.institution || "",
-        degree: eduForm.degree || "",
-        field_of_study: eduForm.field_of_study || null,
-        start_date: eduForm.start_date || null,
-        end_date: eduForm.end_date || null,
-        description: eduForm.description || null,
-        documents: eduForm.documents || [],
-        sort_order: education.length,
-      });
-      if (error) throw error;
-      const { data } = await supabase.from("scout_education").select("*").eq("user_id", userId).order("sort_order", { ascending: true });
-      if (data) setEducation(data as Education[]);
-      setShowEduDialog(false);
-      notifyProfileUpdated();
-      toast({ title: "Studiu adăugat!" });
-    } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
-    } finally { setSaving(false); }
-  };
-
-  const handleDeleteEducation = async (id: string) => {
-    try {
-      await supabase.from("scout_education").delete().eq("id", id);
-      setEducation(prev => prev.filter(e => e.id !== id));
-      notifyProfileUpdated();
-      toast({ title: "Studiu eliminat!" });
-    } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const handleEduDocUpload = async (file: File) => {
-    setUploadingEduDoc(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `${userId}/edu-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("scout-documents").upload(path, file);
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("scout-documents").getPublicUrl(path);
-      const currentDocs = eduForm.documents || [];
-      setEduForm(prev => ({ ...prev, documents: [...currentDocs, urlData.publicUrl] }));
-      toast({ title: "Document încărcat!" });
-    } catch (err: any) {
-      toast({ title: "Eroare la încărcare", description: err.message, variant: "destructive" });
-    } finally { setUploadingEduDoc(false); }
-  };
-
-  const removeEduDoc = (docIndex: number) => {
-    const currentDocs = eduForm.documents || [];
-    setEduForm(prev => ({ ...prev, documents: currentDocs.filter((_, i) => i !== docIndex) }));
   };
 
   // === Certifications ===
@@ -287,77 +202,6 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
 
   return (
     <>
-      {/* ===== STUDII ===== */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h2 className="font-display text-2xl text-foreground">Studii</h2>
-            {!readOnly && <Popover>
-              <PopoverTrigger asChild>
-                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru studii">
-                  <Info className="h-4 w-4" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru secțiunea Studii:</p>
-                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>Adaugă studiile universitare și postuniversitare relevante</li>
-                  <li>Menționează cursuri de specialitate în sport sau management sportiv</li>
-                  <li>Include instituția, diploma obținută și domeniul de studiu</li>
-                  <li>Adaugă perioada studiilor pentru un profil complet</li>
-                </ul>
-              </PopoverContent>
-            </Popover>}
-          </div>
-          {!readOnly && (
-            <button onClick={openEduDialog} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Adaugă studiu">
-              <Edit2 className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          {education.length === 0 && (
-            <p className="text-muted-foreground italic text-sm font-body">Niciun studiu adăugat.</p>
-          )}
-          {education.map((edu) => (
-            <div key={edu.id} className="flex gap-4 group">
-              <div className="flex-shrink-0 mt-1">
-                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                  <GraduationCap className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-body font-semibold text-foreground">{edu.degree || "Diplomă nespecificată"}</h3>
-                <p className="text-foreground/70 font-body text-sm">{edu.institution}</p>
-                {edu.field_of_study && <p className="text-muted-foreground font-body text-xs">{edu.field_of_study}</p>}
-                <p className="text-muted-foreground font-body text-xs mt-0.5">
-                  {edu.start_date && <span>{edu.start_date}</span>}
-                  {edu.start_date && edu.end_date && <span> – </span>}
-                  {edu.end_date && <span>{edu.end_date}</span>}
-                </p>
-                {edu.description && <p className="text-foreground/70 font-body text-sm mt-2 whitespace-pre-line">{edu.description}</p>}
-                {edu.documents && edu.documents.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {edu.documents.map((doc, di) => (
-                      <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md text-xs text-foreground/70 hover:text-primary transition-colors font-body">
-                        <FileText className="h-3.5 w-3.5" />
-                        {decodeURIComponent(doc.split("/").pop() || "Document")}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {!readOnly && edu.id && (
-                <button onClick={() => handleDeleteEducation(edu.id!)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 self-start">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ===== LICENȚE ȘI ATESTATE ===== */}
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
@@ -476,72 +320,6 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
           )}
         </div>
       </div>
-
-      {/* === Education Dialog === */}
-      <Dialog open={showEduDialog} onOpenChange={setShowEduDialog}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground font-display text-xl">Adaugă studiu</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 mt-2">
-            <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">Instituție*</Label>
-              <Input value={eduForm.institution || ""} onChange={e => setEduForm(p => ({ ...p, institution: e.target.value }))} placeholder="Ex: Universitatea din București" className="bg-background border-border text-foreground text-sm" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">Diplomă*</Label>
-              <Input value={eduForm.degree || ""} onChange={e => setEduForm(p => ({ ...p, degree: e.target.value }))} placeholder="Ex: Licență, Master" className="bg-background border-border text-foreground text-sm" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">Domeniu de studiu</Label>
-              <Input value={eduForm.field_of_study || ""} onChange={e => setEduForm(p => ({ ...p, field_of_study: e.target.value }))} placeholder="Ex: Management sportiv" className="bg-background border-border text-foreground text-sm" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label className="text-foreground text-sm">Data început</Label>
-                <Input value={eduForm.start_date || ""} onChange={e => setEduForm(p => ({ ...p, start_date: e.target.value }))} placeholder="Ex: 2018" className="bg-background border-border text-foreground text-sm" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-foreground text-sm">Data sfârșit</Label>
-                <Input value={eduForm.end_date || ""} onChange={e => setEduForm(p => ({ ...p, end_date: e.target.value }))} placeholder="Ex: 2022" className="bg-background border-border text-foreground text-sm" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">Descriere (opțional)</Label>
-              <Textarea value={eduForm.description || ""} onChange={e => setEduForm(p => ({ ...p, description: e.target.value }))} placeholder="Descriere scurtă..." className="bg-background border-border text-foreground text-sm min-h-[60px]" />
-            </div>
-
-            {/* Documents */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Label className="text-foreground text-sm">Documente</Label>
-                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
-                  {uploadingEduDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  {uploadingEduDoc ? "Se încarcă..." : "Încarcă document"}
-                  <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleEduDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingEduDoc} />
-                </label>
-              </div>
-              {(eduForm.documents || []).map((doc, di) => (
-                <div key={di} className="flex items-center gap-2 text-sm">
-                  <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span className="text-foreground/70 truncate flex-1 font-body">{decodeURIComponent(doc.split("/").pop() || "Document")}</span>
-                  <button type="button" onClick={() => removeEduDoc(di)} className="text-destructive hover:text-destructive/80">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setShowEduDialog(false)} className="border-border text-foreground">Anulează</Button>
-              <Button onClick={handleSaveEducation} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                Salvează
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* === Certification Dialog === */}
       <Dialog open={showCertDialog} onOpenChange={setShowCertDialog}>
