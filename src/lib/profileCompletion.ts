@@ -3,8 +3,6 @@
 
 export function calcPlayerCompletion(data: {
   photo_url?: string | null;
-  first_name?: string | null;
-  last_name?: string | null;
   nationality?: string | null;
   date_of_birth?: string | null;
   position?: string | null;
@@ -24,13 +22,14 @@ export function calcPlayerCompletion(data: {
   twitter_url?: string | null;
 }): number {
   let pct = 0;
-  if (data.photo_url) pct += 15;
-  if (data.first_name && data.last_name && data.nationality && data.date_of_birth && data.position) pct += 20;
-  if (data.height_cm && data.weight_kg && data.preferred_foot) pct += 15;
-  if (data.speed && data.jumping && data.endurance && data.acceleration && data.defense) pct += 15;
-  if (data.career_description || data.current_team) pct += 15;
-  if (data.video_highlights && data.video_highlights.length > 0) pct += 10;
-  if (data.instagram_url || data.tiktok_url || data.twitter_url) pct += 10;
+  if (data.video_highlights && data.video_highlights.length > 0) pct += 35;
+  if (data.career_description) pct += 25;
+  if (data.height_cm && data.weight_kg && data.preferred_foot) pct += 20;
+  if (data.photo_url) pct += 5;
+  if (data.position) pct += 5;
+  if (data.current_team) pct += 2.5;
+  if (data.nationality) pct += 2.5;
+  if (data.date_of_birth) pct += 5;
   return pct;
 }
 
