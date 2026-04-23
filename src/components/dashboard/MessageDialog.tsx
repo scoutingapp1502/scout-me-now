@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface MessageDialogProps {
   open: boolean;
@@ -28,8 +29,10 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
   const [sending, setSending] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [canMessage, setCanMessage] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { lang } = useLanguage();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!open) return;
@@ -39,12 +42,29 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
       if (!user) return;
       setCurrentUserId(user.id);
 
+      const { data: allowed } = await supabase.rpc("can_message_user", { _other_user_id: recipientUserId });
+      setCanMessage(!!allowed);
+
+      if (!allowed) {
+        setMessages([]);
+        setConversationId(null);
+        setLoading(false);
+        return;
+      }
+
       // Get or create conversation
       const { data: convId, error } = await supabase.rpc("get_or_create_conversation", {
         other_user_id: recipientUserId,
       });
 
       if (error || !convId) {
+        if (error?.message?.includes("FOLLOW_REQUIRED")) {
+          toast({
+            title: lang === "ro" ? "Mesaj indisponibil" : "Messaging unavailable",
+            description: lang === "ro" ? "Poți trimite mesaje doar persoanelor care ți-au acceptat cererea de urmărire." : "You can message only people who accepted your follow request.",
+            variant: "destructive",
+          });
+        }
         setLoading(false);
         return;
       }
@@ -116,7 +136,7 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
   }, [messages]);
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !conversationId || !currentUserId) return;
+    if (!newMessage.trim() || !conversationId || !currentUserId || !canMessage) return;
     setSending(true);
     const content = newMessage.trim();
     setNewMessage("");
@@ -193,13 +213,13 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."}
+            placeholder={canMessage ? (lang === "ro" ? "Scrie un mesaj..." : "Type a message...") : (lang === "ro" ? "Ai nevoie de o urmărire acceptată" : "Accepted follow required")}
             className="flex-1"
-            disabled={sending}
+            disabled={sending || !canMessage}
           />
           <Button
             onClick={handleSend}
-            disabled={!newMessage.trim() || sending}
+            disabled={!newMessage.trim() || sending || !canMessage}
             size="icon"
             className="shrink-0"
           >

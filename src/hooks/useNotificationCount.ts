@@ -24,7 +24,8 @@ export function useNotificationCount(userId: string | null) {
     const { data: follows } = await supabase
       .from("follows")
       .select("id")
-      .eq("following_id", userId);
+      .eq("following_id", userId)
+      .eq("status", "pending");
     const readIds = getReadIds(userId);
     const unreadFollows = follows ? follows.filter(f => !readIds.has(f.id)).length : 0;
 
