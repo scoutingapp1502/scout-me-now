@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
-import { calcScoutCompletion } from "@/lib/profileCompletion";
+import { calcAgentCompletion } from "@/lib/profileCompletion";
 
 interface AgentCard {
   user_id: string;
@@ -16,6 +16,9 @@ interface AgentCard {
   organization: string | null;
   title: string | null;
   country: string | null;
+  bio: string | null;
+  cover_photo_url: string | null;
+  languages: string[] | null;
 }
 
 const COLORS = [
