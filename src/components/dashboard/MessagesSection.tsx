@@ -5,6 +5,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePresence } from "@/hooks/usePresence";
+import { useToast } from "@/hooks/use-toast";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 
@@ -75,6 +76,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
   const [viewProfileRole, setViewProfileRole] = useState<string | null>(null);
+  const [canMessageSelected, setCanMessageSelected] = useState(true);
+  const { toast } = useToast();
 
   const fetchConversations = async () => {
     setLoading(true);
@@ -205,10 +208,16 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
     // Create conversation and open it
     const openChat = async () => {
-      const { data: convId } = await supabase.rpc("get_or_create_conversation", {
+      const { data: convId, error } = await supabase.rpc("get_or_create_conversation", {
         other_user_id: initialChatUserId,
       });
-      if (!convId) return;
+      if (!convId) {
+        if (error?.message?.includes("FOLLOW_REQUIRED")) {
+          toast({ title: lang === "ro" ? "Mesaj indisponibil" : "Messaging unavailable", description: lang === "ro" ? "Poți trimite mesaje doar după ce cererea ta de urmărire este acceptată." : "You can send messages only after your follow request is accepted.", variant: "destructive" });
+        }
+        onInitialChatHandled?.();
+        return;
+      }
 
       // Fetch profile info for the other user
       const [playerRes, scoutRes, roleRes] = await Promise.all([
@@ -262,6 +271,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     if (!selectedConversation) return;
     const load = async () => {
       setChatLoading(true);
+      const { data: allowed } = await supabase.rpc("can_message_user", { _other_user_id: selectedConversation.other_user_id });
+      setCanMessageSelected(!!allowed);
       const { data: msgs } = await supabase
         .from("messages")
         .select("*")
@@ -327,7 +338,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   }, [messages]);
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !selectedConversation || !currentUserId) return;
+    if (!newMessage.trim() || !selectedConversation || !currentUserId || !canMessageSelected) return;
     const content = newMessage.trim();
     setNewMessage("");
     // Clear draft on send
@@ -354,6 +365,10 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       // Remove optimistic message on error, restore input
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       setNewMessage(content);
+      if (error.message?.includes("FOLLOW_REQUIRED")) {
+        setCanMessageSelected(false);
+        toast({ title: lang === "ro" ? "Mesaj blocat" : "Message blocked", description: lang === "ro" ? "Ai nevoie de o urmărire acceptată pentru a trimite mesaje." : "You need an accepted follow to send messages.", variant: "destructive" });
+      }
     } else if (data) {
       // Replace optimistic with real message
       setMessages((prev) => prev.map((m) => m.id === optimisticId ? (data as Message) : m));
@@ -529,11 +544,12 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."}
+              placeholder={canMessageSelected ? (lang === "ro" ? "Scrie un mesaj..." : "Type a message...") : (lang === "ro" ? "Trebuie să ai o urmărire acceptată" : "Accepted follow required")}
               className="flex-1"
               autoFocus
+              disabled={!canMessageSelected}
             />
-            <Button onClick={handleSend} disabled={!newMessage.trim()} size="icon" className="shrink-0">
+            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessageSelected} size="icon" className="shrink-0">
               <Send className="h-4 w-4" />
             </Button>
           </div>
