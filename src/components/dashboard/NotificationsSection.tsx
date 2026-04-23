@@ -480,6 +480,17 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
             if (n.type === "follow") {
               const fn = n as FollowNotification;
               const isIncomingRequest = fn.direction === "incoming" && fn.status === "pending";
+              const followMessage = () => {
+                if (fn.direction === "incoming") {
+                  if (fn.status === "pending") return lang === "ro" ? "vrea să te urmărească" : "wants to follow you";
+                  if (fn.status === "accepted") return lang === "ro" ? "ai acceptat cererea de urmărire ✅" : "you accepted the follow request ✅";
+                  return lang === "ro" ? "ai refuzat cererea de urmărire" : "you rejected the follow request";
+                }
+
+                if (fn.status === "accepted") return lang === "ro" ? "ți-a acceptat cererea de urmărire ✅" : "accepted your follow request ✅";
+                return lang === "ro" ? "ți-a refuzat cererea de urmărire" : "rejected your follow request";
+              };
+
               return (
                 <button
                   key={fn.id}
@@ -505,9 +516,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                     <p className={`text-sm ${fn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
                       <span className="font-semibold">{fn.follower_name}</span>{" "}
                       <span className={fn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
-                        {isIncomingRequest
-                          ? (lang === "ro" ? "vrea să te urmărească" : "wants to follow you")
-                          : (lang === "ro" ? "ți-a respins cererea de urmărire" : "rejected your follow request")}
+                        {followMessage()}
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -535,7 +544,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                         </Button>
                       </>
                     ) : null}
-                    <UserPlus className={`h-4 w-4 shrink-0 ${fn.isRead ? "text-primary/50" : "text-primary"}`} />
+                    <UserPlus className={`h-4 w-4 shrink-0 ${fn.status === "accepted" ? "text-green-500" : fn.isRead ? "text-primary/50" : "text-primary"}`} />
                   </div>
                 </button>
               );
