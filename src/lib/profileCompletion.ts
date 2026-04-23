@@ -93,3 +93,31 @@ export function calcAgentCompletion(
   if (data.languages && data.languages.length > 0) pct += 10;
   return pct;
 }
+
+export function calcClubRepCompletion(
+  data: {
+    first_name?: string | null;
+    last_name?: string | null;
+    title?: string | null;
+    organization?: string | null;
+    country?: string | null;
+    bio?: string | null;
+    languages?: string[] | null;
+  },
+  hasExperience: boolean,
+  hasCertification: boolean,
+  hasPost: boolean,
+): number {
+  let pct = 0;
+  if (data.first_name) pct += 2.5;
+  if (data.last_name) pct += 2.5;
+  if (data.title) pct += 10;
+  if (data.organization) pct += 10;
+  if (data.country) pct += 5;
+  if (data.bio && data.bio.length > 10) pct += 10;
+  if (hasCertification) pct += 10;
+  if (hasExperience) pct += 30;
+  if (data.languages && data.languages.length > 0) pct += 10;
+  if (hasPost) pct += 10;
+  return pct;
+}

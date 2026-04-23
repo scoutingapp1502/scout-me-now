@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
-import { calcScoutCompletion } from "@/lib/profileCompletion";
+import { calcClubRepCompletion } from "@/lib/profileCompletion";
 
 interface ClubRepCard {
   user_id: string;
@@ -51,7 +51,7 @@ const ClubRepsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
         return;
       }
 
-      const [profilesRes, expRes, postsRes, eduRes, certRes] = await Promise.all([
+      const [profilesRes, expRes, postsRes, certRes] = await Promise.all([
         supabase
           .from("scout_profiles")
           .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills, languages")
@@ -59,18 +59,16 @@ const ClubRepsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
           .order("first_name", { ascending: true }),
         supabase.from("scout_experiences").select("user_id"),
         supabase.from("scout_posts").select("user_id"),
-        supabase.from("scout_education").select("user_id"),
         supabase.from("scout_certifications").select("user_id"),
       ]);
 
       if (!profilesRes.error && profilesRes.data) {
         const expUserIds = new Set((expRes.data || []).map((e) => e.user_id));
         const postUserIds = new Set((postsRes.data || []).map((p) => p.user_id));
-        const eduUserIds = new Set((eduRes.data || []).map((e) => e.user_id));
         const certUserIds = new Set((certRes.data || []).map((c) => c.user_id));
 
         const visible = profilesRes.data.filter((s) =>
-          calcScoutCompletion(s, expUserIds.has(s.user_id), postUserIds.has(s.user_id), eduUserIds.has(s.user_id), certUserIds.has(s.user_id)) >= 55
+          calcClubRepCompletion(s, expUserIds.has(s.user_id), certUserIds.has(s.user_id), postUserIds.has(s.user_id)) >= 55
         );
         setReps(visible);
       }
