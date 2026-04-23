@@ -197,6 +197,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
+  const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [followStatus, setFollowStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
@@ -360,6 +361,12 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
     fetchCareerEntries();
     if (readOnly) checkFollowStatus();
   }, [userId]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setViewerUserId(user?.id ?? null);
+    });
+  }, []);
 
   const checkFollowStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -633,6 +640,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   }
 
   const photoSrc = avatarPreview || profile?.photo_url;
+  const isOwnReadOnlyProfile = readOnly && viewerUserId === userId;
 
   if (!readOnly && showFollowersList) {
     return (
@@ -750,7 +758,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
               </div>
             )}
             {/* Action buttons for readOnly */}
-            {readOnly && (
+            {readOnly && !isOwnReadOnlyProfile && (
               <div className="mt-3 flex gap-2">
                 <TooltipProvider>
                   <Tooltip>
