@@ -84,7 +84,11 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
 
   const fetchPosts = async (userId: string) => {
     setLoading(true);
-    const { data: followsData } = await supabase.from("follows").select("following_id").eq("follower_id", userId);
+    const { data: followsData } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", userId)
+      .eq("status", "accepted");
     const followedIds = (followsData || []).map(f => f.following_id);
     const allIds = [...new Set([userId, ...followedIds])];
 

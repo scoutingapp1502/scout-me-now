@@ -218,18 +218,24 @@ export type Database = {
           follower_id: string
           following_id: string
           id: string
+          responded_at: string | null
+          status: string
         }
         Insert: {
           created_at?: string
           follower_id: string
           following_id: string
           id?: string
+          responded_at?: string | null
+          status?: string
         }
         Update: {
           created_at?: string
           follower_id?: string
           following_id?: string
           id?: string
+          responded_at?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -826,6 +832,11 @@ export type Database = {
         Args: { _request_id: string }
         Returns: undefined
       }
+      accept_follow_request: {
+        Args: { _follow_id: string }
+        Returns: undefined
+      }
+      can_message_user: { Args: { _other_user_id: string }; Returns: boolean }
       get_or_create_conversation: {
         Args: { other_user_id: string }
         Returns: string
@@ -845,6 +856,11 @@ export type Database = {
         Args: { _request_id: string }
         Returns: undefined
       }
+      reject_follow_request: {
+        Args: { _follow_id: string }
+        Returns: undefined
+      }
+      request_follow: { Args: { _following_id: string }; Returns: string }
       search_agents: {
         Args: { search_term: string }
         Returns: {

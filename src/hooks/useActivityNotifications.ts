@@ -53,7 +53,8 @@ export function useActivityNotifications(userId: string | null) {
       const { data: follows } = await supabase
         .from("follows")
         .select("following_id")
-        .eq("follower_id", userId);
+        .eq("follower_id", userId)
+        .eq("status", "accepted");
       const followingIds = follows?.map(f => f.following_id) || [];
 
       // Collect all actor IDs for profile resolution

@@ -22,6 +22,7 @@ export function useFollowers(userId: string | null) {
       .from("follows")
       .select("id, follower_id, created_at")
       .eq("following_id", userId)
+      .eq("status", "accepted")
       .order("created_at", { ascending: false });
 
     if (!follows || follows.length === 0) {
