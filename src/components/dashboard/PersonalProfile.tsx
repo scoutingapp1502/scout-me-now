@@ -196,7 +196,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [followStatus, setFollowStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
@@ -363,20 +363,25 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const checkFollowStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle();
-    setIsFollowing(!!data);
+    const { data } = await supabase
+      .from("follows")
+      .select("status")
+      .eq("follower_id", user.id)
+      .eq("following_id", userId)
+      .maybeSingle();
+    setFollowStatus((data?.status as typeof followStatus) || "none");
   };
 
   const toggleFollow = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setFollowLoading(true);
-    if (isFollowing) {
+    if (followStatus === "accepted" || followStatus === "pending") {
       await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
-      setIsFollowing(false);
+      setFollowStatus("none");
     } else {
-      await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
-      setIsFollowing(true);
+      const { error } = await supabase.rpc("request_follow", { _following_id: userId });
+      if (!error) setFollowStatus("pending");
     }
     setFollowLoading(false);
   };
@@ -749,7 +754,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                 <Button
                   onClick={(e) => { e.stopPropagation(); onNavigateToChat ? onNavigateToChat(userId) : setShowMessageDialog(true); }}
                   size="sm"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2"
+                  disabled={followStatus !== "accepted"}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 disabled:opacity-50"
                 >
                   <MessageCircle className="h-4 w-4" />
                   {lang === "ro" ? "Mesaj" : "Message"}
@@ -757,12 +763,16 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                 <Button
                   onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
                   size="sm"
-                  variant={isFollowing ? "secondary" : "outline"}
+                  variant={followStatus === "accepted" ? "secondary" : "outline"}
                   disabled={followLoading}
                   className="font-body gap-2"
                 >
-                  {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                  {isFollowing ? (lang === "ro" ? "Urmărești" : "Following") : (lang === "ro" ? "Urmărește" : "Follow")}
+                  {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : followStatus === "accepted" ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                  {followStatus === "accepted"
+                    ? (lang === "ro" ? "Urmărești" : "Following")
+                    : followStatus === "pending"
+                      ? (lang === "ro" ? "Cerere trimisă" : "Request sent")
+                      : (lang === "ro" ? "Urmărește" : "Follow")}
                 </Button>
               </div>
             )}
