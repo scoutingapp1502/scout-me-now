@@ -65,3 +65,31 @@ export function calcScoutCompletion(
   if (hasPost) pct += 5;
   return pct;
 }
+
+export function calcAgentCompletion(
+  data: {
+    photo_url?: string | null;
+    title?: string | null;
+    organization?: string | null;
+    cover_photo_url?: string | null;
+    bio?: string | null;
+    languages?: string[] | null;
+  },
+  hasExperience: boolean,
+  hasCertification: boolean,
+  hasRepresentedPlayers: boolean,
+  hasLocation: boolean,
+): number {
+  let pct = 0;
+  if (hasCertification) pct += 25;
+  if (hasRepresentedPlayers) pct += 25;
+  if (hasExperience) pct += 20;
+  if (data.photo_url) pct += 2.5;
+  if (data.title) pct += 2.5;
+  if (data.organization) pct += 2.5;
+  if (hasLocation) pct += 1.5;
+  if (data.cover_photo_url) pct += 1;
+  if (data.bio && data.bio.length > 10) pct += 10;
+  if (data.languages && data.languages.length > 0) pct += 10;
+  return pct;
+}

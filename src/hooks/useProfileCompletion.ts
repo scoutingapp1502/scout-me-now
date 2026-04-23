@@ -110,6 +110,105 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
 
         setSections(s);
         setPercentage(s.reduce((acc, sec) => acc + (sec.completed ? sec.weight : 0), 0));
+      } else if (role === "agent") {
+        const [profileRes, expRes, certRes, manualPlayersRes, collabRes] = await Promise.all([
+          supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
+          supabase.from("scout_experiences").select("id, location").eq("user_id", userId).limit(1),
+          supabase.from("scout_certifications").select("id").eq("user_id", userId).limit(1),
+          supabase.from("agent_manual_players").select("id").eq("agent_user_id", userId).limit(1),
+          supabase.from("agent_collaboration_requests").select("id").eq("agent_user_id", userId).eq("status", "accepted").limit(1),
+        ]);
+
+        const data = profileRes.data;
+        if (!data) {
+          setSections([]);
+          setPercentage(0);
+          setLoading(false);
+          return;
+        }
+
+        const hasExperience = !!(expRes.data && expRes.data.length > 0);
+        const hasLocation = !!(expRes.data && expRes.data.length > 0 && expRes.data[0].location);
+        const hasCertification = !!(certRes.data && certRes.data.length > 0);
+        const hasManualPlayers = !!(manualPlayersRes.data && manualPlayersRes.data.length > 0);
+        const hasCollabs = !!(collabRes.data && collabRes.data.length > 0);
+        const hasRepresentedPlayers = hasManualPlayers || hasCollabs;
+
+        const s: ProfileSection[] = [
+          {
+            key: "certifications",
+            labelRo: "Licențe și atestate",
+            labelEn: "Certifications",
+            completed: hasCertification,
+            weight: 25,
+          },
+          {
+            key: "represented_players",
+            labelRo: "Jucători reprezentați",
+            labelEn: "Represented players",
+            completed: hasRepresentedPlayers,
+            weight: 25,
+          },
+          {
+            key: "experience",
+            labelRo: "Experiență profesională",
+            labelEn: "Professional experience",
+            completed: hasExperience,
+            weight: 20,
+          },
+          {
+            key: "photo",
+            labelRo: "Fotografie de profil",
+            labelEn: "Profile photo",
+            completed: !!data.photo_url,
+            weight: 2.5,
+          },
+          {
+            key: "title",
+            labelRo: "Titlu",
+            labelEn: "Title",
+            completed: !!data.title,
+            weight: 2.5,
+          },
+          {
+            key: "organization",
+            labelRo: "Organizație",
+            labelEn: "Organization",
+            completed: !!data.organization,
+            weight: 2.5,
+          },
+          {
+            key: "location",
+            labelRo: "Locație",
+            labelEn: "Location",
+            completed: hasLocation,
+            weight: 1.5,
+          },
+          {
+            key: "cover",
+            labelRo: "Fotografie de copertă",
+            labelEn: "Cover photo",
+            completed: !!data.cover_photo_url,
+            weight: 1,
+          },
+          {
+            key: "bio",
+            labelRo: "Despre mine",
+            labelEn: "About me",
+            completed: !!(data.bio && data.bio.length > 10),
+            weight: 10,
+          },
+          {
+            key: "languages",
+            labelRo: "Limbi cunoscute",
+            labelEn: "Languages",
+            completed: !!(data.languages && data.languages.length > 0),
+            weight: 10,
+          },
+        ];
+
+        setSections(s);
+        setPercentage(s.reduce((acc, sec) => acc + (sec.completed ? sec.weight : 0), 0));
       } else {
         const [profileRes, expRes, postsRes, eduRes, certRes] = await Promise.all([
           supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
