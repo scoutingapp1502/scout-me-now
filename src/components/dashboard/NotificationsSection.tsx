@@ -19,6 +19,7 @@ interface FollowNotification {
   follower_photo: string | null;
   follower_role: "player" | "scout" | "agent";
   isRead: boolean;
+  direction: "incoming" | "outgoing";
 }
 
 interface CollabNotification {
@@ -61,17 +62,32 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
     setCurrentUserRole(userRole);
 
     // Fetch follow notifications
-    const { data: follows } = await supabase
-      .from("follows")
-      .select("id, follower_id, created_at, status")
-      .eq("following_id", user.id)
-      .eq("status", "pending")
-      .order("created_at", { ascending: false });
+    const [incomingFollowsRes, outgoingRejectedFollowsRes] = await Promise.all([
+      supabase
+        .from("follows")
+        .select("id, follower_id, created_at, status")
+        .eq("following_id", user.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("follows")
+        .select("id, following_id, created_at, responded_at, status")
+        .eq("follower_id", user.id)
+        .eq("status", "rejected")
+        .order("responded_at", { ascending: false }),
+    ]);
+
+    const follows = incomingFollowsRes.data;
+    const rejectedSentFollows = outgoingRejectedFollowsRes.data;
 
     let followNotifs: FollowNotification[] = [];
 
-    if (follows && follows.length > 0) {
-      const followerIds = follows.map(f => f.follower_id);
+    const profileIds = new Set<string>();
+    follows?.forEach(f => profileIds.add(f.follower_id));
+    rejectedSentFollows?.forEach(f => profileIds.add(f.following_id));
+
+    if (profileIds.size > 0) {
+      const followerIds = [...profileIds];
 
       const { data: roles } = await supabase
         .from("user_roles")
@@ -107,21 +123,40 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
         });
       }
 
-      followNotifs = follows.map(f => {
-        const role = (roleMap[f.follower_id] || "player") as "player" | "scout" | "agent";
-        const info = role === "player" ? playerMap[f.follower_id] : scoutMap[f.follower_id];
-        return {
-          id: f.id,
-          type: "follow" as const,
-          follower_id: f.follower_id,
-          created_at: f.created_at,
-          status: f.status as "pending" | "accepted" | "rejected",
-          follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
-          follower_photo: info?.photo || null,
-          follower_role: role,
-          isRead: isNotificationRead(user.id, f.id),
-        };
-      });
+      followNotifs = [
+        ...(follows || []).map(f => {
+          const role = (roleMap[f.follower_id] || "player") as "player" | "scout" | "agent";
+          const info = role === "player" ? playerMap[f.follower_id] : scoutMap[f.follower_id];
+          return {
+            id: f.id,
+            type: "follow" as const,
+            follower_id: f.follower_id,
+            created_at: f.created_at,
+            status: f.status as "pending" | "accepted" | "rejected",
+            follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
+            follower_photo: info?.photo || null,
+            follower_role: role,
+            isRead: isNotificationRead(user.id, f.id),
+            direction: "incoming" as const,
+          };
+        }),
+        ...(rejectedSentFollows || []).map(f => {
+          const role = (roleMap[f.following_id] || "player") as "player" | "scout" | "agent";
+          const info = role === "player" ? playerMap[f.following_id] : scoutMap[f.following_id];
+          return {
+            id: `${f.id}-rejected`,
+            type: "follow" as const,
+            follower_id: f.following_id,
+            created_at: f.responded_at || f.created_at,
+            status: "rejected" as const,
+            follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
+            follower_photo: info?.photo || null,
+            follower_role: role,
+            isRead: isNotificationRead(user.id, `${f.id}-rejected`),
+            direction: "outgoing" as const,
+          };
+        }),
+      ];
     }
 
     // Fetch collaboration requests
@@ -284,7 +319,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
 
     const channel = supabase
       .channel("notifications-all")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "follows" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => {
         fetchNotifications();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests" }, () => {
@@ -439,6 +474,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
           {notifications.map(n => {
             if (n.type === "follow") {
               const fn = n as FollowNotification;
+              const isIncomingRequest = fn.direction === "incoming" && fn.status === "pending";
               return (
                 <button
                   key={fn.id}
@@ -464,7 +500,9 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                     <p className={`text-sm ${fn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
                       <span className="font-semibold">{fn.follower_name}</span>{" "}
                       <span className={fn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
-                        {lang === "ro" ? "vrea să te urmărească" : "wants to follow you"}
+                        {isIncomingRequest
+                          ? (lang === "ro" ? "vrea să te urmărească" : "wants to follow you")
+                          : (lang === "ro" ? "ți-a respins cererea de urmărire" : "rejected your follow request")}
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -472,22 +510,26 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-green-500 hover:text-green-400 hover:bg-green-500/10"
-                      onClick={(e) => { e.stopPropagation(); handleAcceptFollow(fn); }}
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={(e) => { e.stopPropagation(); handleRejectFollow(fn); }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {isIncomingRequest ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                          onClick={(e) => { e.stopPropagation(); handleAcceptFollow(fn); }}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => { e.stopPropagation(); handleRejectFollow(fn); }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : null}
                     <UserPlus className={`h-4 w-4 shrink-0 ${fn.isRead ? "text-primary/50" : "text-primary"}`} />
                   </div>
                 </button>
