@@ -42,9 +42,16 @@ const AthleticTestRegistrationDialog = ({
   const [email, setEmail] = useState(defaultEmail);
   const [phone, setPhone] = useState("");
   const [date, setDate] = useState<Date | undefined>();
+  const [pendingDate, setPendingDate] = useState<Date | undefined>();
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [time, setTime] = useState<string>("");
   const [notificationMethod, setNotificationMethod] = useState<"email" | "phone">("email");
   const [submitting, setSubmitting] = useState(false);
+
+  const handleApplyDate = () => {
+    setDate(pendingDate);
+    setDatePickerOpen(false);
+  };
 
   const handleSubmit = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !phone.trim() || !date || !time) {
@@ -115,7 +122,13 @@ const AthleticTestRegistrationDialog = ({
 
           <div className="space-y-1.5">
             <Label>Alege ziua programării</Label>
-            <Popover>
+            <Popover
+              open={datePickerOpen}
+              onOpenChange={(open) => {
+                setDatePickerOpen(open);
+                if (open) setPendingDate(date);
+              }}
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -126,17 +139,24 @@ const AthleticTestRegistrationDialog = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
-                  captionLayout="dropdown-buttons"
-                  fromYear={new Date().getFullYear()}
-                  toYear={new Date().getFullYear() + 1}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
+                <div className="p-2 space-y-2">
+                  <Calendar
+                    mode="single"
+                    selected={pendingDate}
+                    onSelect={setPendingDate}
+                    disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                    captionLayout="dropdown-buttons"
+                    fromYear={new Date().getFullYear()}
+                    toYear={new Date().getFullYear() + 1}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                  <div className="flex justify-end">
+                    <Button size="sm" onClick={handleApplyDate} disabled={!pendingDate}>
+                      Aplică
+                    </Button>
+                  </div>
+                </div>
               </PopoverContent>
             </Popover>
           </div>
