@@ -14,6 +14,7 @@ interface FollowNotification {
   type: "follow";
   follower_id: string;
   created_at: string;
+  status: "pending" | "accepted" | "rejected";
   follower_name: string;
   follower_photo: string | null;
   follower_role: "player" | "scout" | "agent";
@@ -62,8 +63,9 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
     // Fetch follow notifications
     const { data: follows } = await supabase
       .from("follows")
-      .select("id, follower_id, created_at")
+      .select("id, follower_id, created_at, status")
       .eq("following_id", user.id)
+      .eq("status", "pending")
       .order("created_at", { ascending: false });
 
     let followNotifs: FollowNotification[] = [];
@@ -113,6 +115,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
           type: "follow" as const,
           follower_id: f.follower_id,
           created_at: f.created_at,
+          status: f.status as "pending" | "accepted" | "rejected",
           follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
           follower_photo: info?.photo || null,
           follower_role: role,
@@ -311,6 +314,30 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
     setViewProfileRole(n.follower_role);
   };
 
+  const handleAcceptFollow = async (n: FollowNotification) => {
+    try {
+      const { error } = await supabase.rpc("accept_follow_request", { _follow_id: n.id });
+      if (error) throw error;
+      handleMarkOneRead(n.id);
+      toast({ title: lang === "ro" ? "Cerere de urmărire acceptată" : "Follow request accepted" });
+      fetchNotifications();
+    } catch (err: any) {
+      toast({ title: lang === "ro" ? "Eroare" : "Error", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  const handleRejectFollow = async (n: FollowNotification) => {
+    try {
+      const { error } = await supabase.rpc("reject_follow_request", { _follow_id: n.id });
+      if (error) throw error;
+      handleMarkOneRead(n.id);
+      toast({ title: lang === "ro" ? "Cerere respinsă" : "Request rejected" });
+      fetchNotifications();
+    } catch (err: any) {
+      toast({ title: lang === "ro" ? "Eroare" : "Error", description: err?.message, variant: "destructive" });
+    }
+  };
+
   const handleClickCollabNotification = (n: CollabNotification) => {
     handleMarkOneRead(n.id);
     setViewProfileUserId(n.other_user_id);
@@ -437,14 +464,32 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                     <p className={`text-sm ${fn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
                       <span className="font-semibold">{fn.follower_name}</span>{" "}
                       <span className={fn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
-                        {lang === "ro" ? "a început să te urmărească" : "started following you"}
+                        {lang === "ro" ? "vrea să te urmărească" : "wants to follow you"}
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {roleLabel(fn.follower_role)} · {timeAgo(fn.created_at)}
                     </p>
                   </div>
-                  <UserPlus className={`h-4 w-4 shrink-0 ${fn.isRead ? "text-primary/50" : "text-primary"}`} />
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                      onClick={(e) => { e.stopPropagation(); handleAcceptFollow(fn); }}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => { e.stopPropagation(); handleRejectFollow(fn); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <UserPlus className={`h-4 w-4 shrink-0 ${fn.isRead ? "text-primary/50" : "text-primary"}`} />
+                  </div>
                 </button>
               );
             }
