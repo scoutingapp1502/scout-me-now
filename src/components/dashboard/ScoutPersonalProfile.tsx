@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users, Lock } from "lucide-react";
 import MessageDialog from "./MessageDialog";
 import ScoutExtraSections from "./ScoutExtraSections";
 import RepresentedPlayersSection from "./RepresentedPlayersSection";
 import SkillsEditor from "./SkillsEditor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useFollowers } from "@/hooks/useFollowers";
@@ -439,15 +440,30 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
             {/* Action buttons for readOnly */}
             {readOnly && editingSection !== "header" && (
               <div className="flex gap-2 mt-2 sm:mt-0">
-                <Button
-                  onClick={(e) => { e.stopPropagation(); onNavigateToChat ? onNavigateToChat(userId) : setShowMessageDialog(true); }}
-                  size="sm"
-                  disabled={followStatus !== "accepted"}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 disabled:opacity-50"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Mesaj
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          onClick={(e) => { e.stopPropagation(); onNavigateToChat ? onNavigateToChat(userId) : setShowMessageDialog(true); }}
+                          size="sm"
+                          disabled={followStatus !== "accepted"}
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 disabled:opacity-50"
+                        >
+                          {followStatus !== "accepted" ? <Lock className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+                          Mesaj
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {followStatus !== "accepted" && (
+                      <TooltipContent>
+                        {lang === "ro"
+                          ? "Este nevoie să fii conectată cu această persoană pentru a trimite mesaj."
+                          : "You need to be connected with this person to send a message."}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
                 <Button
                   onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
                   size="sm"
