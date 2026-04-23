@@ -14,6 +14,7 @@ interface FollowNotification {
   type: "follow";
   follower_id: string;
   created_at: string;
+  responded_at?: string | null;
   status: "pending" | "accepted" | "rejected";
   follower_name: string;
   follower_photo: string | null;
@@ -62,29 +63,31 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
     setCurrentUserRole(userRole);
 
     // Fetch follow notifications
-    const [incomingFollowsRes, outgoingRejectedFollowsRes] = await Promise.all([
+    const [incomingFollowsRes, outgoingRespondedFollowsRes] = await Promise.all([
       supabase
         .from("follows")
-        .select("id, follower_id, created_at, status")
+        .select("id, follower_id, created_at, responded_at, status")
         .eq("following_id", user.id)
-        .eq("status", "pending")
+        .in("status", ["pending", "accepted", "rejected"])
+        .order("responded_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false }),
       supabase
         .from("follows")
         .select("id, following_id, created_at, responded_at, status")
         .eq("follower_id", user.id)
-        .eq("status", "rejected")
-        .order("responded_at", { ascending: false }),
+        .in("status", ["accepted", "rejected"])
+        .order("responded_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false }),
     ]);
 
     const follows = incomingFollowsRes.data;
-    const rejectedSentFollows = outgoingRejectedFollowsRes.data;
+    const respondedSentFollows = outgoingRespondedFollowsRes.data;
 
     let followNotifs: FollowNotification[] = [];
 
     const profileIds = new Set<string>();
     follows?.forEach(f => profileIds.add(f.follower_id));
-    rejectedSentFollows?.forEach(f => profileIds.add(f.following_id));
+    respondedSentFollows?.forEach(f => profileIds.add(f.following_id));
 
     if (profileIds.size > 0) {
       const followerIds = [...profileIds];
@@ -131,7 +134,8 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
             id: f.id,
             type: "follow" as const,
             follower_id: f.follower_id,
-            created_at: f.created_at,
+            created_at: f.responded_at || f.created_at,
+            responded_at: f.responded_at,
             status: f.status as "pending" | "accepted" | "rejected",
             follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
             follower_photo: info?.photo || null,
@@ -140,19 +144,20 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
             direction: "incoming" as const,
           };
         }),
-        ...(rejectedSentFollows || []).map(f => {
+        ...(respondedSentFollows || []).map(f => {
           const role = (roleMap[f.following_id] || "player") as "player" | "scout" | "agent";
           const info = role === "player" ? playerMap[f.following_id] : scoutMap[f.following_id];
           return {
-            id: `${f.id}-rejected`,
+            id: `${f.id}-response`,
             type: "follow" as const,
             follower_id: f.following_id,
             created_at: f.responded_at || f.created_at,
-            status: "rejected" as const,
+            responded_at: f.responded_at,
+            status: f.status as "accepted" | "rejected",
             follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
             follower_photo: info?.photo || null,
             follower_role: role,
-            isRead: isNotificationRead(user.id, `${f.id}-rejected`),
+            isRead: isNotificationRead(user.id, `${f.id}-response`),
             direction: "outgoing" as const,
           };
         }),
@@ -475,6 +480,17 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
             if (n.type === "follow") {
               const fn = n as FollowNotification;
               const isIncomingRequest = fn.direction === "incoming" && fn.status === "pending";
+              const followMessage = () => {
+                if (fn.direction === "incoming") {
+                  if (fn.status === "pending") return lang === "ro" ? "vrea să te urmărească" : "wants to follow you";
+                  if (fn.status === "accepted") return lang === "ro" ? "ai acceptat cererea de urmărire ✅" : "you accepted the follow request ✅";
+                  return lang === "ro" ? "ai refuzat cererea de urmărire" : "you rejected the follow request";
+                }
+
+                if (fn.status === "accepted") return lang === "ro" ? "ți-a acceptat cererea de urmărire ✅" : "accepted your follow request ✅";
+                return lang === "ro" ? "ți-a refuzat cererea de urmărire" : "rejected your follow request";
+              };
+
               return (
                 <button
                   key={fn.id}
@@ -500,9 +516,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                     <p className={`text-sm ${fn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
                       <span className="font-semibold">{fn.follower_name}</span>{" "}
                       <span className={fn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
-                        {isIncomingRequest
-                          ? (lang === "ro" ? "vrea să te urmărească" : "wants to follow you")
-                          : (lang === "ro" ? "ți-a respins cererea de urmărire" : "rejected your follow request")}
+                        {followMessage()}
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -530,7 +544,7 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                         </Button>
                       </>
                     ) : null}
-                    <UserPlus className={`h-4 w-4 shrink-0 ${fn.isRead ? "text-primary/50" : "text-primary"}`} />
+                    <UserPlus className={`h-4 w-4 shrink-0 ${fn.status === "accepted" ? "text-green-500" : fn.isRead ? "text-primary/50" : "text-primary"}`} />
                   </div>
                 </button>
               );
