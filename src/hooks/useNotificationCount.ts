@@ -20,7 +20,7 @@ export function useNotificationCount(userId: string | null) {
   const recalc = useCallback(async () => {
     if (!userId) return;
 
-    // Count unread follows
+    // Count unread incoming follow requests
     const { data: follows } = await supabase
       .from("follows")
       .select("id")
@@ -28,6 +28,16 @@ export function useNotificationCount(userId: string | null) {
       .eq("status", "pending");
     const readIds = getReadIds(userId);
     const unreadFollows = follows ? follows.filter(f => !readIds.has(f.id)).length : 0;
+
+    // Count unread rejected follow requests sent by the current user
+    const { data: rejectedFollows } = await supabase
+      .from("follows")
+      .select("id")
+      .eq("follower_id", userId)
+      .eq("status", "rejected");
+    const unreadRejectedFollows = rejectedFollows
+      ? rejectedFollows.filter(f => !readIds.has(`${f.id}-rejected`)).length
+      : 0;
 
     // Count pending collaboration requests (for agents)
     const { data: agentCollabs } = await supabase
@@ -45,7 +55,7 @@ export function useNotificationCount(userId: string | null) {
       .in("status", ["accepted", "rejected"]);
     const unreadPlayerCollabs = playerCollabs ? playerCollabs.filter(r => !readIds.has(`${r.id}-response`)).length : 0;
 
-    setCount(unreadFollows + unreadAgentCollabs + unreadPlayerCollabs);
+    setCount(unreadFollows + unreadRejectedFollows + unreadAgentCollabs + unreadPlayerCollabs);
   }, [userId]);
 
   useEffect(() => {
@@ -61,8 +71,7 @@ export function useNotificationCount(userId: string | null) {
 
     const channel = supabase
       .channel(`notif-count-${userId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "follows" }, () => recalc())
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "follows" }, () => recalc())
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => recalc())
       .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests" }, () => recalc())
       .subscribe();
 
