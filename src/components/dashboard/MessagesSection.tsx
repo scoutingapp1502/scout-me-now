@@ -273,15 +273,15 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       setChatLoading(true);
       const { data: allowed } = await supabase.rpc("can_message_user", { _other_user_id: selectedConversation.other_user_id });
       setCanMessageSelected(!!allowed);
-      const { data: msgs } = await supabase
+      const { data: msgs } = allowed ? await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", selectedConversation.conversation_id)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true }) : { data: [] as Message[] };
 
       setMessages((msgs as Message[]) || []);
 
-      if (msgs && currentUserId) {
+      if (allowed && msgs && currentUserId) {
         const unread = msgs.filter((m: any) => !m.read && m.sender_id !== currentUserId);
         if (unread.length > 0) {
           await supabase
