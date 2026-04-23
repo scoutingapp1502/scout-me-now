@@ -173,6 +173,10 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
+          ) : !canMessage ? (
+            <p className="text-center text-muted-foreground text-sm py-8">
+              {lang === "ro" ? "Poți trimite mesaje doar persoanelor care ți-au acceptat cererea de urmărire." : "You can message only people who accepted your follow request."}
+            </p>
           ) : messages.length === 0 ? (
             <p className="text-center text-muted-foreground text-sm py-8">
               {lang === "ro" ? "Niciun mesaj încă. Trimite primul mesaj!" : "No messages yet. Send the first message!"}
