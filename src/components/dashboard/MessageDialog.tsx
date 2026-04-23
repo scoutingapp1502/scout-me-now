@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Loader2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
+import { censorMessageText } from "@/lib/messageModeration";
 
 interface MessageDialogProps {
   open: boolean;
@@ -138,7 +139,7 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
   const handleSend = async () => {
     if (!newMessage.trim() || !conversationId || !currentUserId || !canMessage) return;
     setSending(true);
-    const content = newMessage.trim();
+    const content = censorMessageText(newMessage.trim());
     setNewMessage("");
 
     const { error } = await supabase.from("messages").insert({

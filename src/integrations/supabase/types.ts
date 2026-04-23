@@ -837,6 +837,7 @@ export type Database = {
         Returns: undefined
       }
       can_message_user: { Args: { _other_user_id: string }; Returns: boolean }
+      censor_profanity: { Args: { input_text: string }; Returns: string }
       get_or_create_conversation: {
         Args: { other_user_id: string }
         Returns: string
