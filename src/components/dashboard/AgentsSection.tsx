@@ -55,26 +55,33 @@ const AgentsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: strin
         return;
       }
 
-      const [profilesRes, expRes, postsRes, eduRes, certRes] = await Promise.all([
+      const [profilesRes, expRes, certRes, manualPlayersRes, collabRes] = await Promise.all([
         supabase
           .from("scout_profiles")
           .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills, languages")
           .in("user_id", Array.from(agentUserIds))
           .order("first_name", { ascending: true }),
-        supabase.from("scout_experiences").select("user_id"),
-        supabase.from("scout_posts").select("user_id"),
-        supabase.from("scout_education").select("user_id"),
+        supabase.from("scout_experiences").select("user_id, location"),
         supabase.from("scout_certifications").select("user_id"),
+        supabase.from("agent_manual_players").select("agent_user_id"),
+        supabase.from("agent_collaboration_requests").select("agent_user_id").eq("status", "accepted"),
       ]);
 
       if (!profilesRes.error && profilesRes.data) {
         const expUserIds = new Set((expRes.data || []).map((e) => e.user_id));
-        const postUserIds = new Set((postsRes.data || []).map((p) => p.user_id));
-        const eduUserIds = new Set((eduRes.data || []).map((e) => e.user_id));
+        const locationUserIds = new Set((expRes.data || []).filter((e) => e.location).map((e) => e.user_id));
         const certUserIds = new Set((certRes.data || []).map((c) => c.user_id));
+        const manualPlayersUserIds = new Set((manualPlayersRes.data || []).map((p) => p.agent_user_id));
+        const collabUserIds = new Set((collabRes.data || []).map((c) => c.agent_user_id));
 
         const visible = profilesRes.data.filter((s) =>
-          calcScoutCompletion(s, expUserIds.has(s.user_id), postUserIds.has(s.user_id), eduUserIds.has(s.user_id), certUserIds.has(s.user_id)) >= 55
+          calcAgentCompletion(
+            s,
+            expUserIds.has(s.user_id),
+            certUserIds.has(s.user_id),
+            manualPlayersUserIds.has(s.user_id) || collabUserIds.has(s.user_id),
+            locationUserIds.has(s.user_id),
+          ) >= 55
         );
         setAgents(visible);
       }
