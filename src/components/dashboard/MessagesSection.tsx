@@ -8,6 +8,7 @@ import { usePresence } from "@/hooks/usePresence";
 import { useToast } from "@/hooks/use-toast";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
+import { censorMessageText } from "@/lib/messageModeration";
 
 interface ConversationItem {
   conversation_id: string;
@@ -339,7 +340,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedConversation || !currentUserId || !canMessageSelected) return;
-    const content = newMessage.trim();
+    const content = censorMessageText(newMessage.trim());
     setNewMessage("");
     // Clear draft on send
     localStorage.removeItem(`draft-${selectedConversation.conversation_id}`);
