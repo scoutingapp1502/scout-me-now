@@ -209,6 +209,97 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
 
         setSections(s);
         setPercentage(s.reduce((acc, sec) => acc + (sec.completed ? sec.weight : 0), 0));
+      } else if (role === "club_rep") {
+        const [profileRes, expRes, postsRes, certRes] = await Promise.all([
+          supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
+          supabase.from("scout_experiences").select("id").eq("user_id", userId).limit(1),
+          supabase.from("scout_posts").select("id").eq("user_id", userId).limit(1),
+          supabase.from("scout_certifications").select("id").eq("user_id", userId).limit(1),
+        ]);
+
+        const data = profileRes.data;
+        if (!data) {
+          setSections([]);
+          setPercentage(0);
+          setLoading(false);
+          return;
+        }
+
+        const s: ProfileSection[] = [
+          {
+            key: "last_name",
+            labelRo: "Nume",
+            labelEn: "Last name",
+            completed: !!data.last_name,
+            weight: 2.5,
+          },
+          {
+            key: "first_name",
+            labelRo: "Prenume",
+            labelEn: "First name",
+            completed: !!data.first_name,
+            weight: 2.5,
+          },
+          {
+            key: "title",
+            labelRo: "Titlu",
+            labelEn: "Title",
+            completed: !!data.title,
+            weight: 10,
+          },
+          {
+            key: "organization",
+            labelRo: "Club",
+            labelEn: "Club",
+            completed: !!data.organization,
+            weight: 10,
+          },
+          {
+            key: "location",
+            labelRo: "Locație",
+            labelEn: "Location",
+            completed: !!data.country,
+            weight: 5,
+          },
+          {
+            key: "bio",
+            labelRo: "Despre",
+            labelEn: "About",
+            completed: !!(data.bio && data.bio.length > 10),
+            weight: 10,
+          },
+          {
+            key: "certifications",
+            labelRo: "Licențe și atestate",
+            labelEn: "Certifications",
+            completed: !!(certRes.data && certRes.data.length > 0),
+            weight: 10,
+          },
+          {
+            key: "experience",
+            labelRo: "Experiență",
+            labelEn: "Experience",
+            completed: !!(expRes.data && expRes.data.length > 0),
+            weight: 30,
+          },
+          {
+            key: "languages",
+            labelRo: "Limbi cunoscute",
+            labelEn: "Languages",
+            completed: !!(data.languages && data.languages.length > 0),
+            weight: 10,
+          },
+          {
+            key: "activity",
+            labelRo: "Activitate",
+            labelEn: "Activity",
+            completed: !!(postsRes.data && postsRes.data.length > 0),
+            weight: 10,
+          },
+        ];
+
+        setSections(s);
+        setPercentage(s.reduce((acc, sec) => acc + (sec.completed ? sec.weight : 0), 0));
       } else {
         const [profileRes, expRes, postsRes, eduRes, certRes] = await Promise.all([
           supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
