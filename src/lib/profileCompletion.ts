@@ -96,8 +96,8 @@ export function calcAgentCompletion(
 
 export function calcClubRepCompletion(
   data: {
-    first_name?: string | null;
-    last_name?: string | null;
+    photo_url?: string | null;
+    cover_photo_url?: string | null;
     title?: string | null;
     organization?: string | null;
     country?: string | null;
@@ -109,14 +109,14 @@ export function calcClubRepCompletion(
   hasPost: boolean,
 ): number {
   let pct = 0;
-  if (data.first_name) pct += 2.5;
-  if (data.last_name) pct += 2.5;
-  if (data.title) pct += 10;
-  if (data.organization) pct += 10;
-  if (data.country) pct += 5;
+  if (hasCertification) pct += 25;
+  if (hasExperience) pct += 25;
+  if (data.photo_url) pct += 5;
+  if (data.title) pct += 5;
+  if (data.organization) pct += 5;
+  if (data.country) pct += 2.5;
+  if (data.cover_photo_url) pct += 2.5;
   if (data.bio && data.bio.length > 10) pct += 10;
-  if (hasCertification) pct += 10;
-  if (hasExperience) pct += 30;
   if (data.languages && data.languages.length > 0) pct += 10;
   if (hasPost) pct += 10;
   return pct;
