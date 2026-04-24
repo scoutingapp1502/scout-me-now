@@ -475,6 +475,39 @@ export type Database = {
         }
         Relationships: []
       }
+      player_test_unlocks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_visit_date: string | null
+          next_unlock_started_on: string | null
+          unlocked_tests: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_visit_date?: string | null
+          next_unlock_started_on?: string | null
+          unlocked_tests?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_visit_date?: string | null
+          next_unlock_started_on?: string | null
+          unlocked_tests?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_comments: {
         Row: {
           content: string
@@ -858,6 +891,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      ping_daily_visit: {
+        Args: { _available_tests: string[] }
+        Returns: {
+          current_streak: number
+          days_until_next_unlock: number
+          newly_unlocked: string
+          unlocked_tests: string[]
+        }[]
       }
       reject_collaboration_request: {
         Args: { _request_id: string }
