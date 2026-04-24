@@ -2338,6 +2338,7 @@ function VideoSection({
           <p className="text-muted-foreground font-body text-sm">{t.dashboard.profile.noVideos}</p>
         </div>
       )}
+      {editing && <SectionSaveButton />}
     </div>
   );
 }
