@@ -274,15 +274,17 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       setChatLoading(true);
       const { data: allowed } = await supabase.rpc("can_message_user", { _other_user_id: selectedConversation.other_user_id });
       setCanMessageSelected(!!allowed);
-      const { data: msgs } = allowed ? await supabase
+      // Always load existing messages so historical conversation is visible,
+      // even when the follow relationship no longer permits sending new ones.
+      const { data: msgs } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", selectedConversation.conversation_id)
-        .order("created_at", { ascending: true }) : { data: [] as Message[] };
+        .order("created_at", { ascending: true });
 
       setMessages((msgs as Message[]) || []);
 
-      if (allowed && msgs && currentUserId) {
+      if (msgs && currentUserId) {
         const unread = msgs.filter((m: any) => !m.read && m.sender_id !== currentUserId);
         if (unread.length > 0) {
           await supabase
