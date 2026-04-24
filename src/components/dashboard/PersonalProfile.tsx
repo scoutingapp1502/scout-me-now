@@ -883,7 +883,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           <VideoTab
             form={form}
             profile={profile}
-            editing={editingSection === "video"}
+            editingSection={editingSection}
             newVideoUrl={newVideoUrl}
             setNewVideoUrl={setNewVideoUrl}
             addVideoUrl={addVideoUrl}
