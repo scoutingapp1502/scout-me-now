@@ -334,6 +334,8 @@ export type Database = {
           endurance: number | null
           first_name: string
           free_throw_shooting_video: string | null
+          full_match_descriptions: string[] | null
+          full_match_videos: string[] | null
           gender: string | null
           goals: number | null
           height_cm: number | null
@@ -386,6 +388,8 @@ export type Database = {
           endurance?: number | null
           first_name?: string
           free_throw_shooting_video?: string | null
+          full_match_descriptions?: string[] | null
+          full_match_videos?: string[] | null
           gender?: string | null
           goals?: number | null
           height_cm?: number | null
@@ -438,6 +442,8 @@ export type Database = {
           endurance?: number | null
           first_name?: string
           free_throw_shooting_video?: string | null
+          full_match_descriptions?: string[] | null
+          full_match_videos?: string[] | null
           gender?: string | null
           goals?: number | null
           height_cm?: number | null
