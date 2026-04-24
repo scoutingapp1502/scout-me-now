@@ -499,6 +499,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           career_description: form.career_description,
           video_highlights: form.video_highlights,
           video_descriptions: (form as any).video_descriptions,
+          full_match_videos: (form as any).full_match_videos,
+          full_match_descriptions: (form as any).full_match_descriptions,
           about_documents: form.about_documents,
           palmares_documents: form.palmares_documents,
           sport: (form as any).sport,
