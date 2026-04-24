@@ -164,7 +164,7 @@ const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTe
   return footballTests; // default
 };
 
-type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "video" | "match_stats" | null;
+type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "video" | "video_full_match" | "match_stats" | null;
 
 interface CareerEntry {
   id?: string;
