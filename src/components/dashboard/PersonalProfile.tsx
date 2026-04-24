@@ -2073,36 +2073,95 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean;
   newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
+  return (
+    <div className="space-y-8">
+      <VideoSection
+        title="VIDEO HIGHLIGHTS"
+        videosKey="video_highlights"
+        descriptionsKey="video_descriptions"
+        form={form}
+        profile={profile}
+        editing={editing}
+        updateForm={updateForm}
+        SectionEditButton={SectionEditButton}
+        useSharedNewUrl
+        newVideoUrl={newVideoUrl}
+        setNewVideoUrl={setNewVideoUrl}
+      />
+      <VideoSection
+        title="VIDEO FULL MATCH REPLAY"
+        videosKey="full_match_videos"
+        descriptionsKey="full_match_descriptions"
+        form={form}
+        profile={profile}
+        editing={editing}
+        updateForm={updateForm}
+        SectionEditButton={SectionEditButton}
+      />
+      <SectionSaveButton />
+    </div>
+  );
+}
+
+function VideoSection({
+  title,
+  videosKey,
+  descriptionsKey,
+  form,
+  profile,
+  editing,
+  updateForm,
+  SectionEditButton,
+  useSharedNewUrl = false,
+  newVideoUrl: externalNewUrl,
+  setNewVideoUrl: setExternalNewUrl,
+}: {
+  title: string;
+  videosKey: string;
+  descriptionsKey: string;
+  form: Partial<PlayerProfile>;
+  profile: PlayerProfile | null;
+  editing: boolean;
+  updateForm: (k: string, v: any) => void;
+  SectionEditButton: React.FC<{ section: EditingSection }>;
+  useSharedNewUrl?: boolean;
+  newVideoUrl?: string;
+  setNewVideoUrl?: (v: string) => void;
+}) {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [localNewUrl, setLocalNewUrl] = useState("");
   const [newVideoDescription, setNewVideoDescription] = useState("");
-  const videos = editing ? (form.video_highlights || []) : (profile?.video_highlights || []);
-  const descriptions: string[] = editing ? ((form as any).video_descriptions || []) : ((profile as any)?.video_descriptions || []);
+
+  const newUrl = useSharedNewUrl ? (externalNewUrl ?? "") : localNewUrl;
+  const setNewUrl = useSharedNewUrl ? (setExternalNewUrl ?? (() => {})) : setLocalNewUrl;
+
+  const videos: string[] = editing ? ((form as any)[videosKey] || []) : ((profile as any)?.[videosKey] || []);
+  const descriptions: string[] = editing ? ((form as any)[descriptionsKey] || []) : ((profile as any)?.[descriptionsKey] || []);
 
   const addVideoWithDescription = () => {
-    if (!newVideoUrl.trim()) return;
-    const currentVideos = form.video_highlights || [];
-    const currentDescs: string[] = (form as any).video_descriptions || [];
-    updateForm("video_highlights", [...currentVideos, newVideoUrl.trim()]);
-    updateForm("video_descriptions", [...currentDescs, newVideoDescription.trim()]);
-    setNewVideoUrl("");
+    if (!newUrl.trim()) return;
+    const currentVideos: string[] = (form as any)[videosKey] || [];
+    const currentDescs: string[] = (form as any)[descriptionsKey] || [];
+    updateForm(videosKey, [...currentVideos, newUrl.trim()]);
+    updateForm(descriptionsKey, [...currentDescs, newVideoDescription.trim()]);
+    setNewUrl("");
     setNewVideoDescription("");
   };
 
   const removeVideoWithDescription = (index: number) => {
-    const currentVideos = form.video_highlights || [];
-    const currentDescs: string[] = (form as any).video_descriptions || [];
-    updateForm("video_highlights", currentVideos.filter((_, i) => i !== index));
-    updateForm("video_descriptions", currentDescs.filter((_, i) => i !== index));
+    const currentVideos: string[] = (form as any)[videosKey] || [];
+    const currentDescs: string[] = (form as any)[descriptionsKey] || [];
+    updateForm(videosKey, currentVideos.filter((_, i) => i !== index));
+    updateForm(descriptionsKey, currentDescs.filter((_, i) => i !== index));
   };
 
   const updateDescription = (index: number, value: string) => {
-    const currentDescs: string[] = [...((form as any).video_descriptions || [])];
-    // Ensure array is long enough
+    const currentDescs: string[] = [...((form as any)[descriptionsKey] || [])];
     while (currentDescs.length <= index) currentDescs.push("");
     currentDescs[index] = value;
-    updateForm("video_descriptions", currentDescs);
+    updateForm(descriptionsKey, currentDescs);
   };
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2136,10 +2195,10 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-      const currentVideos = form.video_highlights || [];
-      const currentDescs: string[] = (form as any).video_descriptions || [];
-      updateForm("video_highlights", [...currentVideos, urlData.publicUrl]);
-      updateForm("video_descriptions", [...currentDescs, ""]);
+      const currentVideos: string[] = (form as any)[videosKey] || [];
+      const currentDescs: string[] = (form as any)[descriptionsKey] || [];
+      updateForm(videosKey, [...currentVideos, urlData.publicUrl]);
+      updateForm(descriptionsKey, [...currentDescs, ""]);
 
       toast({ title: "Video încărcat cu succes!" });
     } catch (err: any) {
@@ -2157,18 +2216,17 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Video Highlights</h4>
+        <h4 className="font-display text-lg text-foreground uppercase tracking-wide">{title}</h4>
         <SectionEditButton section="video" />
       </div>
       {editing && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-          {/* YouTube link input */}
           <div>
             <Label className="text-xs text-muted-foreground font-body mb-2 block">{t.dashboard.profile.addVideo}</Label>
             <div className="flex gap-2">
               <Input
-                value={newVideoUrl}
-                onChange={(e) => setNewVideoUrl(e.target.value)}
+                value={newUrl}
+                onChange={(e) => setNewUrl(e.target.value)}
                 placeholder={t.dashboard.profile.videoPlaceholder}
                 className="flex-1 text-foreground"
                 onKeyDown={(e) => e.key === "Enter" && addVideoWithDescription()}
@@ -2176,7 +2234,6 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
               <Button onClick={addVideoWithDescription} size="sm"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
             </div>
           </div>
-          {/* Description for new video */}
           <div>
             <Label className="text-xs text-muted-foreground font-body mb-1 block">Descriere video (opțional)</Label>
             <Textarea
@@ -2187,7 +2244,6 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
               className="text-foreground text-sm"
             />
           </div>
-          {/* File upload */}
           <div className="flex items-center gap-2">
             <label className="flex-1">
               <div className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
@@ -2244,7 +2300,6 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
                     <span className="font-body text-sm text-foreground truncate">{url}</span>
                   </a>
                 )}
-                {/* Description area */}
                 <div className="px-4 py-3 border-t border-border">
                   {editing ? (
                     <Textarea
@@ -2276,10 +2331,10 @@ function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVide
           <p className="text-muted-foreground font-body text-sm">{t.dashboard.profile.noVideos}</p>
         </div>
       )}
-      <SectionSaveButton />
     </div>
   );
 }
+
 
 /* ======================== POSTS TAB ======================== */
 function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boolean }) {
