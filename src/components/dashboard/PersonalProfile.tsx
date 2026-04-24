@@ -1051,13 +1051,50 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
 
         {/* Teste Tehnice Specifice section */}
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
             <SectionEditButton section="technical" />
           </div>
+
+          {/* Progress streak — vizibil doar pe profilul propriu și doar dacă mai sunt teste de deblocat */}
+          {isOwner && !unlocks.loading && unlocks.unlockedTests.length < technicalTests.length && (
+            <div className="mb-4 p-3 rounded-lg bg-muted/30 border border-border">
+              <div className="flex items-center gap-2 mb-2">
+                <Gift className="h-4 w-4 text-primary" />
+                <span className="text-xs font-body text-foreground">
+                  {unlocks.daysUntilNextUnlock === 0
+                    ? "Următorul test se deblochează la următoarea ta intrare!"
+                    : `${unlocks.currentStreak}/${unlocks.required} zile consecutive — încă ${unlocks.daysUntilNextUnlock} ${unlocks.daysUntilNextUnlock === 1 ? "zi" : "zile"} până la următorul test deblocat`}
+                </span>
+              </div>
+              <Progress value={(unlocks.currentStreak / unlocks.required) * 100} className="h-2" />
+              <p className="text-[10px] text-muted-foreground mt-1.5 font-body">
+                Intră în aplicație în fiecare zi pentru a debloca teste noi 🎁
+              </p>
+            </div>
+          )}
+          {isOwner && !unlocks.loading && unlocks.unlockedTests.length === technicalTests.length && (
+            <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/30">
+              <span className="text-xs font-body text-foreground">🏆 Felicitări! Ai deblocat toate testele tehnice.</span>
+            </div>
+          )}
+
           {editingTechnical ? (
             <div className="space-y-4">
-              {getTechnicalTestsBySport(currentSport).map((test) => (
+              {technicalTests.map((test) => {
+                const unlocked = isUnlocked(test.key);
+                if (!unlocked) {
+                  return (
+                    <div key={test.key} className="opacity-60 p-3 rounded-lg bg-muted/20 border border-dashed border-border">
+                      <div className="flex items-center gap-2">
+                        <LockIcon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">??? — Test blocat</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 font-body">Continuă streak-ul ca să deblochezi acest test.</p>
+                    </div>
+                  );
+                }
+                return (
                 <div key={test.key}>
                   <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video {test.label}</p>
                   {(form as any)[test.key] && (
@@ -1113,12 +1150,28 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                     />
                   </div>
                 </div>
-              ))}
+                );
+              })}
               <SectionSaveButton />
             </div>
           ) : (
             <div className="space-y-4">
-              {getTechnicalTestsBySport(currentSport).map((test) => (
+              {technicalTests.map((test) => {
+                const unlocked = isUnlocked(test.key);
+                if (!unlocked) {
+                  return (
+                    <div key={test.key} className="p-3 rounded-lg bg-muted/20 border border-dashed border-border">
+                      <div className="flex items-center gap-2">
+                        <LockIcon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">??? — Test blocat</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 font-body">
+                        {isOwner ? "Continuă streak-ul zilnic ca să deblochezi acest test." : "Test încă nedeblocat de jucător."}
+                      </p>
+                    </div>
+                  );
+                }
+                return (
                 <div key={test.key}>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
@@ -1162,7 +1215,8 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                     );
                   })()}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
