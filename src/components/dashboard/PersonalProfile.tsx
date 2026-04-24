@@ -20,6 +20,9 @@ import NationalityInput, { getDisplayNationality } from "@/components/ui/nationa
 import { useFollowers } from "@/hooks/useFollowers";
 import FollowersList from "./FollowersList";
 import AthleticTestRegistrationDialog from "./AthleticTestRegistrationDialog";
+import { useTestUnlocks } from "@/hooks/useTestUnlocks";
+import { Progress } from "@/components/ui/progress";
+import { Lock as LockIcon, Gift } from "lucide-react";
 
 type PlayerProfile = Tables<"player_profiles">;
 
