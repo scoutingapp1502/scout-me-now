@@ -2108,6 +2108,7 @@ function VideoTab({ form, profile, editingSection, newVideoUrl, setNewVideoUrl, 
 
 function VideoSection({
   title,
+  section,
   videosKey,
   descriptionsKey,
   form,
@@ -2115,11 +2116,13 @@ function VideoSection({
   editing,
   updateForm,
   SectionEditButton,
+  SectionSaveButton,
   useSharedNewUrl = false,
   newVideoUrl: externalNewUrl,
   setNewVideoUrl: setExternalNewUrl,
 }: {
   title: string;
+  section: EditingSection;
   videosKey: string;
   descriptionsKey: string;
   form: Partial<PlayerProfile>;
@@ -2127,6 +2130,7 @@ function VideoSection({
   editing: boolean;
   updateForm: (k: string, v: any) => void;
   SectionEditButton: React.FC<{ section: EditingSection }>;
+  SectionSaveButton: React.FC;
   useSharedNewUrl?: boolean;
   newVideoUrl?: string;
   setNewVideoUrl?: (v: string) => void;
