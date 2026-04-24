@@ -2069,36 +2069,39 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
 }
 
 /* ======================== VIDEO TAB ======================== */
-function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton, SectionSaveButton }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean;
+function VideoTab({ form, profile, editingSection, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton, SectionSaveButton }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection;
   newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
   return (
     <div className="space-y-8">
       <VideoSection
         title="VIDEO HIGHLIGHTS"
+        section="video"
         videosKey="video_highlights"
         descriptionsKey="video_descriptions"
         form={form}
         profile={profile}
-        editing={editing}
+        editing={editingSection === "video"}
         updateForm={updateForm}
         SectionEditButton={SectionEditButton}
+        SectionSaveButton={SectionSaveButton}
         useSharedNewUrl
         newVideoUrl={newVideoUrl}
         setNewVideoUrl={setNewVideoUrl}
       />
       <VideoSection
         title="VIDEO FULL MATCH REPLAY"
+        section="video_full_match"
         videosKey="full_match_videos"
         descriptionsKey="full_match_descriptions"
         form={form}
         profile={profile}
-        editing={editing}
+        editing={editingSection === "video_full_match"}
         updateForm={updateForm}
         SectionEditButton={SectionEditButton}
+        SectionSaveButton={SectionSaveButton}
       />
-      <SectionSaveButton />
     </div>
   );
 }
