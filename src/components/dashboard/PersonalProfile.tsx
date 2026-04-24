@@ -164,7 +164,7 @@ const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTe
   return footballTests; // default
 };
 
-type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "video" | "match_stats" | null;
+type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "video" | "video_full_match" | "match_stats" | null;
 
 interface CareerEntry {
   id?: string;
@@ -883,7 +883,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           <VideoTab
             form={form}
             profile={profile}
-            editing={editingSection === "video"}
+            editingSection={editingSection}
             newVideoUrl={newVideoUrl}
             setNewVideoUrl={setNewVideoUrl}
             addVideoUrl={addVideoUrl}
@@ -2069,42 +2069,46 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
 }
 
 /* ======================== VIDEO TAB ======================== */
-function VideoTab({ form, profile, editing, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton, SectionSaveButton }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editing: boolean;
+function VideoTab({ form, profile, editingSection, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton, SectionSaveButton }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection;
   newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
   return (
     <div className="space-y-8">
       <VideoSection
         title="VIDEO HIGHLIGHTS"
+        section="video"
         videosKey="video_highlights"
         descriptionsKey="video_descriptions"
         form={form}
         profile={profile}
-        editing={editing}
+        editing={editingSection === "video"}
         updateForm={updateForm}
         SectionEditButton={SectionEditButton}
+        SectionSaveButton={SectionSaveButton}
         useSharedNewUrl
         newVideoUrl={newVideoUrl}
         setNewVideoUrl={setNewVideoUrl}
       />
       <VideoSection
         title="VIDEO FULL MATCH REPLAY"
+        section="video_full_match"
         videosKey="full_match_videos"
         descriptionsKey="full_match_descriptions"
         form={form}
         profile={profile}
-        editing={editing}
+        editing={editingSection === "video_full_match"}
         updateForm={updateForm}
         SectionEditButton={SectionEditButton}
+        SectionSaveButton={SectionSaveButton}
       />
-      <SectionSaveButton />
     </div>
   );
 }
 
 function VideoSection({
   title,
+  section,
   videosKey,
   descriptionsKey,
   form,
@@ -2112,11 +2116,13 @@ function VideoSection({
   editing,
   updateForm,
   SectionEditButton,
+  SectionSaveButton,
   useSharedNewUrl = false,
   newVideoUrl: externalNewUrl,
   setNewVideoUrl: setExternalNewUrl,
 }: {
   title: string;
+  section: EditingSection;
   videosKey: string;
   descriptionsKey: string;
   form: Partial<PlayerProfile>;
@@ -2124,6 +2130,7 @@ function VideoSection({
   editing: boolean;
   updateForm: (k: string, v: any) => void;
   SectionEditButton: React.FC<{ section: EditingSection }>;
+  SectionSaveButton: React.FC;
   useSharedNewUrl?: boolean;
   newVideoUrl?: string;
   setNewVideoUrl?: (v: string) => void;
@@ -2217,7 +2224,7 @@ function VideoSection({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h4 className="font-display text-lg text-foreground uppercase tracking-wide">{title}</h4>
-        <SectionEditButton section="video" />
+        <SectionEditButton section={section} />
       </div>
       {editing && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-3">
@@ -2331,6 +2338,7 @@ function VideoSection({
           <p className="text-muted-foreground font-body text-sm">{t.dashboard.profile.noVideos}</p>
         </div>
       )}
+      {editing && <SectionSaveButton />}
     </div>
   );
 }
