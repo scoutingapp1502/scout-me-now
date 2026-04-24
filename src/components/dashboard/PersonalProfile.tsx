@@ -910,8 +910,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 };
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, SectionEditButton, SectionSaveButton, readOnly = false }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC; readOnly?: boolean;
+function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, viewerUserId, SectionEditButton, SectionSaveButton, readOnly = false }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; viewerUserId: string | null; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC; readOnly?: boolean;
 }) {
   const editing = editingSection === "stats";
   const editingMatchStats = editingSection === "match_stats";
@@ -920,6 +920,15 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
   const { t } = useLanguage();
   const { toast } = useToast();
   const [athleticRegOpen, setAthleticRegOpen] = useState(false);
+  const technicalTests = getTechnicalTestsBySport(currentSport);
+  const isOwner = !readOnly || viewerUserId === userId;
+  const unlocks = useTestUnlocks(
+    userId,
+    viewerUserId,
+    technicalTests.map((t) => t.key),
+    isOwner,
+  );
+  const isUnlocked = (key: string) => unlocks.unlockedTests.includes(key);
   const stats = [
     { key: "speed", label: "Pro Line Drill", icon: "⚡" },
     { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘" },
