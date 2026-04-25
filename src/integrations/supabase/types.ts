@@ -898,6 +898,7 @@ export type Database = {
           current_streak: number
           days_until_next_unlock: number
           newly_unlocked: string
+          next_test_preview: string
           unlocked_tests: string[]
         }[]
       }

@@ -19,6 +19,9 @@ import { markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotification
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Menu, Loader2 } from "lucide-react";
+import StreakNotificationModal from "@/components/dashboard/StreakNotificationModal";
+import { useTestUnlocks } from "@/hooks/useTestUnlocks";
+import { getTechnicalTestsBySport, getTestLabelByKey } from "@/components/dashboard/PersonalProfile";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -167,6 +170,58 @@ const Dashboard = () => {
     setActiveSection("messages");
   };
 
+  // Streak notification (doar pentru jucători)
+  const isPlayer = userRole === "player";
+  const availableTestKeys = isPlayer
+    ? getTechnicalTestsBySport(playerSport).map((t) => t.key)
+    : [];
+  const streakState = useTestUnlocks(
+    user?.id || "",
+    user?.id || null,
+    availableTestKeys,
+    Boolean(isPlayer && user?.id),
+  );
+  const [showStreakModal, setShowStreakModal] = useState(false);
+
+  useEffect(() => {
+    if (!isPlayer || !user?.id) return;
+    if (showWizard || streakState.loading) return;
+    if (streakState.currentStreak <= 0) return;
+    if (streakState.daysUntilNextUnlock <= 0) return;
+    if (streakState.unlockedTests.length >= availableTestKeys.length) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const dismissedKey = `streak-modal-${user.id}-${today}`;
+    if (sessionStorage.getItem(dismissedKey)) return;
+    setShowStreakModal(true);
+  }, [
+    isPlayer,
+    user?.id,
+    showWizard,
+    streakState.loading,
+    streakState.currentStreak,
+    streakState.daysUntilNextUnlock,
+    streakState.unlockedTests.length,
+    availableTestKeys.length,
+  ]);
+
+  const handleStreakDismiss = () => {
+    setShowStreakModal(false);
+    if (user?.id) {
+      const today = new Date().toISOString().slice(0, 10);
+      sessionStorage.setItem(`streak-modal-${user.id}-${today}`, "true");
+    }
+  };
+
+  const handleStreakContinue = () => {
+    handleStreakDismiss();
+    setActiveSection("profile");
+  };
+
+  const nextTestLabel = streakState.nextTestPreview
+    ? getTestLabelByKey(playerSport, streakState.nextTestPreview)
+    : null;
+
   if (!user || roleLoading) {
     return (
       <div className="flex min-h-screen bg-background dark items-center justify-center">
@@ -239,6 +294,17 @@ const Dashboard = () => {
           role={userRole}
           onGoToSection={handleWizardGoToSection}
           onDismiss={handleWizardDismiss}
+        />
+      )}
+      {showStreakModal && !showWizard && (
+        <StreakNotificationModal
+          currentStreak={streakState.currentStreak}
+          required={streakState.required}
+          daysUntilNextUnlock={streakState.daysUntilNextUnlock}
+          nextTestPreview={streakState.nextTestPreview}
+          nextTestLabel={nextTestLabel}
+          onContinue={handleStreakContinue}
+          onDismiss={handleStreakDismiss}
         />
       )}
       {isMobile ? (

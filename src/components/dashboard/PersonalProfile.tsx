@@ -161,10 +161,15 @@ const footballTests: TechnicalTest[] = [
   { key: "long_pass_video", label: "Pasă Lungă la Punct Fix", icon: "⚽", description: "Configurare: Un cerc format din jaloane (diametru de 3 metri) la o distanță de 30 de metri de jucător.\n\nExercițiu: 5 încercări de a trimite mingea prin aer astfel încât să aterizeze în interiorul cercului.\n\nVariante de filmat: doar piciorul drept, doar piciorul stâng.", inputKey: "_lp_video_input", uploadId: "lp-video-upload", storagePath: "long-pass" },
 ];
 
-const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTest[] => {
+export const getTechnicalTestsBySport = (sport: string | null | undefined): TechnicalTest[] => {
   if (sport === "basketball") return basketballTests;
   if (sport === "football") return footballTests;
   return footballTests; // default
+};
+
+export const getTestLabelByKey = (sport: string | null | undefined, key: string): string => {
+  const tests = getTechnicalTestsBySport(sport);
+  return tests.find((t) => t.key === key)?.label || key;
 };
 
 type EditingSection = "header" | "stats" | "technical" | "physical" | "agent" | "about" | "video" | "video_full_match" | "match_stats" | null;

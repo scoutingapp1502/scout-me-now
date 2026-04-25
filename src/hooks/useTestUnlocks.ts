@@ -7,16 +7,12 @@ export interface TestUnlocksState {
   unlockedTests: string[];
   daysUntilNextUnlock: number;
   required: number; // 3 pentru prima deblocare, 4 pentru următoarele
+  nextTestPreview: string | null;
   loading: boolean;
 }
 
 /**
  * Hook ce gestionează streak-ul zilnic și deblocarea aleatorie a testelor tehnice.
- *
- * - `userId`: ID-ul profilului afișat
- * - `viewerUserId`: ID-ul utilizatorului autentificat (cel care vizualizează)
- * - `availableTests`: cheile testelor disponibile pentru sportul curent
- * - `enabled`: dacă rulează ping-ul (doar pe profilul propriu)
  */
 export function useTestUnlocks(
   userId: string,
@@ -30,16 +26,16 @@ export function useTestUnlocks(
     unlockedTests: [],
     daysUntilNextUnlock: 3,
     required: 3,
+    nextTestPreview: null,
     loading: true,
   });
 
   const isOwner = enabled && viewerUserId === userId;
 
-  // Încarcă starea pentru orice profil (read-only sau owner) ca să afișăm corect blocările
   const fetchState = useCallback(async () => {
     const { data } = await supabase
       .from("player_test_unlocks" as any)
-      .select("current_streak, unlocked_tests, last_visit_date")
+      .select("current_streak, unlocked_tests, last_visit_date, next_test_preview")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -51,11 +47,11 @@ export function useTestUnlocks(
       unlockedTests: unlocked,
       daysUntilNextUnlock: Math.max(required - streak, 0),
       required,
+      nextTestPreview: (data as any)?.next_test_preview ?? null,
       loading: false,
     });
   }, [userId]);
 
-  // Ping zilnic doar pentru proprietar
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
@@ -81,6 +77,7 @@ export function useTestUnlocks(
           unlockedTests: unlocked,
           daysUntilNextUnlock: row.days_until_next_unlock ?? Math.max(required - streak, 0),
           required,
+          nextTestPreview: row.next_test_preview ?? null,
           loading: false,
         });
         if (row.newly_unlocked) {
