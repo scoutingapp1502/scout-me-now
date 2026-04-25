@@ -19,6 +19,9 @@ import { markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotification
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Menu, Loader2 } from "lucide-react";
+import StreakNotificationModal from "@/components/dashboard/StreakNotificationModal";
+import { useTestUnlocks } from "@/hooks/useTestUnlocks";
+import { getTechnicalTestsBySport, getTestLabelByKey } from "@/components/dashboard/PersonalProfile";
 
 const Dashboard = () => {
   const navigate = useNavigate();
