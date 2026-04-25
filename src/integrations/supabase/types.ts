@@ -637,6 +637,57 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendations: {
+        Row: {
+          author_user_id: string
+          content: string
+          created_at: string
+          id: string
+          initiated_by: string
+          recipient_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          author_user_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          recipient_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          author_user_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          recipient_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      recommendations_settings: {
+        Row: {
+          enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       scout_certifications: {
         Row: {
           created_at: string
