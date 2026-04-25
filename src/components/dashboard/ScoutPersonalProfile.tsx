@@ -15,6 +15,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useFollowers } from "@/hooks/useFollowers";
 import FollowersList from "./FollowersList";
+import RecommendationsSection from "./RecommendationsSection";
 
 type ScoutProfile = Tables<"scout_profiles">;
 type ScoutExperience = Tables<"scout_experiences">;
@@ -52,6 +53,11 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   const [showFollowersList, setShowFollowersList] = useState(false);
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const [isAgent, setIsAgent] = useState(false);
+  const [viewerUserId, setViewerUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setViewerUserId(user?.id || null));
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -848,6 +854,13 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
 
       {/* Extra sections: Studii, Licențe, Limbi */}
       <ScoutExtraSections userId={userId} readOnly={readOnly} />
+
+      {/* Recomandări */}
+      <RecommendationsSection
+        profileUserId={userId}
+        viewerUserId={viewerUserId}
+        isOwner={!readOnly || viewerUserId === userId}
+      />
 
       {/* Message Dialog */}
       {readOnly && (

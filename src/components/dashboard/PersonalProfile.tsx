@@ -23,6 +23,7 @@ import AthleticTestRegistrationDialog from "./AthleticTestRegistrationDialog";
 import { useTestUnlocks } from "@/hooks/useTestUnlocks";
 import { Progress } from "@/components/ui/progress";
 import { Lock as LockIcon, Gift } from "lucide-react";
+import RecommendationsSection from "./RecommendationsSection";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -887,6 +888,15 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       <div className="mt-6 px-2 sm:px-6 pb-8">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} viewerUserId={viewerUserId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} readOnly={readOnly} />}
         {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} collaborationStatus={collaborationStatus} collaborationLoading={collaborationLoading} cancelCollaborationRequest={cancelCollaborationRequest} acceptedAgent={acceptedAgent} />}
+        {activeTab === "profile" && (
+          <div className="mt-6">
+            <RecommendationsSection
+              profileUserId={userId}
+              viewerUserId={viewerUserId}
+              isOwner={!readOnly || viewerUserId === userId}
+            />
+          </div>
+        )}
         {activeTab === "video" && (
           <VideoTab
             form={form}
