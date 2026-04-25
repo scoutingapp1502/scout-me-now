@@ -296,6 +296,17 @@ const Dashboard = () => {
           onDismiss={handleWizardDismiss}
         />
       )}
+      {showStreakModal && !showWizard && (
+        <StreakNotificationModal
+          currentStreak={streakState.currentStreak}
+          required={streakState.required}
+          daysUntilNextUnlock={streakState.daysUntilNextUnlock}
+          nextTestPreview={streakState.nextTestPreview}
+          nextTestLabel={nextTestLabel}
+          onContinue={handleStreakContinue}
+          onDismiss={handleStreakDismiss}
+        />
+      )}
       {isMobile ? (
         <>
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
