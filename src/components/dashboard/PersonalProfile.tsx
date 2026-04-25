@@ -1058,7 +1058,7 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
-            <SectionEditButton section="technical" />
+            {unlocks.unlockedTests.length > 0 && <SectionEditButton section="technical" />}
           </div>
 
           {/* Progress streak — vizibil doar pe profilul propriu și doar dacă mai sunt teste de deblocat */}
