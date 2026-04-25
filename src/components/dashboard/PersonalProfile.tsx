@@ -23,6 +23,7 @@ import AthleticTestRegistrationDialog from "./AthleticTestRegistrationDialog";
 import { useTestUnlocks } from "@/hooks/useTestUnlocks";
 import { Progress } from "@/components/ui/progress";
 import { Lock as LockIcon, Gift } from "lucide-react";
+import RecommendationsSection from "./RecommendationsSection";
 
 type PlayerProfile = Tables<"player_profiles">;
 
