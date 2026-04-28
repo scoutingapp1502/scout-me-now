@@ -25,6 +25,7 @@ import { Progress } from "@/components/ui/progress";
 import { Lock as LockIcon, Gift } from "lucide-react";
 import RecommendationsSection from "./RecommendationsSection";
 import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
+import WeeklyChallengeCard from "./WeeklyChallengeCard";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -1104,6 +1105,14 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
               </>
           </div>
         </div>
+
+        {/* Provocare săptămânală */}
+        <WeeklyChallengeCard
+          userId={userId}
+          viewerUserId={viewerUserId}
+          availableTests={technicalTests.map((t) => t.key)}
+          isOwner={isOwner}
+        />
 
         {/* Teste Tehnice Specifice section */}
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">

@@ -922,6 +922,69 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_challenge_badges: {
+        Row: {
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          earned_at: string
+          id: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          earned_at?: string
+          id?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          challenge_type?: Database["public"]["Enums"]["weekly_challenge_type"]
+          earned_at?: string
+          id?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      weekly_challenges: {
+        Row: {
+          baseline: Json
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          completed_at: string | null
+          created_at: string
+          id: string
+          status: string
+          unlocked_test: string | null
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          baseline?: Json
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          unlocked_test?: string | null
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          baseline?: Json
+          challenge_type?: Database["public"]["Enums"]["weekly_challenge_type"]
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          unlocked_test?: string | null
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -937,9 +1000,22 @@ export type Database = {
       }
       can_message_user: { Args: { _other_user_id: string }; Returns: boolean }
       censor_profanity: { Args: { input_text: string }; Returns: string }
+      current_week_start: { Args: never; Returns: string }
       get_or_create_conversation: {
         Args: { other_user_id: string }
         Returns: string
+      }
+      get_or_create_weekly_challenge: {
+        Args: { _available_tests: string[] }
+        Returns: {
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          completed_at: string
+          id: string
+          newly_completed: boolean
+          status: string
+          unlocked_test: string
+          week_start: string
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
@@ -993,6 +1069,12 @@ export type Database = {
     }
     Enums: {
       app_role: "player" | "scout" | "agent" | "club_rep"
+      weekly_challenge_type:
+        | "add_video_highlight"
+        | "add_match_video"
+        | "complete_physical_data"
+        | "complete_career_entry"
+        | "complete_technical_test"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1121,6 +1203,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["player", "scout", "agent", "club_rep"],
+      weekly_challenge_type: [
+        "add_video_highlight",
+        "add_match_video",
+        "complete_physical_data",
+        "complete_career_entry",
+        "complete_technical_test",
+      ],
     },
   },
 } as const
