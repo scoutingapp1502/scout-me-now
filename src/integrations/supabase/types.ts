@@ -482,6 +482,7 @@ export type Database = {
           grace_days_used: number
           id: string
           last_visit_date: string | null
+          next_test_preview: string | null
           next_unlock_started_on: string | null
           unlocked_tests: string[]
           updated_at: string
@@ -493,6 +494,7 @@ export type Database = {
           grace_days_used?: number
           id?: string
           last_visit_date?: string | null
+          next_test_preview?: string | null
           next_unlock_started_on?: string | null
           unlocked_tests?: string[]
           updated_at?: string
@@ -504,6 +506,7 @@ export type Database = {
           grace_days_used?: number
           id?: string
           last_visit_date?: string | null
+          next_test_preview?: string | null
           next_unlock_started_on?: string | null
           unlocked_tests?: string[]
           updated_at?: string
