@@ -477,6 +477,7 @@ export type Database = {
       }
       player_test_unlocks: {
         Row: {
+          best_streak: number
           created_at: string
           current_streak: number
           grace_days_used: number
@@ -489,6 +490,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          best_streak?: number
           created_at?: string
           current_streak?: number
           grace_days_used?: number
@@ -501,6 +503,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          best_streak?: number
           created_at?: string
           current_streak?: number
           grace_days_used?: number
@@ -952,6 +955,7 @@ export type Database = {
       ping_daily_visit: {
         Args: { _available_tests: string[] }
         Returns: {
+          best_streak: number
           current_streak: number
           days_until_next_unlock: number
           newly_unlocked: string
