@@ -214,6 +214,16 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
 
+  // Streak vizibil în header (atât pe profilul propriu cât și pentru scouteri)
+  const headerTechnicalTests = getTechnicalTestsBySport(currentSport);
+  const headerIsOwner = !readOnly || viewerUserId === userId;
+  const unlocks = useTestUnlocks(
+    userId,
+    viewerUserId,
+    headerTechnicalTests.map((t) => t.key),
+    headerIsOwner,
+  );
+
   // Agent autocomplete state
   const [agentSuggestions, setAgentSuggestions] = useState<AgentSuggestion[]>([]);
   const [showAgentSuggestions, setShowAgentSuggestions] = useState(false);
