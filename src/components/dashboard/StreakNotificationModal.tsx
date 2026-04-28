@@ -20,8 +20,12 @@ const StreakNotificationModal = ({
   onContinue,
   onDismiss,
 }: StreakNotificationModalProps) => {
-  const showPreview = daysUntilNextUnlock === 1 && nextTestLabel;
+  const showPreview = daysUntilNextUnlock > 0 && !!nextTestLabel;
   const daysLabel = `${daysUntilNextUnlock} ${daysUntilNextUnlock === 1 ? "zi rămasă" : "zile rămase"}`;
+  const previewHeading =
+    daysUntilNextUnlock === 1
+      ? "Mâine deblochezi"
+      : `Peste ${daysUntilNextUnlock} zile deblochezi`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
