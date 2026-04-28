@@ -741,6 +741,31 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                     {!profile?.instagram_url && !profile?.twitter_url && !readOnly && <span className="text-muted-foreground italic text-sm font-body font-normal">—</span>}
                   </div>
                 </div>
+                {!unlocks.loading && unlocks.currentStreak > 0 && (
+                  <TooltipProvider delayDuration={150}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex flex-col cursor-help">
+                          <span className="text-xs text-primary font-body uppercase tracking-wide">Streak activ</span>
+                          <span className="text-sm font-semibold text-white font-body mt-0.5 flex items-center gap-1.5">
+                            <span className="text-amber-400">🔥</span>
+                            {unlocks.currentStreak} {unlocks.currentStreak === 1 ? "zi" : "zile"} consecutive
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[240px]">
+                        <p className="text-xs">
+                          Numărul de zile consecutive în care jucătorul s-a logat în aplicație.
+                          {unlocks.bestStreak > unlocks.currentStreak && (
+                            <span className="block mt-1 text-muted-foreground">
+                              Record personal: {unlocks.bestStreak} {unlocks.bestStreak === 1 ? "zi" : "zile"}
+                            </span>
+                          )}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
             )}
             {editingSection === "header" && (
