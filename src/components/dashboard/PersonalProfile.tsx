@@ -1074,19 +1074,9 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
           {/* Progress streak — vizibil doar pe profilul propriu și doar dacă mai sunt teste de deblocat */}
           {isOwner && !unlocks.loading && unlocks.unlockedTests.length < technicalTests.length && (
             <div className="mb-4 p-3 rounded-lg bg-muted/30 border border-border">
-              <div className="flex items-center gap-2 mb-2">
-                <Gift className="h-4 w-4 text-primary" />
-                <span className="text-xs font-body text-foreground">
-                  {unlocks.daysUntilNextUnlock === 0
-                    ? "Următorul test se deblochează la următoarea ta intrare!"
-                    : `${unlocks.currentStreak}/${unlocks.required} zile consecutive — încă ${unlocks.daysUntilNextUnlock} ${unlocks.daysUntilNextUnlock === 1 ? "zi" : "zile"} până la următorul test deblocat`}
-                </span>
-              </div>
-              <Progress value={(unlocks.currentStreak / unlocks.required) * 100} className="h-2" />
               {(() => {
                 let previewKey = unlocks.nextTestPreview;
                 if (!previewKey) {
-                  // fallback: primul test încă neblocat (determinist după userId)
                   const locked = technicalTests.filter((t) => !unlocks.unlockedTests.includes(t.key));
                   if (locked.length > 0) {
                     const seed = (userId || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -1094,21 +1084,27 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                   }
                 }
                 const nextLabel = technicalTests.find((t) => t.key === previewKey)?.label;
-                if (nextLabel) {
-                  const heading =
-                    unlocks.daysUntilNextUnlock <= 1
-                      ? "În curând deblochezi"
-                      : `Peste ${unlocks.daysUntilNextUnlock} zile deblochezi`;
-                  return (
-                    <p className="text-[11px] text-primary mt-2 font-body font-semibold">
-                      🎯 {heading}: {nextLabel}
-                    </p>
-                  );
-                }
-                return null;
+                const days = unlocks.daysUntilNextUnlock;
+                const firstLine =
+                  days === 0
+                    ? nextLabel
+                      ? `Următoarea ta intrare deblochează testul: ${nextLabel}`
+                      : "Următorul test se deblochează la următoarea ta intrare!"
+                    : nextLabel
+                      ? `încă ${days} ${days === 1 ? "zi" : "zile"} până la deblocarea testului: ${nextLabel}`
+                      : `încă ${days} ${days === 1 ? "zi" : "zile"} până la următorul test deblocat`;
+                return (
+                  <div className="flex items-start gap-2 mb-2">
+                    <Gift className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <span className="text-xs font-body text-foreground font-semibold">
+                      {firstLine}
+                    </span>
+                  </div>
+                );
               })()}
+              <Progress value={(unlocks.currentStreak / unlocks.required) * 100} className="h-2" />
               <p className="text-[10px] text-muted-foreground mt-1.5 font-body">
-                Intră în aplicație în fiecare zi pentru a debloca teste noi 🎁
+                {unlocks.currentStreak}/{unlocks.required} zile consecutive · Intră în aplicație în fiecare zi pentru a debloca teste noi 🎁
               </p>
             </div>
           )}
