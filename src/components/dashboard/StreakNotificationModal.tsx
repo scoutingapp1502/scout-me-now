@@ -75,7 +75,7 @@ const StreakNotificationModal = ({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  Mâine deblochezi
+                  {previewHeading}
                 </p>
                 <p className="text-sm font-semibold text-foreground truncate">
                   {nextTestLabel}
