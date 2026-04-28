@@ -1083,6 +1083,21 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                 </span>
               </div>
               <Progress value={(unlocks.currentStreak / unlocks.required) * 100} className="h-2" />
+              {(() => {
+                const nextLabel = technicalTests.find((t) => t.key === unlocks.nextTestPreview)?.label;
+                if (nextLabel && unlocks.daysUntilNextUnlock > 0) {
+                  const heading =
+                    unlocks.daysUntilNextUnlock === 1
+                      ? "Mâine deblochezi"
+                      : `Peste ${unlocks.daysUntilNextUnlock} zile deblochezi`;
+                  return (
+                    <p className="text-[11px] text-primary mt-2 font-body font-semibold">
+                      🎯 {heading}: {nextLabel}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
               <p className="text-[10px] text-muted-foreground mt-1.5 font-body">
                 Intră în aplicație în fiecare zi pentru a debloca teste noi 🎁
               </p>
