@@ -25,6 +25,7 @@ import { Progress } from "@/components/ui/progress";
 import { Lock as LockIcon, Gift } from "lucide-react";
 import RecommendationsSection from "./RecommendationsSection";
 import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
+import WeeklyChallengeCard from "./WeeklyChallengeCard";
 
 type PlayerProfile = Tables<"player_profiles">;
 
