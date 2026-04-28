@@ -479,6 +479,7 @@ export type Database = {
         Row: {
           created_at: string
           current_streak: number
+          grace_days_used: number
           id: string
           last_visit_date: string | null
           next_unlock_started_on: string | null
@@ -489,6 +490,7 @@ export type Database = {
         Insert: {
           created_at?: string
           current_streak?: number
+          grace_days_used?: number
           id?: string
           last_visit_date?: string | null
           next_unlock_started_on?: string | null
@@ -499,6 +501,7 @@ export type Database = {
         Update: {
           created_at?: string
           current_streak?: number
+          grace_days_used?: number
           id?: string
           last_visit_date?: string | null
           next_unlock_started_on?: string | null
