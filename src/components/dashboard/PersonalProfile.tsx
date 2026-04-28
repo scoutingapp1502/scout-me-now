@@ -693,11 +693,41 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                 <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-lg sm:text-2xl h-auto py-1 min-w-0" />
               </div>
             ) : (
-            <h1 className="font-display text-3xl sm:text-5xl text-white tracking-wide uppercase">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="font-display text-3xl sm:text-5xl text-white tracking-wide uppercase">
                 {profile?.first_name || profile?.last_name
                   ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
                   : t.dashboard.profile.completeProfile}
               </h1>
+              {!unlocks.loading && unlocks.currentStreak > 0 && (
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="relative h-12 w-12 flex items-center justify-center cursor-help select-none drop-shadow-[0_0_8px_rgba(251,146,60,0.5)] hover:scale-110 transition-transform shrink-0"
+                        aria-label={`Streak activ: ${unlocks.currentStreak} zile consecutive`}
+                      >
+                        <span className="text-4xl leading-none" aria-hidden="true">🔥</span>
+                        <span className="absolute inset-0 flex items-center justify-center pt-1.5 font-display text-[13px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                          {unlocks.currentStreak}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[240px]">
+                      <p className="font-display text-xs uppercase tracking-wide">Streak activ</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {unlocks.currentStreak} {unlocks.currentStreak === 1 ? "zi consecutivă" : "zile consecutive"} de logare în aplicație — semn de disciplină și seriozitate.
+                      </p>
+                      {unlocks.bestStreak > unlocks.currentStreak && (
+                        <p className="text-[10px] text-muted-foreground/80 mt-1">
+                          Record personal: {unlocks.bestStreak} {unlocks.bestStreak === 1 ? "zi" : "zile"}
+                        </p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             )}
 
             {/* Gender display - only show if male or female */}
@@ -751,34 +781,6 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                     {!profile?.instagram_url && !profile?.twitter_url && !readOnly && <span className="text-muted-foreground italic text-sm font-body font-normal">—</span>}
                   </div>
                 </div>
-                {!unlocks.loading && unlocks.currentStreak > 0 && (
-                  <TooltipProvider delayDuration={150}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          className="relative h-12 w-12 flex items-center justify-center cursor-help select-none drop-shadow-[0_0_8px_rgba(251,146,60,0.5)] hover:scale-110 transition-transform"
-                          aria-label={`Streak activ: ${unlocks.currentStreak} zile consecutive`}
-                        >
-                          <span className="text-4xl leading-none" aria-hidden="true">🔥</span>
-                          <span className="absolute inset-0 flex items-center justify-center pt-1.5 font-display text-[13px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                            {unlocks.currentStreak}
-                          </span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[240px]">
-                        <p className="font-display text-xs uppercase tracking-wide">Streak activ</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {unlocks.currentStreak} {unlocks.currentStreak === 1 ? "zi consecutivă" : "zile consecutive"} de logare în aplicație — semn de disciplină și seriozitate.
-                        </p>
-                        {unlocks.bestStreak > unlocks.currentStreak && (
-                          <p className="text-[10px] text-muted-foreground/80 mt-1">
-                            Record personal: {unlocks.bestStreak} {unlocks.bestStreak === 1 ? "zi" : "zile"}
-                          </p>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
               </div>
             )}
             {editingSection === "header" && (
