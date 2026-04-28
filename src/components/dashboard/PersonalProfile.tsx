@@ -1084,11 +1084,20 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
               </div>
               <Progress value={(unlocks.currentStreak / unlocks.required) * 100} className="h-2" />
               {(() => {
-                const nextLabel = technicalTests.find((t) => t.key === unlocks.nextTestPreview)?.label;
-                if (nextLabel && unlocks.daysUntilNextUnlock > 0) {
+                let previewKey = unlocks.nextTestPreview;
+                if (!previewKey) {
+                  // fallback: primul test încă neblocat (determinist după userId)
+                  const locked = technicalTests.filter((t) => !unlocks.unlockedTests.includes(t.key));
+                  if (locked.length > 0) {
+                    const seed = (userId || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+                    previewKey = locked[seed % locked.length].key;
+                  }
+                }
+                const nextLabel = technicalTests.find((t) => t.key === previewKey)?.label;
+                if (nextLabel) {
                   const heading =
-                    unlocks.daysUntilNextUnlock === 1
-                      ? "Mâine deblochezi"
+                    unlocks.daysUntilNextUnlock <= 1
+                      ? "În curând deblochezi"
                       : `Peste ${unlocks.daysUntilNextUnlock} zile deblochezi`;
                   return (
                     <p className="text-[11px] text-primary mt-2 font-body font-semibold">
