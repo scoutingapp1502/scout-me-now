@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export interface TestUnlocksState {
   currentStreak: number;
+  bestStreak: number;
   unlockedTests: string[];
   daysUntilNextUnlock: number;
   required: number; // 3 pentru prima deblocare, 4 pentru următoarele
@@ -23,6 +24,7 @@ export function useTestUnlocks(
   const { toast } = useToast();
   const [state, setState] = useState<TestUnlocksState>({
     currentStreak: 0,
+    bestStreak: 0,
     unlockedTests: [],
     daysUntilNextUnlock: 3,
     required: 3,
@@ -35,15 +37,17 @@ export function useTestUnlocks(
   const fetchState = useCallback(async () => {
     const { data } = await supabase
       .from("player_test_unlocks" as any)
-      .select("current_streak, unlocked_tests, last_visit_date, next_test_preview")
+      .select("current_streak, unlocked_tests, last_visit_date, next_test_preview, best_streak")
       .eq("user_id", userId)
       .maybeSingle();
 
     const unlocked = ((data as any)?.unlocked_tests as string[]) || [];
     const streak = (data as any)?.current_streak ?? 0;
+    const best = (data as any)?.best_streak ?? 0;
     const required = unlocked.length === 0 ? 3 : 4;
     setState({
       currentStreak: streak,
+      bestStreak: Math.max(best, streak),
       unlockedTests: unlocked,
       daysUntilNextUnlock: Math.max(required - streak, 0),
       required,
@@ -71,9 +75,11 @@ export function useTestUnlocks(
       if (row) {
         const unlocked = (row.unlocked_tests as string[]) || [];
         const streak = row.current_streak ?? 0;
+        const best = row.best_streak ?? 0;
         const required = unlocked.length === 0 ? 3 : 4;
         setState({
           currentStreak: streak,
+          bestStreak: Math.max(best, streak),
           unlockedTests: unlocked,
           daysUntilNextUnlock: row.days_until_next_unlock ?? Math.max(required - streak, 0),
           required,

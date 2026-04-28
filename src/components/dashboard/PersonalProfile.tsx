@@ -24,6 +24,7 @@ import { useTestUnlocks } from "@/hooks/useTestUnlocks";
 import { Progress } from "@/components/ui/progress";
 import { Lock as LockIcon, Gift } from "lucide-react";
 import RecommendationsSection from "./RecommendationsSection";
+import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -1066,10 +1067,26 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
 
         {/* Teste Tehnice Specifice section */}
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
+          <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
+              {!unlocks.loading && unlocks.bestStreak >= 7 && (
+                <StreakBadges bestStreak={unlocks.bestStreak} currentStreak={unlocks.currentStreak} />
+              )}
+            </div>
             {unlocks.unlockedTests.length > 0 && <SectionEditButton section="technical" />}
           </div>
+          {/* Mesaj motivațional pentru următorul badge — doar pe profilul propriu */}
+          {isOwner && !unlocks.loading && (() => {
+            const next = getNextBadgeMilestone(unlocks.bestStreak);
+            if (!next) return null;
+            const remaining = next.threshold - unlocks.bestStreak;
+            return (
+              <p className="text-[11px] text-muted-foreground font-body mb-2">
+                🏅 Încă {remaining} {remaining === 1 ? "zi" : "zile"} de streak până la badge-ul „{next.label}"
+              </p>
+            );
+          })()}
 
           {/* Progress streak — vizibil doar pe profilul propriu și doar dacă mai sunt teste de deblocat */}
           {isOwner && !unlocks.loading && unlocks.unlockedTests.length < technicalTests.length && (
