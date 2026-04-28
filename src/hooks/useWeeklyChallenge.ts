@@ -90,9 +90,11 @@ export function useWeeklyChallenge(
         });
         return;
       }
+      console.log("[WeeklyChallenge] calling RPC", { userId, availableTests });
       const { data, error } = await supabase.rpc("get_or_create_weekly_challenge" as any, {
         _available_tests: availableTests,
       });
+      console.log("[WeeklyChallenge] RPC result", { data, error });
       if (cancelled) return;
       const badges = await fetchBadges();
       if (cancelled) return;
