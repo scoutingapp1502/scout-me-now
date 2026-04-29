@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, User, ArrowLeft, SlidersHorizontal, ChevronDown, X } from "lucide-react";
+import { Search, User, ArrowLeft, SlidersHorizontal, ChevronDown, X, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
 import { calcPlayerCompletion, calcScoutCompletion, calcAgentCompletion, calcClubRepCompletion } from "@/lib/profileCompletion";
@@ -62,8 +66,10 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
   const [filterSport, setFilterSport] = useState("all");
   const [filterCountry, setFilterCountry] = useState("all");
   const [filterPosition, setFilterPosition] = useState("all");
-  const [filterAgeMin, setFilterAgeMin] = useState("");
-  const [filterAgeMax, setFilterAgeMax] = useState("");
+  const [filterDobFrom, setFilterDobFrom] = useState<Date | undefined>();
+  const [filterDobTo, setFilterDobTo] = useState<Date | undefined>();
+  const [dobFromOpen, setDobFromOpen] = useState(false);
+  const [dobToOpen, setDobToOpen] = useState(false);
 
   const tr = lang === "ro" ? {
     title: "Comunitate",
@@ -79,8 +85,10 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     sport: "Sport",
     country: "Țară",
     positionOrSpec: "Poziție / Specializare",
-    ageMin: "Vârstă min",
-    ageMax: "Vârstă max",
+    birthDate: "Data nașterii",
+    dobFrom: "Născut după",
+    dobTo: "Născut înainte",
+    pickDate: "Alege data",
     allOpt: "Toate",
     clear: "Șterge filtrele",
     back: "Înapoi la comunitate",
@@ -99,8 +107,10 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     sport: "Sport",
     country: "Country",
     positionOrSpec: "Position / Specialization",
-    ageMin: "Min age",
-    ageMax: "Max age",
+    birthDate: "Date of birth",
+    dobFrom: "Born after",
+    dobTo: "Born before",
+    pickDate: "Pick date",
     allOpt: "All",
     clear: "Clear filters",
     back: "Back to community",
