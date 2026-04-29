@@ -8,10 +8,7 @@ import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
-import AgentsSection from "@/components/dashboard/AgentsSection";
-import ScoutersSection from "@/components/dashboard/ScoutersSection";
-import ClubRepsSection from "@/components/dashboard/ClubRepsSection";
-import PlayersSection from "@/components/dashboard/PlayersSection";
+import CommunitySection from "@/components/dashboard/CommunitySection";
 import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
@@ -258,9 +255,12 @@ const Dashboard = () => {
               : <PersonalProfile userId={user.id} />}
           </>
         );
-      case "players": return <PlayersSection onNavigateToChat={handleNavigateToChat} />;
-      case "scouters": return <ScoutersSection onNavigateToChat={handleNavigateToChat} />;
-      case "agents": return <AgentsSection onNavigateToChat={handleNavigateToChat} />;
+      case "players":
+      case "scouters":
+      case "agents":
+      case "clubs":
+      case "community":
+        return <CommunitySection onNavigateToChat={handleNavigateToChat} />;
       case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} />;
       case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} />;
       case "messages": return (
@@ -270,7 +270,6 @@ const Dashboard = () => {
           onNavigateToChat={handleNavigateToChat}
         />
       );
-      case "clubs": return <ClubRepsSection onNavigateToChat={handleNavigateToChat} />;
       default:
         return (
           <>

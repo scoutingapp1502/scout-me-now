@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Users, Search, Briefcase, Building2, LogOut, MessageCircle, Newspaper, Bell } from "lucide-react";
+import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
@@ -94,16 +94,16 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
     }
   }, [activeSection]);
 
-  const sections = [
+  const mySpaceSections = [
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
+    { id: "messages", label: lang === "ro" ? "Mesaje" : "Messages", icon: MessageCircle },
     { id: "notifications", label: lang === "ro" ? "Notificări" : "Notifications", icon: Bell },
     { id: "activity", label: lang === "ro" ? "Activitate" : "Activity", icon: Newspaper },
-    { id: "messages", label: lang === "ro" ? "Mesaje" : "Messages", icon: MessageCircle },
-    { id: "players", label: t.dashboard.sidebar.players, icon: Users },
-    { id: "scouters", label: t.dashboard.sidebar.scouters, icon: Search },
-    { id: "agents", label: t.dashboard.sidebar.agents, icon: Briefcase },
-    { id: "clubs", label: lang === "ro" ? "Reprezentanți Club" : "Club Representative", icon: Building2 },
   ];
+  const discoverSections = [
+    { id: "community", label: lang === "ro" ? "Comunitate" : "Community", icon: Sparkles },
+  ];
+  const sections = [...mySpaceSections, ...discoverSections];
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -130,34 +130,44 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         )}
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
-        {sections.map((section) => {
-          const Icon = section.icon;
-          const isActive = activeSection === section.id;
-          const showBadge = (section.id === "messages" && unreadCount > 0 && !isActive) ||
-            (section.id === "activity" && activityCount > 0 && !isActive) ||
-            (section.id === "notifications" && notifCount > 0 && !isActive);
-          const badgeCount = section.id === "messages" ? unreadCount : section.id === "notifications" ? notifCount : activityCount;
-          return (
-            <button
-              key={section.id}
-              onClick={() => onSectionChange(section.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all relative ${
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-lg"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              {section.label}
-              {showBadge && (
-                <span className="ml-auto w-5 h-5 rounded-full bg-destructive flex items-center justify-center shrink-0">
-                  <span className="text-[10px] text-white font-bold">{badgeCount > 99 ? "99+" : badgeCount}</span>
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
+        {[
+          { label: lang === "ro" ? "SPAȚIUL MEU" : "MY SPACE", items: mySpaceSections },
+          { label: lang === "ro" ? "DESCOPERĂ" : "DISCOVER", items: discoverSections },
+        ].map((group) => (
+          <div key={group.label} className="space-y-1">
+            <p className="px-4 text-[10px] font-body font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
+              {group.label}
+            </p>
+            {group.items.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+              const showBadge = (section.id === "messages" && unreadCount > 0 && !isActive) ||
+                (section.id === "activity" && activityCount > 0 && !isActive) ||
+                (section.id === "notifications" && notifCount > 0 && !isActive);
+              const badgeCount = section.id === "messages" ? unreadCount : section.id === "notifications" ? notifCount : activityCount;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => onSectionChange(section.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all relative ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-lg"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {section.label}
+                  {showBadge && (
+                    <span className="ml-auto w-5 h-5 rounded-full bg-destructive flex items-center justify-center shrink-0">
+                      <span className="text-[10px] text-white font-bold">{badgeCount > 99 ? "99+" : badgeCount}</span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-2">
