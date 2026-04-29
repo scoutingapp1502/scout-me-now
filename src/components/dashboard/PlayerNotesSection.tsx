@@ -353,6 +353,9 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
                             <MessageCircle className="h-3.5 w-3.5" />
                           </Button>
                         )}
+                        <Button size="sm" variant="outline" onClick={() => handleExportSinglePDF(n)} title={ro ? "Export PDF" : "Export PDF"}>
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => setEditingPlayer(n)}>
                           <Pencil className="h-3.5 w-3.5 mr-1" />
                           {ro ? "Editează" : "Edit"}
