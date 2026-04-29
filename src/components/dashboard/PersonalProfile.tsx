@@ -211,6 +211,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
+  const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [followStatus, setFollowStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
