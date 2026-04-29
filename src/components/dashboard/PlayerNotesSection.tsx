@@ -353,15 +353,6 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
         </div>
       )}
 
-      {filtered.length > 0 && (
-        <div className="flex justify-center pt-4 pb-2">
-          <Button onClick={handleExportPDF} variant="default" className="gap-2">
-            <Download className="h-4 w-4" />
-            {ro ? "Export PDF" : "Export PDF"}
-          </Button>
-        </div>
-      )}
-
       {editingPlayer && (
         <ScoutPlayerNoteDialog
           open={!!editingPlayer}
