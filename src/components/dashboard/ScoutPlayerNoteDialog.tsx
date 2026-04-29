@@ -104,10 +104,11 @@ export default function ScoutPlayerNoteDialog({
 
   const addCustomLabel = () => {
     const v = newLabel.trim();
-    if (!v) return;
-    if ([...defaultLabels, ...customLabels].includes(v)) { setNewLabel(""); return; }
+    if (!v) { setShowLabelInput(false); return; }
+    if ([...defaultLabels, ...customLabels].includes(v)) { setNewLabel(""); setShowLabelInput(false); return; }
     setCustomLabels(prev => [...prev, v]);
     setNewLabel("");
+    setShowLabelInput(false);
     markDirty();
   };
 
@@ -119,10 +120,11 @@ export default function ScoutPlayerNoteDialog({
 
   const addCustomQuality = () => {
     const v = newQuality.trim();
-    if (!v) return;
-    if ([...defaultQualities, ...customQualities].includes(v)) { setNewQuality(""); return; }
+    if (!v) { setShowQualityInput(false); return; }
+    if ([...defaultQualities, ...customQualities].includes(v)) { setNewQuality(""); setShowQualityInput(false); return; }
     setCustomQualities(prev => [...prev, v]);
     setNewQuality("");
+    setShowQualityInput(false);
     markDirty();
   };
 
