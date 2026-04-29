@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Users, Search, Briefcase, Building2, LogOut, MessageCircle, Newspaper, Bell } from "lucide-react";
+import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
@@ -94,16 +94,16 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
     }
   }, [activeSection]);
 
-  const sections = [
+  const mySpaceSections = [
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
+    { id: "messages", label: lang === "ro" ? "Mesaje" : "Messages", icon: MessageCircle },
     { id: "notifications", label: lang === "ro" ? "Notificări" : "Notifications", icon: Bell },
     { id: "activity", label: lang === "ro" ? "Activitate" : "Activity", icon: Newspaper },
-    { id: "messages", label: lang === "ro" ? "Mesaje" : "Messages", icon: MessageCircle },
-    { id: "players", label: t.dashboard.sidebar.players, icon: Users },
-    { id: "scouters", label: t.dashboard.sidebar.scouters, icon: Search },
-    { id: "agents", label: t.dashboard.sidebar.agents, icon: Briefcase },
-    { id: "clubs", label: lang === "ro" ? "Reprezentanți Club" : "Club Representative", icon: Building2 },
   ];
+  const discoverSections = [
+    { id: "community", label: lang === "ro" ? "Comunitate" : "Community", icon: Sparkles },
+  ];
+  const sections = [...mySpaceSections, ...discoverSections];
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
