@@ -470,6 +470,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                 </Popover>
               </div>
             </div>
+          </div>
           {activeFilterCount > 0 && (
             <div className="flex justify-end">
               <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground gap-1.5">
