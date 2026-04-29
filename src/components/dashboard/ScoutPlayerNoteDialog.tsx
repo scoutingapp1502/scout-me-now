@@ -225,14 +225,29 @@ export default function ScoutPlayerNoteDialog({
                 })}
               </div>
               <div className="flex gap-2 mt-2">
-                <Input
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomLabel(); } }}
-                  placeholder={ro ? "Adaugă etichetă nouă…" : "Add new label…"}
-                  className="h-9 text-sm"
-                />
-                <Button type="button" variant="outline" size="sm" onClick={addCustomLabel}>
+                {showLabelInput && (
+                  <Input
+                    autoFocus
+                    value={newLabel}
+                    onChange={(e) => setNewLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); addCustomLabel(); }
+                      if (e.key === "Escape") { setNewLabel(""); setShowLabelInput(false); }
+                    }}
+                    onBlur={() => addCustomLabel()}
+                    placeholder={ro ? "Adaugă etichetă nouă…" : "Add new label…"}
+                    className="h-9 text-sm"
+                  />
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (showLabelInput) addCustomLabel();
+                    else setShowLabelInput(true);
+                  }}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
