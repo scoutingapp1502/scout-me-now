@@ -9,6 +9,7 @@ import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import CommunitySection from "@/components/dashboard/CommunitySection";
+import PlayerNotesSection from "@/components/dashboard/PlayerNotesSection";
 import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
@@ -261,6 +262,10 @@ const Dashboard = () => {
       case "clubs":
       case "community":
         return <CommunitySection onNavigateToChat={handleNavigateToChat} />;
+      case "player-notes":
+        return (userRole === "scout" || userRole === "club_rep")
+          ? <PlayerNotesSection scoutUserId={user.id} onNavigateToChat={handleNavigateToChat} />
+          : null;
       case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} />;
       case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} />;
       case "messages": return (
