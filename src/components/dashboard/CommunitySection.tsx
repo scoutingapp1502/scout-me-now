@@ -245,10 +245,10 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     if (filterSport !== "all") n++;
     if (filterCountry !== "all") n++;
     if (filterPosition !== "all") n++;
-    if (filterAgeMin) n++;
-    if (filterAgeMax) n++;
+    if (filterDobFrom) n++;
+    if (filterDobTo) n++;
     return n;
-  }, [filterSport, filterCountry, filterPosition, filterAgeMin, filterAgeMax]);
+  }, [filterSport, filterCountry, filterPosition, filterDobFrom, filterDobTo]);
 
   const filtered = useMemo(() => {
     return items.filter(i => {
@@ -266,22 +266,22 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
         const v = i.role === "player" ? i.position : i.title;
         if (v !== filterPosition) return false;
       }
-      if (filterAgeMin || filterAgeMax) {
-        const age = calcAge(i.date_of_birth);
-        if (age == null) return false;
-        if (filterAgeMin && age < Number(filterAgeMin)) return false;
-        if (filterAgeMax && age > Number(filterAgeMax)) return false;
+      if (filterDobFrom || filterDobTo) {
+        if (!i.date_of_birth) return false;
+        const dob = new Date(i.date_of_birth);
+        if (filterDobFrom && dob < filterDobFrom) return false;
+        if (filterDobTo && dob > filterDobTo) return false;
       }
       return true;
     });
-  }, [items, activeTab, search, filterSport, filterCountry, filterPosition, filterAgeMin, filterAgeMax]);
+  }, [items, activeTab, search, filterSport, filterCountry, filterPosition, filterDobFrom, filterDobTo]);
 
   const clearFilters = () => {
     setFilterSport("all");
     setFilterCountry("all");
     setFilterPosition("all");
-    setFilterAgeMin("");
-    setFilterAgeMax("");
+    setFilterDobFrom(undefined);
+    setFilterDobTo(undefined);
   };
 
   if (selected) {
