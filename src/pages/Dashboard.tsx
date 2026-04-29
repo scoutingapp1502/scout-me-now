@@ -9,6 +9,7 @@ import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import CommunitySection from "@/components/dashboard/CommunitySection";
+import PlayerNotesSection from "@/components/dashboard/PlayerNotesSection";
 import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
