@@ -182,6 +182,46 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
     doc.save(`${ro ? "note-jucatori" : "player-notes"}-${date}.pdf`);
   };
 
+  const handleExportSinglePDF = (n: NoteRow) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const fullName = `${n.player?.first_name || ""} ${n.player?.last_name || ""}`.trim() || "-";
+    const sportPos = [n.player?.sport, n.player?.position].filter(Boolean).join(" / ") || "-";
+    const rating = n.personal_rating ? `${"*".repeat(n.personal_rating)}${"-".repeat(5 - n.personal_rating)}` : "-";
+    const qualities = [...(n.observed_qualities || []), ...(n.custom_qualities || [])].join(", ") || "-";
+    const match = [n.match_watched, n.match_date].filter(Boolean).join(" - ") || "-";
+    const prio = n.priority ? (priorityLabel[n.priority] || n.priority) : "-";
+
+    doc.setFontSize(18);
+    doc.text(ro ? "Notita jucator" : "Player note", 14, 18);
+    doc.setFontSize(13);
+    doc.setTextColor(60);
+    doc.text(fullName, 14, 28);
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text(sportPos, 14, 34);
+    doc.text(`${ro ? "Actualizat" : "Updated"}: ${new Date(n.updated_at).toLocaleString(ro ? "ro-RO" : "en-US")}`, pageWidth - 14, 18, { align: "right" });
+
+    autoTable(doc, {
+      startY: 42,
+      theme: "grid",
+      styles: { fontSize: 10, cellPadding: 3, overflow: "linebreak" },
+      columnStyles: { 0: { cellWidth: 45, fontStyle: "bold", fillColor: [240, 245, 240] }, 1: { cellWidth: "auto" } },
+      body: [
+        [ro ? "Eticheta" : "Label", n.label || "-"],
+        ["Rating", rating],
+        [ro ? "Prioritate" : "Priority", prio],
+        [ro ? "Calitati observate" : "Observed qualities", qualities],
+        [ro ? "Meci vizionat" : "Match watched", match],
+        [ro ? "Observatii" : "Observations", n.observations || "-"],
+      ],
+    });
+
+    const safeName = fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "nota";
+    const date = new Date().toISOString().slice(0, 10);
+    doc.save(`${ro ? "nota" : "note"}-${safeName}-${date}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
       <div>
