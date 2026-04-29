@@ -26,6 +26,8 @@ import { Lock as LockIcon, Gift } from "lucide-react";
 import RecommendationsSection from "./RecommendationsSection";
 import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
 import WeeklyChallengeCard from "./WeeklyChallengeCard";
+import ScoutPlayerNoteDialog from "./ScoutPlayerNoteDialog";
+import { ClipboardList } from "lucide-react";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -209,6 +211,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
+  const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [followStatus, setFollowStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
@@ -384,8 +388,12 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   }, [userId]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setViewerUserId(user?.id ?? null);
+      if (user?.id) {
+        const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
+        setViewerRole((data?.role as string) ?? null);
+      }
     });
   }, []);
 
@@ -851,6 +859,17 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                       ? (lang === "ro" ? "Cerere trimisă" : "Request sent")
                       : (lang === "ro" ? "Urmărește" : "Follow")}
                 </Button>
+                {viewerRole === "scouter" && viewerUserId && viewerUserId !== userId && (
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); setShowNoteDialog(true); }}
+                    size="sm"
+                    variant="outline"
+                    className="font-body gap-2 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    {lang === "ro" ? "Notiță jucător" : "Player note"}
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -963,6 +982,19 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           onOpenChange={setShowMessageDialog}
           recipientUserId={userId}
           recipientName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()}
+        />
+      )}
+
+      {/* Scout Player Note Dialog */}
+      {viewerRole === "scouter" && viewerUserId && viewerUserId !== userId && (
+        <ScoutPlayerNoteDialog
+          open={showNoteDialog}
+          onOpenChange={setShowNoteDialog}
+          scoutUserId={viewerUserId}
+          playerUserId={userId}
+          playerName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || (lang === "ro" ? "Jucător" : "Player")}
+          playerSubtitle={[form.position, profile?.nationality, currentSport].filter(Boolean).join(" · ")}
+          playerPhotoUrl={photoSrc}
         />
       )}
     </div>

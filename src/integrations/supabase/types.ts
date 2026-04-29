@@ -820,6 +820,57 @@ export type Database = {
         }
         Relationships: []
       }
+      scout_player_notes: {
+        Row: {
+          created_at: string
+          custom_labels: string[]
+          custom_qualities: string[]
+          id: string
+          label: string | null
+          match_date: string | null
+          match_watched: string | null
+          observations: string | null
+          observed_qualities: string[]
+          personal_rating: number
+          player_user_id: string
+          priority: string | null
+          scout_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_labels?: string[]
+          custom_qualities?: string[]
+          id?: string
+          label?: string | null
+          match_date?: string | null
+          match_watched?: string | null
+          observations?: string | null
+          observed_qualities?: string[]
+          personal_rating?: number
+          player_user_id: string
+          priority?: string | null
+          scout_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_labels?: string[]
+          custom_qualities?: string[]
+          id?: string
+          label?: string | null
+          match_date?: string | null
+          match_watched?: string | null
+          observations?: string | null
+          observed_qualities?: string[]
+          personal_rating?: number
+          player_user_id?: string
+          priority?: string | null
+          scout_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       scout_posts: {
         Row: {
           content: string
