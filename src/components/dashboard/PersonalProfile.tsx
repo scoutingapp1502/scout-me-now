@@ -859,6 +859,17 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                       ? (lang === "ro" ? "Cerere trimisă" : "Request sent")
                       : (lang === "ro" ? "Urmărește" : "Follow")}
                 </Button>
+                {viewerRole === "scouter" && viewerUserId && viewerUserId !== userId && (
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); setShowNoteDialog(true); }}
+                    size="sm"
+                    variant="outline"
+                    className="font-body gap-2 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    {lang === "ro" ? "Notiță jucător" : "Player note"}
+                  </Button>
+                )}
               </div>
             )}
           </div>
