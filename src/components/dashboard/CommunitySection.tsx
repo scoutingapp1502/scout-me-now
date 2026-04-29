@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, User, ArrowLeft, SlidersHorizontal, ChevronDown, X } from "lucide-react";
+import { Search, User, ArrowLeft, SlidersHorizontal, ChevronDown, X, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
 import { calcPlayerCompletion, calcScoutCompletion, calcAgentCompletion, calcClubRepCompletion } from "@/lib/profileCompletion";
@@ -62,8 +66,10 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
   const [filterSport, setFilterSport] = useState("all");
   const [filterCountry, setFilterCountry] = useState("all");
   const [filterPosition, setFilterPosition] = useState("all");
-  const [filterAgeMin, setFilterAgeMin] = useState("");
-  const [filterAgeMax, setFilterAgeMax] = useState("");
+  const [filterDobFrom, setFilterDobFrom] = useState<Date | undefined>();
+  const [filterDobTo, setFilterDobTo] = useState<Date | undefined>();
+  const [dobFromOpen, setDobFromOpen] = useState(false);
+  const [dobToOpen, setDobToOpen] = useState(false);
 
   const tr = lang === "ro" ? {
     title: "Comunitate",
@@ -79,8 +85,10 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     sport: "Sport",
     country: "Țară",
     positionOrSpec: "Poziție / Specializare",
-    ageMin: "Vârstă min",
-    ageMax: "Vârstă max",
+    birthDate: "Data nașterii",
+    dobFrom: "Născut după",
+    dobTo: "Născut înainte",
+    pickDate: "Alege data",
     allOpt: "Toate",
     clear: "Șterge filtrele",
     back: "Înapoi la comunitate",
@@ -99,8 +107,10 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     sport: "Sport",
     country: "Country",
     positionOrSpec: "Position / Specialization",
-    ageMin: "Min age",
-    ageMax: "Max age",
+    birthDate: "Date of birth",
+    dobFrom: "Born after",
+    dobTo: "Born before",
+    pickDate: "Pick date",
     allOpt: "All",
     clear: "Clear filters",
     back: "Back to community",
@@ -235,10 +245,10 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     if (filterSport !== "all") n++;
     if (filterCountry !== "all") n++;
     if (filterPosition !== "all") n++;
-    if (filterAgeMin) n++;
-    if (filterAgeMax) n++;
+    if (filterDobFrom) n++;
+    if (filterDobTo) n++;
     return n;
-  }, [filterSport, filterCountry, filterPosition, filterAgeMin, filterAgeMax]);
+  }, [filterSport, filterCountry, filterPosition, filterDobFrom, filterDobTo]);
 
   const filtered = useMemo(() => {
     return items.filter(i => {
@@ -256,22 +266,22 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
         const v = i.role === "player" ? i.position : i.title;
         if (v !== filterPosition) return false;
       }
-      if (filterAgeMin || filterAgeMax) {
-        const age = calcAge(i.date_of_birth);
-        if (age == null) return false;
-        if (filterAgeMin && age < Number(filterAgeMin)) return false;
-        if (filterAgeMax && age > Number(filterAgeMax)) return false;
+      if (filterDobFrom || filterDobTo) {
+        if (!i.date_of_birth) return false;
+        const dob = new Date(i.date_of_birth);
+        if (filterDobFrom && dob < filterDobFrom) return false;
+        if (filterDobTo && dob > filterDobTo) return false;
       }
       return true;
     });
-  }, [items, activeTab, search, filterSport, filterCountry, filterPosition, filterAgeMin, filterAgeMax]);
+  }, [items, activeTab, search, filterSport, filterCountry, filterPosition, filterDobFrom, filterDobTo]);
 
   const clearFilters = () => {
     setFilterSport("all");
     setFilterCountry("all");
     setFilterPosition("all");
-    setFilterAgeMin("");
-    setFilterAgeMax("");
+    setFilterDobFrom(undefined);
+    setFilterDobTo(undefined);
   };
 
   if (selected) {
@@ -403,25 +413,62 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.ageMin}</label>
-              <Input
-                type="number"
-                value={filterAgeMin}
-                onChange={(e) => setFilterAgeMin(e.target.value)}
-                className="rounded-lg h-10 bg-background border-border font-body text-sm"
-                placeholder="14"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.ageMax}</label>
-              <Input
-                type="number"
-                value={filterAgeMax}
-                onChange={(e) => setFilterAgeMax(e.target.value)}
-                className="rounded-lg h-10 bg-background border-border font-body text-sm"
-                placeholder="40"
-              />
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.birthDate}</label>
+              <div className="flex gap-2">
+                <Popover open={dobFromOpen} onOpenChange={setDobFromOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm",
+                        !filterDobFrom && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filterDobFrom ? format(filterDobFrom, "dd/MM/yyyy") : tr.dobFrom}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filterDobFrom}
+                      onSelect={(d) => { setFilterDobFrom(d); setDobFromOpen(false); }}
+                      captionLayout="dropdown-buttons"
+                      fromYear={1950}
+                      toYear={new Date().getFullYear()}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover open={dobToOpen} onOpenChange={setDobToOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm",
+                        !filterDobTo && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filterDobTo ? format(filterDobTo, "dd/MM/yyyy") : tr.dobTo}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filterDobTo}
+                      onSelect={(d) => { setFilterDobTo(d); setDobToOpen(false); }}
+                      captionLayout="dropdown-buttons"
+                      fromYear={1950}
+                      toYear={new Date().getFullYear()}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
           {activeFilterCount > 0 && (
