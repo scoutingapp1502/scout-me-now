@@ -63,6 +63,8 @@ export default function ScoutPlayerNoteDialog({
   const [customQualities, setCustomQualities] = useState<string[]>([]);
   const [newLabel, setNewLabel] = useState("");
   const [newQuality, setNewQuality] = useState("");
+  const [showLabelInput, setShowLabelInput] = useState(false);
+  const [showQualityInput, setShowQualityInput] = useState(false);
 
   useEffect(() => {
     if (!open) return;
