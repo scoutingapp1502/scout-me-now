@@ -859,7 +859,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                       ? (lang === "ro" ? "Cerere trimisă" : "Request sent")
                       : (lang === "ro" ? "Urmărește" : "Follow")}
                 </Button>
-                {viewerRole === "scouter" && viewerUserId && viewerUserId !== userId && (
+                {viewerRole === "scout" && viewerUserId && viewerUserId !== userId && (
                   <Button
                     onClick={(e) => { e.stopPropagation(); setShowNoteDialog(true); }}
                     size="sm"
@@ -986,7 +986,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       )}
 
       {/* Scout Player Note Dialog */}
-      {viewerRole === "scouter" && viewerUserId && viewerUserId !== userId && (
+      {viewerRole === "scout" && viewerUserId && viewerUserId !== userId && (
         <ScoutPlayerNoteDialog
           open={showNoteDialog}
           onOpenChange={setShowNoteDialog}
