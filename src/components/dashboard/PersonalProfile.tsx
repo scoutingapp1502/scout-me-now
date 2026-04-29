@@ -388,8 +388,12 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   }, [userId]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setViewerUserId(user?.id ?? null);
+      if (user?.id) {
+        const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
+        setViewerRole((data?.role as string) ?? null);
+      }
     });
   }, []);
 
