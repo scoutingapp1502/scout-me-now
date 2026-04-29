@@ -302,14 +302,29 @@ export default function ScoutPlayerNoteDialog({
                 })}
               </div>
               <div className="flex gap-2 mt-2">
-                <Input
-                  value={newQuality}
-                  onChange={(e) => setNewQuality(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomQuality(); } }}
-                  placeholder={ro ? "Adaugă calitate nouă…" : "Add new quality…"}
-                  className="h-9 text-sm"
-                />
-                <Button type="button" variant="outline" size="sm" onClick={addCustomQuality}>
+                {showQualityInput && (
+                  <Input
+                    autoFocus
+                    value={newQuality}
+                    onChange={(e) => setNewQuality(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); addCustomQuality(); }
+                      if (e.key === "Escape") { setNewQuality(""); setShowQualityInput(false); }
+                    }}
+                    onBlur={() => addCustomQuality()}
+                    placeholder={ro ? "Adaugă calitate nouă…" : "Add new quality…"}
+                    className="h-9 text-sm"
+                  />
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (showQualityInput) addCustomQuality();
+                    else setShowQualityInput(true);
+                  }}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
