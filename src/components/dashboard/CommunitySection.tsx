@@ -413,27 +413,63 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.ageMin}</label>
-              <Input
-                type="number"
-                value={filterAgeMin}
-                onChange={(e) => setFilterAgeMin(e.target.value)}
-                className="rounded-lg h-10 bg-background border-border font-body text-sm"
-                placeholder="14"
-              />
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.birthDate}</label>
+              <div className="flex gap-2">
+                <Popover open={dobFromOpen} onOpenChange={setDobFromOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm",
+                        !filterDobFrom && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filterDobFrom ? format(filterDobFrom, "dd/MM/yyyy") : tr.dobFrom}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filterDobFrom}
+                      onSelect={(d) => { setFilterDobFrom(d); setDobFromOpen(false); }}
+                      captionLayout="dropdown-buttons"
+                      fromYear={1950}
+                      toYear={new Date().getFullYear()}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover open={dobToOpen} onOpenChange={setDobToOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm",
+                        !filterDobTo && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filterDobTo ? format(filterDobTo, "dd/MM/yyyy") : tr.dobTo}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filterDobTo}
+                      onSelect={(d) => { setFilterDobTo(d); setDobToOpen(false); }}
+                      captionLayout="dropdown-buttons"
+                      fromYear={1950}
+                      toYear={new Date().getFullYear()}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.ageMax}</label>
-              <Input
-                type="number"
-                value={filterAgeMax}
-                onChange={(e) => setFilterAgeMax(e.target.value)}
-                className="rounded-lg h-10 bg-background border-border font-body text-sm"
-                placeholder="40"
-              />
-            </div>
-          </div>
           {activeFilterCount > 0 && (
             <div className="flex justify-end">
               <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground gap-1.5">
