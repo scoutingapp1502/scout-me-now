@@ -984,6 +984,19 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           recipientName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()}
         />
       )}
+
+      {/* Scout Player Note Dialog */}
+      {viewerRole === "scouter" && viewerUserId && viewerUserId !== userId && (
+        <ScoutPlayerNoteDialog
+          open={showNoteDialog}
+          onOpenChange={setShowNoteDialog}
+          scoutUserId={viewerUserId}
+          playerUserId={userId}
+          playerName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || (lang === "ro" ? "Jucător" : "Player")}
+          playerSubtitle={[form.position, profile?.nationality, currentSport].filter(Boolean).join(" · ")}
+          playerPhotoUrl={photoSrc}
+        />
+      )}
     </div>
   );
 };
