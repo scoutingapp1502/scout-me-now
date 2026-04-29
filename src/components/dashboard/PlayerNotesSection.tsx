@@ -121,6 +121,67 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
 
   const priorityLabel = ro ? PRIORITY_LABEL_RO : PRIORITY_LABEL_EN;
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const title = ro ? "Note jucatori" : "Player notes";
+    const generated = ro ? "Generat" : "Generated";
+
+    doc.setFontSize(16);
+    doc.text(title, 14, 16);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`${generated}: ${new Date().toLocaleString(ro ? "ro-RO" : "en-US")}`, 14, 22);
+    doc.text(`${filtered.length} ${ro ? "notite" : "notes"}`, pageWidth - 14, 22, { align: "right" });
+
+    const rows = filtered.map(n => {
+      const name = `${n.player?.first_name || ""} ${n.player?.last_name || ""}`.trim() || "-";
+      const sportPos = [n.player?.sport, n.player?.position].filter(Boolean).join(" / ") || "-";
+      const rating = n.personal_rating ? `${"*".repeat(n.personal_rating)}${"-".repeat(5 - n.personal_rating)}` : "-";
+      const qualities = [...(n.observed_qualities || []), ...(n.custom_qualities || [])].join(", ") || "-";
+      const match = [n.match_watched, n.match_date].filter(Boolean).join(" - ") || "-";
+      const prio = n.priority ? (priorityLabel[n.priority] || n.priority) : "-";
+      const obs = n.observations || "-";
+      return [name, sportPos, n.label || "-", rating, prio, qualities, match, obs];
+    });
+
+    autoTable(doc, {
+      startY: 28,
+      head: [[
+        ro ? "Jucator" : "Player",
+        ro ? "Sport / Pozitie" : "Sport / Position",
+        ro ? "Eticheta" : "Label",
+        "Rating",
+        ro ? "Prioritate" : "Priority",
+        ro ? "Calitati" : "Qualities",
+        ro ? "Meci" : "Match",
+        ro ? "Observatii" : "Observations",
+      ]],
+      body: rows,
+      styles: { fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255, fontStyle: "bold" },
+      columnStyles: {
+        0: { cellWidth: 25 },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 18 },
+        3: { cellWidth: 16 },
+        4: { cellWidth: 16 },
+        5: { cellWidth: 30 },
+        6: { cellWidth: 25 },
+        7: { cellWidth: "auto" },
+      },
+      didDrawPage: (data) => {
+        const str = `${ro ? "Pagina" : "Page"} ${doc.getNumberOfPages()}`;
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        doc.text(str, pageWidth - 14, doc.internal.pageSize.getHeight() - 8, { align: "right" });
+      },
+    });
+
+    const date = new Date().toISOString().slice(0, 10);
+    doc.save(`${ro ? "note-jucatori" : "player-notes"}-${date}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
       <div>
