@@ -517,9 +517,9 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                 }}
                 className="bg-card border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 transition-colors flex flex-col"
               >
-                <div className={`relative w-full aspect-[4/3] ${ROLE_COLOR[item.role]} flex items-center justify-center overflow-hidden`}>
+                <div className={`relative w-full h-48 ${ROLE_COLOR[item.role]} flex items-center justify-center overflow-hidden`}>
                   {item.photo_url ? (
-                    <img src={item.photo_url} alt={`${item.first_name} ${item.last_name}`} className="w-full h-full object-contain" />
+                    <img src={item.photo_url} alt={`${item.first_name} ${item.last_name}`} className="w-full h-full object-cover" />
                   ) : (
                     <span className="font-display text-4xl text-white">{initials || <User className="h-10 w-10" />}</span>
                   )}
