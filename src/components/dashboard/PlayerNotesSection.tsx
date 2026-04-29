@@ -323,19 +323,7 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
 
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {n.label && <Badge variant="outline" className="text-xs">{n.label}</Badge>}
-                      {n.priority && (
-                        <Badge variant="outline" className={`text-xs ${PRIORITY_COLOR[n.priority] || ""}`}>
-                          {priorityLabel[n.priority] || n.priority}
-                        </Badge>
-                      )}
-                      {[...n.observed_qualities, ...(n.custom_qualities || [])].slice(0, 3).map(q => (
-                        <Badge key={q} variant="secondary" className="text-xs">{q}</Badge>
-                      ))}
                     </div>
-
-                    {n.observations && (
-                      <p className="text-sm text-foreground/80 font-body mt-2 line-clamp-2">{n.observations}</p>
-                    )}
 
                     {(n.match_watched || n.match_date) && (
                       <div className="text-xs text-muted-foreground font-body mt-2">
@@ -348,11 +336,6 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
                         {ro ? "Actualizat" : "Updated"}: {new Date(n.updated_at).toLocaleDateString(ro ? "ro-RO" : "en-US")}
                       </span>
                       <div className="flex gap-1.5">
-                        {onNavigateToChat && (
-                          <Button size="sm" variant="outline" onClick={() => onNavigateToChat(n.player_user_id)}>
-                            <MessageCircle className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
                         <Button size="sm" variant="outline" onClick={() => handleExportSinglePDF(n)} title={ro ? "Export PDF" : "Export PDF"}>
                           <Download className="h-3.5 w-3.5" />
                         </Button>
