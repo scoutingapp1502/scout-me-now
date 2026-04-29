@@ -63,6 +63,8 @@ export default function ScoutPlayerNoteDialog({
   const [customQualities, setCustomQualities] = useState<string[]>([]);
   const [newLabel, setNewLabel] = useState("");
   const [newQuality, setNewQuality] = useState("");
+  const [showLabelInput, setShowLabelInput] = useState(false);
+  const [showQualityInput, setShowQualityInput] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -102,10 +104,11 @@ export default function ScoutPlayerNoteDialog({
 
   const addCustomLabel = () => {
     const v = newLabel.trim();
-    if (!v) return;
-    if ([...defaultLabels, ...customLabels].includes(v)) { setNewLabel(""); return; }
+    if (!v) { setShowLabelInput(false); return; }
+    if ([...defaultLabels, ...customLabels].includes(v)) { setNewLabel(""); setShowLabelInput(false); return; }
     setCustomLabels(prev => [...prev, v]);
     setNewLabel("");
+    setShowLabelInput(false);
     markDirty();
   };
 
@@ -117,10 +120,11 @@ export default function ScoutPlayerNoteDialog({
 
   const addCustomQuality = () => {
     const v = newQuality.trim();
-    if (!v) return;
-    if ([...defaultQualities, ...customQualities].includes(v)) { setNewQuality(""); return; }
+    if (!v) { setShowQualityInput(false); return; }
+    if ([...defaultQualities, ...customQualities].includes(v)) { setNewQuality(""); setShowQualityInput(false); return; }
     setCustomQualities(prev => [...prev, v]);
     setNewQuality("");
+    setShowQualityInput(false);
     markDirty();
   };
 
@@ -221,14 +225,29 @@ export default function ScoutPlayerNoteDialog({
                 })}
               </div>
               <div className="flex gap-2 mt-2">
-                <Input
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomLabel(); } }}
-                  placeholder={ro ? "Adaugă etichetă nouă…" : "Add new label…"}
-                  className="h-9 text-sm"
-                />
-                <Button type="button" variant="outline" size="sm" onClick={addCustomLabel}>
+                {showLabelInput && (
+                  <Input
+                    autoFocus
+                    value={newLabel}
+                    onChange={(e) => setNewLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); addCustomLabel(); }
+                      if (e.key === "Escape") { setNewLabel(""); setShowLabelInput(false); }
+                    }}
+                    onBlur={() => addCustomLabel()}
+                    placeholder={ro ? "Adaugă etichetă nouă…" : "Add new label…"}
+                    className="h-9 text-sm"
+                  />
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (showLabelInput) addCustomLabel();
+                    else setShowLabelInput(true);
+                  }}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -283,14 +302,29 @@ export default function ScoutPlayerNoteDialog({
                 })}
               </div>
               <div className="flex gap-2 mt-2">
-                <Input
-                  value={newQuality}
-                  onChange={(e) => setNewQuality(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomQuality(); } }}
-                  placeholder={ro ? "Adaugă calitate nouă…" : "Add new quality…"}
-                  className="h-9 text-sm"
-                />
-                <Button type="button" variant="outline" size="sm" onClick={addCustomQuality}>
+                {showQualityInput && (
+                  <Input
+                    autoFocus
+                    value={newQuality}
+                    onChange={(e) => setNewQuality(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); addCustomQuality(); }
+                      if (e.key === "Escape") { setNewQuality(""); setShowQualityInput(false); }
+                    }}
+                    onBlur={() => addCustomQuality()}
+                    placeholder={ro ? "Adaugă calitate nouă…" : "Add new quality…"}
+                    className="h-9 text-sm"
+                  />
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (showQualityInput) addCustomQuality();
+                    else setShowQualityInput(true);
+                  }}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
