@@ -262,6 +262,10 @@ const Dashboard = () => {
       case "clubs":
       case "community":
         return <CommunitySection onNavigateToChat={handleNavigateToChat} />;
+      case "player-notes":
+        return (userRole === "scout" || userRole === "club_rep")
+          ? <PlayerNotesSection scoutUserId={user.id} onNavigateToChat={handleNavigateToChat} />
+          : null;
       case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} />;
       case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} />;
       case "messages": return (
