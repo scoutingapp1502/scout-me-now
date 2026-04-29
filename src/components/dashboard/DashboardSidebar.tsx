@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles } from "lucide-react";
+import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles, StickyNote } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
