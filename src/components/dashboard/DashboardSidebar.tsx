@@ -94,11 +94,13 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
     }
   }, [activeSection]);
 
+  const showPlayerNotes = userRole === "scout" || userRole === "club_rep";
   const mySpaceSections = [
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
     { id: "messages", label: lang === "ro" ? "Mesaje" : "Messages", icon: MessageCircle },
     { id: "notifications", label: lang === "ro" ? "Notificări" : "Notifications", icon: Bell },
     { id: "activity", label: lang === "ro" ? "Activitate" : "Activity", icon: Newspaper },
+    ...(showPlayerNotes ? [{ id: "player-notes", label: lang === "ro" ? "Note jucători" : "Player notes", icon: StickyNote }] : []),
   ];
   const discoverSections = [
     { id: "community", label: lang === "ro" ? "Comunitate" : "Community", icon: Sparkles },
