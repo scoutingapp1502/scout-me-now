@@ -1082,9 +1082,11 @@ export type Database = {
       ping_daily_visit: {
         Args: { _available_tests: string[] }
         Returns: {
+          best_login_streak: number
           best_streak: number
           current_streak: number
           days_until_next_unlock: number
+          login_streak: number
           newly_unlocked: string
           next_test_preview: string
           unlocked_tests: string[]
