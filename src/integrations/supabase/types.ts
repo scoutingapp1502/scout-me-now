@@ -477,12 +477,14 @@ export type Database = {
       }
       player_test_unlocks: {
         Row: {
+          best_login_streak: number
           best_streak: number
           created_at: string
           current_streak: number
           grace_days_used: number
           id: string
           last_visit_date: string | null
+          login_streak: number
           next_test_preview: string | null
           next_unlock_started_on: string | null
           unlocked_tests: string[]
@@ -490,12 +492,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          best_login_streak?: number
           best_streak?: number
           created_at?: string
           current_streak?: number
           grace_days_used?: number
           id?: string
           last_visit_date?: string | null
+          login_streak?: number
           next_test_preview?: string | null
           next_unlock_started_on?: string | null
           unlocked_tests?: string[]
@@ -503,12 +507,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          best_login_streak?: number
           best_streak?: number
           created_at?: string
           current_streak?: number
           grace_days_used?: number
           id?: string
           last_visit_date?: string | null
+          login_streak?: number
           next_test_preview?: string | null
           next_unlock_started_on?: string | null
           unlocked_tests?: string[]
