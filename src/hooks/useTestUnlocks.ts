@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export interface TestUnlocksState {
-  currentStreak: number;
+  currentStreak: number; // progres către următoarea deblocare (resetează la unlock)
   bestStreak: number;
+  loginStreak: number; // zile consecutive de logare (NU se resetează la unlock)
+  bestLoginStreak: number;
   unlockedTests: string[];
   daysUntilNextUnlock: number;
   required: number; // 3 pentru prima deblocare, 4 pentru următoarele
