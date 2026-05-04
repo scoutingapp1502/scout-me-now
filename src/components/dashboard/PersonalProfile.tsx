@@ -1329,6 +1329,17 @@ function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId,
                         )}
                       </PopoverContent>
                     </Popover>
+                    {isOwner && !((form as any)[test.key] || (profile as any)?.[test.key]) && (
+                      <button
+                        className="ml-auto flex items-center justify-center h-7 w-7 rounded-full bg-primary/20 hover:bg-primary/40 text-primary transition-colors"
+                        aria-label={`Adaugă video ${test.label}`}
+                        onClick={() => {
+                          setEditingTechnical(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                   {(() => {
                     const videoUrl = (form as any)[test.key] || (profile as any)?.[test.key] || "";
