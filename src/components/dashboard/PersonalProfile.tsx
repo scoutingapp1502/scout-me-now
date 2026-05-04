@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle, UserPlus, UserCheck, Users, Lock } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle, UserPlus, UserCheck, Users, Lock, Clock, CheckCircle, XCircle } from "lucide-react";
 import MessageDialog from "./MessageDialog";
 import PostCard from "./PostCard";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -28,6 +28,7 @@ import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
 import WeeklyChallengeCard from "./WeeklyChallengeCard";
 import ScoutPlayerNoteDialog from "./ScoutPlayerNoteDialog";
 import { ClipboardList } from "lucide-react";
+import { useVideoSubmissions } from "@/hooks/useVideoSubmissions";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -1013,6 +1014,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
   const { toast } = useToast();
   const [athleticRegOpen, setAthleticRegOpen] = useState(false);
   const [inlineEditTest, setInlineEditTest] = useState<string | null>(null);
+  const { submissions: videoSubmissions, submitVideo, getSubmissionForTest } = useVideoSubmissions(userId);
   const technicalTests = getTechnicalTestsBySport(currentSport);
   const isOwner = !readOnly || viewerUserId === userId;
   const unlocks = useTestUnlocks(
@@ -1357,7 +1359,41 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                       </div>
                     );
                   })()}
-                  {/* Inline editor triggered by "+" button */}
+                   {/* Video verification status */}
+                   {(() => {
+                     const sub = getSubmissionForTest(test.key);
+                     if (!sub) return null;
+                     if (sub.status === "pending") {
+                       return (
+                         <div className="mt-2 flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
+                           <Clock className="h-4 w-4 text-yellow-400 shrink-0" />
+                           <span className="text-xs text-yellow-300 font-body">Video în proces de verificare</span>
+                         </div>
+                       );
+                     }
+                     if (sub.status === "verified" && sub.grade !== null) {
+                       return (
+                         <div className="mt-2 flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                           <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
+                           <span className="text-xs text-green-300 font-body">
+                             Video verificat — Nota: <strong className="text-green-200">{sub.grade}</strong>
+                           </span>
+                         </div>
+                       );
+                     }
+                     if (sub.status === "rejected") {
+                       return (
+                         <div className="mt-2 flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                           <XCircle className="h-4 w-4 text-red-400 shrink-0" />
+                           <span className="text-xs text-red-300 font-body">
+                             Video respins{sub.reviewer_notes ? `: ${sub.reviewer_notes}` : ""}
+                           </span>
+                         </div>
+                       );
+                     }
+                     return null;
+                   })()}
+                   {/* Inline editor triggered by "+" button */}
                   {inlineEditTest === test.key && (
                     <div className="mt-3 space-y-2">
                       <div className="flex flex-col sm:flex-row gap-2">
@@ -1409,9 +1445,9 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                           type="button"
                           className="bg-green-700 hover:bg-green-800 text-white"
                           onClick={async () => {
-                            // Save just this test's video via handleSave-like logic
                             const payload: any = {};
-                            payload[test.key] = (form as any)[test.key] || null;
+                            const videoUrl = (form as any)[test.key] || null;
+                            payload[test.key] = videoUrl;
                             const { error } = await supabase
                               .from("player_profiles")
                               .update(payload)
@@ -1419,7 +1455,11 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             if (error) {
                               toast({ title: "Eroare la salvare", variant: "destructive" });
                             } else {
-                              toast({ title: "Video salvat cu succes!" });
+                              // Submit for verification
+                              if (videoUrl) {
+                                await submitVideo(test.key, videoUrl, userId);
+                              }
+                              toast({ title: "Video salvat! Va fi verificat de echipa noastră." });
                               setInlineEditTest(null);
                             }
                           }}

@@ -979,6 +979,48 @@ export type Database = {
         }
         Relationships: []
       }
+      video_submissions: {
+        Row: {
+          created_at: string
+          grade: number | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: string
+          test_key: string
+          updated_at: string
+          user_id: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          grade?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          test_key: string
+          updated_at?: string
+          user_id: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          grade?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          test_key?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string
+        }
+        Relationships: []
+      }
       weekly_challenge_badges: {
         Row: {
           challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
@@ -1127,7 +1169,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "player" | "scout" | "agent" | "club_rep"
+      app_role: "player" | "scout" | "agent" | "club_rep" | "admin"
       weekly_challenge_type:
         | "add_video_highlight"
         | "add_match_video"
@@ -1261,7 +1303,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["player", "scout", "agent", "club_rep"],
+      app_role: ["player", "scout", "agent", "club_rep", "admin"],
       weekly_challenge_type: [
         "add_video_highlight",
         "add_match_video",
