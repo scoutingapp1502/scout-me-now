@@ -28,6 +28,7 @@ import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
 import WeeklyChallengeCard from "./WeeklyChallengeCard";
 import ScoutPlayerNoteDialog from "./ScoutPlayerNoteDialog";
 import { ClipboardList } from "lucide-react";
+import { useVideoSubmissions } from "@/hooks/useVideoSubmissions";
 
 type PlayerProfile = Tables<"player_profiles">;
 
