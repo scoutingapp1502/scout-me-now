@@ -1012,6 +1012,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
   const { t } = useLanguage();
   const { toast } = useToast();
   const [athleticRegOpen, setAthleticRegOpen] = useState(false);
+  const [inlineEditTest, setInlineEditTest] = useState<string | null>(null);
   const technicalTests = getTechnicalTestsBySport(currentSport);
   const isOwner = !readOnly || viewerUserId === userId;
   const unlocks = useTestUnlocks(
