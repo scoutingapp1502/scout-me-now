@@ -1357,6 +1357,79 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                       </div>
                     );
                   })()}
+                  {/* Inline editor triggered by "+" button */}
+                  {inlineEditTest === test.key && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input
+                          placeholder="Link YouTube sau video URL"
+                          value={(form as any)[test.inputKey] || ""}
+                          onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
+                          className="text-white flex-1 min-w-0"
+                        />
+                        <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
+                          const val = (form as any)[test.inputKey]?.trim();
+                          if (val) {
+                            updateForm(test.key as any, val);
+                            updateForm(test.inputKey as any, "");
+                          }
+                        }}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="relative">
+                        <div className="border-2 border-dashed border-border rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                          onClick={() => document.getElementById(`inline-${test.uploadId}`)?.click()}>
+                          <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
+                          <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                        </div>
+                        <input
+                          id={`inline-${test.uploadId}`}
+                          type="file"
+                          accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const ext = file.name.split(".").pop();
+                            const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
+                            const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
+                            if (uploadError) {
+                              toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                              return;
+                            }
+                            const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                            updateForm(test.key as any, urlData.publicUrl);
+                            toast({ title: "Video încărcat cu succes!" });
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          className="bg-green-700 hover:bg-green-800 text-white"
+                          onClick={async () => {
+                            // Save just this test's video via handleSave-like logic
+                            const payload: any = {};
+                            payload[test.key] = (form as any)[test.key] || null;
+                            const { error } = await supabase
+                              .from("player_profiles")
+                              .update(payload)
+                              .eq("user_id", userId);
+                            if (error) {
+                              toast({ title: "Eroare la salvare", variant: "destructive" });
+                            } else {
+                              toast({ title: "Video salvat cu succes!" });
+                              setInlineEditTest(null);
+                            }
+                          }}
+                        >
+                          <Save className="h-4 w-4 mr-1" />
+                          Salvați
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 );
               })}
