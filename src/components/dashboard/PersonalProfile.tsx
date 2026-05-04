@@ -1411,9 +1411,9 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                           type="button"
                           className="bg-green-700 hover:bg-green-800 text-white"
                           onClick={async () => {
-                            // Save just this test's video via handleSave-like logic
                             const payload: any = {};
-                            payload[test.key] = (form as any)[test.key] || null;
+                            const videoUrl = (form as any)[test.key] || null;
+                            payload[test.key] = videoUrl;
                             const { error } = await supabase
                               .from("player_profiles")
                               .update(payload)
@@ -1421,7 +1421,11 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             if (error) {
                               toast({ title: "Eroare la salvare", variant: "destructive" });
                             } else {
-                              toast({ title: "Video salvat cu succes!" });
+                              // Submit for verification
+                              if (videoUrl) {
+                                await submitVideo(test.key, videoUrl, userId);
+                              }
+                              toast({ title: "Video salvat! Va fi verificat de echipa noastră." });
                               setInlineEditTest(null);
                             }
                           }}
