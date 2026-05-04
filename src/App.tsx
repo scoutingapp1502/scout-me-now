@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ResetPassword from "./pages/ResetPassword";
+import AdminVideoReview from "./pages/AdminVideoReview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
