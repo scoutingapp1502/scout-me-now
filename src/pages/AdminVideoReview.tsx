@@ -119,14 +119,19 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className={embedded ? "text-foreground" : "min-h-screen bg-background text-foreground"}>
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-heading font-bold">🎥 Verificare Videouri</h1>
-        </div>
+        {!embedded && (
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-2xl font-heading font-bold">🎥 Verificare Videouri</h1>
+          </div>
+        )}
+        {embedded && (
+          <h1 className="text-2xl font-heading font-bold mb-6">🎥 Verificare Videouri</h1>
+        )}
 
         {/* Filters */}
         <div className="flex gap-2 mb-6 flex-wrap">
