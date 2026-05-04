@@ -47,6 +47,10 @@ const Dashboard = () => {
         .maybeSingle();
 
       if (roleData) {
+        if (roleData.role === 'admin') {
+          navigate("/admin");
+          return;
+        }
         if (isMounted) {
           setUserRole(roleData.role as "player" | "scout" | "agent" | "club_rep");
           setRoleLoading(false);
