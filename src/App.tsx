@@ -26,6 +26,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/video-review" element={<AdminVideoReview />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
