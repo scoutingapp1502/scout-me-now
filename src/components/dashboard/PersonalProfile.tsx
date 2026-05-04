@@ -1359,7 +1359,41 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                       </div>
                     );
                   })()}
-                  {/* Inline editor triggered by "+" button */}
+                   {/* Video verification status */}
+                   {(() => {
+                     const sub = getSubmissionForTest(test.key);
+                     if (!sub) return null;
+                     if (sub.status === "pending") {
+                       return (
+                         <div className="mt-2 flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
+                           <Clock className="h-4 w-4 text-yellow-400 shrink-0" />
+                           <span className="text-xs text-yellow-300 font-body">Video în proces de verificare</span>
+                         </div>
+                       );
+                     }
+                     if (sub.status === "verified" && sub.grade !== null) {
+                       return (
+                         <div className="mt-2 flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                           <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
+                           <span className="text-xs text-green-300 font-body">
+                             Video verificat — Nota: <strong className="text-green-200">{sub.grade}</strong>
+                           </span>
+                         </div>
+                       );
+                     }
+                     if (sub.status === "rejected") {
+                       return (
+                         <div className="mt-2 flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                           <XCircle className="h-4 w-4 text-red-400 shrink-0" />
+                           <span className="text-xs text-red-300 font-body">
+                             Video respins{sub.reviewer_notes ? `: ${sub.reviewer_notes}` : ""}
+                           </span>
+                         </div>
+                       );
+                     }
+                     return null;
+                   })()}
+                   {/* Inline editor triggered by "+" button */}
                   {inlineEditTest === test.key && (
                     <div className="mt-3 space-y-2">
                       <div className="flex flex-col sm:flex-row gap-2">
