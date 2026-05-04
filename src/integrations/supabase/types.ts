@@ -979,6 +979,48 @@ export type Database = {
         }
         Relationships: []
       }
+      video_submissions: {
+        Row: {
+          created_at: string
+          grade: number | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: string
+          test_key: string
+          updated_at: string
+          user_id: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          grade?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          test_key: string
+          updated_at?: string
+          user_id: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          grade?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          test_key?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string
+        }
+        Relationships: []
+      }
       weekly_challenge_badges: {
         Row: {
           challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
