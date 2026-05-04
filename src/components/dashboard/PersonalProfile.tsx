@@ -1002,8 +1002,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 };
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editingSection, updateForm, photoSrc, userId, viewerUserId, SectionEditButton, SectionSaveButton, readOnly = false }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; viewerUserId: string | null; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC; readOnly?: boolean;
+function StatsTab({ form, profile, editingSection, setEditingSection, updateForm, photoSrc, userId, viewerUserId, SectionEditButton, SectionSaveButton, readOnly = false }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; setEditingSection: (s: EditingSection) => void; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; viewerUserId: string | null; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC; readOnly?: boolean;
 }) {
   const editing = editingSection === "stats";
   const editingMatchStats = editingSection === "match_stats";
