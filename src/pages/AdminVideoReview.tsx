@@ -22,12 +22,12 @@ const testLabelMap: Record<string, string> = {
   free_throw_shooting_video: "Free Throw Shooting",
 };
 
-export default function AdminVideoReview() {
+export default function AdminVideoReview({ embedded }: { embedded?: boolean } = {}) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { submissions, loading, reviewVideo, rejectVideo } = useAdminVideoSubmissions();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(embedded ? true : false);
+  const [checkingAuth, setCheckingAuth] = useState(embedded ? false : true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [grade, setGrade] = useState("");
@@ -35,6 +35,14 @@ export default function AdminVideoReview() {
   const [filter, setFilter] = useState<"all" | "pending" | "verified" | "rejected">("pending");
 
   useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    };
+    getUser();
+
+    if (embedded) return;
+
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -57,7 +65,7 @@ export default function AdminVideoReview() {
       setCheckingAuth(false);
     };
     checkAdmin();
-  }, [navigate, toast]);
+  }, [navigate, toast, embedded]);
 
   if (checkingAuth || !isAdmin) {
     return (
