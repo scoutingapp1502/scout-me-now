@@ -58,6 +58,19 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed,
           ) : (
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           )}
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDismiss();
+              }}
+              className="ml-1 p-1 text-muted-foreground hover:text-foreground transition-colors rounded-full"
+              title={lang === "ro" ? "Închide" : "Close"}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </button>
 
