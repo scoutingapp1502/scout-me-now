@@ -247,6 +247,8 @@ const Dashboard = () => {
       percentage={percentage}
       sections={sections}
       onSectionClick={handleWizardGoToSection}
+      dismissed={completionBarDismissed}
+      onDismiss={() => setCompletionBarDismissed(true)}
     />
   ) : null;
 
