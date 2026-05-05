@@ -39,7 +39,10 @@ export function useVideoSubmissions(userId?: string) {
   const submitVideo = async (testKey: string, videoUrl: string, currentUserId: string) => {
     const { data, error } = await supabase
       .from("video_submissions")
-      .insert({ user_id: currentUserId, test_key: testKey, video_url: videoUrl })
+      .upsert(
+        { user_id: currentUserId, test_key: testKey, video_url: videoUrl, status: "pending", grade: null, reviewer_notes: null, reviewed_by: null, reviewed_at: null },
+        { onConflict: "user_id,test_key" }
+      )
       .select()
       .single();
 
