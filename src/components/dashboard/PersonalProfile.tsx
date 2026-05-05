@@ -1318,18 +1318,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="text-sm font-body w-80" side="top">
-                        <p className="font-semibold mb-1">{test.icon} {test.label}</p>
-                        <p className="text-muted-foreground text-xs whitespace-pre-line">{test.description}</p>
-                        {test.key === "control_pass_video" && (
-                          <video
-                            src="/videos/control-pass.mp4"
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            className="w-full rounded-md mt-2"
-                          />
-                        )}
+                        <TestInfoContent test={test} />
                       </PopoverContent>
                     </Popover>
                     {isOwner && !((form as any)[test.key] || (profile as any)?.[test.key]) && !editingTechnical && (
