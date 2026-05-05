@@ -9,13 +9,15 @@ interface ProfileCompletionBarProps {
   percentage: number;
   sections: ProfileSection[];
   onSectionClick?: (sectionKey: string) => void;
+  dismissed?: boolean;
+  onDismiss?: () => void;
 }
 
-const ProfileCompletionBar = ({ percentage, sections, onSectionClick }: ProfileCompletionBarProps) => {
+const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed, onDismiss }: ProfileCompletionBarProps) => {
   const { lang } = useLanguage();
   const [expanded, setExpanded] = useState(true);
 
-  if (percentage >= 100) return null;
+  if (percentage >= 100 || dismissed) return null;
 
   return (
     <div className="mb-6 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
