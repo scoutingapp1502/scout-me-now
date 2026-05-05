@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, Info, X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { ProfileSection } from "@/hooks/useProfileCompletion";
@@ -9,13 +9,15 @@ interface ProfileCompletionBarProps {
   percentage: number;
   sections: ProfileSection[];
   onSectionClick?: (sectionKey: string) => void;
+  dismissed?: boolean;
+  onDismiss?: () => void;
 }
 
-const ProfileCompletionBar = ({ percentage, sections, onSectionClick }: ProfileCompletionBarProps) => {
+const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed, onDismiss }: ProfileCompletionBarProps) => {
   const { lang } = useLanguage();
   const [expanded, setExpanded] = useState(true);
 
-  if (percentage >= 100) return null;
+  if (percentage >= 100 || dismissed) return null;
 
   return (
     <div className="mb-6 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -55,6 +57,19 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick }: ProfileC
             <ChevronUp className="h-4 w-4 text-muted-foreground" />
           ) : (
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDismiss();
+              }}
+              className="ml-1 p-1 text-muted-foreground hover:text-foreground transition-colors rounded-full"
+              title={lang === "ro" ? "Închide" : "Close"}
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
       </button>
