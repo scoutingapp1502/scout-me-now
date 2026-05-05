@@ -28,6 +28,7 @@ const Dashboard = () => {
   const [playerName, setPlayerName] = useState("");
   const [playerSport, setPlayerSport] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [completionBarDismissed, setCompletionBarDismissed] = useState(false);
   const [userRole, setUserRole] = useState<"player" | "scout" | "agent" | "club_rep" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
