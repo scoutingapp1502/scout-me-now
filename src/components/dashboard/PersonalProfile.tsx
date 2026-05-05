@@ -120,6 +120,49 @@ function AgentPhoneInput({ value, onChange }: { value: string; onChange: (val: s
 }
 
 
+const TestInfoContent = ({ test }: { test: TechnicalTest }) => {
+  const [showVideo, setShowVideo] = useState(false);
+  const hasVideo = test.key === "control_pass_video";
+
+  if (showVideo && hasVideo) {
+    return (
+      <div>
+        <video
+          src="/videos/control-pass.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full rounded-md"
+        />
+        <button
+          onClick={() => setShowVideo(false)}
+          className="mt-2 text-xs text-primary hover:underline font-body"
+        >
+          ← Înapoi la descriere
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="font-semibold mb-1">{test.icon} {test.label}</p>
+      <p className="text-muted-foreground text-xs whitespace-pre-line">{test.description}</p>
+      {hasVideo && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 w-full text-xs"
+          onClick={() => setShowVideo(true)}
+        >
+          Vezi reprezentare video
+        </Button>
+      )}
+    </div>
+  );
+};
+
 
 interface PersonalProfileProps {
   userId: string;
