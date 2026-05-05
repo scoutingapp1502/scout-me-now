@@ -1275,58 +1275,61 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                 return (
                 <div key={test.key}>
                   <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video {test.label}</p>
-                  {(form as any)[test.key] && (
+                  {(form as any)[test.key] ? (
                     <div className="mb-2 flex items-center gap-2">
                       <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any)[test.key]}</span>
                       <Button type="button" variant="ghost" size="icon" onClick={() => updateForm(test.key as any, null)}>
                         <X className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input
+                          placeholder="Link YouTube sau video URL"
+                          value={(form as any)[test.inputKey] || ""}
+                          onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
+                          className="text-white flex-1 min-w-0"
+                        />
+                        <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
+                          const val = (form as any)[test.inputKey]?.trim();
+                          if (val) {
+                            updateForm(test.key as any, val);
+                            updateForm(test.inputKey as any, "");
+                          }
+                        }}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="relative mt-2">
+                        <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                          onClick={() => document.getElementById(test.uploadId)?.click()}>
+                          <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
+                          <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                        </div>
+                        <input
+                          id={test.uploadId}
+                          type="file"
+                          accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const ext = file.name.split(".").pop();
+                            const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
+                            const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
+                            if (uploadError) {
+                              toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                              return;
+                            }
+                            const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                            updateForm(test.key as any, urlData.publicUrl);
+                            toast({ title: "Video încărcat cu succes!" });
+                          }}
+                        />
+                      </div>
+                    </>
                   )}
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      placeholder="Link YouTube sau video URL"
-                      value={(form as any)[test.inputKey] || ""}
-                      onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
-                      className="text-white flex-1 min-w-0"
-                    />
-                    <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
-                      const val = (form as any)[test.inputKey]?.trim();
-                      if (val) {
-                        updateForm(test.key as any, val);
-                        updateForm(test.inputKey as any, "");
-                      }
-                    }}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="relative mt-2">
-                    <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                      onClick={() => document.getElementById(test.uploadId)?.click()}>
-                      <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                      <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
-                    </div>
-                    <input
-                      id={test.uploadId}
-                      type="file"
-                      accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const ext = file.name.split(".").pop();
-                        const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
-                        const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
-                        if (uploadError) {
-                          toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
-                          return;
-                        }
-                        const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-                        updateForm(test.key as any, urlData.publicUrl);
-                        toast({ title: "Video încărcat cu succes!" });
-                      }}
-                    />
-                  </div>
                 </div>
                 );
               })}
