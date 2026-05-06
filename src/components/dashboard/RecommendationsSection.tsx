@@ -376,6 +376,8 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
         onOpenChange={setAskOpen}
         recipientName={people[profileUserId]?.full_name || ""}
         onSubmit={requestRecommendation}
+        viewerUserId={viewerUserId}
+        defaultAuthorId={!isOwner ? profileUserId : undefined}
       />
 
       {/* ========= DIALOG: OFERĂ ========= */}
