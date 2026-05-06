@@ -292,8 +292,8 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
         <h2 className="font-display text-2xl text-foreground">Recomandări</h2>
 
         <div className="flex items-center gap-2">
-          {/* + buton pentru vizitatori conectați */}
-          {!isOwner && viewerUserId && canConnect && (
+          {/* + buton pentru vizitatori conectați sau owner */}
+          {((!isOwner && viewerUserId && canConnect) || isOwner) && (
             <Popover>
               <PopoverTrigger asChild>
                 <button
@@ -309,7 +309,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
                   onClick={() => setAskOpen(true)}
                 >
                   <Quote className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-body text-foreground">Solicită o recomandare</span>
+                  <span className="text-sm font-body text-foreground">Solicitați o recomandare</span>
                 </button>
                 <button
                   className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-accent/50 text-left"
