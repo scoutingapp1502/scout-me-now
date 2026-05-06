@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -27,6 +28,8 @@ import {
   X as XIcon,
   EyeOff,
   Trash2,
+  Search,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -182,12 +185,12 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
   );
 
   // ====== ACTIONS ======
-  const requestRecommendation = async (content: string) => {
-    if (!viewerUserId || viewerUserId === profileUserId) return;
-    // viewer = recipient (cere), author = profileUserId
+  const requestRecommendation = async (authorUserId: string, content: string) => {
+    if (!viewerUserId) return;
+    // viewer = recipient (cere recomandare), authorUserId = cel care scrie
     const { error } = await supabase.from("recommendations").insert({
       recipient_user_id: viewerUserId,
-      author_user_id: profileUserId,
+      author_user_id: authorUserId,
       content: content || "",
       status: "pending",
       initiated_by: "request",
@@ -373,6 +376,8 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
         onOpenChange={setAskOpen}
         recipientName={people[profileUserId]?.full_name || ""}
         onSubmit={requestRecommendation}
+        viewerUserId={viewerUserId}
+        defaultAuthorId={!isOwner ? profileUserId : undefined}
       />
 
       {/* ========= DIALOG: OFERĂ ========= */}
@@ -567,37 +572,222 @@ const RequestDialog = ({
   onOpenChange,
   recipientName,
   onSubmit,
+  viewerUserId,
+  defaultAuthorId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   recipientName: string;
-  onSubmit: (msg: string) => void;
+  onSubmit: (authorUserId: string, msg: string) => void;
+  viewerUserId: string | null;
+  defaultAuthorId?: string;
 }) => {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [email, setEmail] = useState("");
+  const [results, setResults] = useState<{ user_id: string; full_name: string; avatar_url: string | null }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<{ user_id: string; full_name: string; avatar_url: string | null } | null>(null);
   const [msg, setMsg] = useState("");
+
   useEffect(() => {
-    if (!open) setMsg("");
+    if (!open) {
+      setStep(1);
+      setSearchTerm("");
+      setEmail("");
+      setResults([]);
+      setSelectedPerson(null);
+      setMsg("");
+    }
   }, [open]);
+
+  // If opened from someone else's profile, skip step 1
+  useEffect(() => {
+    if (open && defaultAuthorId && defaultAuthorId !== viewerUserId) {
+      setSelectedPerson({ user_id: defaultAuthorId, full_name: recipientName, avatar_url: null });
+      setStep(2);
+    }
+  }, [open, defaultAuthorId, viewerUserId, recipientName]);
+
+  const searchPeople = useCallback(async (term: string) => {
+    if (term.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    setSearching(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, avatar_url")
+      .ilike("full_name", `%${term.trim()}%`)
+      .neq("user_id", viewerUserId || "")
+      .limit(6);
+    setResults(data || []);
+    setSearching(false);
+  }, [viewerUserId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => searchPeople(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm, searchPeople]);
+
+  const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Solicită o recomandare</DialogTitle>
-          <DialogDescription>
-            Trimite o solicitare către {recipientName || "această persoană"}. Va putea răspunde scriindu-ți o recomandare.
-          </DialogDescription>
+          <DialogTitle>Solicitați o recomandare</DialogTitle>
+          {step === 1 && (
+            <DialogDescription>
+              Ajutați-ne să vă personalizăm solicitarea
+            </DialogDescription>
+          )}
+          {step === 2 && selectedPerson && (
+            <DialogDescription>
+              Trimite o solicitare către {selectedPerson.full_name}
+            </DialogDescription>
+          )}
         </DialogHeader>
-        <Textarea
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
-          placeholder="Mesaj opțional (ex: Salut! Mi-ar plăcea o recomandare despre colaborarea noastră.)"
-          className="min-h-[120px]"
-        />
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Anulează
-          </Button>
-          <Button onClick={() => onSubmit(msg)}>Trimite cererea</Button>
-        </DialogFooter>
+
+        {step === 1 && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-foreground font-body mb-1">
+                Pe cine doriți să întrebați?
+              </p>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setSelectedPerson(null);
+                  }}
+                  placeholder="Căutați persoane..."
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Search results */}
+              {searchTerm.trim().length >= 2 && (
+                <div className="mt-2 border border-border rounded-md max-h-48 overflow-y-auto">
+                  {searching ? (
+                    <div className="flex items-center justify-center py-3">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : results.length > 0 ? (
+                    results.map((p) => (
+                      <button
+                        key={p.user_id}
+                        onClick={() => {
+                          setSelectedPerson(p);
+                          setSearchTerm(p.full_name);
+                          setResults([]);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/50 text-left transition-colors",
+                          selectedPerson?.user_id === p.user_id && "bg-accent/30"
+                        )}
+                      >
+                        <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                          {p.avatar_url ? (
+                            <img src={p.avatar_url} alt={p.full_name} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                              {(p.full_name?.[0] || "?").toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-sm font-body text-foreground">{p.full_name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground py-3 px-3 font-body">
+                      Niciun rezultat găsit
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Email fallback */}
+            {!selectedPerson && searchTerm.trim().length >= 2 && results.length === 0 && !searching && (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs font-body">sau introduceți adresa de email</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@exemplu.com"
+                    className="pl-9"
+                    type="email"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-muted-foreground font-body">
+                {selectedPerson ? "1 persoană selectată" : ""}
+              </span>
+              <Button
+                disabled={!selectedPerson && !isValidEmail(email)}
+                onClick={() => setStep(2)}
+              >
+                Continuați
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-4">
+            {selectedPerson && (
+              <div className="flex items-center gap-3 p-3 rounded-md bg-accent/20 border border-border">
+                <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                  {selectedPerson.avatar_url ? (
+                    <img src={selectedPerson.avatar_url} alt={selectedPerson.full_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                      {(selectedPerson.full_name?.[0] || "?").toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <span className="text-sm font-body text-foreground font-medium">{selectedPerson.full_name}</span>
+                <button
+                  onClick={() => { setSelectedPerson(null); setStep(1); setSearchTerm(""); }}
+                  className="ml-auto text-muted-foreground hover:text-foreground"
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <Textarea
+              value={msg}
+              onChange={(e) => setMsg(e.target.value)}
+              placeholder="Mesaj opțional (ex: Salut! Mi-ar plăcea o recomandare despre colaborarea noastră.)"
+              className="min-h-[120px]"
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStep(1)}>
+                Înapoi
+              </Button>
+              <Button onClick={() => {
+                if (selectedPerson) {
+                  onSubmit(selectedPerson.user_id, msg);
+                }
+                // TODO: email invite flow could be added later
+              }}>
+                Trimite cererea
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
