@@ -585,7 +585,7 @@ const RequestDialog = ({
   const [step, setStep] = useState<1 | 2>(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [email, setEmail] = useState("");
-  const [results, setResults] = useState<{ user_id: string; full_name: string; avatar_url: string | null }[]>([]);
+  const [results, setResults] = useState<{ user_id: string; full_name: string; avatar_url: string | null; roleLabel?: string; org?: string; loc?: string; _needsLoc?: boolean }[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<{ user_id: string; full_name: string; avatar_url: string | null } | null>(null);
   const [msg, setMsg] = useState("");
@@ -620,8 +620,54 @@ const RequestDialog = ({
       .select("user_id, full_name, avatar_url")
       .ilike("full_name", `%${term.trim()}%`)
       .neq("user_id", viewerUserId || "")
-      .limit(6);
-    setResults(data || []);
+      .limit(12);
+
+    if (!data || data.length === 0) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+
+    const userIds = data.map((p) => p.user_id);
+
+    const [rolesRes, playerRes, scoutRes] = await Promise.all([
+      supabase.from("user_roles").select("user_id, role").in("user_id", userIds),
+      supabase.from("player_profiles").select("user_id, current_team, nationality").in("user_id", userIds),
+      supabase.from("scout_profiles").select("user_id, organization, country").in("user_id", userIds),
+    ]);
+
+    const rolesMap = new Map<string, string>();
+    (rolesRes.data || []).forEach((r: any) => {
+      if (r.role !== "admin") rolesMap.set(r.user_id, r.role);
+    });
+    const playerMap = new Map<string, { team?: string; nationality?: string }>();
+    (playerRes.data || []).forEach((p: any) => playerMap.set(p.user_id, { team: p.current_team, nationality: p.nationality }));
+    const scoutMap = new Map<string, { org?: string; country?: string }>();
+    (scoutRes.data || []).forEach((s: any) => scoutMap.set(s.user_id, { org: s.organization, country: s.country }));
+
+    const roleLabels: Record<string, string> = { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Reprezentant Club" };
+
+    const enriched = data.map((p) => {
+      const role = rolesMap.get(p.user_id);
+      const roleLabel = role ? roleLabels[role] || role : undefined;
+      const org = role === "player" ? playerMap.get(p.user_id)?.team : scoutMap.get(p.user_id)?.org;
+      const loc = role === "player" ? playerMap.get(p.user_id)?.nationality : scoutMap.get(p.user_id)?.country;
+      return { ...p, roleLabel, org, loc, _needsLoc: false };
+    });
+
+    // Check for duplicates needing extra disambiguation
+    const nameGroups = new Map<string, typeof enriched>();
+    enriched.forEach((p) => {
+      const key = p.full_name?.toLowerCase() || "";
+      if (!nameGroups.has(key)) nameGroups.set(key, []);
+      nameGroups.get(key)!.push(p);
+    });
+    enriched.forEach((p) => {
+      const group = nameGroups.get(p.full_name?.toLowerCase() || "") || [];
+      p._needsLoc = group.length > 1 && group.filter((g) => g.roleLabel === p.roleLabel && g.org === p.org).length > 1;
+    });
+
+    setResults(enriched);
     setSearching(false);
   }, [viewerUserId]);
 
@@ -698,7 +744,14 @@ const RequestDialog = ({
                             </div>
                           )}
                         </div>
-                        <span className="text-sm font-body text-foreground">{p.full_name}</span>
+                        <div className="min-w-0">
+                          <span className="text-sm font-body text-foreground block truncate">{p.full_name}</span>
+                          {(p.roleLabel || p.org) && (
+                            <span className="text-xs text-muted-foreground font-body block truncate">
+                              {[p.roleLabel, p.org, p._needsLoc ? p.loc : null].filter(Boolean).join(" · ")}
+                            </span>
+                          )}
+                        </div>
                       </button>
                     ))
                   ) : (
