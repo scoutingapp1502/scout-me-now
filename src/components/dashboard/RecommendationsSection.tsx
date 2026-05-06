@@ -744,7 +744,14 @@ const RequestDialog = ({
                             </div>
                           )}
                         </div>
-                        <span className="text-sm font-body text-foreground">{p.full_name}</span>
+                        <div className="min-w-0">
+                          <span className="text-sm font-body text-foreground block truncate">{p.full_name}</span>
+                          {(p.roleLabel || p.org) && (
+                            <span className="text-xs text-muted-foreground font-body block truncate">
+                              {[p.roleLabel, p.org, p._needsLoc ? p.loc : null].filter(Boolean).join(" · ")}
+                            </span>
+                          )}
+                        </div>
                       </button>
                     ))
                   ) : (
