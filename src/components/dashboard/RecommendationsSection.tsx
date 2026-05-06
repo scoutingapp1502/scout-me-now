@@ -652,7 +652,7 @@ const RequestDialog = ({
       const roleLabel = role ? roleLabels[role] || role : undefined;
       const org = role === "player" ? playerMap.get(p.user_id)?.team : scoutMap.get(p.user_id)?.org;
       const loc = role === "player" ? playerMap.get(p.user_id)?.nationality : scoutMap.get(p.user_id)?.country;
-      return { ...p, roleLabel, org, loc };
+      return { ...p, roleLabel, org, loc, _needsLoc: false };
     });
 
     // Check for duplicates needing extra disambiguation
