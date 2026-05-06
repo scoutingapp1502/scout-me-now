@@ -185,12 +185,12 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
   );
 
   // ====== ACTIONS ======
-  const requestRecommendation = async (content: string) => {
-    if (!viewerUserId || viewerUserId === profileUserId) return;
-    // viewer = recipient (cere), author = profileUserId
+  const requestRecommendation = async (authorUserId: string, content: string) => {
+    if (!viewerUserId) return;
+    // viewer = recipient (cere recomandare), authorUserId = cel care scrie
     const { error } = await supabase.from("recommendations").insert({
       recipient_user_id: viewerUserId,
-      author_user_id: profileUserId,
+      author_user_id: authorUserId,
       content: content || "",
       status: "pending",
       initiated_by: "request",
