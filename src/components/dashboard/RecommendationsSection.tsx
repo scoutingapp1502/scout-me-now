@@ -995,39 +995,215 @@ const RequestDialog = ({
 const OfferDialog = ({
   open,
   onOpenChange,
-  recipientName,
   onSubmit,
+  viewerUserId,
+  defaultRecipientId,
+  defaultRecipientName,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  recipientName: string;
-  onSubmit: (msg: string) => void;
+  onSubmit: (recipientId: string, msg: string) => void;
+  viewerUserId: string | null;
+  defaultRecipientId?: string;
+  defaultRecipientName?: string;
 }) => {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [results, setResults] = useState<{ user_id: string; full_name: string; avatar_url: string | null; roleLabel?: string; org?: string; loc?: string; _needsLoc?: boolean }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<{ user_id: string; full_name: string; avatar_url: string | null } | null>(null);
   const [msg, setMsg] = useState("");
+
   useEffect(() => {
-    if (!open) setMsg("");
+    if (!open) {
+      setStep(1);
+      setSearchTerm("");
+      setResults([]);
+      setSelectedPerson(null);
+      setMsg("");
+    }
   }, [open]);
+
+  // If opened from someone else's profile, skip search
+  useEffect(() => {
+    if (open && defaultRecipientId && defaultRecipientId !== viewerUserId) {
+      setSelectedPerson({ user_id: defaultRecipientId, full_name: defaultRecipientName || "", avatar_url: null });
+      setStep(2);
+    }
+  }, [open, defaultRecipientId, viewerUserId, defaultRecipientName]);
+
+  const searchPeople = useCallback(async (term: string) => {
+    if (term.trim().length < 2) { setResults([]); return; }
+    setSearching(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, avatar_url")
+      .ilike("full_name", `%${term.trim()}%`)
+      .neq("user_id", viewerUserId || "")
+      .limit(12);
+
+    if (!data || data.length === 0) { setResults([]); setSearching(false); return; }
+
+    const userIds = data.map((p) => p.user_id);
+    const [rolesRes, playerRes, scoutRes] = await Promise.all([
+      supabase.from("user_roles").select("user_id, role").in("user_id", userIds),
+      supabase.from("player_profiles").select("user_id, current_team, nationality").in("user_id", userIds),
+      supabase.from("scout_profiles").select("user_id, organization, country").in("user_id", userIds),
+    ]);
+
+    const rolesMap = new Map<string, string>();
+    (rolesRes.data || []).forEach((r: any) => { if (r.role !== "admin") rolesMap.set(r.user_id, r.role); });
+    const playerMap = new Map<string, { team?: string; nationality?: string }>();
+    (playerRes.data || []).forEach((p: any) => playerMap.set(p.user_id, { team: p.current_team, nationality: p.nationality }));
+    const scoutMap = new Map<string, { org?: string; country?: string }>();
+    (scoutRes.data || []).forEach((s: any) => scoutMap.set(s.user_id, { org: s.organization, country: s.country }));
+
+    const roleLabels: Record<string, string> = { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Reprezentant Club" };
+    const enriched = data.map((p) => {
+      const role = rolesMap.get(p.user_id);
+      const roleLabel = role ? roleLabels[role] || role : undefined;
+      const org = role === "player" ? playerMap.get(p.user_id)?.team : scoutMap.get(p.user_id)?.org;
+      const loc = role === "player" ? playerMap.get(p.user_id)?.nationality : scoutMap.get(p.user_id)?.country;
+      return { ...p, roleLabel, org, loc, _needsLoc: false };
+    });
+
+    const nameGroups = new Map<string, typeof enriched>();
+    enriched.forEach((p) => { const key = p.full_name?.toLowerCase() || ""; if (!nameGroups.has(key)) nameGroups.set(key, []); nameGroups.get(key)!.push(p); });
+    enriched.forEach((p) => { const group = nameGroups.get(p.full_name?.toLowerCase() || "") || []; p._needsLoc = group.length > 1 && group.filter((g) => g.roleLabel === p.roleLabel && g.org === p.org).length > 1; });
+
+    setResults(enriched);
+    setSearching(false);
+  }, [viewerUserId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => searchPeople(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm, searchPeople]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Oferiți o recomandare</DialogTitle>
-          <DialogDescription>
-            Scrie o recomandare pentru {recipientName || "această persoană"}. Va apărea pe profil după ce este aprobată.
-          </DialogDescription>
+          {step === 1 && (
+            <DialogDescription>Căutați persoana pe care doriți să o recomandați</DialogDescription>
+          )}
+          {step === 2 && selectedPerson && (
+            <DialogDescription>
+              Scrie o recomandare pentru {selectedPerson.full_name}. Va apărea pe profil după ce este aprobată.
+            </DialogDescription>
+          )}
         </DialogHeader>
-        <Textarea
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
-          placeholder="Scrie aici recomandarea ta..."
-          className="min-h-[160px]"
-        />
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Anulează
-          </Button>
-          <Button onClick={() => onSubmit(msg)}>Trimite recomandarea</Button>
-        </DialogFooter>
+
+        {step === 1 && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-foreground font-body mb-1">
+                Pe cine doriți să recomandați?
+              </p>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setSelectedPerson(null); }}
+                  placeholder="Căutați persoane..."
+                  className="pl-9"
+                />
+              </div>
+
+              {searchTerm.trim().length >= 2 && (
+                <div className="mt-2 border border-border rounded-md max-h-48 overflow-y-auto">
+                  {searching ? (
+                    <div className="flex items-center justify-center py-3">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : results.length > 0 ? (
+                    results.map((p) => (
+                      <button
+                        key={p.user_id}
+                        onClick={() => { setSelectedPerson(p); setSearchTerm(p.full_name); setResults([]); }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/50 text-left transition-colors",
+                          selectedPerson?.user_id === p.user_id && "bg-accent/30"
+                        )}
+                      >
+                        <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                          {p.avatar_url ? (
+                            <img src={p.avatar_url} alt={p.full_name} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                              {(p.full_name?.[0] || "?").toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-sm font-body text-foreground block truncate">{p.full_name}</span>
+                          {(p.roleLabel || p.org) && (
+                            <span className="text-xs text-muted-foreground font-body block truncate">
+                              {[p.roleLabel, p.org, p._needsLoc ? p.loc : null].filter(Boolean).join(" · ")}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground py-3 px-3 font-body">Niciun rezultat găsit</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-muted-foreground font-body">
+                {selectedPerson ? "1 persoană selectată" : ""}
+              </span>
+              <Button disabled={!selectedPerson} onClick={() => setStep(2)}>
+                Continuați
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-4">
+            {selectedPerson && (
+              <div className="flex items-center gap-3 p-3 rounded-md bg-accent/20 border border-border">
+                <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                  {selectedPerson.avatar_url ? (
+                    <img src={selectedPerson.avatar_url} alt={selectedPerson.full_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                      {(selectedPerson.full_name?.[0] || "?").toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <span className="text-sm font-body text-foreground font-medium">{selectedPerson.full_name}</span>
+                <button
+                  onClick={() => { setSelectedPerson(null); setStep(1); setSearchTerm(""); }}
+                  className="ml-auto text-muted-foreground hover:text-foreground"
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <Textarea
+              value={msg}
+              onChange={(e) => setMsg(e.target.value)}
+              placeholder="Scrie aici recomandarea ta..."
+              className="min-h-[160px]"
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStep(1)}>
+                Înapoi
+              </Button>
+              <Button onClick={() => {
+                if (selectedPerson) onSubmit(selectedPerson.user_id, msg);
+              }}>
+                Trimite recomandarea
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
