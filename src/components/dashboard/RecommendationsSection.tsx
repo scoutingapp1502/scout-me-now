@@ -601,14 +601,14 @@ const RequestDialog = ({
   const [msg, setMsg] = useState("");
 
   const relationshipOptions = [
-    { value: "antrenor_principal", label: "Mi-a fost antrenor principal" },
-    { value: "antrenor_secund", label: "Mi-a fost antrenor secund" },
-    { value: "agent_oficial", label: "M-a reprezentat oficial ca agent" },
-    { value: "intermediar", label: "M-a reprezentat ca intermediar" },
-    { value: "gestionare_cariera", label: "Am colaborat pentru gestionarea carierei" },
-    { value: "orientare_sportiva", label: "Am colaborat pentru orientare sportivă" },
-    { value: "pregatire_fizica", label: "S-a ocupat de pregătirea mea fizică" },
-    { value: "recuperare", label: "S-a ocupat de recuperarea mea" },
+    { value: "antrenor_principal", template: "{name} mi-a fost antrenor principal", label: "Mi-a fost antrenor principal" },
+    { value: "antrenor_secund", template: "{name} mi-a fost antrenor secund", label: "Mi-a fost antrenor secund" },
+    { value: "agent_oficial", template: "{name} m-a reprezentat oficial ca agent", label: "M-a reprezentat oficial ca agent" },
+    { value: "intermediar", template: "{name} m-a reprezentat ca intermediar", label: "M-a reprezentat ca intermediar" },
+    { value: "gestionare_cariera", template: "Împreună cu {name}, am colaborat pentru gestionarea carierei", label: "Am colaborat pentru gestionarea carierei" },
+    { value: "orientare_sportiva", template: "Împreună cu {name}, am colaborat pentru orientare sportivă", label: "Am colaborat pentru orientare sportivă" },
+    { value: "pregatire_fizica", template: "{name} s-a ocupat de pregătirea mea fizică", label: "S-a ocupat de pregătirea mea fizică" },
+    { value: "recuperare", template: "{name} s-a ocupat de recuperarea mea", label: "S-a ocupat de recuperarea mea" },
   ];
 
   // Generate seasons (current year back 10 years)
@@ -876,7 +876,7 @@ const RequestDialog = ({
                 <SelectContent>
                   {relationshipOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
-                      {selectedPerson?.full_name?.split(" ")[0] || "X"} {opt.label.replace(/^Mi-a fost |^M-a |^Am colaborat |^S-a ocupat /, (m) => m.toLowerCase())}
+                      {opt.template.replace("{name}", selectedPerson?.full_name?.split(" ")[0] || "X")}
                     </SelectItem>
                   ))}
                 </SelectContent>
