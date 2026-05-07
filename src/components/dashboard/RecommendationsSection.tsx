@@ -876,7 +876,7 @@ const RequestDialog = ({
                 <SelectContent>
                   {relationshipOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
-                      {selectedPerson?.full_name?.split(" ")[0] || "X"} {opt.label.replace(/^Mi-a fost |^M-a |^Am colaborat |^S-a ocupat /, (m) => m.toLowerCase())}
+                      {opt.template.replace("{name}", selectedPerson?.full_name?.split(" ")[0] || "X")}
                     </SelectItem>
                   ))}
                 </SelectContent>
