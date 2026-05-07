@@ -211,14 +211,14 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
     fetchAll();
   };
 
-  const offerRecommendation = async (content: string) => {
-    if (!viewerUserId || viewerUserId === profileUserId) return;
+  const offerRecommendation = async (recipientId: string, content: string) => {
+    if (!viewerUserId) return;
     if (!content.trim()) {
       toast({ title: "Scrie mai întâi recomandarea", variant: "destructive" });
       return;
     }
     const { error } = await supabase.from("recommendations").insert({
-      recipient_user_id: profileUserId,
+      recipient_user_id: recipientId,
       author_user_id: viewerUserId,
       content: content.trim(),
       status: "submitted",
