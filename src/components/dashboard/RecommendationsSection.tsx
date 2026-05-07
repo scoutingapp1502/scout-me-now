@@ -391,8 +391,10 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
       <OfferDialog
         open={giveOpen}
         onOpenChange={setGiveOpen}
-        recipientName={people[profileUserId]?.full_name || ""}
         onSubmit={offerRecommendation}
+        viewerUserId={viewerUserId}
+        defaultRecipientId={!isOwner ? profileUserId : undefined}
+        defaultRecipientName={people[profileUserId]?.full_name || ""}
       />
 
       {/* ========= DIALOG: GESTIONEAZĂ (owner) ========= */}
