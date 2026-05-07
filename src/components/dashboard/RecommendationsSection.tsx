@@ -19,6 +19,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Plus,
   Edit2,
   Quote,
@@ -582,13 +589,34 @@ const RequestDialog = ({
   viewerUserId: string | null;
   defaultAuthorId?: string;
 }) => {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [email, setEmail] = useState("");
   const [results, setResults] = useState<{ user_id: string; full_name: string; avatar_url: string | null; roleLabel?: string; org?: string; loc?: string; _needsLoc?: boolean }[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<{ user_id: string; full_name: string; avatar_url: string | null } | null>(null);
+  const [relationship, setRelationship] = useState("");
+  const [club, setClub] = useState("");
+  const [season, setSeason] = useState("");
   const [msg, setMsg] = useState("");
+
+  const relationshipOptions = [
+    { value: "antrenor_principal", label: "Mi-a fost antrenor principal" },
+    { value: "antrenor_secund", label: "Mi-a fost antrenor secund" },
+    { value: "agent_oficial", label: "M-a reprezentat oficial ca agent" },
+    { value: "intermediar", label: "M-a reprezentat ca intermediar" },
+    { value: "gestionare_cariera", label: "Am colaborat pentru gestionarea carierei" },
+    { value: "orientare_sportiva", label: "Am colaborat pentru orientare sportivă" },
+    { value: "pregatire_fizica", label: "S-a ocupat de pregătirea mea fizică" },
+    { value: "recuperare", label: "S-a ocupat de recuperarea mea" },
+  ];
+
+  // Generate seasons (current year back 10 years)
+  const currentYear = new Date().getFullYear();
+  const seasons = Array.from({ length: 10 }, (_, i) => {
+    const y = currentYear - i;
+    return `${y - 1}-${y}`;
+  });
 
   useEffect(() => {
     if (!open) {
@@ -597,6 +625,9 @@ const RequestDialog = ({
       setEmail("");
       setResults([]);
       setSelectedPerson(null);
+      setRelationship("");
+      setClub("");
+      setSeason("");
       setMsg("");
     }
   }, [open]);
@@ -608,6 +639,13 @@ const RequestDialog = ({
       setStep(2);
     }
   }, [open, defaultAuthorId, viewerUserId, recipientName]);
+
+  // Auto-fill message template when moving to step 3
+  const generateTemplate = useCallback(() => {
+    const name = selectedPerson?.full_name || "persoana selectată";
+    const clubText = club.trim() ? club.trim() : "[Club]";
+    return `Salut, ${name}! Te rog să îmi scrii o scurtă recomandare despre perioada în care am colaborat la ${clubText}. Mi-ar fi de mare folos pentru profilul meu de scouting.`;
+  }, [selectedPerson, club]);
 
   const searchPeople = useCallback(async (term: string) => {
     if (term.trim().length < 2) {
@@ -655,7 +693,6 @@ const RequestDialog = ({
       return { ...p, roleLabel, org, loc, _needsLoc: false };
     });
 
-    // Check for duplicates needing extra disambiguation
     const nameGroups = new Map<string, typeof enriched>();
     enriched.forEach((p) => {
       const key = p.full_name?.toLowerCase() || "";
@@ -678,6 +715,8 @@ const RequestDialog = ({
 
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
+  const stepLabel = step === 1 ? "1 din 3" : step === 2 ? "2 din 3" : "3 din 3";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -690,7 +729,12 @@ const RequestDialog = ({
           )}
           {step === 2 && selectedPerson && (
             <DialogDescription>
-              Trimite o solicitare către {selectedPerson.full_name}
+              Ajutați-ne să vă personalizăm solicitarea
+            </DialogDescription>
+          )}
+          {step === 3 && (
+            <DialogDescription>
+              Includeți un mesaj personalizat
             </DialogDescription>
           )}
         </DialogHeader>
@@ -714,7 +758,6 @@ const RequestDialog = ({
                 />
               </div>
 
-              {/* Search results */}
               {searchTerm.trim().length >= 2 && (
                 <div className="mt-2 border border-border rounded-md max-h-48 overflow-y-auto">
                   {searching ? (
@@ -763,7 +806,6 @@ const RequestDialog = ({
               )}
             </div>
 
-            {/* Email fallback */}
             {!selectedPerson && searchTerm.trim().length >= 2 && results.length === 0 && !searching && (
               <div className="space-y-2 pt-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -786,7 +828,7 @@ const RequestDialog = ({
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-muted-foreground font-body">
-                {selectedPerson ? "1 persoană selectată" : ""}
+                {stepLabel}
               </span>
               <Button
                 disabled={!selectedPerson && !isValidEmail(email)}
@@ -820,25 +862,127 @@ const RequestDialog = ({
                 </button>
               </div>
             )}
-            <Textarea
-              value={msg}
-              onChange={(e) => setMsg(e.target.value)}
-              placeholder="Mesaj opțional (ex: Salut! Mi-ar plăcea o recomandare despre colaborarea noastră.)"
-              className="min-h-[120px]"
-            />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(1)}>
-                Înapoi
-              </Button>
-              <Button onClick={() => {
-                if (selectedPerson) {
-                  onSubmit(selectedPerson.user_id, msg);
-                }
-                // TODO: email invite flow could be added later
-              }}>
-                Trimite cererea
-              </Button>
-            </DialogFooter>
+
+            <p className="text-xs text-muted-foreground font-body">* Indică un câmp obligatoriu</p>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground font-body">
+                De unde cunoașteți pe {selectedPerson?.full_name?.split(" ")[0] || "persoana selectată"}? *
+              </label>
+              <Select value={relationship} onValueChange={setRelationship}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vă rugăm să selectați" />
+                </SelectTrigger>
+                <SelectContent>
+                  {relationshipOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {selectedPerson?.full_name?.split(" ")[0] || "X"} {opt.label.replace(/^Mi-a fost |^M-a |^Am colaborat |^S-a ocupat /, (m) => m.toLowerCase())}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground font-body">
+                La ce club? *
+              </label>
+              <Input
+                value={club}
+                onChange={(e) => setClub(e.target.value)}
+                placeholder='Ex: "FCSB Academy", "FC Brașov"'
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground font-body">
+                În ce perioadă / sezon? *
+              </label>
+              <Select value={season} onValueChange={setSeason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selectați sezonul" />
+                </SelectTrigger>
+                <SelectContent>
+                  {seasons.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-muted-foreground font-body">
+                {stepLabel}
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  Înapoi
+                </Button>
+                <Button
+                  disabled={!relationship || !club.trim() || !season}
+                  onClick={() => {
+                    if (!msg.trim()) setMsg(generateTemplate());
+                    setStep(3);
+                  }}
+                >
+                  Continuați
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            {selectedPerson && (
+              <div className="flex items-center gap-3 p-3 rounded-md bg-accent/20 border border-border">
+                <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                  {selectedPerson.avatar_url ? (
+                    <img src={selectedPerson.avatar_url} alt={selectedPerson.full_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                      {(selectedPerson.full_name?.[0] || "?").toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-sm font-body text-foreground font-medium block">{selectedPerson.full_name}</span>
+                  <span className="text-xs text-muted-foreground font-body block truncate">
+                    {relationshipOptions.find((o) => o.value === relationship)?.label} · {club} · {season}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground font-body">
+                Includeți un mesaj personalizat *
+              </label>
+              <Textarea
+                value={msg}
+                onChange={(e) => setMsg(e.target.value)}
+                placeholder={`Bună ziua, ${selectedPerson?.full_name || ""}, îmi puteți scrie o recomandare?`}
+                className="min-h-[120px]"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-muted-foreground font-body">
+                {stepLabel}
+              </span>
+              <DialogFooter className="flex-row gap-2 sm:justify-end">
+                <Button variant="outline" onClick={() => setStep(2)}>
+                  Înapoi
+                </Button>
+                <Button onClick={() => {
+                  if (selectedPerson) {
+                    onSubmit(selectedPerson.user_id, msg);
+                  }
+                }}>
+                  Trimiteți
+                </Button>
+              </DialogFooter>
+            </div>
           </div>
         )}
       </DialogContent>
