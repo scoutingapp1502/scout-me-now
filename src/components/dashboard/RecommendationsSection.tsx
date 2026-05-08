@@ -1032,6 +1032,8 @@ const OfferDialog = ({
       setResults([]);
       setSelectedPerson(null);
       setMsg("");
+      setCalitate("");
+      setCalitateCustom("");
     }
   }, [open]);
 
