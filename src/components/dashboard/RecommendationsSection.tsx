@@ -1245,7 +1245,7 @@ const OfferDialog = ({
               <label className="text-sm font-medium text-foreground font-body">
                 Baza evaluării mele: *
               </label>
-              <Select value={bazaEvaluarii} onValueChange={setBazaEvaluarii}>
+              <Select value={bazaEvaluarii} onValueChange={(v) => { setBazaEvaluarii(v); if (v !== "altele") setBazaEvaluariiCustom(""); }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selectați baza evaluării" />
                 </SelectTrigger>
@@ -1260,6 +1260,14 @@ const OfferDialog = ({
                   ))}
                 </SelectContent>
               </Select>
+              {bazaEvaluarii === "altele" && (
+                <Input
+                  value={bazaEvaluariiCustom}
+                  onChange={(e) => setBazaEvaluariiCustom(e.target.value)}
+                  placeholder="Specificați baza evaluării..."
+                  className="mt-2"
+                />
+              )}
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -1267,7 +1275,7 @@ const OfferDialog = ({
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(1)}>Înapoi</Button>
                 <Button
-                  disabled={!calitate || (calitate === "altele" && !calitateCustom.trim()) || !bazaEvaluarii}
+                  disabled={!calitate || (calitate === "altele" && !calitateCustom.trim()) || !bazaEvaluarii || (bazaEvaluarii === "altele" && !bazaEvaluariiCustom.trim())}
                   onClick={() => setStep(3)}
                 >
                   Continuați
