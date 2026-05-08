@@ -1016,6 +1016,7 @@ const OfferDialog = ({
   const [calitate, setCalitate] = useState("");
   const [calitateCustom, setCalitateCustom] = useState("");
   const [bazaEvaluarii, setBazaEvaluarii] = useState("");
+  const [bazaEvaluariiCustom, setBazaEvaluariiCustom] = useState("");
 
   const calitateOptions = [
     { value: "head_scout", label: "Head Scout" },
@@ -1031,6 +1032,7 @@ const OfferDialog = ({
     { value: "evaluare_punctuala", label: "Evaluare punctuală (Tournament/Trial)", description: "L-am văzut la un eveniment specific" },
     { value: "analiza_date", label: "Analiză de date (Data Scouting)", description: "Evaluare bazată pe metrice și KPI" },
     { value: "recomandare_dupa_transfer", label: "Recomandare după transfer", description: "L-am transferat și confirm că s-a adaptat" },
+    { value: "altele", label: "Altele", description: "Specificați manual" },
   ];
 
   useEffect(() => {
@@ -1043,6 +1045,7 @@ const OfferDialog = ({
       setCalitate("");
       setCalitateCustom("");
       setBazaEvaluarii("");
+      setBazaEvaluariiCustom("");
     }
   }, [open]);
 
@@ -1242,7 +1245,7 @@ const OfferDialog = ({
               <label className="text-sm font-medium text-foreground font-body">
                 Baza evaluării mele: *
               </label>
-              <Select value={bazaEvaluarii} onValueChange={setBazaEvaluarii}>
+              <Select value={bazaEvaluarii} onValueChange={(v) => { setBazaEvaluarii(v); if (v !== "altele") setBazaEvaluariiCustom(""); }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selectați baza evaluării" />
                 </SelectTrigger>
@@ -1257,6 +1260,14 @@ const OfferDialog = ({
                   ))}
                 </SelectContent>
               </Select>
+              {bazaEvaluarii === "altele" && (
+                <Input
+                  value={bazaEvaluariiCustom}
+                  onChange={(e) => setBazaEvaluariiCustom(e.target.value)}
+                  placeholder="Specificați baza evaluării..."
+                  className="mt-2"
+                />
+              )}
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -1264,7 +1275,7 @@ const OfferDialog = ({
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(1)}>Înapoi</Button>
                 <Button
-                  disabled={!calitate || (calitate === "altele" && !calitateCustom.trim()) || !bazaEvaluarii}
+                  disabled={!calitate || (calitate === "altele" && !calitateCustom.trim()) || !bazaEvaluarii || (bazaEvaluarii === "altele" && !bazaEvaluariiCustom.trim())}
                   onClick={() => setStep(3)}
                 >
                   Continuați
