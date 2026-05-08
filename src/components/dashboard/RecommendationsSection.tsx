@@ -1032,6 +1032,7 @@ const OfferDialog = ({
     { value: "evaluare_punctuala", label: "Evaluare punctuală (Tournament/Trial)", description: "L-am văzut la un eveniment specific" },
     { value: "analiza_date", label: "Analiză de date (Data Scouting)", description: "Evaluare bazată pe metrice și KPI" },
     { value: "recomandare_dupa_transfer", label: "Recomandare după transfer", description: "L-am transferat și confirm că s-a adaptat" },
+    { value: "altele", label: "Altele", description: "Specificați manual" },
   ];
 
   useEffect(() => {
