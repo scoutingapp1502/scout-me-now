@@ -1098,10 +1098,15 @@ const OfferDialog = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Oferiți o recomandare</DialogTitle>
-          {step === 1 && (
-            <DialogDescription>Căutați persoana pe care doriți să o recomandați</DialogDescription>
+        {step === 1 && (
+          <DialogDescription>Căutați persoana pe care doriți să o recomandați</DialogDescription>
           )}
           {step === 2 && selectedPerson && (
+            <DialogDescription>
+              Selectați calitatea în care oferiți recomandarea pentru {selectedPerson.full_name}
+            </DialogDescription>
+          )}
+          {step === 3 && selectedPerson && (
             <DialogDescription>
               Scrie o recomandare pentru {selectedPerson.full_name}. Va apărea pe profil după ce este aprobată.
             </DialogDescription>
