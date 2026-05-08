@@ -1007,12 +1007,23 @@ const OfferDialog = ({
   defaultRecipientId?: string;
   defaultRecipientName?: string;
 }) => {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<{ user_id: string; full_name: string; avatar_url: string | null; roleLabel?: string; org?: string; loc?: string; _needsLoc?: boolean }[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<{ user_id: string; full_name: string; avatar_url: string | null } | null>(null);
   const [msg, setMsg] = useState("");
+  const [calitate, setCalitate] = useState("");
+  const [calitateCustom, setCalitateCustom] = useState("");
+
+  const calitateOptions = [
+    { value: "head_scout", label: "Head Scout" },
+    { value: "senior_scouter", label: "Senior Scouter" },
+    { value: "head_coach", label: "Head Coach" },
+    { value: "director_tehnic", label: "Director Tehnic" },
+    { value: "agent", label: "Agent" },
+    { value: "altele", label: "Altele" },
+  ];
 
   useEffect(() => {
     if (!open) {
@@ -1021,6 +1032,8 @@ const OfferDialog = ({
       setResults([]);
       setSelectedPerson(null);
       setMsg("");
+      setCalitate("");
+      setCalitateCustom("");
     }
   }, [open]);
 
@@ -1085,10 +1098,15 @@ const OfferDialog = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Oferiți o recomandare</DialogTitle>
-          {step === 1 && (
-            <DialogDescription>Căutați persoana pe care doriți să o recomandați</DialogDescription>
+        {step === 1 && (
+          <DialogDescription>Căutați persoana pe care doriți să o recomandați</DialogDescription>
           )}
           {step === 2 && selectedPerson && (
+            <DialogDescription>
+              Selectați calitatea în care oferiți recomandarea pentru {selectedPerson.full_name}
+            </DialogDescription>
+          )}
+          {step === 3 && selectedPerson && (
             <DialogDescription>
               Scrie o recomandare pentru {selectedPerson.full_name}. Va apărea pe profil după ce este aprobată.
             </DialogDescription>
@@ -1186,22 +1204,84 @@ const OfferDialog = ({
                 </button>
               </div>
             )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground font-body">
+                Ofer această recomandare în calitate de: *
+              </label>
+              <Select value={calitate} onValueChange={(v) => { setCalitate(v); if (v !== "altele") setCalitateCustom(""); }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selectați calitatea" />
+                </SelectTrigger>
+                <SelectContent>
+                  {calitateOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {calitate === "altele" && (
+                <Input
+                  value={calitateCustom}
+                  onChange={(e) => setCalitateCustom(e.target.value)}
+                  placeholder="Specificați calitatea..."
+                  className="mt-2"
+                />
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-muted-foreground font-body">Pasul 2 din 3</span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setStep(1)}>Înapoi</Button>
+                <Button
+                  disabled={!calitate || (calitate === "altele" && !calitateCustom.trim())}
+                  onClick={() => setStep(3)}
+                >
+                  Continuați
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            {selectedPerson && (
+              <div className="flex items-center gap-3 p-3 rounded-md bg-accent/20 border border-border">
+                <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                  {selectedPerson.avatar_url ? (
+                    <img src={selectedPerson.avatar_url} alt={selectedPerson.full_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                      {(selectedPerson.full_name?.[0] || "?").toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-sm font-body text-foreground font-medium block">{selectedPerson.full_name}</span>
+                  <span className="text-xs text-muted-foreground font-body block truncate">
+                    {calitate === "altele" ? calitateCustom : calitateOptions.find((o) => o.value === calitate)?.label}
+                  </span>
+                </div>
+              </div>
+            )}
             <Textarea
               value={msg}
               onChange={(e) => setMsg(e.target.value)}
               placeholder="Scrie aici recomandarea ta..."
               className="min-h-[160px]"
             />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(1)}>
-                Înapoi
-              </Button>
-              <Button onClick={() => {
-                if (selectedPerson) onSubmit(selectedPerson.user_id, msg);
-              }}>
-                Trimite recomandarea
-              </Button>
-            </DialogFooter>
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-muted-foreground font-body">Pasul 3 din 3</span>
+              <DialogFooter className="flex-row gap-2 sm:justify-end">
+                <Button variant="outline" onClick={() => setStep(2)}>Înapoi</Button>
+                <Button onClick={() => {
+                  if (selectedPerson) onSubmit(selectedPerson.user_id, msg);
+                }}>
+                  Trimite recomandarea
+                </Button>
+              </DialogFooter>
+            </div>
           </div>
         )}
       </DialogContent>
