@@ -1045,6 +1045,7 @@ const OfferDialog = ({
       setCalitate("");
       setCalitateCustom("");
       setBazaEvaluarii("");
+      setBazaEvaluariiCustom("");
     }
   }, [open]);
 
