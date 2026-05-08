@@ -1007,12 +1007,23 @@ const OfferDialog = ({
   defaultRecipientId?: string;
   defaultRecipientName?: string;
 }) => {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<{ user_id: string; full_name: string; avatar_url: string | null; roleLabel?: string; org?: string; loc?: string; _needsLoc?: boolean }[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<{ user_id: string; full_name: string; avatar_url: string | null } | null>(null);
   const [msg, setMsg] = useState("");
+  const [calitate, setCalitate] = useState("");
+  const [calitateCustom, setCalitateCustom] = useState("");
+
+  const calitateOptions = [
+    { value: "head_scout", label: "Head Scout" },
+    { value: "senior_scouter", label: "Senior Scouter" },
+    { value: "head_coach", label: "Head Coach" },
+    { value: "director_tehnic", label: "Director Tehnic" },
+    { value: "agent", label: "Agent" },
+    { value: "altele", label: "Altele" },
+  ];
 
   useEffect(() => {
     if (!open) {
