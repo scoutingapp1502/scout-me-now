@@ -1016,6 +1016,7 @@ const OfferDialog = ({
   const [calitate, setCalitate] = useState("");
   const [calitateCustom, setCalitateCustom] = useState("");
   const [bazaEvaluarii, setBazaEvaluarii] = useState("");
+  const [bazaEvaluariiCustom, setBazaEvaluariiCustom] = useState("");
 
   const calitateOptions = [
     { value: "head_scout", label: "Head Scout" },
