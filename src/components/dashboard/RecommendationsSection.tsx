@@ -599,6 +599,8 @@ const RequestDialog = ({
   const [selectedPerson, setSelectedPerson] = useState<{ user_id: string; full_name: string; avatar_url: string | null } | null>(null);
   const [relationship, setRelationship] = useState("");
   const [club, setClub] = useState("");
+  const [clubCustom, setClubCustom] = useState("");
+  const [myClubs, setMyClubs] = useState<string[]>([]);
   const [season, setSeason] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -629,10 +631,36 @@ const RequestDialog = ({
       setSelectedPerson(null);
       setRelationship("");
       setClub("");
+      setClubCustom("");
       setSeason("");
       setMsg("");
     }
   }, [open]);
+
+  // Load viewer's career clubs
+  useEffect(() => {
+    if (!open || !viewerUserId) return;
+    (async () => {
+      const [careerRes, profileRes] = await Promise.all([
+        supabase
+          .from("player_career_entries")
+          .select("team_name, sort_order")
+          .eq("user_id", viewerUserId)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("player_profiles")
+          .select("current_team")
+          .eq("user_id", viewerUserId)
+          .maybeSingle(),
+      ]);
+      const set = new Set<string>();
+      (careerRes.data || []).forEach((r: any) => {
+        if (r.team_name?.trim()) set.add(r.team_name.trim());
+      });
+      if (profileRes.data?.current_team?.trim()) set.add(profileRes.data.current_team.trim());
+      setMyClubs(Array.from(set));
+    })();
+  }, [open, viewerUserId]);
 
   // If opened from someone else's profile, skip step 1
   useEffect(() => {
@@ -642,12 +670,14 @@ const RequestDialog = ({
     }
   }, [open, defaultAuthorId, viewerUserId, recipientName]);
 
+  const effectiveClub = club === "__altele__" ? clubCustom.trim() : club.trim();
+
   // Auto-fill message template when moving to step 3
   const generateTemplate = useCallback(() => {
     const name = selectedPerson?.full_name || "persoana selectată";
-    const clubText = club.trim() ? club.trim() : "[Club]";
+    const clubText = effectiveClub ? effectiveClub : "[Club]";
     return `Salut, ${name}! Te rog să îmi scrii o scurtă recomandare despre perioada în care am colaborat la ${clubText}. Mi-ar fi de mare folos pentru profilul meu de scouting.`;
-  }, [selectedPerson, club]);
+  }, [selectedPerson, effectiveClub]);
 
   const searchPeople = useCallback(async (term: string) => {
     if (term.trim().length < 2) {
@@ -889,11 +919,30 @@ const RequestDialog = ({
               <label className="text-sm font-medium text-foreground font-body">
                 La ce club? *
               </label>
-              <Input
+              <Select
                 value={club}
-                onChange={(e) => setClub(e.target.value)}
-                placeholder='Ex: "FCSB Academy", "FC Brașov"'
-              />
+                onValueChange={(v) => {
+                  setClub(v);
+                  if (v !== "__altele__") setClubCustom("");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={myClubs.length > 0 ? "Selectați un club" : "Niciun club în cariera ta — alegeți Altele"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {myClubs.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                  <SelectItem value="__altele__">Altele (introduceți manual)</SelectItem>
+                </SelectContent>
+              </Select>
+              {club === "__altele__" && (
+                <Input
+                  value={clubCustom}
+                  onChange={(e) => setClubCustom(e.target.value)}
+                  placeholder='Ex: "FCSB Academy", "FC Brașov"'
+                />
+              )}
             </div>
 
             <div className="space-y-2">
@@ -921,7 +970,7 @@ const RequestDialog = ({
                   Înapoi
                 </Button>
                 <Button
-                  disabled={!relationship || !club.trim() || !season}
+                  disabled={!relationship || !effectiveClub || !season}
                   onClick={() => {
                     if (!msg.trim()) setMsg(generateTemplate());
                     setStep(3);
@@ -950,7 +999,7 @@ const RequestDialog = ({
                 <div className="min-w-0">
                   <span className="text-sm font-body text-foreground font-medium block">{selectedPerson.full_name}</span>
                   <span className="text-xs text-muted-foreground font-body block truncate">
-                    {relationshipOptions.find((o) => o.value === relationship)?.label} · {club} · {season}
+                    {relationshipOptions.find((o) => o.value === relationship)?.label} · {effectiveClub} · {season}
                   </span>
                 </div>
               </div>
