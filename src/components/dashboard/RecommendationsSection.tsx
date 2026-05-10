@@ -670,12 +670,14 @@ const RequestDialog = ({
     }
   }, [open, defaultAuthorId, viewerUserId, recipientName]);
 
+  const effectiveClub = club === "__altele__" ? clubCustom.trim() : club.trim();
+
   // Auto-fill message template when moving to step 3
   const generateTemplate = useCallback(() => {
     const name = selectedPerson?.full_name || "persoana selectată";
-    const clubText = club.trim() ? club.trim() : "[Club]";
+    const clubText = effectiveClub ? effectiveClub : "[Club]";
     return `Salut, ${name}! Te rog să îmi scrii o scurtă recomandare despre perioada în care am colaborat la ${clubText}. Mi-ar fi de mare folos pentru profilul meu de scouting.`;
-  }, [selectedPerson, club]);
+  }, [selectedPerson, effectiveClub]);
 
   const searchPeople = useCallback(async (term: string) => {
     if (term.trim().length < 2) {
