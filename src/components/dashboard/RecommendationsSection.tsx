@@ -631,10 +631,36 @@ const RequestDialog = ({
       setSelectedPerson(null);
       setRelationship("");
       setClub("");
+      setClubCustom("");
       setSeason("");
       setMsg("");
     }
   }, [open]);
+
+  // Load viewer's career clubs
+  useEffect(() => {
+    if (!open || !viewerUserId) return;
+    (async () => {
+      const [careerRes, profileRes] = await Promise.all([
+        supabase
+          .from("player_career_entries")
+          .select("team_name, sort_order")
+          .eq("user_id", viewerUserId)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("player_profiles")
+          .select("current_team")
+          .eq("user_id", viewerUserId)
+          .maybeSingle(),
+      ]);
+      const set = new Set<string>();
+      (careerRes.data || []).forEach((r: any) => {
+        if (r.team_name?.trim()) set.add(r.team_name.trim());
+      });
+      if (profileRes.data?.current_team?.trim()) set.add(profileRes.data.current_team.trim());
+      setMyClubs(Array.from(set));
+    })();
+  }, [open, viewerUserId]);
 
   // If opened from someone else's profile, skip step 1
   useEffect(() => {
