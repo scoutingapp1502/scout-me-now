@@ -999,7 +999,7 @@ const RequestDialog = ({
                 <div className="min-w-0">
                   <span className="text-sm font-body text-foreground font-medium block">{selectedPerson.full_name}</span>
                   <span className="text-xs text-muted-foreground font-body block truncate">
-                    {relationshipOptions.find((o) => o.value === relationship)?.label} · {club} · {season}
+                    {relationshipOptions.find((o) => o.value === relationship)?.label} · {effectiveClub} · {season}
                   </span>
                 </div>
               </div>
