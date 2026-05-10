@@ -599,6 +599,8 @@ const RequestDialog = ({
   const [selectedPerson, setSelectedPerson] = useState<{ user_id: string; full_name: string; avatar_url: string | null } | null>(null);
   const [relationship, setRelationship] = useState("");
   const [club, setClub] = useState("");
+  const [clubCustom, setClubCustom] = useState("");
+  const [myClubs, setMyClubs] = useState<string[]>([]);
   const [season, setSeason] = useState("");
   const [msg, setMsg] = useState("");
 
