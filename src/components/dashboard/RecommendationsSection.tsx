@@ -917,11 +917,30 @@ const RequestDialog = ({
               <label className="text-sm font-medium text-foreground font-body">
                 La ce club? *
               </label>
-              <Input
+              <Select
                 value={club}
-                onChange={(e) => setClub(e.target.value)}
-                placeholder='Ex: "FCSB Academy", "FC Brașov"'
-              />
+                onValueChange={(v) => {
+                  setClub(v);
+                  if (v !== "__altele__") setClubCustom("");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={myClubs.length > 0 ? "Selectați un club" : "Niciun club în cariera ta — alegeți Altele"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {myClubs.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                  <SelectItem value="__altele__">Altele (introduceți manual)</SelectItem>
+                </SelectContent>
+              </Select>
+              {club === "__altele__" && (
+                <Input
+                  value={clubCustom}
+                  onChange={(e) => setClubCustom(e.target.value)}
+                  placeholder='Ex: "FCSB Academy", "FC Brașov"'
+                />
+              )}
             </div>
 
             <div className="space-y-2">
