@@ -1,0 +1,1316 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  public: {
+    Tables: {
+      agent_collaboration_requests: {
+        Row: {
+          agent_user_id: string
+          created_at: string
+          id: string
+          initiated_by: string
+          player_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_user_id: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          player_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_user_id?: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          player_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agent_manual_players: {
+        Row: {
+          agent_user_id: string
+          birth_year: number | null
+          created_at: string
+          current_team: string | null
+          first_name: string
+          id: string
+          last_name: string
+          photo_url: string | null
+          position: string | null
+          sport: string | null
+        }
+        Insert: {
+          agent_user_id: string
+          birth_year?: number | null
+          created_at?: string
+          current_team?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          photo_url?: string | null
+          position?: string | null
+          sport?: string | null
+        }
+        Update: {
+          agent_user_id?: string
+          birth_year?: number | null
+          created_at?: string
+          current_team?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          photo_url?: string | null
+          position?: string | null
+          sport?: string | null
+        }
+        Relationships: []
+      }
+      athletic_test_registrations: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          notification_method: string
+          phone: string
+          scheduled_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          notification_method?: string
+          phone: string
+          scheduled_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          notification_method?: string
+          phone?: string
+          scheduled_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contact_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          requested_user_id: string
+          requester_user_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          requested_user_id: string
+          requester_user_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          requested_user_id?: string
+          requester_user_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: []
+      }
+      favorite_players: {
+        Row: {
+          created_at: string
+          id: string
+          player_user_id: string
+          scout_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          player_user_id: string
+          scout_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          player_user_id?: string
+          scout_user_id?: string
+        }
+        Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          read: boolean
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_career_entries: {
+        Row: {
+          created_at: string
+          currently_active: boolean
+          description: string | null
+          end_date: string | null
+          id: string
+          sort_order: number
+          start_date: string | null
+          team_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currently_active?: boolean
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          sort_order?: number
+          start_date?: string | null
+          team_name?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currently_active?: boolean
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          sort_order?: number
+          start_date?: string | null
+          team_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      player_profiles: {
+        Row: {
+          about_documents: string[] | null
+          acceleration: number | null
+          agent_email: string | null
+          agent_name: string | null
+          agent_phone: string | null
+          assists: number | null
+          between_legs_cross_video: string | null
+          between_the_legs_video: string | null
+          bio: string | null
+          career_description: string | null
+          control_pass_video: string | null
+          coordination_video: string | null
+          created_at: string
+          crossover_video: string | null
+          current_team: string | null
+          cv_url: string | null
+          date_of_birth: string | null
+          defense: number | null
+          double_cross_video: string | null
+          endurance: number | null
+          first_name: string
+          free_throw_shooting_video: string | null
+          full_match_descriptions: string[] | null
+          full_match_videos: string[] | null
+          gender: string | null
+          goals: number | null
+          height_cm: number | null
+          id: string
+          instagram_url: string | null
+          jumping: number | null
+          last_name: string
+          long_pass_video: string | null
+          matches_played: number | null
+          nationality: string | null
+          palmares: string | null
+          palmares_documents: string[] | null
+          photo_url: string | null
+          position: string | null
+          precision_video: string | null
+          preferred_foot: string | null
+          slalom_video: string | null
+          speed: number | null
+          sport: string | null
+          star_shooting_drill: number | null
+          star_shooting_drill_video: string | null
+          tiktok_url: string | null
+          twitter_url: string | null
+          updated_at: string
+          user_id: string
+          video_descriptions: string[] | null
+          video_highlights: string[] | null
+          weight_kg: number | null
+        }
+        Insert: {
+          about_documents?: string[] | null
+          acceleration?: number | null
+          agent_email?: string | null
+          agent_name?: string | null
+          agent_phone?: string | null
+          assists?: number | null
+          between_legs_cross_video?: string | null
+          between_the_legs_video?: string | null
+          bio?: string | null
+          career_description?: string | null
+          control_pass_video?: string | null
+          coordination_video?: string | null
+          created_at?: string
+          crossover_video?: string | null
+          current_team?: string | null
+          cv_url?: string | null
+          date_of_birth?: string | null
+          defense?: number | null
+          double_cross_video?: string | null
+          endurance?: number | null
+          first_name?: string
+          free_throw_shooting_video?: string | null
+          full_match_descriptions?: string[] | null
+          full_match_videos?: string[] | null
+          gender?: string | null
+          goals?: number | null
+          height_cm?: number | null
+          id?: string
+          instagram_url?: string | null
+          jumping?: number | null
+          last_name?: string
+          long_pass_video?: string | null
+          matches_played?: number | null
+          nationality?: string | null
+          palmares?: string | null
+          palmares_documents?: string[] | null
+          photo_url?: string | null
+          position?: string | null
+          precision_video?: string | null
+          preferred_foot?: string | null
+          slalom_video?: string | null
+          speed?: number | null
+          sport?: string | null
+          star_shooting_drill?: number | null
+          star_shooting_drill_video?: string | null
+          tiktok_url?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          user_id: string
+          video_descriptions?: string[] | null
+          video_highlights?: string[] | null
+          weight_kg?: number | null
+        }
+        Update: {
+          about_documents?: string[] | null
+          acceleration?: number | null
+          agent_email?: string | null
+          agent_name?: string | null
+          agent_phone?: string | null
+          assists?: number | null
+          between_legs_cross_video?: string | null
+          between_the_legs_video?: string | null
+          bio?: string | null
+          career_description?: string | null
+          control_pass_video?: string | null
+          coordination_video?: string | null
+          created_at?: string
+          crossover_video?: string | null
+          current_team?: string | null
+          cv_url?: string | null
+          date_of_birth?: string | null
+          defense?: number | null
+          double_cross_video?: string | null
+          endurance?: number | null
+          first_name?: string
+          free_throw_shooting_video?: string | null
+          full_match_descriptions?: string[] | null
+          full_match_videos?: string[] | null
+          gender?: string | null
+          goals?: number | null
+          height_cm?: number | null
+          id?: string
+          instagram_url?: string | null
+          jumping?: number | null
+          last_name?: string
+          long_pass_video?: string | null
+          matches_played?: number | null
+          nationality?: string | null
+          palmares?: string | null
+          palmares_documents?: string[] | null
+          photo_url?: string | null
+          position?: string | null
+          precision_video?: string | null
+          preferred_foot?: string | null
+          slalom_video?: string | null
+          speed?: number | null
+          sport?: string | null
+          star_shooting_drill?: number | null
+          star_shooting_drill_video?: string | null
+          tiktok_url?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          user_id?: string
+          video_descriptions?: string[] | null
+          video_highlights?: string[] | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      player_test_unlocks: {
+        Row: {
+          best_login_streak: number
+          best_streak: number
+          created_at: string
+          current_streak: number
+          grace_days_used: number
+          id: string
+          last_visit_date: string | null
+          login_streak: number
+          next_test_preview: string | null
+          next_unlock_started_on: string | null
+          unlocked_tests: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          best_login_streak?: number
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          grace_days_used?: number
+          id?: string
+          last_visit_date?: string | null
+          login_streak?: number
+          next_test_preview?: string | null
+          next_unlock_started_on?: string | null
+          unlocked_tests?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          best_login_streak?: number
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          grace_days_used?: number
+          id?: string
+          last_visit_date?: string | null
+          login_streak?: number
+          next_test_preview?: string | null
+          next_unlock_started_on?: string | null
+          unlocked_tests?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      posts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          image_url: string | null
+          post_type: string
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          post_type?: string
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          post_type?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      profile_analytics: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          profile_user_id: string
+          viewer_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          profile_user_id: string
+          viewer_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          profile_user_id?: string
+          viewer_user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recommendations: {
+        Row: {
+          author_user_id: string
+          content: string
+          created_at: string
+          id: string
+          initiated_by: string
+          recipient_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          author_user_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          recipient_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          author_user_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          recipient_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      recommendations_settings: {
+        Row: {
+          enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scout_certifications: {
+        Row: {
+          created_at: string
+          credential_url: string | null
+          documents: string[] | null
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          issuing_organization: string
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credential_url?: string | null
+          documents?: string[] | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string
+          name?: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credential_url?: string | null
+          documents?: string[] | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scout_education: {
+        Row: {
+          created_at: string
+          degree: string
+          description: string | null
+          documents: string[] | null
+          end_date: string | null
+          field_of_study: string | null
+          id: string
+          institution: string
+          sort_order: number
+          start_date: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          degree?: string
+          description?: string | null
+          documents?: string[] | null
+          end_date?: string | null
+          field_of_study?: string | null
+          id?: string
+          institution?: string
+          sort_order?: number
+          start_date?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          degree?: string
+          description?: string | null
+          documents?: string[] | null
+          end_date?: string | null
+          field_of_study?: string | null
+          id?: string
+          institution?: string
+          sort_order?: number
+          start_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scout_experiences: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          location: string | null
+          organization: string
+          role: string
+          skills: string[] | null
+          sort_order: number
+          start_date: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          organization?: string
+          role?: string
+          skills?: string[] | null
+          sort_order?: number
+          start_date?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          organization?: string
+          role?: string
+          skills?: string[] | null
+          sort_order?: number
+          start_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scout_player_notes: {
+        Row: {
+          created_at: string
+          custom_labels: string[]
+          custom_qualities: string[]
+          id: string
+          label: string | null
+          match_date: string | null
+          match_watched: string | null
+          observations: string | null
+          observed_qualities: string[]
+          personal_rating: number
+          player_user_id: string
+          priority: string | null
+          scout_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_labels?: string[]
+          custom_qualities?: string[]
+          id?: string
+          label?: string | null
+          match_date?: string | null
+          match_watched?: string | null
+          observations?: string | null
+          observed_qualities?: string[]
+          personal_rating?: number
+          player_user_id: string
+          priority?: string | null
+          scout_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_labels?: string[]
+          custom_qualities?: string[]
+          id?: string
+          label?: string | null
+          match_date?: string | null
+          match_watched?: string | null
+          observations?: string | null
+          observed_qualities?: string[]
+          personal_rating?: number
+          player_user_id?: string
+          priority?: string | null
+          scout_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      scout_posts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          image_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scout_profiles: {
+        Row: {
+          bio: string | null
+          country: string | null
+          cover_photo_url: string | null
+          created_at: string
+          first_name: string
+          gender: string | null
+          id: string
+          languages: string[] | null
+          last_name: string
+          organization: string | null
+          photo_url: string | null
+          skills: string[] | null
+          sports: string[] | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          country?: string | null
+          cover_photo_url?: string | null
+          created_at?: string
+          first_name?: string
+          gender?: string | null
+          id?: string
+          languages?: string[] | null
+          last_name?: string
+          organization?: string | null
+          photo_url?: string | null
+          skills?: string[] | null
+          sports?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          country?: string | null
+          cover_photo_url?: string | null
+          created_at?: string
+          first_name?: string
+          gender?: string | null
+          id?: string
+          languages?: string[] | null
+          last_name?: string
+          organization?: string | null
+          photo_url?: string | null
+          skills?: string[] | null
+          sports?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      video_submissions: {
+        Row: {
+          created_at: string
+          grade: number | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: string
+          test_key: string
+          updated_at: string
+          user_id: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          grade?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          test_key: string
+          updated_at?: string
+          user_id: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          grade?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          test_key?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string
+        }
+        Relationships: []
+      }
+      weekly_challenge_badges: {
+        Row: {
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          earned_at: string
+          id: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          earned_at?: string
+          id?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          challenge_type?: Database["public"]["Enums"]["weekly_challenge_type"]
+          earned_at?: string
+          id?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      weekly_challenges: {
+        Row: {
+          baseline: Json
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          completed_at: string | null
+          created_at: string
+          id: string
+          status: string
+          unlocked_test: string | null
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          baseline?: Json
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          unlocked_test?: string | null
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          baseline?: Json
+          challenge_type?: Database["public"]["Enums"]["weekly_challenge_type"]
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          unlocked_test?: string | null
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      accept_collaboration_request: {
+        Args: { _request_id: string }
+        Returns: undefined
+      }
+      accept_follow_request: {
+        Args: { _follow_id: string }
+        Returns: undefined
+      }
+      can_message_user: { Args: { _other_user_id: string }; Returns: boolean }
+      censor_profanity: { Args: { input_text: string }; Returns: string }
+      current_week_start: { Args: never; Returns: string }
+      get_or_create_conversation: {
+        Args: { other_user_id: string }
+        Returns: string
+      }
+      get_or_create_weekly_challenge: {
+        Args: { _available_tests: string[] }
+        Returns: {
+          challenge_type: Database["public"]["Enums"]["weekly_challenge_type"]
+          completed_at: string
+          id: string
+          newly_completed: boolean
+          status: string
+          unlocked_test: string
+          week_start: string
+        }[]
+      }
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      ping_daily_visit: {
+        Args: { _available_tests: string[] }
+        Returns: {
+          best_login_streak: number
+          best_streak: number
+          current_streak: number
+          days_until_next_unlock: number
+          login_streak: number
+          newly_unlocked: string
+          next_test_preview: string
+          unlocked_tests: string[]
+        }[]
+      }
+      reject_collaboration_request: {
+        Args: { _request_id: string }
+        Returns: undefined
+      }
+      reject_follow_request: {
+        Args: { _follow_id: string }
+        Returns: undefined
+      }
+      request_follow: { Args: { _following_id: string }; Returns: string }
+      search_agents: {
+        Args: { search_term: string }
+        Returns: {
+          email: string
+          first_name: string
+          last_name: string
+          photo_url: string
+          user_id: string
+        }[]
+      }
+      send_collaboration_request: {
+        Args: {
+          _agent_user_id: string
+          _initiated_by: string
+          _player_user_id: string
+        }
+        Returns: string
+      }
+    }
+    Enums: {
+      app_role: "player" | "scout" | "agent" | "club_rep" | "admin"
+      weekly_challenge_type:
+        | "add_video_highlight"
+        | "add_match_video"
+        | "complete_physical_data"
+        | "complete_career_entry"
+        | "complete_technical_test"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: ["player", "scout", "agent", "club_rep", "admin"],
+      weekly_challenge_type: [
+        "add_video_highlight",
+        "add_match_video",
+        "complete_physical_data",
+        "complete_career_entry",
+        "complete_technical_test",
+      ],
+    },
+  },
+} as const

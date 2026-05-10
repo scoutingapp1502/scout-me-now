@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --background: 120 10% 98%;
+    --foreground: 150 30% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 30% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 30% 8%;
+
+    --primary: 145 70% 32%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 50 100% 50%;
+    --secondary-foreground: 150 30% 8%;
+
+    --muted: 120 10% 93%;
+    --muted-foreground: 150 10% 40%;
+
+    --accent: 50 100% 50%;
+    --accent-foreground: 150 30% 8%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 120 10% 88%;
+    --input: 120 10% 88%;
+    --ring: 145 70% 32%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 150 20% 10%;
+    --sidebar-foreground: 120 10% 93%;
+    --sidebar-primary: 145 70% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 15% 18%;
+    --sidebar-accent-foreground: 120 10% 93%;
+    --sidebar-border: 150 15% 20%;
+    --sidebar-ring: 145 70% 32%;
+
+    --field-green: 145 70% 32%;
+    --electric-yellow: 50 100% 50%;
+    --dark-pitch: 150 30% 8%;
+  }
+
+  .dark {
+    --background: 150 30% 5%;
+    --foreground: 120 10% 95%;
+
+    --card: 150 25% 8%;
+    --card-foreground: 120 10% 95%;
+
+    --popover: 150 25% 8%;
+    --popover-foreground: 120 10% 95%;
+
+    --primary: 145 70% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 50 100% 50%;
+    --secondary-foreground: 150 30% 8%;
+
+    --muted: 150 15% 15%;
+    --muted-foreground: 120 10% 60%;
+
+    --accent: 50 100% 50%;
+    --accent-foreground: 150 30% 8%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 15% 18%;
+    --input: 150 15% 18%;
+    --ring: 145 70% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.02em;
+  }
+}

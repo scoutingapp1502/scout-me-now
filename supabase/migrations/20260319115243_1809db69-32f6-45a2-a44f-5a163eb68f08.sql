@@ -1,0 +1,1 @@
+ALTER TABLE public.player_profiles ADD COLUMN video_descriptions text[] DEFAULT '{}';
