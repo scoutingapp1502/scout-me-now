@@ -970,7 +970,7 @@ const RequestDialog = ({
                   Înapoi
                 </Button>
                 <Button
-                  disabled={!relationship || !club.trim() || !season}
+                  disabled={!relationship || !effectiveClub || !season}
                   onClick={() => {
                     if (!msg.trim()) setMsg(generateTemplate());
                     setStep(3);
