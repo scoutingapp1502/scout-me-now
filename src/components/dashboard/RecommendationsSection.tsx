@@ -601,7 +601,8 @@ const RequestDialog = ({
   const [club, setClub] = useState("");
   const [clubCustom, setClubCustom] = useState("");
   const [myClubs, setMyClubs] = useState<string[]>([]);
-  const [season, setSeason] = useState("");
+  const [seasonFrom, setSeasonFrom] = useState("");
+  const [seasonTo, setSeasonTo] = useState("");
   const [msg, setMsg] = useState("");
 
   const relationshipOptions = [
@@ -615,12 +616,8 @@ const RequestDialog = ({
     { value: "recuperare", template: "{name} s-a ocupat de recuperarea mea", label: "S-a ocupat de recuperarea mea" },
   ];
 
-  // Generate seasons (current year back 10 years)
   const currentYear = new Date().getFullYear();
-  const seasons = Array.from({ length: 10 }, (_, i) => {
-    const y = currentYear - i;
-    return `${y - 1}-${y}`;
-  });
+  const years = Array.from({ length: 15 }, (_, i) => String(currentYear - i));
 
   useEffect(() => {
     if (!open) {
@@ -632,7 +629,8 @@ const RequestDialog = ({
       setRelationship("");
       setClub("");
       setClubCustom("");
-      setSeason("");
+      setSeasonFrom("");
+      setSeasonTo("");
       setMsg("");
     }
   }, [open]);
@@ -949,16 +947,29 @@ const RequestDialog = ({
               <label className="text-sm font-medium text-foreground font-body">
                 În ce perioadă / sezon? *
               </label>
-              <Select value={season} onValueChange={setSeason}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selectați sezonul" />
-                </SelectTrigger>
-                <SelectContent>
-                  {seasons.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Select value={seasonFrom} onValueChange={(v) => { setSeasonFrom(v); if (seasonTo && v > seasonTo) setSeasonTo(v); }}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Din" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground shrink-0">—</span>
+                <Select value={seasonTo} onValueChange={setSeasonTo} disabled={!seasonFrom}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Până în" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.filter((y) => y >= (seasonFrom || "")).map((y) => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -970,7 +981,7 @@ const RequestDialog = ({
                   Înapoi
                 </Button>
                 <Button
-                  disabled={!relationship || !effectiveClub || !season}
+                  disabled={!relationship || !effectiveClub || !seasonFrom || !seasonTo}
                   onClick={() => {
                     if (!msg.trim()) setMsg(generateTemplate());
                     setStep(3);
@@ -998,9 +1009,8 @@ const RequestDialog = ({
                 </div>
                 <div className="min-w-0">
                   <span className="text-sm font-body text-foreground font-medium block">{selectedPerson.full_name}</span>
-                  <span className="text-xs text-muted-foreground font-body block truncate">
-                    {relationshipOptions.find((o) => o.value === relationship)?.label} · {effectiveClub} · {season}
-                  </span>
+                  <span className="text-xs text-muted-foreground font-body block">{relationshipOptions.find((o) => o.value === relationship)?.label}</span>
+                  <span className="text-xs text-muted-foreground font-body block">{effectiveClub} · {seasonFrom === seasonTo ? seasonFrom : `Din ${seasonFrom} până în ${seasonTo}`}</span>
                 </div>
               </div>
             )}

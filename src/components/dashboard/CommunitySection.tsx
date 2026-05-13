@@ -29,10 +29,14 @@ interface CommunityCard {
   current_team?: string | null;
   nationality?: string | null;
   date_of_birth?: string | null;
-  // Scout-like
+  height_cm?: number | null;
+  preferred_foot?: string | null;
+  // Scout/Agent/Club-specific
   organization?: string | null;
   title?: string | null;
   country?: string | null;
+  sports?: string[] | null;
+  languages?: string[] | null;
 }
 
 const ROLE_COLOR: Record<RoleKey, string> = {
@@ -57,17 +61,27 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
   const { lang } = useLanguage();
   const [items, setItems] = useState<CommunityCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"all" | RoleKey>("all");
+  const [activeTab, setActiveTab] = useState<RoleKey>("player");
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [selected, setSelected] = useState<{ id: string; role: RoleKey } | null>(null);
 
-  // Filters
+  // Filters - generic (all tab)
   const [filterSport, setFilterSport] = useState("all");
-  const [filterCountry, setFilterCountry] = useState("all");
+
   const [filterPosition, setFilterPosition] = useState("all");
+  // Player filters
+  const [filterPlayerNationality, setFilterPlayerNationality] = useState("all");
   const [filterDobFrom, setFilterDobFrom] = useState<Date | undefined>();
   const [filterDobTo, setFilterDobTo] = useState<Date | undefined>();
+  const [filterHeight, setFilterHeight] = useState("");
+  const [filterPreferredFoot, setFilterPreferredFoot] = useState("all");
+  // Scout / Agent / Club filters
+  const [filterSportSpec, setFilterSportSpec] = useState("all");
+  const [filterOrganization, setFilterOrganization] = useState("all");
+  const [filterActivityCountry, setFilterActivityCountry] = useState("all");
+  const [filterLanguage, setFilterLanguage] = useState("all");
+
   const [dobFromOpen, setDobFromOpen] = useState(false);
   const [dobToOpen, setDobToOpen] = useState(false);
 
@@ -92,6 +106,15 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     allOpt: "Toate",
     clear: "Șterge filtrele",
     back: "Înapoi la comunitate",
+    nationality: "Naționalitate",
+    minHeight: "Înălțime minimă (cm)",
+    preferredFootLabel: "Picior / Mână preferată",
+    sportSpec: "Specializare sport",
+    organization: "Organizație / Club",
+    activityCountry: "Țară de activitate",
+    language: "Limbă vorbită",
+    clubName: "Nume club",
+    clubCountry: "Țară club",
     roleLabel: { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Club" } as Record<RoleKey, string>,
   } : {
     title: "Community",
@@ -114,6 +137,15 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     allOpt: "All",
     clear: "Clear filters",
     back: "Back to community",
+    nationality: "Nationality",
+    minHeight: "Min. height (cm)",
+    preferredFootLabel: "Preferred foot / hand",
+    sportSpec: "Sport specialization",
+    organization: "Organization / Club",
+    activityCountry: "Activity country",
+    language: "Language spoken",
+    clubName: "Club name",
+    clubCountry: "Club country",
     roleLabel: { player: "Player", scout: "Scout", agent: "Agent", club_rep: "Club" } as Record<RoleKey, string>,
   };
 
@@ -138,7 +170,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
           .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot, speed, jumping, endurance, acceleration, defense, career_description, video_highlights, instagram_url, tiktok_url, twitter_url"),
         supabase
           .from("scout_profiles")
-          .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills, languages"),
+          .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills, languages, sports"),
         supabase.from("scout_experiences").select("user_id, location"),
         supabase.from("scout_posts").select("user_id"),
         supabase.from("scout_education").select("user_id"),
@@ -173,6 +205,8 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
           current_team: p.current_team,
           nationality: p.nationality,
           date_of_birth: p.date_of_birth,
+          height_cm: p.height_cm,
+          preferred_foot: p.preferred_foot,
         });
       });
 
@@ -197,6 +231,8 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
           organization: s.organization,
           title: s.title,
           country: s.country,
+          sports: s.sports,
+          languages: s.languages,
         });
       });
 
@@ -228,9 +264,32 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
   const uniquePositions = useMemo(() => {
     const set = new Set<string>();
     items.forEach(i => {
-      if (i.role === "player" && i.position) set.add(i.position);
-      else if (i.role !== "player" && i.title) set.add(i.title);
+      if (i.role === "player" && i.position) {
+        if (filterSport === "all" || i.sport === filterSport) set.add(i.position);
+      }
     });
+    return [...set].sort();
+  }, [items, filterSport]);
+  const uniquePlayerNationalities = useMemo(
+    () => [...new Set(items.filter(i => i.role === "player" && i.nationality).map(i => i.nationality) as string[])].sort(),
+    [items]
+  );
+  const uniqueOrganizations = useMemo(
+    () => [...new Set(items.filter(i => i.role !== "player" && i.organization).map(i => i.organization) as string[])].sort(),
+    [items]
+  );
+  const uniqueActivityCountries = useMemo(
+    () => [...new Set(items.filter(i => i.role !== "player" && i.country).map(i => i.country) as string[])].sort(),
+    [items]
+  );
+  const uniqueSportSpecs = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(i => { if (i.role !== "player") i.sports?.forEach(s => set.add(s)); });
+    return [...set].sort();
+  }, [items]);
+  const uniqueLanguages = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(i => { if (i.role === "agent") i.languages?.forEach(l => set.add(l)); });
     return [...set].sort();
   }, [items]);
 
@@ -243,45 +302,71 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
   const activeFilterCount = useMemo(() => {
     let n = 0;
     if (filterSport !== "all") n++;
-    if (filterCountry !== "all") n++;
     if (filterPosition !== "all") n++;
+    if (filterPlayerNationality !== "all") n++;
     if (filterDobFrom) n++;
     if (filterDobTo) n++;
+    if (filterHeight) n++;
+    if (filterPreferredFoot !== "all") n++;
+    if (filterSportSpec !== "all") n++;
+    if (filterOrganization !== "all") n++;
+    if (filterActivityCountry !== "all") n++;
+    if (filterLanguage !== "all") n++;
     return n;
-  }, [filterSport, filterCountry, filterPosition, filterDobFrom, filterDobTo]);
+  }, [filterSport, filterPosition, filterPlayerNationality, filterDobFrom, filterDobTo, filterHeight, filterPreferredFoot, filterSportSpec, filterOrganization, filterActivityCountry, filterLanguage]);
 
   const filtered = useMemo(() => {
     return items.filter(i => {
-      if (activeTab !== "all" && i.role !== activeTab) return false;
+      if (i.role !== activeTab) return false;
       const name = `${i.first_name} ${i.last_name}`.toLowerCase();
       if (search && !name.includes(search.toLowerCase())) return false;
-      if (filterSport !== "all") {
-        if (i.role !== "player" || i.sport !== filterSport) return false;
+
+      if (i.role === "player") {
+        if (filterSport !== "all" && i.sport !== filterSport) return false;
+        if (filterPosition !== "all" && i.position !== filterPosition) return false;
+        if (filterPlayerNationality !== "all" && i.nationality !== filterPlayerNationality) return false;
+        if (filterDobFrom || filterDobTo) {
+          if (!i.date_of_birth) return false;
+          const dob = new Date(i.date_of_birth);
+          if (filterDobFrom && dob < filterDobFrom) return false;
+          if (filterDobTo && dob > filterDobTo) return false;
+        }
+        if (filterHeight) {
+          const minH = parseInt(filterHeight);
+          if (!i.height_cm || i.height_cm < minH) return false;
+        }
+        if (filterPreferredFoot !== "all" && i.preferred_foot !== filterPreferredFoot) return false;
+      } else if (i.role === "scout") {
+        if (filterSportSpec !== "all" && !i.sports?.includes(filterSportSpec)) return false;
+        if (filterOrganization !== "all" && i.organization !== filterOrganization) return false;
+        if (filterActivityCountry !== "all" && i.country !== filterActivityCountry) return false;
+      } else if (i.role === "agent") {
+        if (filterSportSpec !== "all" && !i.sports?.includes(filterSportSpec)) return false;
+        if (filterActivityCountry !== "all" && i.country !== filterActivityCountry) return false;
+        if (filterLanguage !== "all" && !i.languages?.includes(filterLanguage)) return false;
+      } else if (i.role === "club_rep") {
+        if (filterSport !== "all" && !i.sports?.includes(filterSport)) return false;
+        if (filterOrganization !== "all" && i.organization !== filterOrganization) return false;
+        if (filterActivityCountry !== "all" && i.country !== filterActivityCountry) return false;
       }
-      if (filterCountry !== "all") {
-        const c = i.country || i.nationality;
-        if (c !== filterCountry) return false;
-      }
-      if (filterPosition !== "all") {
-        const v = i.role === "player" ? i.position : i.title;
-        if (v !== filterPosition) return false;
-      }
-      if (filterDobFrom || filterDobTo) {
-        if (!i.date_of_birth) return false;
-        const dob = new Date(i.date_of_birth);
-        if (filterDobFrom && dob < filterDobFrom) return false;
-        if (filterDobTo && dob > filterDobTo) return false;
-      }
+
       return true;
     });
-  }, [items, activeTab, search, filterSport, filterCountry, filterPosition, filterDobFrom, filterDobTo]);
+  }, [items, activeTab, search, filterSport, filterPosition, filterPlayerNationality, filterDobFrom, filterDobTo, filterHeight, filterPreferredFoot, filterSportSpec, filterOrganization, filterActivityCountry, filterLanguage]);
 
   const clearFilters = () => {
     setFilterSport("all");
-    setFilterCountry("all");
+
     setFilterPosition("all");
+    setFilterPlayerNationality("all");
     setFilterDobFrom(undefined);
     setFilterDobTo(undefined);
+    setFilterHeight("");
+    setFilterPreferredFoot("all");
+    setFilterSportSpec("all");
+    setFilterOrganization("all");
+    setFilterActivityCountry("all");
+    setFilterLanguage("all");
   };
 
   if (selected) {
@@ -305,8 +390,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     );
   }
 
-  const tabs: { key: "all" | RoleKey; label: string; count: number }[] = [
-    { key: "all", label: tr.all, count: counts.all },
+  const tabs: { key: RoleKey; label: string; count: number }[] = [
     { key: "player", label: tr.players, count: counts.player },
     { key: "scout", label: tr.scouts, count: counts.scout },
     { key: "agent", label: tr.agents, count: counts.agent },
@@ -355,7 +439,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
           return (
             <button
               key={t.key}
-              onClick={() => setActiveTab(t.key)}
+              onClick={() => { setActiveTab(t.key); clearFilters(); }}
               className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-body transition-colors ${
                 isActive
                   ? "bg-primary text-primary-foreground"
@@ -377,99 +461,195 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
       {showFilters && (
         <div className="bg-card border border-border rounded-xl p-4 sm:p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.sport}</label>
-              <Select value={filterSport} onValueChange={setFilterSport}>
-                <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground">
-                  <SelectValue placeholder={tr.allOpt} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{tr.allOpt}</SelectItem>
-                  {uniqueSports.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.country}</label>
-              <Select value={filterCountry} onValueChange={setFilterCountry}>
-                <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground">
-                  <SelectValue placeholder={tr.allOpt} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{tr.allOpt}</SelectItem>
-                  {uniqueCountries.map(c => <SelectItem key={c} value={c}>{getDisplayNationality(c, lang)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.positionOrSpec}</label>
-              <Select value={filterPosition} onValueChange={setFilterPosition}>
-                <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground">
-                  <SelectValue placeholder={tr.allOpt} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{tr.allOpt}</SelectItem>
-                  {uniquePositions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.birthDate}</label>
-              <div className="flex gap-2">
-                <Popover open={dobFromOpen} onOpenChange={setDobFromOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm",
-                        !filterDobFrom && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {filterDobFrom ? format(filterDobFrom, "dd/MM/yyyy") : tr.dobFrom}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={filterDobFrom}
-                      onSelect={(d) => { setFilterDobFrom(d); setDobFromOpen(false); }}
-                      captionLayout="dropdown-buttons"
-                      fromYear={1950}
-                      toYear={new Date().getFullYear()}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-                <Popover open={dobToOpen} onOpenChange={setDobToOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm",
-                        !filterDobTo && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {filterDobTo ? format(filterDobTo, "dd/MM/yyyy") : tr.dobTo}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={filterDobTo}
-                      onSelect={(d) => { setFilterDobTo(d); setDobToOpen(false); }}
-                      captionLayout="dropdown-buttons"
-                      fromYear={1950}
-                      toYear={new Date().getFullYear()}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+
+            {/* ── PLAYER tab ───────────────────────────────────────── */}
+            {activeTab === "player" && (<>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.sport}</label>
+                <Select value={filterSport} onValueChange={(v) => { setFilterSport(v); setFilterPosition("all"); }}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueSports.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.positionOrSpec}</label>
+                <Select value={filterPosition} onValueChange={setFilterPosition}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniquePositions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.nationality}</label>
+                <Select value={filterPlayerNationality} onValueChange={setFilterPlayerNationality}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniquePlayerNationalities.map(n => <SelectItem key={n} value={n}>{getDisplayNationality(n, lang)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.minHeight}</label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Ex: 170"
+                  value={filterHeight}
+                  onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }}
+                  onChange={(e) => setFilterHeight(e.target.value.replace(/\D/g, ""))}
+                  className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.preferredFootLabel}</label>
+                <Select value={filterPreferredFoot} onValueChange={setFilterPreferredFoot}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {filterSport === "basketball"
+                      ? (<><SelectItem value="Dreapta">Dreapta</SelectItem><SelectItem value="Stânga">Stânga</SelectItem><SelectItem value="Ambele">Ambele</SelectItem></>)
+                      : (<><SelectItem value="Drept">Drept</SelectItem><SelectItem value="Stâng">Stâng</SelectItem><SelectItem value="Ambele">Ambele</SelectItem></>)
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.birthDate}</label>
+                <div className="flex gap-2">
+                  <Popover open={dobFromOpen} onOpenChange={setDobFromOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm", !filterDobFrom && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {filterDobFrom ? format(filterDobFrom, "dd/MM/yyyy") : tr.dobFrom}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={filterDobFrom} onSelect={(d) => { setFilterDobFrom(d); setDobFromOpen(false); }} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} initialFocus className="pointer-events-auto" />
+                    </PopoverContent>
+                  </Popover>
+                  <Popover open={dobToOpen} onOpenChange={setDobToOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm", !filterDobTo && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {filterDobTo ? format(filterDobTo, "dd/MM/yyyy") : tr.dobTo}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={filterDobTo} onSelect={(d) => { setFilterDobTo(d); setDobToOpen(false); }} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} initialFocus className="pointer-events-auto" />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </>)}
+
+            {/* ── SCOUT tab ────────────────────────────────────────── */}
+            {activeTab === "scout" && (<>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.sportSpec}</label>
+                <Select value={filterSportSpec} onValueChange={setFilterSportSpec}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueSportSpecs.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.organization}</label>
+                <Select value={filterOrganization} onValueChange={setFilterOrganization}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueOrganizations.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.activityCountry}</label>
+                <Select value={filterActivityCountry} onValueChange={setFilterActivityCountry}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueActivityCountries.map(c => <SelectItem key={c} value={c}>{getDisplayNationality(c, lang)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>)}
+
+            {/* ── AGENT tab ────────────────────────────────────────── */}
+            {activeTab === "agent" && (<>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.sportSpec}</label>
+                <Select value={filterSportSpec} onValueChange={setFilterSportSpec}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueSportSpecs.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.activityCountry}</label>
+                <Select value={filterActivityCountry} onValueChange={setFilterActivityCountry}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueActivityCountries.map(c => <SelectItem key={c} value={c}>{getDisplayNationality(c, lang)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.language}</label>
+                <Select value={filterLanguage} onValueChange={setFilterLanguage}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueLanguages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>)}
+
+            {/* ── CLUB_REP tab ─────────────────────────────────────── */}
+            {activeTab === "club_rep" && (<>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.sport}</label>
+                <Select value={filterSport} onValueChange={setFilterSport}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueSports.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.clubName}</label>
+                <Select value={filterOrganization} onValueChange={setFilterOrganization}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueOrganizations.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.clubCountry}</label>
+                <Select value={filterActivityCountry} onValueChange={setFilterActivityCountry}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueActivityCountries.map(c => <SelectItem key={c} value={c}>{getDisplayNationality(c, lang)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>)}
+
           </div>
           {activeFilterCount > 0 && (
             <div className="flex justify-end">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles, StickyNote } from "lucide-react";
+import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles, ClipboardList } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
@@ -100,7 +100,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
     { id: "messages", label: lang === "ro" ? "Mesaje" : "Messages", icon: MessageCircle },
     { id: "notifications", label: lang === "ro" ? "Notificări" : "Notifications", icon: Bell },
     { id: "activity", label: lang === "ro" ? "Activitate" : "Activity", icon: Newspaper },
-    ...(showPlayerNotes ? [{ id: "player-notes", label: lang === "ro" ? "Note jucători" : "Player notes", icon: StickyNote }] : []),
+    ...(showPlayerNotes ? [{ id: "player-notes", label: lang === "ro" ? "Acțiuni scouter" : "Scout actions", icon: ClipboardList }] : []),
   ];
   const discoverSections = [
     { id: "community", label: lang === "ro" ? "Comunitate" : "Community", icon: Sparkles },

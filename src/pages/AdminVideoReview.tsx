@@ -95,6 +95,10 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
   };
 
   const handleReject = async (submissionId: string) => {
+    if (!notes.trim()) {
+      toast({ title: "Motivul respingerii este obligatoriu", description: "Completează câmpul înainte de a respinge.", variant: "destructive" });
+      return;
+    }
     const { error } = await rejectVideo(submissionId, notes, currentUserId!);
     if (error) {
       toast({ title: "Eroare la respingere", variant: "destructive" });
@@ -223,11 +227,14 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground">Note / Observații</label>
+                          <label className="text-xs text-muted-foreground">
+                            Note / Observații <span className="text-red-400">*</span>
+                            <span className="ml-1 text-muted-foreground/60">(obligatoriu la respingere)</span>
+                          </label>
                           <Textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Observații opționale..."
+                            placeholder="Motivul respingerii (obligatoriu)..."
                             className="mt-1"
                             rows={2}
                           />

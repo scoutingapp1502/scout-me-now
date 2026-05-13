@@ -364,6 +364,7 @@ export type Database = {
           video_descriptions: string[] | null
           video_highlights: string[] | null
           weight_kg: number | null
+          wingspan_cm: number | null
         }
         Insert: {
           about_documents?: string[] | null
@@ -418,6 +419,7 @@ export type Database = {
           video_descriptions?: string[] | null
           video_highlights?: string[] | null
           weight_kg?: number | null
+          wingspan_cm?: number | null
         }
         Update: {
           about_documents?: string[] | null
@@ -472,6 +474,7 @@ export type Database = {
           video_descriptions?: string[] | null
           video_highlights?: string[] | null
           weight_kg?: number | null
+          wingspan_cm?: number | null
         }
         Relationships: []
       }
@@ -907,6 +910,7 @@ export type Database = {
       scout_profiles: {
         Row: {
           bio: string | null
+          city: string | null
           country: string | null
           cover_photo_url: string | null
           created_at: string
@@ -925,6 +929,7 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          city?: string | null
           country?: string | null
           cover_photo_url?: string | null
           created_at?: string
@@ -943,6 +948,7 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          city?: string | null
           country?: string | null
           cover_photo_url?: string | null
           created_at?: string

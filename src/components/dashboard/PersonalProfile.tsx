@@ -25,9 +25,11 @@ import { Progress } from "@/components/ui/progress";
 import { Lock as LockIcon, Gift } from "lucide-react";
 import RecommendationsSection from "./RecommendationsSection";
 import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
-import WeeklyChallengeCard from "./WeeklyChallengeCard";
 import ScoutPlayerNoteDialog from "./ScoutPlayerNoteDialog";
-import { ClipboardList } from "lucide-react";
+import ScoutPlayerReportDialog from "./ScoutPlayerReportDialog";
+import { ClipboardList, ChevronDown, FileBarChart } from "lucide-react";
+import InviteFriendsModal from "./InviteFriendsModal";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useVideoSubmissions } from "@/hooks/useVideoSubmissions";
 
 type PlayerProfile = Tables<"player_profiles">;
@@ -256,6 +258,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [viewerRole, setViewerRole] = useState<string | null>(null);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const [followStatus, setFollowStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
@@ -551,6 +554,9 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           date_of_birth: form.date_of_birth,
           height_cm: form.height_cm,
           weight_kg: form.weight_kg,
+          wingspan_cm: form.wingspan_cm,
+          father_height_cm: (form as any).father_height_cm ?? null,
+          mother_height_cm: (form as any).mother_height_cm ?? null,
           current_team: form.current_team,
           goals: form.goals,
           assists: form.assists,
@@ -903,15 +909,29 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                       : (lang === "ro" ? "Urmărește" : "Follow")}
                 </Button>
                 {viewerRole === "scout" && viewerUserId && viewerUserId !== userId && (
-                  <Button
-                    onClick={(e) => { e.stopPropagation(); setShowNoteDialog(true); }}
-                    size="sm"
-                    variant="outline"
-                    className="font-body gap-2 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
-                  >
-                    <ClipboardList className="h-4 w-4" />
-                    {lang === "ro" ? "Notiță jucător" : "Player note"}
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="font-body gap-2 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+                      >
+                        <ClipboardList className="h-4 w-4" />
+                        {lang === "ro" ? "Acțiuni scouter" : "Scout actions"}
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setShowNoteDialog(true)} className="gap-2 cursor-pointer">
+                        <ClipboardList className="h-4 w-4" />
+                        {lang === "ro" ? "Notiță jucător" : "Player note"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowReportDialog(true)} className="gap-2 cursor-pointer">
+                        <FileBarChart className="h-4 w-4" />
+                        {lang === "ro" ? "Raport jucător" : "Player report"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
             )}
@@ -1040,6 +1060,18 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           playerPhotoUrl={photoSrc}
         />
       )}
+
+      {/* Scout Player Report Dialog */}
+      {viewerRole === "scout" && viewerUserId && viewerUserId !== userId && (
+        <ScoutPlayerReportDialog
+          open={showReportDialog}
+          onOpenChange={setShowReportDialog}
+          scoutUserId={viewerUserId}
+          playerUserId={userId}
+          playerName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || (lang === "ro" ? "Jucător" : "Player")}
+          playerPhotoUrl={photoSrc}
+        />
+      )}
     </div>
   );
 };
@@ -1056,6 +1088,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
   const { toast } = useToast();
   const [athleticRegOpen, setAthleticRegOpen] = useState(false);
   const [inlineEditTest, setInlineEditTest] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const { submissions: videoSubmissions, submitVideo, getSubmissionForTest } = useVideoSubmissions(userId);
   const technicalTests = getTechnicalTestsBySport(currentSport);
   const isOwner = !readOnly || viewerUserId === userId;
@@ -1183,14 +1216,6 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
           </div>
         </div>
 
-        {/* Provocare săptămânală */}
-        <WeeklyChallengeCard
-          userId={userId}
-          viewerUserId={viewerUserId}
-          availableTests={technicalTests.map((t) => t.key)}
-          isOwner={isOwner}
-        />
-
         {/* Teste Tehnice Specifice section */}
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
           <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
@@ -1257,6 +1282,28 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
             </div>
           )}
 
+          {isOwner && !unlocks.loading && unlocks.unlockedTests.length < technicalTests.length && (
+            <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/25 flex items-center gap-3">
+              <div className="text-2xl shrink-0">🤝</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-body font-semibold text-foreground leading-tight">
+                  Deblochează un test invitând prieteni
+                </p>
+                <p className="text-[10px] text-muted-foreground font-body mt-0.5 leading-relaxed">
+                  Adu 3 sportivi pe SportRise și alegi tu ce test se deblochează.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 text-xs font-body border-primary/40 text-primary hover:bg-primary/10 h-7 px-3"
+                onClick={() => setShowInviteModal(true)}
+              >
+                Invită acum
+              </Button>
+            </div>
+          )}
+
           {editingTechnical ? (
             <div className="space-y-4">
               {technicalTests.map((test) => {
@@ -1282,7 +1329,19 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                         <X className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
-                  ) : (
+                  ) : (() => {
+                    const sub = getSubmissionForTest(test.key);
+                    const daysLeft = getUploadCooldownDaysLeft(sub);
+                    if (daysLeft > 0) {
+                      return (
+                        <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg px-3 py-2">
+                          <p className="text-xs text-orange-300 font-body">
+                            Poți trimite un video nou în <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? "zi" : "zile"}</strong>.
+                          </p>
+                        </div>
+                      );
+                    }
+                    return (
                     <>
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Input
@@ -1329,7 +1388,8 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                         />
                       </div>
                     </>
-                  )}
+                    );
+                  })()}
                 </div>
                 );
               })}
@@ -1344,10 +1404,12 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     <div key={test.key} className="p-3 rounded-lg bg-muted/20 border border-dashed border-border">
                       <div className="flex items-center gap-2">
                         <LockIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">??? — Test blocat</span>
+                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">
+                          {isOwner ? "??? — Test blocat" : `${test.icon} ${test.label}`}
+                        </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1 font-body">
-                        {isOwner ? "Continuă streak-ul zilnic ca să deblochezi acest test." : "Test încă nedeblocat de jucător."}
+                        {isOwner ? "Continuă streak-ul zilnic ca să deblochezi acest test." : "Test nedeblocat de sportiv."}
                       </p>
                     </div>
                   );
@@ -1378,6 +1440,8 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                   </div>
                   {(() => {
                     const videoUrl = (form as any)[test.key] || (profile as any)?.[test.key] || "";
+                    const sub = getSubmissionForTest(test.key);
+                    if (sub?.status === "rejected") return null;
                     if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
                     return (
                       <div className="mt-2">
@@ -1395,6 +1459,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                   })()}
                    {/* Video verification status */}
                    {(() => {
+                     if (readOnly) return null;
                      const sub = getSubmissionForTest(test.key);
                      if (!sub) return null;
                      if (sub.status === "pending") {
@@ -1406,22 +1471,47 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                        );
                      }
                      if (sub.status === "verified" && sub.grade !== null) {
+                       const daysLeft = getVerifiedCooldownDaysLeft(sub);
                        return (
-                         <div className="mt-2 flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
-                           <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
-                           <span className="text-xs text-green-300 font-body">
-                             Video verificat — Nota: <strong className="text-green-200">{sub.grade}</strong>
-                           </span>
+                         <div className="mt-2 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 space-y-1">
+                           <div className="flex items-center gap-2">
+                             <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
+                             <span className="text-xs text-green-300 font-body">
+                               Video verificat — Nota: <strong className="text-green-200">{sub.grade}</strong>
+                             </span>
+                           </div>
+                           {sub.reviewer_notes && (
+                             <p className="text-xs text-green-200/70 font-body pl-6">{sub.reviewer_notes}</p>
+                           )}
+                           {daysLeft > 0 && (
+                             <p className="text-xs text-green-300/60 font-body pl-6">
+                               Poți trimite un video nou în <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? "zi" : "zile"}</strong>.
+                             </p>
+                           )}
                          </div>
                        );
                      }
                      if (sub.status === "rejected") {
+                       if (readOnly) return null;
+                       const daysLeft = getRejectionDaysLeft(sub);
                        return (
-                         <div className="mt-2 flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
-                           <XCircle className="h-4 w-4 text-red-400 shrink-0" />
-                           <span className="text-xs text-red-300 font-body">
-                             Video respins{sub.reviewer_notes ? `: ${sub.reviewer_notes}` : ""}
-                           </span>
+                         <div className="mt-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 space-y-1">
+                           <div className="flex items-center gap-2">
+                             <XCircle className="h-4 w-4 text-red-400 shrink-0" />
+                             <span className="text-xs text-red-300 font-body font-semibold">Video respins</span>
+                           </div>
+                           {sub.reviewer_notes && (
+                             <p className="text-xs text-red-200/80 font-body pl-6">{sub.reviewer_notes}</p>
+                           )}
+                           {daysLeft > 0 ? (
+                             <p className="text-xs text-orange-300 font-body pl-6">
+                               Poți trimite un video nou în <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? "zi" : "zile"}</strong>.
+                             </p>
+                           ) : (
+                             <p className="text-xs text-green-300 font-body pl-6">
+                               Termenul a expirat. Poți trimite un video nou.
+                             </p>
+                           )}
                          </div>
                        );
                      }
@@ -1479,6 +1569,12 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                           type="button"
                           className="bg-green-700 hover:bg-green-800 text-white"
                           onClick={async () => {
+                            const sub = getSubmissionForTest(test.key);
+                            const daysLeft = getUploadCooldownDaysLeft(sub);
+                            if (daysLeft > 0) {
+                              toast({ title: "Nu poți trimite un video nou încă", description: `Poți trimite din nou în ${Math.ceil(daysLeft)} zile.`, variant: "destructive" });
+                              return;
+                            }
                             const payload: any = {};
                             const videoUrl = (form as any)[test.key] || null;
                             payload[test.key] = videoUrl;
@@ -1519,6 +1615,17 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
       userId={userId}
       defaultFirstName={(form as any).first_name || ""}
       defaultLastName={(form as any).last_name || ""}
+    />
+    <InviteFriendsModal
+      open={showInviteModal}
+      onOpenChange={setShowInviteModal}
+      userId={userId}
+      unlockedTests={unlocks.unlockedTests}
+      availableTests={technicalTests}
+      onUnlocked={() => {
+        setShowInviteModal(false);
+        unlocks.refetch();
+      }}
     />
     </>
   );
@@ -2026,6 +2133,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             <div className="space-y-3">
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.height_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("height_cm", v ? parseInt(v) : null); }} className="text-white" /></div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.weight_kg ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("weight_kg", v ? parseInt(v) : null); }} className="text-white" /></div>
+              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.wingspanLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.wingspan_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("wingspan_cm", v ? parseInt(v) : null); }} className="text-white" /></div>
               <div>
                 <Label className="text-xs text-muted-foreground">{(form.sport || profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</Label>
                 <Select value={form.preferred_foot || ""} onValueChange={(v) => updateForm("preferred_foot", v)}>
@@ -2049,13 +2157,54 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               </div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="text-white" /></div>
               <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} className="text-white" /></div>
+              <div className="border-t border-border pt-3 mt-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Date genetice</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Înălțime tată (cm)</Label>
+                    <Input
+                      type="text" inputMode="numeric" pattern="[0-9]*"
+                      value={(form as any).father_height_cm ?? ""}
+                      placeholder="ex: 185"
+                      onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }}
+                      onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("father_height_cm", v ? parseInt(v) : null); }}
+                      className="text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Înălțime mamă (cm)</Label>
+                    <Input
+                      type="text" inputMode="numeric" pattern="[0-9]*"
+                      value={(form as any).mother_height_cm ?? ""}
+                      placeholder="ex: 165"
+                      onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }}
+                      onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("mother_height_cm", v ? parseInt(v) : null); }}
+                      className="text-white"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="space-y-3 font-body text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.height}</span><span className="text-foreground font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.weight}</span><span className="text-foreground font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.wingspan}</span><span className="text-foreground font-semibold">{profile?.wingspan_cm ? `${(profile.wingspan_cm / 100).toFixed(2)}m` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{(profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality ? getDisplayNationality(profile.nationality, lang) : "—"}</span></div>
+              {((profile as any)?.father_height_cm || (profile as any)?.mother_height_cm) && (
+                <>
+                  <div className="border-t border-border pt-3 mt-1">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Date genetice</p>
+                    {(profile as any)?.father_height_cm && (
+                      <div className="flex justify-between"><span className="text-muted-foreground">Înălțime tată</span><span className="text-foreground font-semibold">{((profile as any).father_height_cm / 100).toFixed(2)}m</span></div>
+                    )}
+                    {(profile as any)?.mother_height_cm && (
+                      <div className="flex justify-between mt-2"><span className="text-muted-foreground">Înălțime mamă</span><span className="text-foreground font-semibold">{((profile as any).mother_height_cm / 100).toFixed(2)}m</span></div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
            )}
           {editingPhysical && <SectionSaveButton />}
@@ -2792,6 +2941,22 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
       ))}
     </div>
   );
+}
+
+function getRejectionDaysLeft(sub: { status: string; reviewed_at: string | null } | undefined): number {
+  if (!sub || sub.status !== "rejected" || !sub.reviewed_at) return 0;
+  const elapsed = (Date.now() - new Date(sub.reviewed_at).getTime()) / (1000 * 60 * 60 * 24);
+  return Math.max(0, 3 - elapsed);
+}
+
+function getVerifiedCooldownDaysLeft(sub: { status: string; reviewed_at: string | null } | undefined): number {
+  if (!sub || sub.status !== "verified" || !sub.reviewed_at) return 0;
+  const elapsed = (Date.now() - new Date(sub.reviewed_at).getTime()) / (1000 * 60 * 60 * 24);
+  return Math.max(0, 30 - elapsed);
+}
+
+function getUploadCooldownDaysLeft(sub: { status: string; reviewed_at: string | null } | undefined): number {
+  return getRejectionDaysLeft(sub) || getVerifiedCooldownDaysLeft(sub);
 }
 
 function extractYouTubeId(url: string): string | null {

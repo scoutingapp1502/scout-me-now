@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users, Lock } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users, Lock, FileText, Upload, Download } from "lucide-react";
 import MessageDialog from "./MessageDialog";
 import ScoutExtraSections from "./ScoutExtraSections";
 import RepresentedPlayersSection from "./RepresentedPlayersSection";
@@ -26,6 +26,187 @@ interface ScoutPersonalProfileProps {
   readOnly?: boolean;
   onNavigateToChat?: (userId: string) => void;
 }
+
+/* ─── Player Reports Upload Section ────────────────────────────────── */
+
+function PlayerReportsSection({ userId, readOnly = false }: { userId: string; readOnly?: boolean }) {
+  const { toast } = useToast();
+  const { lang } = useLanguage();
+  const ro = lang === "ro";
+  const isOwner = !readOnly;
+
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+
+  useEffect(() => { fetchReports(); }, [userId]);
+
+  const fetchReports = async () => {
+    setLoading(true);
+    const { data } = await (supabase as any)
+      .from("scout_uploaded_reports")
+      .select("*")
+      .eq("scout_user_id", userId)
+      .order("created_at", { ascending: false });
+    setReports(data || []);
+    setLoading(false);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!title.trim()) {
+      toast({ title: ro ? "Adaugă un titlu înainte de a încărca fișierul." : "Add a title before uploading.", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${userId}/report-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("scout-reports").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("scout-reports").getPublicUrl(path);
+      const { error: dbError } = await (supabase as any).from("scout_uploaded_reports").insert({
+        scout_user_id: userId,
+        title: title.trim(),
+        description: description.trim() || null,
+        file_url: urlData.publicUrl,
+        file_name: file.name,
+      });
+      if (dbError) throw dbError;
+      setTitle("");
+      setDescription("");
+      e.target.value = "";
+      await fetchReports();
+      toast({ title: ro ? "Raport încărcat cu succes!" : "Report uploaded!" });
+    } catch (err: any) {
+      toast({ title: ro ? "Eroare" : "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    await (supabase as any).from("scout_uploaded_reports").delete().eq("id", id);
+    setReports(prev => prev.filter(r => r.id !== id));
+    toast({ title: ro ? "Raport șters." : "Report deleted." });
+  };
+
+  return (
+    <div className="bg-card rounded-xl border border-border p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <FileText className="h-5 w-5 text-primary" />
+        <h2 className="font-display text-2xl text-foreground">
+          {ro ? "Rapoarte jucători" : "Player reports"}
+        </h2>
+      </div>
+
+      {/* Upload form – only for owner */}
+      {isOwner && (
+        <div className="mb-5 p-4 bg-muted/30 rounded-lg border border-border space-y-3">
+          <p className="text-xs text-muted-foreground font-body uppercase tracking-wider">
+            {ro ? "Adaugă raport nou" : "Add new report"}
+          </p>
+          <Input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder={ro ? "Titlu (ex: Analiza atacanților Liga 1 – 2024)" : "Title (e.g. Liga 1 strikers analysis – 2024)"}
+          />
+          <Textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder={ro ? "Descriere opțională..." : "Optional description..."}
+            rows={2}
+            className="text-sm min-h-0"
+          />
+          <div className="flex items-center gap-3">
+            <label className={`inline-flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border text-sm font-body transition-colors ${
+              uploading || !title.trim()
+                ? "opacity-50 cursor-not-allowed border-border text-muted-foreground"
+                : "border-primary text-primary hover:bg-primary/10"
+            }`}>
+              {uploading
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Upload className="h-4 w-4" />}
+              {ro ? "Selectează fișier (PDF / Word)" : "Select file (PDF / Word)"}
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                disabled={uploading || !title.trim()}
+                onChange={handleFileChange}
+              />
+            </label>
+            {!title.trim() && (
+              <span className="text-xs text-muted-foreground font-body">
+                {ro ? "Completează titlul mai întâi" : "Fill in the title first"}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Reports list */}
+      {loading ? (
+        <div className="flex justify-center py-6">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : reports.length === 0 ? (
+        <p className="text-muted-foreground italic text-sm font-body text-center py-4">
+          {isOwner
+            ? (ro ? "Niciun raport încărcat încă." : "No reports uploaded yet.")
+            : (ro ? "Niciun raport disponibil." : "No reports available.")}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {reports.map(report => (
+            <div key={report.id} className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/40 transition-colors bg-muted/10">
+              <div className="shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-foreground text-sm font-body">{report.title}</p>
+                {report.description && (
+                  <p className="text-muted-foreground text-xs font-body mt-0.5 line-clamp-2">{report.description}</p>
+                )}
+                <p className="text-muted-foreground text-xs font-body mt-1">
+                  {new Date(report.created_at).toLocaleDateString(ro ? "ro-RO" : "en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  {report.file_name && (
+                    <span className="ml-1.5 opacity-60">· {report.file_name}</span>
+                  )}
+                </p>
+              </div>
+              <div className="flex gap-1.5 shrink-0 mt-0.5">
+                <a
+                  href={report.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors font-body"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {ro ? "Deschide" : "Open"}
+                </a>
+                {isOwner && (
+                  <button
+                    onClick={() => handleDelete(report.id)}
+                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+                    title={ro ? "Șterge" : "Delete"}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────── */
 
 const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: ScoutPersonalProfileProps) => {
   const { toast } = useToast();
@@ -214,6 +395,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         last_name: form.last_name,
         title: form.title,
         organization: form.organization,
+        city: (form as any).city,
         country: form.country,
         photo_url: photoUrl,
         cover_photo_url: coverUrl,
@@ -388,7 +570,10 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                   </div>
                   <Input value={form.title || ""} onChange={e => updateForm("title", e.target.value)} placeholder="Titlu (ex: First team scout)" className="bg-muted border-border text-white text-sm" />
                   <Input value={form.organization || ""} onChange={e => updateForm("organization", e.target.value)} placeholder="Organizație" className="bg-muted border-border text-white text-sm" />
-                  <Input value={form.country || ""} onChange={e => updateForm("country", e.target.value)} placeholder="Locație (ex: București, România)" className="bg-muted border-border text-white text-sm" />
+                  <div className="flex gap-2">
+                    <Input value={(form as any).city || ""} onChange={e => updateForm("city" as any, e.target.value)} placeholder="Oraș (ex: București)" className="bg-muted border-border text-white text-sm flex-1" />
+                    <Input value={form.country || ""} onChange={e => updateForm("country", e.target.value)} placeholder="Țară (ex: România)" className="bg-muted border-border text-white text-sm flex-1" />
+                  </div>
                 </div>
               ) : (
                 <>
@@ -403,9 +588,10 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                       {profile.organization && <span> @{profile.organization}</span>}
                     </p>
                   )}
-                  {profile?.country && (
+                  {((profile as any)?.city || profile?.country) && (
                     <p className="flex items-center gap-1 text-muted-foreground text-sm font-body mt-1">
-                      <MapPin className="h-4 w-4" /> {profile.country}
+                      <MapPin className="h-4 w-4" />
+                      {[(profile as any)?.city, profile?.country].filter(Boolean).join(", ")}
                     </p>
                   )}
                 </>
@@ -584,6 +770,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
           )}
         </div>
       </div>
+
+      {/* ===== RAPOARTE JUCĂTORI ===== */}
+      <PlayerReportsSection userId={userId} readOnly={readOnly} />
 
       {/* ===== JUCĂTORI REPREZENTAȚI (doar agenți) ===== */}
       {isAgent && <RepresentedPlayersSection userId={userId} readOnly={readOnly} />}

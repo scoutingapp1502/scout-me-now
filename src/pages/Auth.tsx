@@ -37,6 +37,7 @@ const Auth = () => {
   const [sport, setSport] = useState("football");
   const [gender, setGender] = useState("");
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
+  const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -71,6 +72,23 @@ const Auth = () => {
       });
       if (error) throw error;
       if (data.user) {
+        // Process invite code if provided (players only)
+        const trimmedCode = inviteCode.trim().toUpperCase();
+        if (trimmedCode && role === "player") {
+          const { data: codeRow } = await (supabase as any)
+            .from("user_invite_codes")
+            .select("user_id")
+            .eq("code", trimmedCode)
+            .maybeSingle();
+          if (codeRow?.user_id && codeRow.user_id !== data.user.id) {
+            await (supabase as any)
+              .from("invite_uses")
+              .upsert(
+                { inviter_id: codeRow.user_id, invitee_id: data.user.id },
+                { onConflict: "invitee_id" }
+              );
+          }
+        }
         toast({ title: t.auth.successTitle, description: t.auth.successDesc });
       }
     } catch (error: any) {
@@ -247,6 +265,24 @@ const Auth = () => {
                             </Select>
                           </div>
                         </>
+                      )}
+                      {role === "player" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="inviteCode" className="font-body text-sm">
+                            Cod invitație <span className="text-muted-foreground font-normal">(opțional)</span>
+                          </Label>
+                          <Input
+                            id="inviteCode"
+                            value={inviteCode}
+                            onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                            placeholder="SPORT-XXXXX"
+                            maxLength={11}
+                            className="font-mono tracking-widest"
+                          />
+                          <p className="text-[11px] text-muted-foreground font-body leading-snug">
+                            Ai primit un cod de la un prieten? Introdu-l aici.
+                          </p>
+                        </div>
                       )}
                       {(role === "scout" || role === "agent" || role === "club_rep") && (
                         <div className="space-y-2">

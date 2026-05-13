@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"Video respins\\\\|respins\")",
+      "PowerShell(Get-Command supabase -ErrorAction SilentlyContinue)",
+      "PowerShell(node --version)"
+    ]
+  }
+}

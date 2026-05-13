@@ -12,6 +12,7 @@ export interface TestUnlocksState {
   required: number; // 3 pentru prima deblocare, 4 pentru următoarele
   nextTestPreview: string | null;
   loading: boolean;
+  refetch: () => Promise<void>;
 }
 
 /**
@@ -115,5 +116,5 @@ export function useTestUnlocks(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, viewerUserId, isOwner, availableTests.join(",")]);
 
-  return state;
+  return { ...state, refetch: fetchState };
 }
