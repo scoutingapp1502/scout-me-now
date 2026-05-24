@@ -1,4 +1,11 @@
 
+-- Columns added directly to old DB without migrations
+ALTER TABLE public.scout_profiles ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE public.scout_profiles ADD COLUMN IF NOT EXISTS cover_photo_url TEXT;
+ALTER TABLE public.scout_profiles ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE public.scout_profiles ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.scout_profiles ADD COLUMN IF NOT EXISTS skills TEXT[] DEFAULT '{}';
+
 CREATE OR REPLACE FUNCTION public.search_agents(search_term text)
 RETURNS TABLE(
   user_id uuid,

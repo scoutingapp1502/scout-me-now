@@ -3,7 +3,10 @@
     "allow": [
       "Bash(xargs grep -l \"Video respins\\\\|respins\")",
       "PowerShell(Get-Command supabase -ErrorAction SilentlyContinue)",
-      "PowerShell(node --version)"
+      "PowerShell(node --version)",
+      "Bash(xargs grep -l \"profile\\\\.height_cm\\\\|profile\\\\.weight_kg\\\\|profile\\\\.nationality\")",
+      "Bash(npx supabase *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

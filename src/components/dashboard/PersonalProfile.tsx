@@ -2192,19 +2192,10 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.wingspan}</span><span className="text-foreground font-semibold">{profile?.wingspan_cm ? `${(profile.wingspan_cm / 100).toFixed(2)}m` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{(profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality ? getDisplayNationality(profile.nationality, lang) : "—"}</span></div>
-              {((profile as any)?.father_height_cm || (profile as any)?.mother_height_cm) && (
-                <>
-                  <div className="border-t border-border pt-3 mt-1">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Date genetice</p>
-                    {(profile as any)?.father_height_cm && (
-                      <div className="flex justify-between"><span className="text-muted-foreground">Înălțime tată</span><span className="text-foreground font-semibold">{((profile as any).father_height_cm / 100).toFixed(2)}m</span></div>
-                    )}
-                    {(profile as any)?.mother_height_cm && (
-                      <div className="flex justify-between mt-2"><span className="text-muted-foreground">Înălțime mamă</span><span className="text-foreground font-semibold">{((profile as any).mother_height_cm / 100).toFixed(2)}m</span></div>
-                    )}
-                  </div>
-                </>
-              )}
+              <div className="border-t border-border pt-3 mt-1 space-y-3">
+                <div className="flex justify-between"><span className="text-muted-foreground">Înălțime mamă</span><span className="text-foreground font-semibold">{(profile as any)?.mother_height_cm ? `${((profile as any).mother_height_cm / 100).toFixed(2)}m` : "—"}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Înălțime tată</span><span className="text-foreground font-semibold">{(profile as any)?.father_height_cm ? `${((profile as any).father_height_cm / 100).toFixed(2)}m` : "—"}</span></div>
+              </div>
             </div>
            )}
           {editingPhysical && <SectionSaveButton />}

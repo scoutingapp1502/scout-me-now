@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Environment variables (sensitive keys)
+.env
+.env.*
+
+# Supabase CLI temp/linked files (sensitive DB URLs)
+supabase/.temp/
+
+# Generated files
+supabase/full_schema.sql
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
