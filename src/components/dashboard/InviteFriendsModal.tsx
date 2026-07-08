@@ -21,7 +21,7 @@ interface Props {
 }
 
 const WHATSAPP_TEXT = (code: string) =>
-  `Bună! Te invit pe SportRise, platforma pentru sportivii care vor să fie văzuți de scouters! Folosește codul meu de invitație la înregistrare: *${code}* 🏆`;
+  `Salut!\n\nTe invit pe *SportRise* — platforma dedicată sportivilor care vor să fie descoperiți de scouters și agenți sportivi.\n\nÎnregistrează-te folosind codul meu de invitație și obții acces imediat:\n\n*Cod invitație: ${code}*\n\nNe vedem acolo!`;
 
 function getInitials(name: string): string {
   const parts = name.trim().split(" ");
@@ -224,14 +224,6 @@ export default function InviteFriendsModal({
                         <span className="text-[#2a4a2a] text-sm">?</span>
                       </div>
                       <p className="text-sm font-body text-muted-foreground/40 flex-1">Slot liber...</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs font-body border-border text-foreground"
-                        onClick={handleCopy}
-                      >
-                        Trimite cod
-                      </Button>
                     </div>
                   ))}
                 </div>

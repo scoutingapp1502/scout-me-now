@@ -87,14 +87,18 @@ const PlayersSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: stri
         }
       }
 
-      const { data, error } = await supabase
-        .from("player_profiles")
-        .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot, speed, jumping, endurance, acceleration, defense, career_description, video_highlights, instagram_url, tiktok_url, twitter_url")
-        .order("first_name", { ascending: true })
-        .limit(100);
+      const [{ data, error }, careerRes] = await Promise.all([
+        supabase
+          .from("player_profiles")
+          .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot, speed, jumping, endurance, acceleration, defense, career_description, video_highlights, instagram_url, tiktok_url, twitter_url")
+          .order("first_name", { ascending: true })
+          .limit(100),
+        supabase.from("player_career_entries").select("user_id"),
+      ]);
 
       if (!error && data) {
-        const visible = data.filter((p) => calcPlayerCompletion(p) >= 55);
+        const careerUserIds = new Set((careerRes.data || []).map((e: any) => e.user_id));
+        const visible = data.filter((p) => calcPlayerCompletion(p, careerUserIds.has(p.user_id)) >= 55);
         setPlayers(visible);
       }
       setLoading(false);

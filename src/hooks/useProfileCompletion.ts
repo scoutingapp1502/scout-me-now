@@ -28,7 +28,6 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
     if (!userId || !role) {
       setSections([]);
       setPercentage(0);
-      setLoading(false);
       return;
     }
 
@@ -36,11 +35,12 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
       setLoading(true);
 
       if (role === "player") {
-        const { data } = await supabase
-          .from("player_profiles")
-          .select("*")
-          .eq("user_id", userId)
-          .maybeSingle();
+        const [profileRes, careerRes] = await Promise.all([
+          supabase.from("player_profiles").select("*").eq("user_id", userId).maybeSingle(),
+          supabase.from("player_career_entries").select("id").eq("user_id", userId).limit(1),
+        ]);
+
+        const data = profileRes.data;
 
         if (!data) {
           setSections([]);
@@ -48,6 +48,8 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
           setLoading(false);
           return;
         }
+
+        const hasCareer = !!(careerRes.data && careerRes.data.length > 0);
 
         const s: ProfileSection[] = [
           {
@@ -61,7 +63,7 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
             key: "career",
             labelRo: "Carieră",
             labelEn: "Career",
-            completed: !!data.career_description,
+            completed: hasCareer,
             weight: 25,
           },
           {

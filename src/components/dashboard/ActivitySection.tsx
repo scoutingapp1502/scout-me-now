@@ -61,12 +61,15 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
   const [myName, setMyName] = useState("");
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
   const [viewingProfileRole, setViewingProfileRole] = useState<string>("player");
+  const [hideLikeCounts, setHideLikeCounts] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setCurrentUserId(user.id);
         loadMyProfile(user.id);
+        (supabase as any).from("user_privacy_settings").select("hide_like_share_counts").eq("user_id", user.id).maybeSingle()
+          .then(({ data }: any) => { if (data) setHideLikeCounts(data.hide_like_share_counts ?? false); });
       }
     });
   }, []);
@@ -236,6 +239,7 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
             currentUserId={currentUserId}
             onDelete={handleDelete}
             onViewProfile={handleViewProfile}
+            hideLikeCounts={hideLikeCounts}
           />
         ) : (
           <div className="text-center py-12 text-muted-foreground">
@@ -394,6 +398,7 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
                     currentUserId={currentUserId}
                     onDelete={handleDelete}
                     onViewProfile={handleViewProfile}
+                    hideLikeCounts={hideLikeCounts}
                   />
                 ))}
               </div>

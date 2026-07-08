@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -93,4 +93,12 @@
     font-family: 'Bebas Neue', sans-serif;
     letter-spacing: 0.02em;
   }
+}
+
+@keyframes story-ring-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.story-ring-spin {
+  animation: story-ring-spin 3s linear infinite;
 }

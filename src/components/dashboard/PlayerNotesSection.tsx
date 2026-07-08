@@ -121,6 +121,16 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
 
   const priorityLabel = ro ? PRIORITY_LABEL_RO : PRIORITY_LABEL_EN;
 
+  const d = (s: string) => {
+    const map: Record<number, string> = {
+      0x103:'a', 0x102:'A', 0xe2:'a', 0xc2:'A',
+      0xee:'i',  0xce:'I',
+      0x219:'s', 0x218:'S', 0x15f:'s', 0x15e:'S',
+      0x21b:'t', 0x21a:'T', 0x163:'t', 0x162:'T',
+    };
+    return s.split('').map(c => map[c.charCodeAt(0)] ?? c).join('');
+  };
+
   const handleExportPDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -128,21 +138,21 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
     const generated = ro ? "Generat" : "Generated";
 
     doc.setFontSize(16);
-    doc.text(title, 14, 16);
+    doc.text(d(title), 14, 16);
     doc.setFontSize(9);
     doc.setTextColor(120);
-    doc.text(`${generated}: ${new Date().toLocaleString(ro ? "ro-RO" : "en-US")}`, 14, 22);
+    doc.text(d(`${generated}: ${new Date().toLocaleString(ro ? "ro-RO" : "en-US")}`), 14, 22);
     doc.text(`${filtered.length} ${ro ? "notite" : "notes"}`, pageWidth - 14, 22, { align: "right" });
 
     const rows = filtered.map(n => {
-      const name = `${n.player?.first_name || ""} ${n.player?.last_name || ""}`.trim() || "-";
-      const sportPos = [n.player?.sport, n.player?.position].filter(Boolean).join(" / ") || "-";
+      const name = d(`${n.player?.first_name || ""} ${n.player?.last_name || ""}`.trim() || "-");
+      const sportPos = d([n.player?.sport, n.player?.position].filter(Boolean).join(" / ") || "-");
       const rating = n.personal_rating ? `${"*".repeat(n.personal_rating)}${"-".repeat(5 - n.personal_rating)}` : "-";
-      const qualities = [...(n.observed_qualities || []), ...(n.custom_qualities || [])].join(", ") || "-";
-      const match = [n.match_watched, n.match_date].filter(Boolean).join(" - ") || "-";
-      const prio = n.priority ? (priorityLabel[n.priority] || n.priority) : "-";
-      const obs = n.observations || "-";
-      return [name, sportPos, n.label || "-", rating, prio, qualities, match, obs];
+      const qualities = d([...(n.observed_qualities || []), ...(n.custom_qualities || [])].join(", ") || "-");
+      const match = d([n.match_watched, n.match_date].filter(Boolean).join(" - ") || "-");
+      const prio = d(n.priority ? (priorityLabel[n.priority] || n.priority) : "-");
+      const obs = d(n.observations || "-");
+      return [name, sportPos, d(n.label || "-"), rating, prio, qualities, match, obs];
     });
 
     autoTable(doc, {
@@ -196,10 +206,10 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
     doc.text(ro ? "Notita jucator" : "Player note", 14, 18);
     doc.setFontSize(13);
     doc.setTextColor(60);
-    doc.text(fullName, 14, 28);
+    doc.text(d(fullName), 14, 28);
     doc.setFontSize(10);
     doc.setTextColor(120);
-    doc.text(sportPos, 14, 34);
+    doc.text(d(sportPos), 14, 34);
     doc.text(`${ro ? "Actualizat" : "Updated"}: ${new Date(n.updated_at).toLocaleString(ro ? "ro-RO" : "en-US")}`, pageWidth - 14, 18, { align: "right" });
 
     autoTable(doc, {
@@ -208,12 +218,12 @@ export default function PlayerNotesSection({ scoutUserId, onNavigateToChat }: Pl
       styles: { fontSize: 10, cellPadding: 3, overflow: "linebreak" },
       columnStyles: { 0: { cellWidth: 45, fontStyle: "bold", fillColor: [240, 245, 240] }, 1: { cellWidth: "auto" } },
       body: [
-        [ro ? "Eticheta" : "Label", n.label || "-"],
+        [ro ? "Eticheta" : "Label", d(n.label || "-")],
         ["Rating", rating],
-        [ro ? "Prioritate" : "Priority", prio],
-        [ro ? "Calitati observate" : "Observed qualities", qualities],
-        [ro ? "Meci vizionat" : "Match watched", match],
-        [ro ? "Observatii" : "Observations", n.observations || "-"],
+        [ro ? "Prioritate" : "Priority", d(prio)],
+        [ro ? "Calitati observate" : "Observed qualities", d(qualities)],
+        [ro ? "Meci vizionat" : "Match watched", d(match)],
+        [ro ? "Observatii" : "Observations", d(n.observations || "-")],
       ],
     });
 

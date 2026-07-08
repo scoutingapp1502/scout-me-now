@@ -229,7 +229,7 @@ export function useActivityNotifications(userId: string | null) {
     window.addEventListener("activity-seen-update", onSeenUpdate);
 
     const channel = supabase
-      .channel("activity-notif")
+      .channel(`activity-notif-${Date.now()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchCount())
       .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, () => fetchCount())
       .on("postgres_changes", { event: "*", schema: "public", table: "post_comments" }, () => fetchCount())

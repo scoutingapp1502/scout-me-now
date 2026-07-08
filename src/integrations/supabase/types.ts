@@ -314,6 +314,7 @@ export type Database = {
         Row: {
           about_documents: string[] | null
           acceleration: number | null
+          acceleration_video: string | null
           agent_email: string | null
           agent_name: string | null
           agent_phone: string | null
@@ -332,6 +333,7 @@ export type Database = {
           defense: number | null
           double_cross_video: string | null
           endurance: number | null
+          endurance_video: string | null
           first_name: string
           free_throw_shooting_video: string | null
           full_match_descriptions: string[] | null
@@ -342,6 +344,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           jumping: number | null
+          jumping_video: string | null
           last_name: string
           long_pass_video: string | null
           matches_played: number | null
@@ -354,6 +357,7 @@ export type Database = {
           preferred_foot: string | null
           slalom_video: string | null
           speed: number | null
+          speed_video: string | null
           sport: string | null
           star_shooting_drill: number | null
           star_shooting_drill_video: string | null
@@ -369,6 +373,7 @@ export type Database = {
         Insert: {
           about_documents?: string[] | null
           acceleration?: number | null
+          acceleration_video?: string | null
           agent_email?: string | null
           agent_name?: string | null
           agent_phone?: string | null
@@ -387,6 +392,7 @@ export type Database = {
           defense?: number | null
           double_cross_video?: string | null
           endurance?: number | null
+          endurance_video?: string | null
           first_name?: string
           free_throw_shooting_video?: string | null
           full_match_descriptions?: string[] | null
@@ -397,6 +403,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           jumping?: number | null
+          jumping_video?: string | null
           last_name?: string
           long_pass_video?: string | null
           matches_played?: number | null
@@ -409,6 +416,7 @@ export type Database = {
           preferred_foot?: string | null
           slalom_video?: string | null
           speed?: number | null
+          speed_video?: string | null
           sport?: string | null
           star_shooting_drill?: number | null
           star_shooting_drill_video?: string | null
@@ -424,6 +432,7 @@ export type Database = {
         Update: {
           about_documents?: string[] | null
           acceleration?: number | null
+          acceleration_video?: string | null
           agent_email?: string | null
           agent_name?: string | null
           agent_phone?: string | null
@@ -442,6 +451,7 @@ export type Database = {
           defense?: number | null
           double_cross_video?: string | null
           endurance?: number | null
+          endurance_video?: string | null
           first_name?: string
           free_throw_shooting_video?: string | null
           full_match_descriptions?: string[] | null
@@ -452,6 +462,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           jumping?: number | null
+          jumping_video?: string | null
           last_name?: string
           long_pass_video?: string | null
           matches_played?: number | null
@@ -464,6 +475,7 @@ export type Database = {
           preferred_foot?: string | null
           slalom_video?: string | null
           speed?: number | null
+          speed_video?: string | null
           sport?: string | null
           star_shooting_drill?: number | null
           star_shooting_drill_video?: string | null

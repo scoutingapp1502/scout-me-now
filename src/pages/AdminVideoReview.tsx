@@ -8,7 +8,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle, XCircle, Clock, Video, Star } from "lucide-react";
 
+const athleticTestUnits: Record<string, { unit: "secunde" | "cm"; label: string }> = {
+  speed_video: { unit: "secunde", label: "Timp (secunde)" },
+  jumping_video: { unit: "cm", label: "Înălțime (cm)" },
+  endurance_video: { unit: "secunde", label: "Timp (secunde)" },
+  acceleration_video: { unit: "cm", label: "Înălțime (cm)" },
+};
+
 const testLabelMap: Record<string, string> = {
+  speed_video: "Pro Line Drill",
+  jumping_video: "2 Foots Vertical Jump",
+  endurance_video: "Shuttle Run",
+  acceleration_video: "2 Foots Vertical Jump in action",
   control_pass_video: "Control și Pasă",
   slalom_video: "Slalom printre Jaloane",
   precision_video: "Precizie",
@@ -77,10 +88,14 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
 
   const filtered = submissions.filter((s) => filter === "all" || s.status === filter);
 
-  const handleReview = async (submissionId: string) => {
+  const handleReview = async (submissionId: string, testKey: string) => {
     const gradeNum = parseFloat(grade);
-    if (isNaN(gradeNum) || gradeNum < 1 || gradeNum > 10) {
-      toast({ title: "Nota trebuie să fie între 1 și 10", variant: "destructive" });
+    const athleticUnit = athleticTestUnits[testKey];
+    if (isNaN(gradeNum) || gradeNum <= 0 || (!athleticUnit && (gradeNum < 1 || gradeNum > 10))) {
+      toast({
+        title: athleticUnit ? `Valoarea trebuie să fie un număr pozitiv (${athleticUnit.unit})` : "Nota trebuie să fie între 1 și 10",
+        variant: "destructive",
+      });
       return;
     }
     const { error } = await reviewVideo(submissionId, gradeNum, notes, currentUserId!);
@@ -175,7 +190,11 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                     {sub.grade !== null && (
                       <p className="text-sm mt-1 flex items-center gap-1">
                         <Star className="h-4 w-4 text-yellow-400" />
-                        Nota: <strong>{sub.grade}</strong>
+                        {athleticTestUnits[sub.test_key] ? (
+                          <>Rezultat: <strong>{sub.grade} {athleticTestUnits[sub.test_key].unit}</strong></>
+                        ) : (
+                          <>Nota: <strong>{sub.grade}</strong></>
+                        )}
                       </p>
                     )}
                     {sub.reviewer_notes && (
@@ -214,15 +233,17 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                     {reviewingId === sub.id ? (
                       <div className="mt-4 space-y-3 border-t border-border pt-3">
                         <div>
-                          <label className="text-xs text-muted-foreground">Nota (1-10)</label>
+                          <label className="text-xs text-muted-foreground">
+                            {athleticTestUnits[sub.test_key]?.label || "Nota (1-10)"}
+                          </label>
                           <Input
                             type="number"
-                            min="1"
-                            max="10"
+                            min={athleticTestUnits[sub.test_key] ? "0" : "1"}
+                            max={athleticTestUnits[sub.test_key] ? undefined : "10"}
                             step="0.1"
                             value={grade}
                             onChange={(e) => setGrade(e.target.value)}
-                            placeholder="ex: 8.5"
+                            placeholder={athleticTestUnits[sub.test_key] ? (athleticTestUnits[sub.test_key].unit === "secunde" ? "ex: 4.2" : "ex: 45.5") : "ex: 8.5"}
                             className="mt-1"
                           />
                         </div>
@@ -243,9 +264,9 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                           <Button
                             size="sm"
                             className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => handleReview(sub.id)}
+                            onClick={() => handleReview(sub.id, sub.test_key)}
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" /> Verifică & Acordă Notă
+                            <CheckCircle className="h-4 w-4 mr-1" /> {athleticTestUnits[sub.test_key] ? "Verifică & Salvează Rezultat" : "Verifică & Acordă Notă"}
                           </Button>
                           <Button
                             size="sm"

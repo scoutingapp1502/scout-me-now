@@ -10,6 +10,28 @@ import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import CommunitySection from "@/components/dashboard/CommunitySection";
 import ScoutActionsSection from "@/components/dashboard/ScoutActionsSection";
+import SettingsSection from "@/components/dashboard/SettingsSection";
+import SavedSection from "@/components/dashboard/SavedSection";
+import ArchiveSection from "@/components/dashboard/ArchiveSection";
+import YourActivitySection from "@/components/dashboard/YourActivitySection";
+import LikesActivitySection from "@/components/dashboard/LikesActivitySection";
+import TimeManagementSection from "@/components/dashboard/TimeManagementSection";
+import NotificationSettingsSection from "@/components/dashboard/NotificationSettingsSection";
+import SleepModeSection from "@/components/dashboard/SleepModeSection";
+import BlockedSection from "@/components/dashboard/BlockedSection";
+import FeedActivitySection from "@/components/dashboard/FeedActivitySection";
+import AccountPrivacySection from "@/components/dashboard/AccountPrivacySection";
+import MessagesRepliesSection from "@/components/dashboard/MessagesRepliesSection";
+import CommentsSection from "@/components/dashboard/CommentsSection";
+import TagsMentionsSection from "@/components/dashboard/TagsMentionsSection";
+import SharingReuseSection from "@/components/dashboard/SharingReuseSection";
+import RestrictedSection from "@/components/dashboard/RestrictedSection";
+import FollowInviteSection from "@/components/dashboard/FollowInviteSection";
+import FavouritesSection from "@/components/dashboard/FavouritesSection";
+import LikeShareCountsSection from "@/components/dashboard/LikeShareCountsSection";
+import LanguageSection from "@/components/dashboard/LanguageSection";
+import AboutSection from "@/components/dashboard/AboutSection";
+import HelpSection from "@/components/dashboard/HelpSection";
 import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
@@ -19,12 +41,19 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Menu, Loader2 } from "lucide-react";
 import StreakNotificationModal from "@/components/dashboard/StreakNotificationModal";
 import { useTestUnlocks } from "@/hooks/useTestUnlocks";
+import { useTimeTracking } from "@/hooks/useTimeTracking";
 import { getTechnicalTestsBySport, getTestLabelByKey } from "@/components/dashboard/PersonalProfile";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [activeSection, setActiveSection] = useState("profile");
+  const [prevSection, setPrevSection] = useState("settings");
+
+  const navigateTo = (section: string) => {
+    setPrevSection(activeSection);
+    setActiveSection(section);
+  };
   const [playerName, setPlayerName] = useState("");
   const [playerSport, setPlayerSport] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,8 +62,10 @@ const Dashboard = () => {
   const [roleLoading, setRoleLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [pendingChatUserId, setPendingChatUserId] = useState<string | null>(null);
+  const [scoutVerificationStatus, setScoutVerificationStatus] = useState<"pending" | "approved" | "rejected" | null>(null);
   const isMobile = useIsMobile();
   const { sections, percentage, loading: completionLoading } = useProfileCompletion(user?.id ?? null, userRole);
+  useTimeTracking(user?.id ?? null);
 
   useEffect(() => {
     let isMounted = true;
@@ -51,6 +82,14 @@ const Dashboard = () => {
         if (roleData.role === 'admin') {
           navigate("/admin");
           return;
+        }
+        if (roleData.role === 'scout') {
+          const { data: verif } = await supabase
+            .from("scout_verification_requests")
+            .select("status")
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (isMounted) setScoutVerificationStatus(verif?.status ?? null);
         }
         if (isMounted) {
           setUserRole(roleData.role as "player" | "scout" | "agent" | "club_rep");
@@ -90,6 +129,15 @@ const Dashboard = () => {
           { user_id: userId, first_name: firstName, last_name: lastName },
           { onConflict: "user_id" }
         );
+      }
+
+      if (metaRole === "scout") {
+        const { data: verif } = await supabase
+          .from("scout_verification_requests")
+          .select("status")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (isMounted) setScoutVerificationStatus(verif?.status ?? null);
       }
 
       if (isMounted) {
@@ -233,6 +281,33 @@ const Dashboard = () => {
     );
   }
 
+  if (userRole === "scout" && (scoutVerificationStatus === "pending" || scoutVerificationStatus === "rejected")) {
+    const isPending = scoutVerificationStatus === "pending" || scoutVerificationStatus === null;
+    return (
+      <div className="flex min-h-screen bg-background dark items-center justify-center p-6">
+        <div className="max-w-md w-full text-center space-y-5">
+          <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${isPending ? "bg-yellow-500/10" : "bg-destructive/10"}`}>
+            <Loader2 className={`h-8 w-8 ${isPending ? "text-yellow-500 animate-spin" : "text-destructive"}`} />
+          </div>
+          <h1 className="font-heading text-2xl font-bold">
+            {isPending ? "Cont în curs de verificare" : "Cont respins"}
+          </h1>
+          <p className="font-body text-muted-foreground text-sm leading-relaxed">
+            {isPending
+              ? "Documentul tău de scouter a fost primit și este în curs de analiză de către echipa SportRise. Vei primi acces imediat după aprobare."
+              : "Documentul tău de scouter nu a fost aprobat. Te rugăm să contactezi echipa SportRise pentru mai multe detalii."}
+          </p>
+          <button
+            onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}
+            className="font-body text-sm text-muted-foreground hover:text-foreground underline"
+          >
+            Deconectare
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleSectionChange = (section: string) => {
     if (section === "activity" && user?.id) {
       markFollowingSeen(user.id);
@@ -273,8 +348,30 @@ const Dashboard = () => {
         return (userRole === "scout" || userRole === "club_rep")
           ? <ScoutActionsSection scoutUserId={user.id} onNavigateToChat={handleNavigateToChat} />
           : null;
-      case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} />;
+      case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
       case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} />;
+      case "settings": return <SettingsSection userId={user.id} userRole={userRole} onNavigate={navigateTo} />;
+      case "saved": return <SavedSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "archive": return <ArchiveSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "your-activity": return <YourActivitySection onBack={() => setActiveSection("settings")} onNavigate={navigateTo} />;
+      case "likes-activity": return <LikesActivitySection userId={user.id} onBack={() => setActiveSection("your-activity")} onViewProfile={() => setActiveSection("profile")} />;
+      case "time-management": return <TimeManagementSection userId={user.id} onBack={() => setActiveSection(prevSection)} />;
+      case "blocked": return <BlockedSection currentUserId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "feed-activity": return <FeedActivitySection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "account-privacy": return <AccountPrivacySection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "messages-replies": return <MessagesRepliesSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "comments": return <CommentsSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "tags-mentions": return <TagsMentionsSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "sharing-reuse": return <SharingReuseSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "restricted": return <RestrictedSection currentUserId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "follow-invite": return <FollowInviteSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "favourites": return <FavouritesSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "like-share-counts": return <LikeShareCountsSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "language": return <LanguageSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "about": return <AboutSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "help": return <HelpSection onBack={() => setActiveSection("settings")} />;
+      case "notification-settings": return <NotificationSettingsSection onBack={() => setActiveSection("settings")} onNavigateToSleepMode={() => navigateTo("sleep-mode-settings")} />;
+      case "sleep-mode-settings": return <SleepModeSection onBack={() => setActiveSection("notification-settings")} />;
       case "messages": return (
         <MessagesSection
           initialChatUserId={pendingChatUserId}
@@ -340,7 +437,7 @@ const Dashboard = () => {
               </button>
               <span className="font-display text-xl text-primary">⚽ SPORTRISE</span>
             </header>
-            <main className="flex-1 p-4 overflow-y-auto">
+            <main className="flex-1 p-4 overflow-y-auto bg-background">
               {renderSection()}
             </main>
           </div>
@@ -356,7 +453,7 @@ const Dashboard = () => {
             userRole={userRole}
             userId={user?.id}
           />
-          <main className="flex-1 p-8 overflow-y-auto">
+          <main className="flex-1 p-8 overflow-y-auto bg-background">
             {renderSection()}
           </main>
         </>

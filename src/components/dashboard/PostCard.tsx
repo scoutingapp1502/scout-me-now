@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send } from "lucide-react";
+import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send, Forward, Loader2, Bookmark, Instagram, TrendingUp, RefreshCw, Archive, Eye, EyeOff, Film, Pencil, Crop, Pin, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 interface PostAuthor {
@@ -42,11 +43,11 @@ interface PostCardProps {
   author: PostAuthor;
   currentUserId: string | null;
   onDelete: (postId: string) => void;
-  
   onViewProfile: (userId: string, role: string) => void;
+  hideLikeCounts?: boolean;
 }
 
-const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: PostCardProps) => {
+const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLikeCounts = false }: PostCardProps) => {
   const { lang } = useLanguage();
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
@@ -77,11 +78,12 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
   }, [post.id, currentUserId]);
 
   const loadLikes = async () => {
-    const { count } = await supabase
-      .from("post_likes")
-      .select("*", { count: "exact", head: true })
-      .eq("post_id", post.id);
-    setLikesCount(count || 0);
+    // Use RPC to respect feed_activity_visibility privacy setting
+    const { data: rpcData } = await (supabase as any).rpc("get_visible_likes_count", {
+      p_post_id: post.id,
+      p_viewer_id: currentUserId ?? "00000000-0000-0000-0000-000000000000",
+    });
+    setLikesCount(typeof rpcData === "number" ? rpcData : 0);
 
     if (currentUserId) {
       const { data } = await supabase
@@ -255,6 +257,100 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
 
   const isOwnPost = post.user_id === currentUserId;
 
+  // Saved state
+  const [saved, setSaved] = useState(false);
+
+  const handleArchive = async () => {
+    if (!currentUserId || currentUserId !== post.user_id) return;
+    await (supabase as any).from("posts").update({ is_archived: true }).eq("id", post.id);
+    toast.success(lang === "ro" ? "Postare arhivată." : "Post archived.");
+    onDelete(post.id);
+  };
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    supabase
+      .from("saved_posts" as any)
+      .select("id")
+      .eq("post_id", post.id)
+      .eq("user_id", currentUserId)
+      .maybeSingle()
+      .then(({ data }) => setSaved(!!data));
+  }, [post.id, currentUserId]);
+
+  const toggleSave = async () => {
+    if (!currentUserId) return;
+    if (saved) {
+      await supabase.from("saved_posts" as any).delete().eq("post_id", post.id).eq("user_id", currentUserId);
+      setSaved(false);
+      toast.info(lang === "ro" ? "Postare eliminată din salvate." : "Post removed from saved.");
+    } else {
+      await supabase.from("saved_posts" as any).insert({ post_id: post.id, user_id: currentUserId });
+      setSaved(true);
+      toast.success(lang === "ro" ? "Postare salvată." : "Post saved.");
+    }
+  };
+
+  // Edit mode
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const handleEditSave = async () => {
+    if (!editContent.trim()) return;
+    setSavingEdit(true);
+    const { error } = await supabase.from("posts").update({ content: editContent.trim() } as any).eq("id", post.id);
+    if (error) { toast.error(lang === "ro" ? "Eroare la salvare." : "Failed to save."); }
+    else { setIsEditing(false); }
+    setSavingEdit(false);
+  };
+
+  // Share dialog
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [followingList, setFollowingList] = useState<{ userId: string; name: string; photo: string | null }[]>([]);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
+  const [sendingTo, setSendingTo] = useState<string | null>(null);
+
+  const fetchFollowing = async () => {
+    if (!currentUserId) return;
+    setLoadingFollowing(true);
+    const { data: follows } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", currentUserId)
+      .eq("status", "accepted");
+    const ids = (follows || []).map(f => f.following_id);
+    if (ids.length === 0) { setFollowingList([]); setLoadingFollowing(false); return; }
+
+    const [playerRes, scoutRes] = await Promise.all([
+      supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", ids),
+      supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", ids),
+    ]);
+    const profileMap = new Map<string, { name: string; photo: string | null }>();
+    (playerRes.data || []).forEach(p => profileMap.set(p.user_id, { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url }));
+    (scoutRes.data || []).forEach(s => { if (!profileMap.has(s.user_id)) profileMap.set(s.user_id, { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url }); });
+
+    setFollowingList(ids.map(id => ({ userId: id, name: profileMap.get(id)?.name || "Utilizator", photo: profileMap.get(id)?.photo || null })));
+    setLoadingFollowing(false);
+  };
+
+  const handleShareTo = async (targetUserId: string) => {
+    if (!currentUserId) return;
+    setSendingTo(targetUserId);
+    const { data: convId, error } = await supabase.rpc("get_or_create_conversation", { other_user_id: targetUserId });
+    if (!convId || error) {
+      toast.error(lang === "ro" ? "Nu se poate trimite mesajul." : "Could not send message.");
+      setSendingTo(null);
+      return;
+    }
+    const excerpt = post.content.length > 120 ? post.content.slice(0, 120) + "…" : post.content;
+    const messageContent = `🔗 ${author.name}:\n"${excerpt}"`;
+    await supabase.from("messages").insert({ conversation_id: convId, sender_id: currentUserId, content: messageContent } as any);
+    setSendingTo(null);
+    setShowShareDialog(false);
+    toast.success(lang === "ro" ? "Postare trimisă!" : "Post sent!");
+  };
+
   return (
     <div className={`bg-card border rounded-xl overflow-hidden transition-colors ${isNew ? "border-primary/50 ring-1 ring-primary/20" : "border-border"}`}>
       {isNew && (
@@ -299,10 +395,52 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={toggleSave}>
+                  <Bookmark className={`h-4 w-4 mr-2 ${saved ? "fill-current" : ""}`} />
+                  {saved ? (lang === "ro" ? "Elimină din salvate" : "Unsave") : (lang === "ro" ? "Salvează" : "Save")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
+                  <Instagram className="h-4 w-4 mr-2" /> {lang === "ro" ? "Distribuie pe Instagram" : "Share to Instagram"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
+                  <TrendingUp className="h-4 w-4 mr-2" /> {lang === "ro" ? "Statistici" : "Insights"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
+                  <RefreshCw className="h-4 w-4 mr-2" /> {lang === "ro" ? "Permite refolosirea" : "Allow reuse"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {currentUserId === post.user_id && (
+                  <DropdownMenuItem onClick={handleArchive}>
+                    <Archive className="h-4 w-4 mr-2" /> {lang === "ro" ? "Arhivează" : "Archive"}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
+                  <Eye className="h-4 w-4 mr-2" /> {lang === "ro" ? "Afișează nr. like-uri" : "Unhide like count"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
+                  <EyeOff className="h-4 w-4 mr-2" /> {lang === "ro" ? "Ascunde nr. distribuiri" : "Hide share count"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
+                  <MessageSquare className="h-4 w-4 mr-2" /> {lang === "ro" ? "Dezactivează comentariile" : "Turn off commenting"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
+                  <Film className="h-4 w-4 mr-2" /> {lang === "ro" ? "Creează reel din postare" : "Create reel from post"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                  <Pencil className="h-4 w-4 mr-2" /> {lang === "ro" ? "Editează" : "Edit"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
+                  <Crop className="h-4 w-4 mr-2" /> {lang === "ro" ? "Ajustează previzualizarea" : "Adjust preview"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
+                  <Pin className="h-4 w-4 mr-2" /> {lang === "ro" ? "Fixează în profil" : "Pin to main grid"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onDelete(post.id)} className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {lang === "ro" ? "Șterge" : "Delete"}
+                  <Trash2 className="h-4 w-4 mr-2" /> {lang === "ro" ? "Șterge" : "Delete"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -317,7 +455,28 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
         )}
 
         {/* Content */}
-        <p className="text-sm text-foreground/90 whitespace-pre-wrap">{post.content}</p>
+        {isEditing ? (
+          <div className="space-y-2 mt-1">
+            <textarea
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              className="w-full text-sm bg-muted/50 border border-border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+              rows={3}
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setIsEditing(false); setEditContent(post.content); }} className="text-xs text-muted-foreground hover:text-foreground font-body px-2 py-1">
+                {lang === "ro" ? "Anulează" : "Cancel"}
+              </button>
+              <button onClick={handleEditSave} disabled={savingEdit || !editContent.trim()} className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-md font-body disabled:opacity-50 flex items-center gap-1">
+                {savingEdit && <Loader2 className="h-3 w-3 animate-spin" />}
+                {lang === "ro" ? "Salvează" : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-foreground/90 whitespace-pre-wrap">{editContent}</p>
+        )}
       </div>
 
       {/* Image */}
@@ -331,13 +490,13 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
       )}
 
       {/* Like & Comment bar */}
-      <div className="px-4 py-2 border-t border-border flex items-center gap-4">
+      <div className="px-4 py-2 border-t border-border flex items-center gap-4 flex-wrap">
         <button
           onClick={toggleLike}
           className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
         >
           <Heart className={`h-4 w-4 ${liked ? "fill-red-500" : ""}`} />
-          {likesCount > 0 && <span className="text-xs">{likesCount}</span>}
+          {likesCount > 0 && !hideLikeCounts && <span className="text-xs">{likesCount}</span>}
         </button>
         <button
           onClick={handleCommentClick}
@@ -346,7 +505,56 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile }: Post
           <MessageCircle className="h-4 w-4" />
           {commentsCount > 0 && <span className="text-xs">{commentsCount}</span>}
         </button>
+        <button
+          onClick={() => { setShowShareDialog(true); fetchFollowing(); }}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Forward className="h-4 w-4" />
+        </button>
+        <button
+          onClick={toggleSave}
+          className={`ml-auto flex items-center transition-colors ${saved ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          <Bookmark className={`h-5 w-5 ${saved ? "fill-current" : ""}`} />
+        </button>
       </div>
+
+      {/* Share dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-base">
+              {lang === "ro" ? "Trimite postarea" : "Send post"}
+            </DialogTitle>
+          </DialogHeader>
+          {loadingFollowing ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          ) : followingList.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6 font-body">
+              {lang === "ro" ? "Nu urmărești pe nimeni momentan." : "You're not following anyone yet."}
+            </p>
+          ) : (
+            <div className="space-y-1 max-h-72 overflow-y-auto">
+              {followingList.map(u => (
+                <button
+                  key={u.userId}
+                  onClick={() => handleShareTo(u.userId)}
+                  disabled={!!sendingTo}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left disabled:opacity-50"
+                >
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                    {u.photo ? <img src={u.photo} alt="" className="w-full h-full object-cover" /> : <User className="h-4 w-4 text-muted-foreground" />}
+                  </div>
+                  <span className="text-sm font-medium font-body flex-1">{u.name}</span>
+                  {sendingTo === u.userId ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Forward className="h-4 w-4 text-muted-foreground" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Comments section */}
       {showComments && (

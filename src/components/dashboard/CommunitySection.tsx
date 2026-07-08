@@ -156,6 +156,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
       const [
         rolesRes,
         playersRes,
+        playerCareerRes,
         scoutsRes,
         scoutExpRes,
         scoutPostsRes,
@@ -168,6 +169,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
         supabase
           .from("player_profiles")
           .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot, speed, jumping, endurance, acceleration, defense, career_description, video_highlights, instagram_url, tiktok_url, twitter_url"),
+        supabase.from("player_career_entries").select("user_id"),
         supabase
           .from("scout_profiles")
           .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills, languages, sports"),
@@ -182,6 +184,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
       const roleMap = new Map<string, RoleKey>();
       (rolesRes.data || []).forEach((r: any) => roleMap.set(r.user_id, r.role as RoleKey));
 
+      const careerIds = new Set((playerCareerRes.data || []).map((e: any) => e.user_id));
       const expIds = new Set((scoutExpRes.data || []).map((e: any) => e.user_id));
       const locIds = new Set((scoutExpRes.data || []).filter((e: any) => e.location).map((e: any) => e.user_id));
       const postIds = new Set((scoutPostsRes.data || []).map((p: any) => p.user_id));
@@ -193,7 +196,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
       const cards: CommunityCard[] = [];
 
       (playersRes.data || []).forEach((p: any) => {
-        if (calcPlayerCompletion(p) < 55) return;
+        if (calcPlayerCompletion(p, careerIds.has(p.user_id)) < 55) return;
         cards.push({
           user_id: p.user_id,
           role: "player",

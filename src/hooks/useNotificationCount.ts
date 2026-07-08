@@ -55,7 +55,33 @@ export function useNotificationCount(userId: string | null) {
       .in("status", ["accepted", "rejected"]);
     const unreadPlayerCollabs = playerCollabs ? playerCollabs.filter(r => !readIds.has(`${r.id}-response`)).length : 0;
 
-    setCount(unreadFollows + unreadRejectedFollows + unreadAgentCollabs + unreadPlayerCollabs);
+    // Count unread recommendation notifications
+    const [pendingRecsRes, submittedRecsRes] = await Promise.all([
+      supabase.from("recommendations").select("id").eq("author_user_id", userId).eq("status", "pending").eq("initiated_by", "request"),
+      supabase.from("recommendations").select("id").eq("recipient_user_id", userId).eq("status", "submitted"),
+    ]);
+    const unreadPendingRecs = (pendingRecsRes.data || []).filter((r: any) => !readIds.has(`rec-${r.id}-author`)).length;
+    const unreadSubmittedRecs = (submittedRecsRes.data || []).filter((r: any) => !readIds.has(`rec-${r.id}-recipient`)).length;
+
+    // Count unread video notifications (anyone watching players they follow)
+    let unreadVideoNotifs = 0;
+    {
+      const { data: followsData } = await supabase
+        .from("follows").select("following_id").eq("follower_id", userId).eq("status", "accepted");
+      const followedIds = (followsData || []).map((f: any) => f.following_id);
+      if (followedIds.length > 0) {
+        const { data: playerRolesData } = await supabase
+          .from("user_roles").select("user_id").in("user_id", followedIds).eq("role", "player");
+        const playerIds = (playerRolesData || []).map((r: any) => r.user_id);
+        if (playerIds.length > 0) {
+          const { data: videoNotifsData } = await supabase
+            .from("player_video_notifications").select("id").in("player_id", playerIds);
+          unreadVideoNotifs = (videoNotifsData || []).filter((n: any) => !readIds.has(`video-${n.id}`)).length;
+        }
+      }
+    }
+
+    setCount(unreadFollows + unreadRejectedFollows + unreadAgentCollabs + unreadPlayerCollabs + unreadPendingRecs + unreadSubmittedRecs + unreadVideoNotifs);
   }, [userId]);
 
   useEffect(() => {
@@ -73,6 +99,8 @@ export function useNotificationCount(userId: string | null) {
       .channel(`notif-count-${userId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => recalc())
       .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests" }, () => recalc())
+      .on("postgres_changes", { event: "*", schema: "public", table: "recommendations" }, () => recalc())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "player_video_notifications" }, () => recalc())
       .subscribe();
 
     return () => {

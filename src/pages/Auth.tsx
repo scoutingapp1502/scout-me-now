@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Eye, EyeOff, ArrowLeft, ChevronDown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Eye, EyeOff, ArrowLeft, ChevronDown, Upload, FileCheck } from "lucide-react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,9 @@ const Auth = () => {
   const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [scoutDocument, setScoutDocument] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -51,10 +54,22 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const toBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve((reader.result as string).split(",")[1]);
+      reader.onerror = reject;
+    });
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       toast({ title: t.auth.errorRegister, description: t.auth.passwordsMismatch, variant: "destructive" });
+      return;
+    }
+    if (role === "scout" && !scoutDocument) {
+      toast({ title: "Document lipsă", description: "Încarcă un document de verificare pentru contul de Scouter.", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -81,15 +96,33 @@ const Auth = () => {
             .eq("code", trimmedCode)
             .maybeSingle();
           if (codeRow?.user_id && codeRow.user_id !== data.user.id) {
-            await (supabase as any)
+            const { error: inviteErr } = await (supabase as any)
               .from("invite_uses")
               .upsert(
                 { inviter_id: codeRow.user_id, invitee_id: data.user.id },
                 { onConflict: "invitee_id" }
               );
+            if (inviteErr) console.error("invite_uses insert failed:", inviteErr);
           }
         }
-        toast({ title: t.auth.successTitle, description: t.auth.successDesc });
+        // Upload scout document if provided
+        if (role === "scout" && scoutDocument && data.user) {
+          try {
+            const fileBase64 = await toBase64(scoutDocument);
+            const { error: fnError } = await supabase.functions.invoke("submit-scout-document", {
+              body: {
+                userId: data.user.id,
+                fileName: scoutDocument.name,
+                fileBase64,
+                mimeType: scoutDocument.type,
+              },
+            });
+            if (fnError) console.error("Document upload failed:", fnError);
+          } catch (docErr) {
+            console.error("Document upload failed:", docErr);
+          }
+        }
+        setRegisteredEmail(email);
       }
     } catch (error: any) {
       toast({ title: t.auth.errorRegister, description: error.message, variant: "destructive" });
@@ -126,6 +159,79 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  if (registeredEmail) {
+    const isScout = role === "scout";
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pitch via-pitch/95 to-primary/20 flex items-center justify-center p-4">
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
+          backgroundSize: '40px 40px'
+        }} />
+        <div className="relative w-full max-w-md">
+          <Card className="bg-card/95 backdrop-blur border-primary/20 shadow-2xl">
+            <CardContent className="pt-8 pb-8 flex flex-col items-center text-center gap-5">
+              <div className="w-16 h-16 rounded-full bg-primary/15 border-2 border-primary flex items-center justify-center">
+                {isScout ? (
+                  <FileCheck className="h-8 w-8 text-primary" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </div>
+              {isScout ? (
+                <>
+                  <div className="space-y-2">
+                    <h2 className="font-display text-2xl text-foreground">Cerere trimisă</h2>
+                    <p className="text-muted-foreground font-body text-sm leading-relaxed">
+                      Vei fi notificat după verificarea documentului de către echipa SportRise.
+                    </p>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4 text-left space-y-2 w-full">
+                    <p className="text-sm font-body text-foreground font-semibold">Ce urmează:</p>
+                    <ol className="text-sm font-body text-muted-foreground space-y-1.5 list-decimal list-inside">
+                      <li>Confirmă adresa de email <span className="text-foreground break-all">{registeredEmail}</span></li>
+                      <li>Echipa SportRise verifică documentul tău</li>
+                      <li>După aprobare vei primi acces complet</li>
+                    </ol>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <h2 className="font-display text-2xl text-foreground">Verifică-ți adresa de email</h2>
+                    <p className="text-muted-foreground font-body text-sm leading-relaxed">
+                      Am trimis un email de confirmare la:
+                    </p>
+                    <p className="font-semibold text-primary font-body text-sm break-all">{registeredEmail}</p>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4 text-left space-y-2 w-full">
+                    <p className="text-sm font-body text-foreground font-semibold">Ce trebuie să faci:</p>
+                    <ol className="text-sm font-body text-muted-foreground space-y-1.5 list-decimal list-inside">
+                      <li>Deschide aplicația de email</li>
+                      <li>Caută un email de la <span className="text-foreground">SportRise</span></li>
+                      <li>Apasă pe linkul de confirmare</li>
+                      <li>Vei fi redirecționat automat în aplicație</li>
+                    </ol>
+                  </div>
+                </>
+              )}
+              <p className="text-xs text-muted-foreground font-body">
+                Nu ai primit emailul? Verifică folderul <span className="font-semibold">Spam / Junk</span> sau{" "}
+                <button
+                  onClick={() => setRegisteredEmail(null)}
+                  className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                >
+                  încearcă din nou
+                </button>.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pitch via-pitch/95 to-primary/20 flex items-center justify-center p-4">
@@ -347,6 +453,39 @@ const Auth = () => {
                      <div className="space-y-2">
                        <Label htmlFor="confirmPassword" className="font-body">{t.auth.confirmPassword}</Label>
                        <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
+                     </div>
+                   )}
+
+                   {tab === "register" && role === "scout" && (
+                     <div className="space-y-2">
+                       <Label className="font-body text-sm">
+                         Document de verificare <span className="text-destructive">*</span>
+                       </Label>
+                       <input
+                         ref={fileInputRef}
+                         type="file"
+                         accept=".pdf,.jpg,.jpeg,.png,.webp"
+                         className="hidden"
+                         onChange={(e) => setScoutDocument(e.target.files?.[0] ?? null)}
+                       />
+                       <button
+                         type="button"
+                         onClick={() => fileInputRef.current?.click()}
+                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 border-dashed transition-colors text-sm font-body ${
+                           scoutDocument
+                             ? "border-primary bg-primary/5 text-foreground"
+                             : "border-border hover:border-primary/50 text-muted-foreground"
+                         }`}
+                       >
+                         {scoutDocument ? (
+                           <><FileCheck className="h-4 w-4 text-primary shrink-0" /><span className="truncate">{scoutDocument.name}</span></>
+                         ) : (
+                           <><Upload className="h-4 w-4 shrink-0" /><span>Badge, certificat, legitimație scouter...</span></>
+                         )}
+                       </button>
+                       <p className="text-[11px] text-muted-foreground font-body leading-snug">
+                         Contul va fi activat după ce administratorul verifică documentul. Formate acceptate: PDF, JPG, PNG (max 10MB).
+                       </p>
                      </div>
                    )}
 

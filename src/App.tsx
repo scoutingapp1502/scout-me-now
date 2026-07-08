@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ResetPassword from "./pages/ResetPassword";
 import AdminVideoReview from "./pages/AdminVideoReview";
+import ExternalRecommend from "./pages/ExternalRecommend";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/video-review" element={<AdminVideoReview />} />
+            <Route path="/recommend" element={<ExternalRecommend />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

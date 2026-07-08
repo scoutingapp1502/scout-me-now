@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { UserPlus, ArrowLeft, CheckCheck, Handshake, Check, X } from "lucide-react";
+import { UserPlus, ArrowLeft, CheckCheck, Handshake, Check, X, Star, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import PersonalProfile from "./PersonalProfile";
+import PersonalProfile, { getTestLabelByKey } from "./PersonalProfile";
 import ScoutPersonalProfile from "./ScoutPersonalProfile";
 import { markNotificationRead, markAllNotificationsRead, isNotificationRead } from "@/hooks/useNotificationCount";
 import { useToast } from "@/hooks/use-toast";
@@ -36,9 +36,35 @@ interface CollabNotification {
   isRead: boolean;
 }
 
-type Notification = FollowNotification | CollabNotification;
+interface RecommendationNotification {
+  id: string;
+  type: "recommendation";
+  other_user_id: string;
+  other_name: string;
+  other_photo: string | null;
+  other_role: "player" | "scout" | "agent";
+  created_at: string;
+  status: "pending" | "submitted";
+  perspective: "author" | "recipient";
+  isRead: boolean;
+}
 
-const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: string) => void }) => {
+interface VideoNotification {
+  id: string;
+  type: "video";
+  videoType: "highlight" | "test";
+  player_id: string;
+  player_name: string;
+  player_photo: string | null;
+  player_sport: string | null;
+  test_key: string | null;
+  created_at: string;
+  isRead: boolean;
+}
+
+type Notification = FollowNotification | CollabNotification | RecommendationNotification | VideoNotification;
+
+const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigateToChat?: (userId: string) => void; onNavigateToProfile?: () => void }) => {
   const { lang } = useLanguage();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -311,8 +337,135 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
       }
     }
 
+    // Fetch recommendation notifications
+    let recNotifs: RecommendationNotification[] = [];
+
+    const [pendingAsAuthorRes, submittedAsRecipientRes] = await Promise.all([
+      supabase.from("recommendations").select("id, recipient_user_id, created_at")
+        .eq("author_user_id", user.id).eq("status", "pending").eq("initiated_by", "request")
+        .order("created_at", { ascending: false }),
+      supabase.from("recommendations").select("id, author_user_id, created_at")
+        .eq("recipient_user_id", user.id).eq("status", "submitted")
+        .order("created_at", { ascending: false }),
+    ]);
+
+    const pendingAsAuthor = pendingAsAuthorRes.data || [];
+    const submittedAsRecipient = submittedAsRecipientRes.data || [];
+    const recOtherIds = new Set<string>([
+      ...pendingAsAuthor.map((r: any) => r.recipient_user_id),
+      ...submittedAsRecipient.map((r: any) => r.author_user_id),
+    ]);
+
+    if (recOtherIds.size > 0) {
+      const recIds = [...recOtherIds];
+      const [recRolesRes, recPlayerRes, recScoutRes] = await Promise.all([
+        supabase.from("user_roles").select("user_id, role").in("user_id", recIds),
+        supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", recIds),
+        supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", recIds),
+      ]);
+      const recRoleMap: Record<string, string> = {};
+      (recRolesRes.data || []).forEach((r: any) => { recRoleMap[r.user_id] = r.role; });
+      const recNameMap: Record<string, { name: string; photo: string | null }> = {};
+      (recPlayerRes.data || []).forEach((p: any) => { recNameMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url }; });
+      (recScoutRes.data || []).forEach((s: any) => { recNameMap[s.user_id] = { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url }; });
+
+      pendingAsAuthor.forEach((r: any) => {
+        const info = recNameMap[r.recipient_user_id];
+        const role = (recRoleMap[r.recipient_user_id] || "scout") as "player" | "scout" | "agent";
+        recNotifs.push({
+          id: `rec-${r.id}-author`,
+          type: "recommendation",
+          other_user_id: r.recipient_user_id,
+          other_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
+          other_photo: info?.photo || null,
+          other_role: role,
+          created_at: r.created_at,
+          status: "pending",
+          perspective: "author",
+          isRead: isNotificationRead(user.id, `rec-${r.id}-author`),
+        });
+      });
+
+      submittedAsRecipient.forEach((r: any) => {
+        const info = recNameMap[r.author_user_id];
+        const role = (recRoleMap[r.author_user_id] || "player") as "player" | "scout" | "agent";
+        recNotifs.push({
+          id: `rec-${r.id}-recipient`,
+          type: "recommendation",
+          other_user_id: r.author_user_id,
+          other_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
+          other_photo: info?.photo || null,
+          other_role: role,
+          created_at: r.created_at,
+          status: "submitted",
+          perspective: "recipient",
+          isRead: isNotificationRead(user.id, `rec-${r.id}-recipient`),
+        });
+      });
+    }
+
+    // Fetch video notifications (for anyone who follows a player, regardless of their own role)
+    let videoNotifs: VideoNotification[] = [];
+
+    {
+      const { data: followsData } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", user.id)
+        .eq("status", "accepted");
+
+      const followedIds = (followsData || []).map((f: any) => f.following_id);
+
+      if (followedIds.length > 0) {
+        const { data: playerRolesData } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .in("user_id", followedIds)
+          .eq("role", "player");
+
+        const playerIds = (playerRolesData || []).map((r: any) => r.user_id);
+
+        if (playerIds.length > 0) {
+          const [videoNotifsRes, playerProfilesRes] = await Promise.all([
+            supabase
+              .from("player_video_notifications")
+              .select("id, player_id, type, video_url, test_key, created_at")
+              .in("player_id", playerIds)
+              .order("created_at", { ascending: false })
+              .limit(50),
+            supabase
+              .from("player_profiles")
+              .select("user_id, first_name, last_name, photo_url, sport")
+              .in("user_id", playerIds),
+          ]);
+
+          const playerInfoMap: Record<string, { name: string; photo: string | null; sport: string | null }> = {};
+          (playerProfilesRes.data || []).forEach((p: any) => {
+            playerInfoMap[p.user_id] = {
+              name: `${p.first_name || ""} ${p.last_name || ""}`.trim(),
+              photo: p.photo_url || null,
+              sport: p.sport || null,
+            };
+          });
+
+          videoNotifs = (videoNotifsRes.data || []).map((n: any) => ({
+            id: `video-${n.id}`,
+            type: "video" as const,
+            videoType: n.type as "highlight" | "test",
+            player_id: n.player_id,
+            player_name: playerInfoMap[n.player_id]?.name || "Jucător",
+            player_photo: playerInfoMap[n.player_id]?.photo || null,
+            player_sport: playerInfoMap[n.player_id]?.sport || null,
+            test_key: n.test_key || null,
+            created_at: n.created_at,
+            isRead: isNotificationRead(user.id, `video-${n.id}`),
+          }));
+        }
+      }
+    }
+
     // Merge and sort by date
-    const allNotifs: Notification[] = [...followNotifs, ...collabNotifs]
+    const allNotifs: Notification[] = [...followNotifs, ...collabNotifs, ...recNotifs, ...videoNotifs]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     setNotifications(allNotifs);
@@ -328,6 +481,12 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
         fetchNotifications();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests" }, () => {
+        fetchNotifications();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "recommendations" }, () => {
+        fetchNotifications();
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "player_video_notifications" }, () => {
         fetchNotifications();
       })
       .subscribe();
@@ -621,6 +780,102 @@ const NotificationsSection = ({ onNavigateToChat }: { onNavigateToChat?: (userId
                     <Handshake className={`h-4 w-4 shrink-0 ${cn.status === "accepted" ? "text-green-500" : cn.status === "pending" ? "text-yellow-500" : "text-muted-foreground"}`} />
                   )}
                 </div>
+              );
+            }
+
+            if (n.type === "recommendation") {
+              const rn = n as RecommendationNotification;
+              const recMessage = rn.perspective === "author"
+                ? (lang === "ro" ? "te-a rugat să scrii o recomandare" : "asked you to write a recommendation")
+                : (lang === "ro" ? "a scris o recomandare pentru tine ✅" : "wrote a recommendation for you ✅");
+
+              const handleRecClick = () => {
+                handleMarkOneRead(rn.id);
+                if (rn.perspective === "author") {
+                  // Go to requester's profile to write the recommendation
+                  setViewProfileUserId(rn.other_user_id);
+                  setViewProfileRole(rn.other_role === "player" ? "player" : "scout");
+                } else {
+                  // Go to own profile where the submitted recommendation awaits approval
+                  onNavigateToProfile?.();
+                }
+              };
+
+              return (
+                <button
+                  key={rn.id}
+                  onClick={handleRecClick}
+                  className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
+                    rn.isRead ? "bg-card border-border hover:bg-accent/50" : "bg-primary/5 border-primary/30 hover:bg-primary/10"
+                  }`}
+                >
+                  <div className="shrink-0 w-2.5 flex items-center justify-center">
+                    {!rn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
+                  </div>
+                  <Avatar className="h-10 w-10">
+                    {rn.other_photo ? <AvatarImage src={rn.other_photo} /> : null}
+                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                      {rn.other_name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${rn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                      <span className="font-semibold">{rn.other_name}</span>{" "}
+                      <span className={rn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
+                        {recMessage}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{timeAgo(rn.created_at)}</p>
+                  </div>
+                  <Star className={`h-4 w-4 shrink-0 ${rn.perspective === "recipient" ? "text-green-500" : rn.isRead ? "text-primary/50" : "text-primary"}`} />
+                </button>
+              );
+            }
+
+            if (n.type === "video") {
+              const vn = n as VideoNotification;
+              const testLabel = vn.test_key && vn.player_sport
+                ? getTestLabelByKey(vn.player_sport, vn.test_key)
+                : null;
+              const msg = vn.videoType === "highlight"
+                ? (lang === "ro" ? "a adăugat un nou video highlight" : "added a new highlight video")
+                : testLabel
+                  ? (lang === "ro" ? `a adăugat un video pentru testul: ${testLabel}` : `added a test video: ${testLabel}`)
+                  : (lang === "ro" ? "a adăugat un nou video de test" : "added a new test video");
+              const typeLabel = vn.videoType === "highlight" ? "Highlight" : "Test video";
+
+              return (
+                <button
+                  key={vn.id}
+                  onClick={() => {
+                    handleMarkOneRead(vn.id);
+                    setViewProfileUserId(vn.player_id);
+                    setViewProfileRole("player");
+                  }}
+                  className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
+                    vn.isRead ? "bg-card border-border hover:bg-accent/50" : "bg-primary/5 border-primary/30 hover:bg-primary/10"
+                  }`}
+                >
+                  <div className="shrink-0 w-2.5 flex items-center justify-center">
+                    {!vn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
+                  </div>
+                  <Avatar className="h-10 w-10">
+                    {vn.player_photo ? <AvatarImage src={vn.player_photo} /> : null}
+                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                      {vn.player_name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${vn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                      <span className="font-semibold">{vn.player_name}</span>{" "}
+                      <span className={vn.isRead ? "text-muted-foreground" : "text-foreground/80"}>{msg}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {typeLabel} · {timeAgo(vn.created_at)}
+                    </p>
+                  </div>
+                  <Video className={`h-4 w-4 shrink-0 ${vn.isRead ? "text-primary/50" : "text-primary"}`} />
+                </button>
               );
             }
 

@@ -54,10 +54,23 @@ interface Recommendation {
   updated_at: string;
 }
 
+interface ExternalRecommendation {
+  id: string;
+  request_id: string;
+  recipient_user_id: string;
+  author_name: string;
+  author_email: string;
+  content: string;
+  status: "submitted" | "accepted" | "rejected";
+  created_at: string;
+  updated_at: string;
+}
+
 interface PersonInfo {
   user_id: string;
   full_name: string;
   avatar_url: string | null;
+  role?: string;
 }
 
 interface Props {
@@ -67,14 +80,19 @@ interface Props {
   viewerUserId: string | null;
   /** True dacă vizitatorul este chiar proprietarul profilului */
   isOwner: boolean;
+  /** Rolul profilului vizitat: "player" | "scout" | "agent" etc. */
+  profileRole?: string;
+  /** Callback pentru navigare la profilul unui utilizator */
+  onViewProfile?: (userId: string, role: string) => void;
 }
 
-const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props) => {
+const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileRole, onViewProfile }: Props) => {
   const { toast } = useToast();
 
   const [enabled, setEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [recs, setRecs] = useState<Recommendation[]>([]);
+  const [externalRecs, setExternalRecs] = useState<ExternalRecommendation[]>([]);
   const [people, setPeople] = useState<Record<string, PersonInfo>>({});
   const [canConnect, setCanConnect] = useState(false); // viewer ↔ profile sunt conectați
   const [tab, setTab] = useState<"primite" | "oferite" | "asteptare">("primite");
@@ -83,6 +101,8 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
   const [askOpen, setAskOpen] = useState(false);
   const [giveOpen, setGiveOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [respondOpen, setRespondOpen] = useState(false);
+  const [respondRecId, setRespondRecId] = useState<string | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -116,6 +136,25 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
       const list = (rows || []) as Recommendation[];
       setRecs(list);
 
+      // External recommendations (persoane fara cont)
+      if (isOwner) {
+        const { data: extRows } = await supabase
+          .from("external_recommendations")
+          .select("*")
+          .eq("recipient_user_id", profileUserId)
+          .order("created_at", { ascending: false });
+        setExternalRecs((extRows || []) as ExternalRecommendation[]);
+      } else {
+        // Vizitatorii vad doar cele acceptate
+        const { data: extRows } = await supabase
+          .from("external_recommendations")
+          .select("*")
+          .eq("recipient_user_id", profileUserId)
+          .eq("status", "accepted")
+          .order("created_at", { ascending: false });
+        setExternalRecs((extRows || []) as ExternalRecommendation[]);
+      }
+
       // Fetch people info
       const ids = new Set<string>();
       list.forEach((r) => {
@@ -124,16 +163,25 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
       });
       ids.delete("");
       if (ids.size > 0) {
-        const { data: profilesRows } = await supabase
-          .from("profiles")
-          .select("user_id, full_name, avatar_url")
-          .in("user_id", Array.from(ids));
+        const idsArr = Array.from(ids);
+        const [profilesRows, rolesRows, playerPhotos, scoutPhotos] = await Promise.all([
+          supabase.from("profiles").select("user_id, full_name").in("user_id", idsArr),
+          supabase.from("user_roles").select("user_id, role").in("user_id", idsArr),
+          supabase.from("player_profiles").select("user_id, photo_url").in("user_id", idsArr),
+          supabase.from("scout_profiles").select("user_id, photo_url").in("user_id", idsArr),
+        ]);
+        const roleMap: Record<string, string> = {};
+        (rolesRows.data || []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
+        const photoMap: Record<string, string | null> = {};
+        (playerPhotos.data || []).forEach((r: any) => { photoMap[r.user_id] = r.photo_url; });
+        (scoutPhotos.data || []).forEach((r: any) => { photoMap[r.user_id] = r.photo_url; });
         const map: Record<string, PersonInfo> = {};
-        (profilesRows || []).forEach((p: any) => {
+        (profilesRows.data || []).forEach((p: any) => {
           map[p.user_id] = {
             user_id: p.user_id,
             full_name: p.full_name || "Utilizator",
-            avatar_url: p.avatar_url,
+            avatar_url: photoMap[p.user_id] ?? null,
+            role: roleMap[p.user_id],
           };
         });
         setPeople(map);
@@ -172,13 +220,27 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
     () => recs.filter((r) => r.recipient_user_id === profileUserId && r.status === "accepted"),
     [recs, profileUserId]
   );
+  const acceptedExternal = useMemo(
+    () => externalRecs.filter((r) => r.status === "accepted"),
+    [externalRecs]
+  );
+  const allAccepted = useMemo(
+    () => [...accepted, ...acceptedExternal].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [accepted, acceptedExternal]
+  );
   // Pentru owner editor:
   const ownerPrimite = useMemo(
     () => recs.filter((r) => r.recipient_user_id === profileUserId && (r.status === "submitted" || r.status === "accepted")),
     [recs, profileUserId]
   );
+  const ownerPrimiteExt = useMemo(
+    () => externalRecs.filter((r) => r.status === "submitted" || r.status === "accepted"),
+    [externalRecs]
+  );
   const ownerOferite = useMemo(
-    () => recs.filter((r) => r.author_user_id === profileUserId),
+    () => recs.filter(
+      (r) => r.author_user_id === profileUserId && !(r.status === "pending" && r.initiated_by === "request")
+    ),
     [recs, profileUserId]
   );
   const ownerAsteptare = useMemo(
@@ -186,7 +248,8 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
       recs.filter(
         (r) =>
           (r.recipient_user_id === profileUserId && r.status === "pending") ||
-          (r.author_user_id === profileUserId && r.status === "submitted")
+          (r.author_user_id === profileUserId && r.status === "submitted") ||
+          (r.author_user_id === profileUserId && r.status === "pending" && r.initiated_by === "request")
       ),
     [recs, profileUserId]
   );
@@ -254,6 +317,44 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
     fetchAll();
   };
 
+  const updateExtStatus = async (id: string, status: ExternalRecommendation["status"]) => {
+    const { error } = await supabase.from("external_recommendations").update({ status }).eq("id", id);
+    if (error) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      return;
+    }
+    fetchAll();
+  };
+
+  const removeExtRec = async (id: string) => {
+    const { error } = await supabase.from("external_recommendations").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      return;
+    }
+    fetchAll();
+  };
+
+  const respondToRequest = async (id: string, content: string) => {
+    if (!content.trim()) {
+      toast({ title: "Scrie mai întâi recomandarea", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase
+      .from("recommendations")
+      .update({ content: content.trim(), status: "submitted" })
+      .eq("id", id)
+      .eq("author_user_id", profileUserId);
+    if (error) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Recomandare trimisă", description: "Va apărea pe profil după ce este aprobată." });
+    setRespondOpen(false);
+    setRespondRecId(null);
+    fetchAll();
+  };
+
   const toggleEnabled = async (next: boolean) => {
     if (!isOwner) return;
     setEnabled(next);
@@ -271,8 +372,9 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
 
   const PersonRow = ({ userId, date }: { userId: string; date?: string }) => {
     const p = people[userId];
-    return (
-      <div className="flex items-center gap-3">
+    const canClick = !!onViewProfile && !!p?.role;
+    const inner = (
+      <>
         <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
           {p?.avatar_url ? (
             <img src={p.avatar_url} alt={p.full_name} className="h-full w-full object-cover" />
@@ -283,7 +385,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
           )}
         </div>
         <div className="min-w-0">
-          <p className="font-body font-semibold text-foreground text-sm truncate">
+          <p className={cn("font-body font-semibold text-foreground text-sm truncate", canClick && "hover:underline")}>
             {p?.full_name || "Utilizator"}
           </p>
           {date && (
@@ -292,8 +394,19 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
             </p>
           )}
         </div>
-      </div>
+      </>
     );
+    if (canClick) {
+      return (
+        <button
+          className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+          onClick={() => onViewProfile!(userId, p!.role!)}
+        >
+          {inner}
+        </button>
+      );
+    }
+    return <div className="flex items-center gap-3">{inner}</div>;
   };
 
   return (
@@ -358,7 +471,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
-      ) : accepted.length === 0 ? (
+      ) : allAccepted.length === 0 ? (
         <p className="text-muted-foreground italic text-sm font-body">
           {isOwner
             ? "Nu ai încă recomandări publicate. Cere sau primește una de la o conexiune."
@@ -366,14 +479,39 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
         </p>
       ) : (
         <div className="space-y-5">
-          {accepted.map((r) => (
-            <div key={r.id} className="border-b border-border last:border-b-0 pb-4 last:pb-0">
-              <PersonRow userId={r.author_user_id} date={r.updated_at} />
-              <p className="text-foreground/80 font-body text-sm whitespace-pre-line mt-3">
-                {r.content}
-              </p>
-            </div>
-          ))}
+          {allAccepted.map((r) => {
+            const isExt = "author_name" in r;
+            if (isExt) {
+              const ext = r as ExternalRecommendation;
+              return (
+                <div key={ext.id} className="border-b border-border last:border-b-0 pb-4 last:pb-0">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                      {ext.author_name[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-body font-semibold text-foreground text-sm">{ext.author_name}</p>
+                      <p className="text-xs text-muted-foreground font-body">
+                        {new Date(ext.created_at).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric" })}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-foreground/80 font-body text-sm whitespace-pre-line mt-3">
+                    {ext.content}
+                  </p>
+                </div>
+              );
+            }
+            const rec = r as Recommendation;
+            return (
+              <div key={rec.id} className="border-b border-border last:border-b-0 pb-4 last:pb-0">
+                <PersonRow userId={rec.author_user_id} date={rec.updated_at} />
+                <p className="text-foreground/80 font-body text-sm whitespace-pre-line mt-3">
+                  {rec.content}
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -385,6 +523,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
         onSubmit={requestRecommendation}
         viewerUserId={viewerUserId}
         defaultAuthorId={!isOwner ? profileUserId : undefined}
+        profileRole={profileRole}
       />
 
       {/* ========= DIALOG: OFERĂ ========= */}
@@ -395,6 +534,15 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
         viewerUserId={viewerUserId}
         defaultRecipientId={!isOwner ? profileUserId : undefined}
         defaultRecipientName={people[profileUserId]?.full_name || ""}
+      />
+
+      {/* ========= DIALOG: RĂSPUNDE LA CERERE ========= */}
+      <RespondDialog
+        open={respondOpen}
+        onOpenChange={(v) => { setRespondOpen(v); if (!v) setRespondRecId(null); }}
+        requesterName={respondRecId ? (people[recs.find((r) => r.id === respondRecId)?.recipient_user_id || ""]?.full_name || "") : ""}
+        requestMsg={respondRecId ? (recs.find((r) => r.id === respondRecId)?.content || "") : ""}
+        onSubmit={(content) => { if (respondRecId) respondToRequest(respondRecId, content); }}
       />
 
       {/* ========= DIALOG: GESTIONEAZĂ (owner) ========= */}
@@ -422,7 +570,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
           {/* Tabs */}
           <div className="flex gap-2 border-b border-border">
             {([
-              ["primite", `Primite (${ownerPrimite.length})`],
+              ["primite", `Primite (${ownerPrimite.length + ownerPrimiteExt.length})`],
               ["oferite", `Oferite (${ownerOferite.length})`],
               ["asteptare", `În așteptare (${ownerAsteptare.length})`],
             ] as const).map(([key, label]) => (
@@ -444,51 +592,102 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
           {/* Lista per tab */}
           <div className="space-y-3 mt-2">
             {tab === "primite" &&
-              (ownerPrimite.length === 0 ? (
+              (ownerPrimite.length === 0 && ownerPrimiteExt.length === 0 ? (
                 <p className="text-muted-foreground italic text-sm font-body py-4 text-center">
                   Nicio recomandare primită.
                 </p>
               ) : (
-                ownerPrimite.map((r) => (
-                  <div key={r.id} className="border border-border rounded-md p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <PersonRow userId={r.author_user_id} date={r.updated_at} />
-                      <span
-                        className={cn(
-                          "text-xs px-2 py-0.5 rounded font-body",
-                          r.status === "accepted"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground"
+                <>
+                  {ownerPrimite.map((r) => (
+                    <div key={r.id} className="border border-border rounded-md p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <PersonRow userId={r.author_user_id} date={r.updated_at} />
+                        <span
+                          className={cn(
+                            "text-xs px-2 py-0.5 rounded font-body",
+                            r.status === "accepted"
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {r.status === "accepted" ? "Publică" : "În așteptare"}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line font-body">
+                        {r.content}
+                      </p>
+                      <div className="flex gap-2 mt-3 justify-end">
+                        {r.status === "submitted" && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => updateStatus(r.id, "rejected")}>
+                              <XIcon className="h-4 w-4 mr-1" /> Refuză
+                            </Button>
+                            <Button size="sm" onClick={() => updateStatus(r.id, "accepted")}>
+                              <Check className="h-4 w-4 mr-1" /> Aprobă
+                            </Button>
+                          </>
                         )}
-                      >
-                        {r.status === "accepted" ? "Publică" : "În așteptare"}
-                      </span>
-                    </div>
-                    <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line font-body">
-                      {r.content}
-                    </p>
-                    <div className="flex gap-2 mt-3 justify-end">
-                      {r.status === "submitted" && (
-                        <>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(r.id, "rejected")}>
-                            <XIcon className="h-4 w-4 mr-1" /> Refuză
+                        {r.status === "accepted" && (
+                          <Button size="sm" variant="ghost" onClick={() => updateStatus(r.id, "submitted")}>
+                            <EyeOff className="h-4 w-4 mr-1" /> Ascunde
                           </Button>
-                          <Button size="sm" onClick={() => updateStatus(r.id, "accepted")}>
-                            <Check className="h-4 w-4 mr-1" /> Aprobă
-                          </Button>
-                        </>
-                      )}
-                      {r.status === "accepted" && (
-                        <Button size="sm" variant="ghost" onClick={() => updateStatus(r.id, "submitted")}>
-                          <EyeOff className="h-4 w-4 mr-1" /> Ascunde
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => removeRec(r.id)}>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button size="sm" variant="ghost" onClick={() => removeRec(r.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+
+                  {ownerPrimiteExt.map((r) => (
+                    <div key={r.id} className="border border-border rounded-md p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                            {r.author_name[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-body font-semibold text-foreground text-sm">{r.author_name}</p>
+                            <p className="text-xs text-muted-foreground font-body">{r.author_email}</p>
+                          </div>
+                        </div>
+                        <span
+                          className={cn(
+                            "text-xs px-2 py-0.5 rounded font-body shrink-0",
+                            r.status === "accepted"
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {r.status === "accepted" ? "Publică" : "În așteptare"}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line font-body">
+                        {r.content}
+                      </p>
+                      <div className="flex gap-2 mt-3 justify-end">
+                        {r.status === "submitted" && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => updateExtStatus(r.id, "rejected")}>
+                              <XIcon className="h-4 w-4 mr-1" /> Refuză
+                            </Button>
+                            <Button size="sm" onClick={() => updateExtStatus(r.id, "accepted")}>
+                              <Check className="h-4 w-4 mr-1" /> Aprobă
+                            </Button>
+                          </>
+                        )}
+                        {r.status === "accepted" && (
+                          <Button size="sm" variant="ghost" onClick={() => updateExtStatus(r.id, "submitted")}>
+                            <EyeOff className="h-4 w-4 mr-1" /> Ascunde
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => removeExtRec(r.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </>
               ))}
 
             {tab === "oferite" &&
@@ -535,26 +734,47 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
                 </p>
               ) : (
                 ownerAsteptare.map((r) => {
+                  const isPendingRequest = r.author_user_id === profileUserId && r.status === "pending" && r.initiated_by === "request";
                   const iAmRecipient = r.recipient_user_id === profileUserId;
                   return (
                     <div key={r.id} className="border border-border rounded-md p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="text-xs text-muted-foreground font-body">
-                            {iAmRecipient ? "Aștepți răspunsul de la" : "Așteaptă aprobarea ta de la"}
+                            {isPendingRequest
+                              ? "Cerere primită de la"
+                              : iAmRecipient
+                              ? "Aștepți răspunsul de la"
+                              : "Așteaptă aprobarea ta de la"}
                           </p>
                           <PersonRow
-                            userId={iAmRecipient ? r.author_user_id : r.recipient_user_id}
+                            userId={isPendingRequest ? r.recipient_user_id : iAmRecipient ? r.author_user_id : r.recipient_user_id}
                             date={r.updated_at}
                           />
                         </div>
+                        {isPendingRequest && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 font-body shrink-0">
+                            De scris
+                          </span>
+                        )}
                       </div>
                       {r.content && (
-                        <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line font-body">
-                          {r.content}
+                        <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line font-body italic">
+                          „{r.content}"
                         </p>
                       )}
-                      <div className="flex justify-end mt-2">
+                      <div className="flex gap-2 mt-3 justify-end">
+                        {isPendingRequest && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setRespondRecId(r.id);
+                              setRespondOpen(true);
+                            }}
+                          >
+                            <PenSquare className="h-4 w-4 mr-1" /> Recomandați
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost" onClick={() => removeRec(r.id)}>
                           <Trash2 className="h-4 w-4 mr-1" /> Anulează
                         </Button>
@@ -576,6 +796,27 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner }: Props)
   );
 };
 
+const PLAYER_RELATIONSHIP_OPTIONS = [
+  { value: "antrenor_principal", template: "{name} mi-a fost antrenor principal", label: "Mi-a fost antrenor principal" },
+  { value: "antrenor_secund", template: "{name} mi-a fost antrenor secund", label: "Mi-a fost antrenor secund" },
+  { value: "agent_oficial", template: "{name} m-a reprezentat oficial ca agent", label: "M-a reprezentat oficial ca agent" },
+  { value: "intermediar", template: "{name} m-a reprezentat ca intermediar", label: "M-a reprezentat ca intermediar" },
+  { value: "gestionare_cariera", template: "Împreună cu {name}, am colaborat pentru gestionarea carierei", label: "Am colaborat pentru gestionarea carierei" },
+  { value: "orientare_sportiva", template: "Împreună cu {name}, am colaborat pentru orientare sportivă", label: "Am colaborat pentru orientare sportivă" },
+  { value: "pregatire_fizica", template: "{name} s-a ocupat de pregătirea mea fizică", label: "S-a ocupat de pregătirea mea fizică" },
+  { value: "recuperare", template: "{name} s-a ocupat de recuperarea mea", label: "S-a ocupat de recuperarea mea" },
+];
+
+const SCOUT_RELATIONSHIP_OPTIONS = [
+  { value: "scout_evaluat", template: "L-am evaluat pe {name} în calitate de scouter", label: "L-am evaluat în calitate de scouter" },
+  { value: "scout_monitorizat", template: "Am monitorizat evoluția lui {name} pe parcursul sezonului", label: "Am monitorizat evoluția pe parcursul sezonului" },
+  { value: "scout_transfer", template: "Am colaborat cu {name} în cadrul unui proces de transfer", label: "Am colaborat în cadrul unui transfer" },
+  { value: "scout_cantonament", template: "L-am observat pe {name} în cadrul unui cantonament", label: "L-am observat la cantonament" },
+  { value: "scout_meci", template: "L-am urmărit pe {name} la meciuri oficiale în calitate de scouter", label: "L-am urmărit la meciuri oficiale" },
+  { value: "scout_colaborare", template: "Am colaborat cu {name} la un proiect de dezvoltare sportivă", label: "Am colaborat la un proiect sportiv" },
+  { value: "scout_colega", template: "Îl cunosc pe {name} din activitatea comună în fotbal", label: "Colegi în industria fotbalului" },
+];
+
 const RequestDialog = ({
   open,
   onOpenChange,
@@ -583,6 +824,7 @@ const RequestDialog = ({
   onSubmit,
   viewerUserId,
   defaultAuthorId,
+  profileRole,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -590,7 +832,10 @@ const RequestDialog = ({
   onSubmit: (authorUserId: string, msg: string) => void;
   viewerUserId: string | null;
   defaultAuthorId?: string;
+  profileRole?: string;
 }) => {
+  const { toast } = useToast();
+  const [sending, setSending] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [email, setEmail] = useState("");
@@ -605,16 +850,7 @@ const RequestDialog = ({
   const [seasonTo, setSeasonTo] = useState("");
   const [msg, setMsg] = useState("");
 
-  const relationshipOptions = [
-    { value: "antrenor_principal", template: "{name} mi-a fost antrenor principal", label: "Mi-a fost antrenor principal" },
-    { value: "antrenor_secund", template: "{name} mi-a fost antrenor secund", label: "Mi-a fost antrenor secund" },
-    { value: "agent_oficial", template: "{name} m-a reprezentat oficial ca agent", label: "M-a reprezentat oficial ca agent" },
-    { value: "intermediar", template: "{name} m-a reprezentat ca intermediar", label: "M-a reprezentat ca intermediar" },
-    { value: "gestionare_cariera", template: "Împreună cu {name}, am colaborat pentru gestionarea carierei", label: "Am colaborat pentru gestionarea carierei" },
-    { value: "orientare_sportiva", template: "Împreună cu {name}, am colaborat pentru orientare sportivă", label: "Am colaborat pentru orientare sportivă" },
-    { value: "pregatire_fizica", template: "{name} s-a ocupat de pregătirea mea fizică", label: "S-a ocupat de pregătirea mea fizică" },
-    { value: "recuperare", template: "{name} s-a ocupat de recuperarea mea", label: "S-a ocupat de recuperarea mea" },
-  ];
+  const relationshipOptions = profileRole === "scout" ? SCOUT_RELATIONSHIP_OPTIONS : PLAYER_RELATIONSHIP_OPTIONS;
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 15 }, (_, i) => String(currentYear - i));
@@ -836,7 +1072,7 @@ const RequestDialog = ({
               )}
             </div>
 
-            {!selectedPerson && searchTerm.trim().length >= 2 && results.length === 0 && !searching && (
+            {!selectedPerson && (
               <div className="space-y-2 pt-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <div className="h-px flex-1 bg-border" />
@@ -1032,14 +1268,51 @@ const RequestDialog = ({
                 {stepLabel}
               </span>
               <DialogFooter className="flex-row gap-2 sm:justify-end">
-                <Button variant="outline" onClick={() => setStep(2)}>
+                <Button variant="outline" onClick={() => setStep(2)} disabled={sending}>
                   Înapoi
                 </Button>
-                <Button onClick={() => {
-                  if (selectedPerson) {
-                    onSubmit(selectedPerson.user_id, msg);
-                  }
-                }}>
+                <Button
+                  disabled={sending || !msg.trim()}
+                  onClick={async () => {
+                    if (selectedPerson) {
+                      onSubmit(selectedPerson.user_id, msg);
+                      return;
+                    }
+                    // Email path – call edge function
+                    if (!isValidEmail(email)) return;
+                    setSending(true);
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      const res = await supabase.functions.invoke("request-recommendation-by-email", {
+                        body: {
+                          targetEmail: email,
+                          message: msg,
+                          relationship,
+                          club: effectiveClub,
+                          seasonFrom,
+                          seasonTo,
+                        },
+                        headers: { Authorization: `Bearer ${session?.access_token}` },
+                      });
+                      if (res.error) throw new Error(res.error.message);
+                      const result = res.data as { ok: boolean; method: string };
+                      toast({
+                        title: result.method === "email_invite"
+                          ? "Invitație trimisă!"
+                          : "Cerere trimisă!",
+                        description: result.method === "email_invite"
+                          ? `${email} va primi un email cu invitația de a scrie recomandarea.`
+                          : "Persoana a primit cererea ta în aplicație.",
+                      });
+                      onOpenChange(false);
+                    } catch (err: any) {
+                      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+                    } finally {
+                      setSending(false);
+                    }
+                  }}
+                >
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                   Trimiteți
                 </Button>
               </DialogFooter>
@@ -1384,6 +1657,68 @@ const OfferDialog = ({
             </div>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const RespondDialog = ({
+  open,
+  onOpenChange,
+  requesterName,
+  requestMsg,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  requesterName: string;
+  requestMsg: string;
+  onSubmit: (content: string) => void;
+}) => {
+  const [content, setContent] = useState("");
+
+  useEffect(() => {
+    if (!open) setContent("");
+  }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Scrieți o recomandare</DialogTitle>
+          {requesterName && (
+            <DialogDescription>
+              {requesterName} v-a solicitat o recomandare.
+            </DialogDescription>
+          )}
+        </DialogHeader>
+
+        {requestMsg && (
+          <div className="p-3 rounded-md bg-accent/20 border border-border text-sm font-body text-foreground/80 italic">
+            „{requestMsg}"
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground font-body">
+            Recomandarea dvs. *
+          </label>
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={`Scrieți recomandarea pentru ${requesterName || "această persoană"}...`}
+            className="min-h-[160px]"
+          />
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Anulează
+          </Button>
+          <Button disabled={!content.trim()} onClick={() => onSubmit(content)}>
+            <Check className="h-4 w-4 mr-1" /> Trimite recomandarea
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

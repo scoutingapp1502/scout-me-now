@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle, UserPlus, UserCheck, Users, Lock, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle, UserPlus, UserCheck, Users, Lock, Clock, CheckCircle, XCircle, Play } from "lucide-react";
 import MessageDialog from "./MessageDialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PostCard from "./PostCard";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,18 +20,23 @@ import PlayerStats from "./PlayerStats";
 import NationalityInput, { getDisplayNationality } from "@/components/ui/nationality-input";
 import { useFollowers } from "@/hooks/useFollowers";
 import FollowersList from "./FollowersList";
-import AthleticTestRegistrationDialog from "./AthleticTestRegistrationDialog";
 import { useTestUnlocks } from "@/hooks/useTestUnlocks";
 import { Progress } from "@/components/ui/progress";
 import { Lock as LockIcon, Gift } from "lucide-react";
 import RecommendationsSection from "./RecommendationsSection";
+const LazyPersonalProfile = lazy(() => import("./PersonalProfile"));
+const LazyScoutPersonalProfile = lazy(() => import("./ScoutPersonalProfile"));
 import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
 import ScoutPlayerNoteDialog from "./ScoutPlayerNoteDialog";
 import ScoutPlayerReportDialog from "./ScoutPlayerReportDialog";
-import { ClipboardList, ChevronDown, FileBarChart } from "lucide-react";
+import { ClipboardList, ChevronDown, FileBarChart, RotateCcw } from "lucide-react";
 import InviteFriendsModal from "./InviteFriendsModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useVideoSubmissions } from "@/hooks/useVideoSubmissions";
+import { useTestReferenceVideos } from "@/hooks/useTestReferenceVideos";
+import AddStoryModal from "./AddStoryModal";
+import StoryViewer from "./StoryViewer";
+import StoryArchiveModal from "./StoryArchiveModal";
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -141,7 +147,7 @@ const positionsBySport: Record<string, string[]> = {
 
 type TabType = "stats" | "profile" | "video" | "posts";
 
-interface TechnicalTest {
+export interface TechnicalTest {
   key: string;
   label: string;
   icon: string;
@@ -150,6 +156,24 @@ interface TechnicalTest {
   uploadId: string;
   storagePath: string;
 }
+
+export interface AthleticTest extends TechnicalTest {
+  videoKey: string;
+}
+
+export const athleticTests: AthleticTest[] = [
+  { key: "speed", label: "Pro Line Drill", icon: "⚡", description: "Configurare: Un traseu drept, marcat cu jaloane la fiecare 5 metri, pe o distanță totală de 20-30 metri.\n\nExercițiu: Sportivul aleargă la viteză maximă pe toată distanța. Se cronometrează timpul de execuție pentru a evalua viteza de sprint.", videoKey: "speed_video", inputKey: "_speed_video_input", uploadId: "speed-video-upload", storagePath: "pro-line-drill" },
+  { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘", description: "Configurare: Sportivul se poziționează cu picioarele apropiate, lângă un perete sau un dispozitiv de măsurare a săriturii.\n\nExercițiu: Din poziție statică, cu ambele picioare, sportivul sare pe verticală cât mai sus posibil. Se măsoară înălțimea săriturii.", videoKey: "jumping_video", inputKey: "_jumping_video_input", uploadId: "jumping-video-upload", storagePath: "vertical-jump" },
+  { key: "endurance", label: "Shuttle Run", icon: "💪", description: "Configurare: Două linii marcate la o distanță de 10 metri una de cealaltă.\n\nExercițiu: Sportivul aleargă dus-întors între cele două linii de mai multe ori, la viteză maximă, schimbând direcția la fiecare linie. Se cronometrează timpul total.", videoKey: "endurance_video", inputKey: "_endurance_video_input", uploadId: "endurance-video-upload", storagePath: "shuttle-run" },
+  { key: "acceleration", label: "2 Foots Vertical Jump in action", icon: "🚀", description: "Configurare: Similar cu săritura pe verticală, dar precedată de o alergare scurtă de acumulare (3-5 metri).\n\nExercițiu: Sportivul realizează o cursă scurtă de elan, apoi sare pe verticală cu ambele picioare cât mai sus posibil. Se măsoară înălțimea săriturii din mișcare.", videoKey: "acceleration_video", inputKey: "_acceleration_video_input", uploadId: "acceleration-video-upload", storagePath: "vertical-jump-action" },
+];
+
+const athleticTestUnits: Record<string, string> = {
+  speed_video: "s",
+  jumping_video: "cm",
+  endurance_video: "s",
+  acceleration_video: "cm",
+};
 
 const basketballTests: TechnicalTest[] = [
   { key: "free_throw_shooting_video", label: "Free Throw Shooting", icon: "🏀", description: "Configurare: Jucătorul se poziționează la linia de aruncări libere.\n\nExercițiu: Timp de 60 de secunde, sportivul aruncă, își recuperează singur mingea și revine la linia de la libere pentru o nouă aruncare. Se numără câte aruncări convertite reușește.", inputKey: "_fts_video_input", uploadId: "fts-video-upload", storagePath: "free-throw-shooting" },
@@ -179,23 +203,32 @@ export const getTestLabelByKey = (sport: string | null | undefined, key: string)
   return tests.find((t) => t.key === key)?.label || key;
 };
 
-const TestInfoContent = ({ test }: { test: TechnicalTest }) => {
-  const [showVideo, setShowVideo] = useState(false);
-  const hasVideo = test.key === "control_pass_video";
+export const getTestRefKey = (test: TechnicalTest): string => (test as AthleticTest).videoKey || test.key;
 
-  if (showVideo && hasVideo) {
+const TestInfoContent = ({ test, referenceVideoUrl }: { test: TechnicalTest; referenceVideoUrl?: string | null }) => {
+  const [showVideo, setShowVideo] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+
+  if (showVideo) {
     return (
       <div>
-        <video
-          src="/videos/control-pass.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full rounded-md"
-        />
+        {referenceVideoUrl && !videoError ? (
+          <video
+            src={referenceVideoUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full rounded-md"
+            onError={() => setVideoError(true)}
+          />
+        ) : (
+          <div className="w-full rounded-md bg-muted flex items-center justify-center py-8 text-xs text-muted-foreground text-center px-4">
+            Video indisponibil momentan.
+          </div>
+        )}
         <button
-          onClick={() => setShowVideo(false)}
+          onClick={() => { setShowVideo(false); setVideoError(false); }}
           className="mt-2 text-xs text-primary hover:underline font-body"
         >
           ← Înapoi la descriere
@@ -208,16 +241,16 @@ const TestInfoContent = ({ test }: { test: TechnicalTest }) => {
     <div>
       <p className="font-semibold mb-1">{test.icon} {test.label}</p>
       <p className="text-muted-foreground text-xs whitespace-pre-line">{test.description}</p>
-      {hasVideo && (
+      <div className="flex justify-end mt-3">
         <Button
-          variant="outline"
           size="sm"
-          className="mt-3 w-full text-xs"
+          className="text-xs gap-1.5 h-7 px-3"
           onClick={() => setShowVideo(true)}
         >
-          Vezi reprezentare video
+          <Play className="h-3 w-3 fill-current" />
+          Video
         </Button>
-      )}
+      </div>
     </div>
   );
 };
@@ -259,8 +292,13 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [viewerRole, setViewerRole] = useState<string | null>(null);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const [showAddStory, setShowAddStory] = useState(false);
+  const [hasStory, setHasStory] = useState(false);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [followStatus, setFollowStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
   const [followLoading, setFollowLoading] = useState(false);
+  const [recAuthorView, setRecAuthorView] = useState<{ userId: string; role: string } | null>(null);
   const [showFollowersList, setShowFollowersList] = useState(false);
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
@@ -660,6 +698,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       setAvatarFile(null);
       await fetchProfile();
       await fetchCareerEntries();
+      window.dispatchEvent(new Event("profile-updated"));
     } catch (err: any) {
       toast({ title: t.dashboard.profile.error, description: err.message, variant: "destructive" });
     } finally {
@@ -714,6 +753,16 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
     const current = form.video_highlights || [];
     updateForm("video_highlights", current.filter((_, i) => i !== index));
   };
+
+  // Check active stories — must be before any early returns (Rules of Hooks)
+  useEffect(() => {
+    (supabase as any)
+      .from("stories")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gt("expires_at", new Date().toISOString())
+      .then(({ count }: { count: number | null }) => setHasStory((count ?? 0) > 0));
+  }, [userId]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-full text-muted-foreground font-body">{t.dashboard.profile.loading}</div>;
@@ -806,7 +855,6 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                     {(positionsBySport[form.sport || profile?.sport || "football"] || positionsBySport["football"]).map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Input value={form.current_team || ""} onChange={(e) => updateForm("current_team", e.target.value)} placeholder={t.dashboard.profile.currentTeam} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground w-full sm:w-48 min-w-0" />
               </div>
             ) : (
               <p className="text-muted-foreground font-body text-sm sm:text-base mt-1">
@@ -939,7 +987,19 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 
           {/* Avatar */}
           <div className="relative group order-1 sm:order-2 shrink-0">
-            <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-xl border-2 border-primary/30 overflow-hidden bg-muted shadow-lg">
+            {/* Story ring */}
+            {hasStory && (
+              <div className="absolute inset-[-4px] rounded-[14px] z-0 overflow-hidden">
+                <div
+                  className="absolute inset-[-40%] story-ring-spin"
+                  style={{ background: "conic-gradient(from 0deg, #22c55e 0%, #4ade80 30%, #86efac 50%, transparent 55%, transparent 75%, #22c55e 100%)" }}
+                />
+              </div>
+            )}
+            <div
+              className={`relative z-10 w-24 h-24 sm:w-40 sm:h-40 rounded-xl overflow-hidden bg-muted shadow-lg ${hasStory ? "border-[3px] border-background cursor-pointer" : "border-2 border-primary/30"}`}
+              onClick={hasStory ? () => setShowStoryViewer(true) : undefined}
+            >
               {photoSrc ? (
                 <img src={photoSrc} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -949,12 +1009,21 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
               )}
             </div>
             {editingSection === "header" && (
-              <label className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-xl cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+              <label className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-xl cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity z-20">
                 <Camera className="h-6 w-6 text-primary" />
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </label>
             )}
+            {!readOnly && editingSection !== "header" && (
+              <button
+                onClick={() => setShowAddStory(true)}
+                className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-primary border-2 border-background flex items-center justify-center z-20 hover:bg-primary/80 transition-colors shadow-md"
+              >
+                <Plus className="h-3.5 w-3.5 text-primary-foreground" />
+              </button>
+            )}
           </div>
+
 
           {/* Edit pencil for header */}
           {!readOnly && (
@@ -1018,6 +1087,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
               profileUserId={userId}
               viewerUserId={viewerUserId}
               isOwner={!readOnly || viewerUserId === userId}
+              onViewProfile={(uid, role) => setRecAuthorView({ userId: uid, role })}
             />
           </div>
         )}
@@ -1072,6 +1142,40 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           playerPhotoUrl={photoSrc}
         />
       )}
+
+      {/* Dialog: vizualizare profil autor recomandare */}
+      <Dialog open={!!recAuthorView} onOpenChange={(open) => !open && setRecAuthorView(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+          {recAuthorView && (
+            <Suspense fallback={<div className="flex items-center justify-center py-16"><span className="text-muted-foreground text-sm">Se încarcă...</span></div>}>
+              {recAuthorView.role === "player"
+                ? <LazyPersonalProfile userId={recAuthorView.userId} readOnly />
+                : <LazyScoutPersonalProfile userId={recAuthorView.userId} readOnly />}
+            </Suspense>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AddStoryModal
+        userId={userId}
+        open={showAddStory}
+        onClose={() => setShowAddStory(false)}
+        onPosted={() => setHasStory(true)}
+        userPhoto={photoSrc}
+      />
+      <StoryViewer
+        userId={userId}
+        open={showStoryViewer}
+        onClose={() => setShowStoryViewer(false)}
+        displayName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || undefined}
+        avatarUrl={photoSrc}
+        currentUserId={viewerUserId ?? undefined}
+      />
+      <StoryArchiveModal
+        userId={userId}
+        open={showArchive}
+        onClose={() => setShowArchive(false)}
+      />
     </div>
   );
 };
@@ -1086,10 +1190,10 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
   const { t } = useLanguage();
   const { toast } = useToast();
-  const [athleticRegOpen, setAthleticRegOpen] = useState(false);
   const [inlineEditTest, setInlineEditTest] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const { submissions: videoSubmissions, submitVideo, getSubmissionForTest } = useVideoSubmissions(userId);
+  const { videos: testReferenceVideos } = useTestReferenceVideos();
   const technicalTests = getTechnicalTestsBySport(currentSport);
   const isOwner = !readOnly || viewerUserId === userId;
   const unlocks = useTestUnlocks(
@@ -1099,12 +1203,6 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
     isOwner,
   );
   const isUnlocked = (key: string) => unlocks.unlockedTests.includes(key);
-  const stats = [
-    { key: "speed", label: "Pro Line Drill", icon: "⚡" },
-    { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘" },
-    { key: "endurance", label: "Shuttle Run", icon: "💪" },
-    { key: "acceleration", label: "2 Foots Vertical Jump in action", icon: "🚀" },
-  ];
 
   const overallRating = Math.round(
     (((form as any).speed ?? 0) + ((form as any).jumping ?? 0) + ((form as any).endurance ?? 0) + ((form as any).acceleration ?? 0)) / 4
@@ -1169,24 +1267,211 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
               <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
             </div>
               <>
-                <div className="space-y-4">
-                  {stats.map((stat) => (
-                    <div key={stat.key} className="group">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{stat.icon} {stat.label}</span>
-                        <span className="font-display text-xl text-foreground">?</span>
+                <div className="space-y-5">
+                  {athleticTests.map((test) => {
+                    const videoUrl = (form as any)[test.videoKey] || (profile as any)?.[test.videoKey] || "";
+                    const sub = getSubmissionForTest(test.videoKey);
+                    return (
+                      <div key={test.key} className="group">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className={`text-muted-foreground hover:text-primary transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`Info ${test.label}`}>
+                                  <Info className="h-4 w-4" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="text-sm font-body w-80" side="top">
+                                <TestInfoContent test={test} referenceVideoUrl={testReferenceVideos[test.videoKey]} />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-display text-xl text-foreground">
+                              {sub?.status === "verified" && sub.grade !== null
+                                ? `${sub.grade}${athleticTestUnits[test.videoKey] || ""}`
+                                : "?"}
+                            </span>
+                            {isOwner && !videoUrl && inlineEditTest !== test.videoKey && (
+                              <button
+                                className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/20 hover:bg-primary/40 text-primary transition-colors"
+                                aria-label={`Adaugă video ${test.label}`}
+                                onClick={() => setInlineEditTest(test.videoKey)}
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700 ease-out"
+                            style={{
+                              width: '0%',
+                              background: 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))',
+                            }}
+                          />
+                        </div>
+
+                        {videoUrl && sub?.status !== "rejected" && (
+                          <div className="mt-2">
+                            {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
+                              <iframe
+                                src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                                className="w-full aspect-video rounded-lg"
+                                allowFullScreen
+                              />
+                            ) : (
+                              <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                            )}
+                          </div>
+                        )}
+
+                        {!readOnly && sub && (
+                          <>
+                            {sub.status === "pending" && (
+                              <div className="mt-2 flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
+                                <Clock className="h-4 w-4 text-yellow-400 shrink-0" />
+                                <span className="text-xs text-yellow-300 font-body">Video în proces de verificare</span>
+                              </div>
+                            )}
+                            {sub.status === "verified" && sub.grade !== null && (
+                              <div className="mt-2 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
+                                  <span className="text-xs text-green-300 font-body">
+                                    Video verificat — Rezultat: <strong className="text-green-200">{sub.grade}{athleticTestUnits[test.videoKey] || ""}</strong>
+                                  </span>
+                                </div>
+                                {sub.reviewer_notes && (
+                                  <p className="text-xs text-green-200/70 font-body pl-6">{sub.reviewer_notes}</p>
+                                )}
+                                {getVerifiedCooldownDaysLeft(sub) > 0 && (
+                                  <p className="text-xs text-green-300/60 font-body pl-6">
+                                    Poți trimite un video nou în <strong>{Math.ceil(getVerifiedCooldownDaysLeft(sub))} {Math.ceil(getVerifiedCooldownDaysLeft(sub)) === 1 ? "zi" : "zile"}</strong>.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {sub.status === "rejected" && (
+                              <div className="mt-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <XCircle className="h-4 w-4 text-red-400 shrink-0" />
+                                  <span className="text-xs text-red-300 font-body font-semibold">Video respins</span>
+                                </div>
+                                {sub.reviewer_notes && (
+                                  <p className="text-xs text-red-200/80 font-body pl-6">{sub.reviewer_notes}</p>
+                                )}
+                                {getRejectionDaysLeft(sub) > 0 ? (
+                                  <p className="text-xs text-orange-300 font-body pl-6">
+                                    Poți trimite un video nou în <strong>{Math.ceil(getRejectionDaysLeft(sub))} {Math.ceil(getRejectionDaysLeft(sub)) === 1 ? "zi" : "zile"}</strong>.
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-green-300 font-body pl-6">
+                                    Termenul a expirat. Poți trimite un video nou.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {inlineEditTest === test.videoKey && (() => {
+                          const daysLeft = getUploadCooldownDaysLeft(sub);
+                          if (daysLeft > 0) {
+                            return (
+                              <div className="mt-2 bg-orange-500/10 border border-orange-500/30 rounded-lg px-3 py-2">
+                                <p className="text-xs text-orange-300 font-body">
+                                  Poți trimite un video nou în <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? "zi" : "zile"}</strong>.
+                                </p>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="mt-3 space-y-2">
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <Input
+                                  placeholder="Link YouTube sau video URL"
+                                  value={(form as any)[test.inputKey] || ""}
+                                  onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
+                                  className="text-white flex-1 min-w-0"
+                                />
+                                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
+                                  const val = (form as any)[test.inputKey]?.trim();
+                                  if (val) {
+                                    updateForm(test.videoKey as any, val);
+                                    updateForm(test.inputKey as any, "");
+                                  }
+                                }}>
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="relative">
+                                <div className="border-2 border-dashed border-border rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                                  onClick={() => document.getElementById(`inline-${test.uploadId}`)?.click()}>
+                                  <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
+                                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                                </div>
+                                <input
+                                  id={`inline-${test.uploadId}`}
+                                  type="file"
+                                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    const ext = file.name.split(".").pop();
+                                    const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
+                                    const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
+                                    if (uploadError) {
+                                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                                      return;
+                                    }
+                                    const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                                    updateForm(test.videoKey as any, urlData.publicUrl);
+                                    toast({ title: "Video încărcat cu succes!" });
+                                  }}
+                                />
+                              </div>
+                              <div className="flex justify-end">
+                                <Button
+                                  type="button"
+                                  className="bg-green-700 hover:bg-green-800 text-white"
+                                  onClick={async () => {
+                                    const dl = getUploadCooldownDaysLeft(sub);
+                                    if (dl > 0) {
+                                      toast({ title: "Nu poți trimite un video nou încă", description: `Poți trimite din nou în ${Math.ceil(dl)} zile.`, variant: "destructive" });
+                                      return;
+                                    }
+                                    const newVideoUrl = (form as any)[test.videoKey] || null;
+                                    const payload: any = {};
+                                    payload[test.videoKey] = newVideoUrl;
+                                    const { error } = await supabase
+                                      .from("player_profiles")
+                                      .update(payload)
+                                      .eq("user_id", userId);
+                                    if (error) {
+                                      toast({ title: "Eroare la salvare", variant: "destructive" });
+                                    } else {
+                                      if (newVideoUrl) {
+                                        await submitVideo(test.videoKey, newVideoUrl, userId);
+                                      }
+                                      toast({ title: "Video salvat! Va fi verificat de echipa noastră." });
+                                      setInlineEditTest(null);
+                                    }
+                                  }}
+                                >
+                                  <Save className="h-4 w-4 mr-1" />
+                                  Salvați
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
-                      <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700 ease-out"
-                          style={{
-                            width: '0%',
-                            background: 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))',
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
                   <span className="text-sm text-muted-foreground font-body uppercase tracking-wide">Rating General</span>
@@ -1195,23 +1480,6 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     <span className="text-xs text-muted-foreground font-body">/100</span>
                   </div>
                 </div>
-
-                {!readOnly && (
-                  <div className="mt-6 pt-5 border-t border-border text-center space-y-4">
-                    <p className="text-sm font-body text-muted-foreground leading-relaxed">
-                      E momentul să treci la următorul nivel.<br />
-                      Înscrie-te la testările atletice și demonstrează-ți<br />
-                      abilitățile în fața evaluatorilor.
-                    </p>
-                    <Button
-                      type="button"
-                      onClick={() => setAthleticRegOpen(true)}
-                      className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-display uppercase tracking-wider shadow-lg"
-                    >
-                      Înscrie-te gratuit aici
-                    </Button>
-                  </div>
-                )}
               </>
           </div>
         </div>
@@ -1425,7 +1693,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="text-sm font-body w-80" side="top">
-                        <TestInfoContent test={test} />
+                        <TestInfoContent test={test} referenceVideoUrl={testReferenceVideos[test.key]} />
                       </PopoverContent>
                     </Popover>
                     {isOwner && !((form as any)[test.key] || (profile as any)?.[test.key]) && !editingTechnical && (
@@ -1609,13 +1877,6 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
 
 
     </div>
-    <AthleticTestRegistrationDialog
-      open={athleticRegOpen}
-      onOpenChange={setAthleticRegOpen}
-      userId={userId}
-      defaultFirstName={(form as any).first_name || ""}
-      defaultLastName={(form as any).last_name || ""}
-    />
     <InviteFriendsModal
       open={showInviteModal}
       onOpenChange={setShowInviteModal}
@@ -1745,13 +2006,13 @@ interface PalmaresItem {
 }
 
 function parsePalmaresList(description: string | undefined): PalmaresItem[] {
-  if (!description) return [{ place: "", championship: "", category: "", year: "" }];
+  if (!description) return [];
   try {
     const parsed = JSON.parse(description);
-    if (Array.isArray(parsed)) return parsed.length > 0 ? parsed : [{ place: "", championship: "", category: "", year: "" }];
+    if (Array.isArray(parsed)) return parsed;
     return [{ place: parsed.place || "", championship: parsed.championship || "", category: parsed.category || "", year: parsed.year || "", document_url: parsed.document_url || "" }];
   } catch {
-    return [{ place: "", championship: "", category: "", year: "" }];
+    return [];
   }
 }
 
@@ -1759,6 +2020,8 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries, sport }: 
   entry: CareerEntry; idx: number; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; sport?: string;
 }) {
   const palmaresList = parsePalmaresList(entry.description);
+  const hasRealData = palmaresList.some(p => p.place || p.championship || p.document_url);
+  const [isOpen, setIsOpen] = useState(hasRealData);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
@@ -1772,12 +2035,14 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries, sport }: 
   };
 
   const addPalmares = () => {
+    setIsOpen(true);
     updateList([...palmaresList, { place: "", championship: "", category: "", year: "" }]);
   };
 
   const removePalmares = (pIdx: number) => {
     const newList = palmaresList.filter((_, i) => i !== pIdx);
-    updateList(newList.length > 0 ? newList : [{ place: "", championship: "", category: "", year: "" }]);
+    if (newList.length === 0) setIsOpen(false);
+    updateList(newList);
   };
 
   const updatePalmaresItem = (pIdx: number, field: string, value: string) => {
@@ -1811,7 +2076,7 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries, sport }: 
           <Plus className="h-3 w-3 mr-1" /> Adaugă rezultat
         </Button>
       </div>
-      {palmaresList.map((palmares, pIdx) => (
+      {isOpen && palmaresList.map((palmares, pIdx) => (
         <SinglePalmaresRow
           key={pIdx}
           palmares={palmares}
@@ -1998,11 +2263,9 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
       className={`relative grid grid-cols-1 sm:grid-cols-2 gap-3 bg-background/30 rounded-md p-2 pl-7 border transition-all cursor-grab active:cursor-grabbing ${isDragging ? "opacity-50 border-primary" : isDragOver ? "border-primary/60 bg-primary/5" : "border-border/50"}`}
     >
       <GripVertical className="absolute left-1.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      {total > 1 && (
-        <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(pIdx)} className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive hover:text-destructive">
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      )}
+      <button type="button" onClick={() => onRemove(pIdx)} className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors">
+        <Trash2 className="h-4 w-4" />
+      </button>
       <ChampionshipCombobox
         value={palmares.championship}
         customChampionship={customChampionship}

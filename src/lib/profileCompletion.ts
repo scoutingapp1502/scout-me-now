@@ -20,10 +20,10 @@ export function calcPlayerCompletion(data: {
   instagram_url?: string | null;
   tiktok_url?: string | null;
   twitter_url?: string | null;
-}): number {
+}, hasCareerEntries?: boolean): number {
   let pct = 0;
   if (data.video_highlights && data.video_highlights.length > 0) pct += 35;
-  if (data.career_description) pct += 25;
+  if (hasCareerEntries !== undefined ? hasCareerEntries : !!data.career_description) pct += 25;
   if (data.height_cm && data.weight_kg && data.preferred_foot) pct += 20;
   if (data.photo_url) pct += 5;
   if (data.position) pct += 5;

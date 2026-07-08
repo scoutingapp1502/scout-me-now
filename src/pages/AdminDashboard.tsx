@@ -2,13 +2,17 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Video, LayoutDashboard, Shield } from "lucide-react";
+import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film } from "lucide-react";
 import AdminVideoReview from "@/pages/AdminVideoReview";
+import AdminScoutVerification from "@/pages/AdminScoutVerification";
+import AdminTestVideos from "@/pages/AdminTestVideos";
 import { Loader2 } from "lucide-react";
 
 const adminSections = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
   { id: "video-review", label: "Verificare Videouri", icon: Video },
+  { id: "test-videos", label: "Video-uri Exemplu Teste", icon: Film },
+  { id: "scout-verification", label: "Verificare Scouteri", icon: UserCheck },
 ];
 
 export default function AdminDashboard() {
@@ -107,6 +111,12 @@ export default function AdminDashboard() {
         )}
         {activeSection === "video-review" && (
           <AdminVideoReview embedded />
+        )}
+        {activeSection === "test-videos" && (
+          <AdminTestVideos embedded />
+        )}
+        {activeSection === "scout-verification" && (
+          <AdminScoutVerification />
         )}
       </main>
     </div>

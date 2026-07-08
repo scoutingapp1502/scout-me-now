@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles, ClipboardList } from "lucide-react";
+import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles, ClipboardList, Settings } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
@@ -97,13 +97,13 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   const showPlayerNotes = userRole === "scout" || userRole === "club_rep";
   const mySpaceSections = [
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
-    { id: "messages", label: lang === "ro" ? "Mesaje" : "Messages", icon: MessageCircle },
-    { id: "notifications", label: lang === "ro" ? "Notificări" : "Notifications", icon: Bell },
-    { id: "activity", label: lang === "ro" ? "Activitate" : "Activity", icon: Newspaper },
-    ...(showPlayerNotes ? [{ id: "player-notes", label: lang === "ro" ? "Acțiuni scouter" : "Scout actions", icon: ClipboardList }] : []),
+    { id: "messages", label: (t as any).dashboard?.sidebar?.messages ?? "Messages", icon: MessageCircle },
+    { id: "notifications", label: (t as any).dashboard?.sidebar?.notifications ?? "Notifications", icon: Bell },
+    { id: "activity", label: (t as any).dashboard?.sidebar?.activity ?? "Activity", icon: Newspaper },
+    ...(showPlayerNotes ? [{ id: "player-notes", label: (t as any).dashboard?.sidebar?.scoutActions ?? "Scout actions", icon: ClipboardList }] : []),
   ];
   const discoverSections = [
-    { id: "community", label: lang === "ro" ? "Comunitate" : "Community", icon: Sparkles },
+    { id: "community", label: (t as any).dashboard?.sidebar?.community ?? "Community", icon: Sparkles },
   ];
   const sections = [...mySpaceSections, ...discoverSections];
 
@@ -134,8 +134,8 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
 
       <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
         {[
-          { label: lang === "ro" ? "SPAȚIUL MEU" : "MY SPACE", items: mySpaceSections },
-          { label: lang === "ro" ? "DESCOPERĂ" : "DISCOVER", items: discoverSections },
+          { label: (t as any).dashboard?.sidebar?.mySpace ?? "MY SPACE", items: mySpaceSections },
+          { label: (t as any).dashboard?.sidebar?.discover ?? "DISCOVER", items: discoverSections },
         ].map((group) => (
           <div key={group.label} className="space-y-1">
             <p className="px-4 text-[10px] font-body font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
@@ -176,6 +176,17 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         <div className="flex justify-center">
           <LanguageToggle />
         </div>
+        <button
+          onClick={() => onSectionChange("settings")}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all ${
+            activeSection === "settings"
+              ? "bg-primary text-primary-foreground shadow-lg"
+              : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          }`}
+        >
+          <Settings className="h-5 w-5" />
+          {(t as any).dashboard?.sidebar?.settings ?? "Settings"}
+        </button>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/60 hover:text-destructive hover:bg-sidebar-accent font-body text-sm transition-all"

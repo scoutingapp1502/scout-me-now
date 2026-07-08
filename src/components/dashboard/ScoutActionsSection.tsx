@@ -183,25 +183,35 @@ function NotesTab({ scoutUserId }: { scoutUserId: string }) {
     return list;
   }, [notes, search, filterLabel, filterPriority, filterRating, sortBy]);
 
+  const d = (s: string) => {
+    const map: Record<number, string> = {
+      0x103:'a', 0x102:'A', 0xe2:'a', 0xc2:'A',
+      0xee:'i',  0xce:'I',
+      0x219:'s', 0x218:'S', 0x15f:'s', 0x15e:'S',
+      0x21b:'t', 0x21a:'T', 0x163:'t', 0x162:'T',
+    };
+    return s.split('').map(c => map[c.charCodeAt(0)] ?? c).join('');
+  };
+
   const handleExportSinglePDF = (n: NoteRow) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const fullName = `${n.player?.first_name || ""} ${n.player?.last_name || ""}`.trim() || "-";
+    const fullName = d(`${n.player?.first_name || ""} ${n.player?.last_name || ""}`.trim() || "-");
     doc.setFontSize(18); doc.text(ro ? "Notita jucator" : "Player note", 14, 18);
     doc.setFontSize(13); doc.setTextColor(60); doc.text(fullName, 14, 28);
     doc.setFontSize(10); doc.setTextColor(120);
     doc.text(`${ro ? "Actualizat" : "Updated"}: ${new Date(n.updated_at).toLocaleString(ro ? "ro-RO" : "en-US")}`, pageWidth - 14, 18, { align: "right" });
-    const qualities = [...(n.observed_qualities || []), ...(n.custom_qualities || [])].join(", ") || "-";
+    const qualities = d([...(n.observed_qualities || []), ...(n.custom_qualities || [])].join(", ") || "-");
     autoTable(doc, {
       startY: 42, theme: "grid", styles: { fontSize: 10, cellPadding: 3, overflow: "linebreak" },
       columnStyles: { 0: { cellWidth: 45, fontStyle: "bold", fillColor: [240, 245, 240] }, 1: { cellWidth: "auto" } },
       body: [
-        [ro ? "Eticheta" : "Label", n.label || "-"],
+        [ro ? "Eticheta" : "Label", d(n.label || "-")],
         ["Rating", n.personal_rating ? `${n.personal_rating}/5` : "-"],
-        [ro ? "Prioritate" : "Priority", n.priority ? (priorityLabel[n.priority] || n.priority) : "-"],
+        [ro ? "Prioritate" : "Priority", d(n.priority ? (priorityLabel[n.priority] || n.priority) : "-")],
         [ro ? "Calitati" : "Qualities", qualities],
-        [ro ? "Meci" : "Match", [n.match_watched, n.match_date].filter(Boolean).join(" - ") || "-"],
-        [ro ? "Observatii" : "Observations", n.observations || "-"],
+        [ro ? "Meci" : "Match", d([n.match_watched, n.match_date].filter(Boolean).join(" - ") || "-")],
+        [ro ? "Observatii" : "Observations", d(n.observations || "-")],
       ],
     });
     doc.save(`nota-${fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${new Date().toISOString().slice(0, 10)}.pdf`);

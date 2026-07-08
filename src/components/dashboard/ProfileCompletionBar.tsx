@@ -21,9 +21,12 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed,
 
   return (
     <div className="mb-6 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-accent/30 transition-colors"
+        onKeyDown={(e) => e.key === "Enter" && setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-4 hover:bg-accent/30 transition-colors cursor-pointer"
       >
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-foreground">
@@ -72,7 +75,7 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed,
             </button>
           )}
         </div>
-      </button>
+      </div>
 
       {expanded && (
         <div className="px-4 pb-4">

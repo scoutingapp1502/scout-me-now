@@ -57,6 +57,35 @@ export interface ReportPDFData {
   recommendation: string | null;
 }
 
+function nd(s: string | null | undefined): string {
+  if (!s) return "";
+  let result = "";
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    // ASCII – pass through unchanged
+    if (code < 128) { result += s[i]; continue; }
+    // Romanian specific char codes
+    if (code === 0x0219 || code === 0x015F) { result += "s"; continue; } // ș ş
+    if (code === 0x0218 || code === 0x015E) { result += "S"; continue; } // Ș Ş
+    if (code === 0x021B || code === 0x0163) { result += "t"; continue; } // ț ţ
+    if (code === 0x021A || code === 0x0162) { result += "T"; continue; } // Ț Ţ
+    if (code === 0x0103) { result += "a"; continue; } // ă
+    if (code === 0x0102) { result += "A"; continue; } // Ă
+    if (code === 0x00E2) { result += "a"; continue; } // â
+    if (code === 0x00C2) { result += "A"; continue; } // Â
+    if (code === 0x00EE) { result += "i"; continue; } // î
+    if (code === 0x00CE) { result += "I"; continue; } // Î
+    // General fallback: NFD decompose, keep only ASCII chars
+    const decomposed = s[i].normalize("NFD");
+    for (let j = 0; j < decomposed.length; j++) {
+      const dc = decomposed.charCodeAt(j);
+      if (dc >= 0x0300 && dc <= 0x036F) continue; // skip combining diacritics
+      if (dc < 128) result += decomposed[j];
+    }
+  }
+  return result;
+}
+
 function buildReportDoc(d: ReportPDFData, ro: boolean): jsPDF {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = 210;
@@ -133,17 +162,17 @@ function buildReportDoc(d: ReportPDFData, ro: boolean): jsPDF {
   doc.setTextColor(...WHITE);
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
-  doc.text(d.playerName, W / 2, 16, { align: "center" });
+  doc.text(nd(d.playerName), W / 2, 16, { align: "center" });
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...GR);
-  if (d.position) doc.text(d.position, W / 2, 23, { align: "center" });
+  if (d.position) doc.text(nd(d.position), W / 2, 23, { align: "center" });
 
   if (d.overallRating > 0) {
     doc.setFontSize(7);
     doc.setTextColor(...GR);
-    doc.text(ro ? "NOTĂ GENERALĂ" : "OVERALL RATING", W / 2 - 26, 31, { align: "center" });
+    doc.text(ro ? "NOTA GENERALA" : "OVERALL RATING", W / 2 - 26, 31, { align: "center" });
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...YLW);
@@ -161,11 +190,11 @@ function buildReportDoc(d: ReportPDFData, ro: boolean): jsPDF {
   }
 
   const clubLines = [
-    d.currentClub,
-    d.league,
-    d.contractUntil ? `${ro ? "Contract:" : "Contract:"} ${d.contractUntil}` : "",
-    d.salaryRange   ? `${ro ? "Salariu:"  : "Salary:"}   ${d.salaryRange}`   : "",
-    d.transferValue ? `${ro ? "Valoare:"  : "Value:"}    ${d.transferValue}` : "",
+    nd(d.currentClub),
+    nd(d.league),
+    d.contractUntil ? `Contract: ${nd(d.contractUntil)}` : "",
+    d.salaryRange   ? `${ro ? "Salariu:" : "Salary:"}   ${nd(d.salaryRange)}` : "",
+    d.transferValue ? `${ro ? "Valoare:" : "Value:"}    ${nd(d.transferValue)}` : "",
   ].filter(Boolean);
   let cy = 10;
   doc.setFontSize(7.5);
@@ -176,7 +205,7 @@ function buildReportDoc(d: ReportPDFData, ro: boolean): jsPDF {
   if (d.agentName) {
     doc.setFontSize(7.5);
     doc.setTextColor(...GR);
-    doc.text(`${ro ? "Agent:" : "Agent:"} ${d.agentName}`, M, HDR - 5);
+    doc.text(`Agent: ${nd(d.agentName)}`, M, HDR - 5);
   }
   doc.setFontSize(7);
   doc.setTextColor(...GR);
@@ -187,25 +216,25 @@ function buildReportDoc(d: ReportPDFData, ro: boolean): jsPDF {
   /* ── SECTIONS ── */
   if (d.technicalRating > 0 || d.technicalNotes) {
     secHeader(ro ? "Tehnic + Tactic" : "Technical + Tactical");
-    ratingLine(ro ? "Notă" : "Rating", d.technicalRating);
-    if (d.technicalNotes) para(d.technicalNotes);
+    ratingLine(ro ? "Nota" : "Rating", d.technicalRating);
+    if (d.technicalNotes) para(nd(d.technicalNotes));
     y += 2;
   }
   if (d.physicalRating > 0 || d.physicalNotes) {
     secHeader(ro ? "Fizic" : "Physical");
-    ratingLine(ro ? "Notă" : "Rating", d.physicalRating);
-    if (d.physicalNotes) para(d.physicalNotes);
+    ratingLine(ro ? "Nota" : "Rating", d.physicalRating);
+    if (d.physicalNotes) para(nd(d.physicalNotes));
     y += 2;
   }
   if (d.mentalRating > 0 || d.mentalNotes) {
     secHeader("Mental & Socio-cultural");
-    ratingLine(ro ? "Notă" : "Rating", d.mentalRating);
-    if (d.mentalNotes) para(d.mentalNotes);
+    ratingLine(ro ? "Nota" : "Rating", d.mentalRating);
+    if (d.mentalNotes) para(nd(d.mentalNotes));
     y += 2;
   }
   if (d.financialNotes) {
     secHeader(ro ? "Financiar" : "Financial");
-    para(d.financialNotes);
+    para(nd(d.financialNotes));
     y += 2;
   }
 
@@ -232,7 +261,7 @@ function buildReportDoc(d: ReportPDFData, ro: boolean): jsPDF {
         doc.setFontSize(8.5);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...TXT);
-        const lines = doc.splitTextToSize(`• ${item}`, colW) as string[];
+        const lines = doc.splitTextToSize(`• ${nd(item)}`, colW) as string[];
         lines.forEach(ln => { doc.text(ln, M, leftY); leftY += 4; });
       });
 
@@ -242,22 +271,22 @@ function buildReportDoc(d: ReportPDFData, ro: boolean): jsPDF {
         doc.setFontSize(8.5);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...TXT);
-        const lines = doc.splitTextToSize(`• ${item}`, colW) as string[];
+        const lines = doc.splitTextToSize(`• ${nd(item)}`, colW) as string[];
         lines.forEach(ln => { doc.text(ln, M + colW + 6, rightY); rightY += 4; });
       });
 
       y = Math.max(leftY, rightY) + 4;
     }
 
-    if (d.conclusionText) { checkPage(10); para(d.conclusionText); y += 1; }
+    if (d.conclusionText) { checkPage(10); para(nd(d.conclusionText)); y += 1; }
 
     if (d.recommendation) {
       checkPage(18);
       const REC_MAP: Record<string, { ro: string; en: string; c: RGB }> = {
-        buy:       { ro: "Cumpără",      en: "Buy",       c: GREEN },
-        shortlist: { ro: "Listă scurtă", en: "Shortlist",  c: YLW  },
-        follow:    { ro: "Urmărire",     en: "Follow",     c: BLU  },
-        forget:    { ro: "Renunță",      en: "Forget",     c: ZINC },
+        buy:       { ro: "Cumpara",      en: "Buy",       c: GREEN },
+        shortlist: { ro: "Lista scurta", en: "Shortlist",  c: YLW  },
+        follow:    { ro: "Urmarire",     en: "Follow",     c: BLU  },
+        forget:    { ro: "Renunta",      en: "Forget",     c: ZINC },
       };
       const rec = REC_MAP[d.recommendation];
       if (rec) {
@@ -285,7 +314,7 @@ function buildReportDoc(d: ReportPDFData, ro: boolean): jsPDF {
     doc.text(
       `SportRise · ${ro ? "Raport generat" : "Report generated"} ${today} · ${p}/${total}`,
       W / 2, 292, { align: "center" }
-    );
+    ); // footer uses only ASCII-safe chars, no nd() needed
   }
 
   return doc;
@@ -588,7 +617,15 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
         setHiddenSections(new Set(data.hidden_sections || []));
         setCustomSections((data.custom_sections || []).map(migrateSection));
       } else {
-        setPosition(""); setCurrentClub(""); setLeague(""); setContractUntil("");
+        const { data: playerProfile } = await supabase
+          .from("player_profiles")
+          .select("position, current_team, agent_name")
+          .eq("user_id", playerUserId)
+          .maybeSingle();
+        setPosition(playerProfile?.position || "");
+        setCurrentClub(playerProfile?.current_team || "");
+        setAgentName(playerProfile?.agent_name || "");
+        setLeague(""); setContractUntil("");
         setSalaryRange(""); setTransferValue(""); setAgentName("");
         setOverallRating(0); setFitRating(0);
         setTechnicalRating(0); setTechnicalNotes("");
@@ -675,7 +712,9 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
     } finally {
       setAddingToProfile(false);
     }
-    const handleConfirmDeleteOpenChange = (isOpen: boolean) => {
+  };
+
+  const handleConfirmDeleteOpenChange = (isOpen: boolean) => {
     if (!isOpen) setConfirmDelete(null);
   };
 
@@ -701,14 +740,38 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                 <SectionTitle label={ro ? "Informații jucător" : "Player info"} onRemove={() => requestDeleteBuiltin("playerInfo")} />
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{ro ? "Poziție" : "Position"}</Label>
-                    <Input value={position} onChange={e => setPosition(e.target.value)}
-                      placeholder={ro ? "ex: Mijlocaș defensiv" : "e.g. Defensive midfielder"} />
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      {ro ? "Poziție" : "Position"}
+                      {position && <span className="text-primary text-[10px] font-normal">{ro ? "· din profil" : "· from profile"}</span>}
+                    </Label>
+                    <div className="relative">
+                      <Input value={position} onChange={e => setPosition(e.target.value)}
+                        placeholder={ro ? "ex: Mijlocaș defensiv" : "e.g. Defensive midfielder"}
+                        className={position ? "pr-7" : ""} />
+                      {position && (
+                        <button type="button" onClick={() => setPosition("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{ro ? "Club actual" : "Current club"}</Label>
-                    <Input value={currentClub} onChange={e => setCurrentClub(e.target.value)}
-                      placeholder="Fortuna Sittard" />
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      {ro ? "Club actual" : "Current club"}
+                      {currentClub && <span className="text-primary text-[10px] font-normal">{ro ? "· din profil" : "· from profile"}</span>}
+                    </Label>
+                    <div className="relative">
+                      <Input value={currentClub} onChange={e => setCurrentClub(e.target.value)}
+                        placeholder="Fortuna Sittard"
+                        className={currentClub ? "pr-7" : ""} />
+                      {currentClub && (
+                        <button type="button" onClick={() => setCurrentClub("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">{ro ? "Ligă" : "League"}</Label>
@@ -731,9 +794,21 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                       placeholder="0.4 – 0.8M €" />
                   </div>
                   <div className="col-span-2 space-y-1">
-                    <Label className="text-xs text-muted-foreground">{ro ? "Agent" : "Agent"}</Label>
-                    <Input value={agentName} onChange={e => setAgentName(e.target.value)}
-                      placeholder={ro ? "Numele agentului" : "Agent name"} />
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      {ro ? "Agent" : "Agent"}
+                      {agentName && <span className="text-primary text-[10px] font-normal">{ro ? "· din profil" : "· from profile"}</span>}
+                    </Label>
+                    <div className="relative">
+                      <Input value={agentName} onChange={e => setAgentName(e.target.value)}
+                        placeholder={ro ? "Numele agentului" : "Agent name"}
+                        className={agentName ? "pr-7" : ""} />
+                      {agentName && (
+                        <button type="button" onClick={() => setAgentName("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>}
@@ -1012,5 +1087,4 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
       </AlertDialog>
     </>
   );
-  }
 }

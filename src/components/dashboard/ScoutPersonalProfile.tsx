@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users, Lock, FileText, Upload, Download } from "lucide-react";
@@ -16,6 +18,9 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useFollowers } from "@/hooks/useFollowers";
 import FollowersList from "./FollowersList";
 import RecommendationsSection from "./RecommendationsSection";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+const LazyPersonalProfile = lazy(() => import("./PersonalProfile"));
+const LazyScoutPersonalProfile = lazy(() => import("./ScoutPersonalProfile"));
 
 type ScoutProfile = Tables<"scout_profiles">;
 type ScoutExperience = Tables<"scout_experiences">;
@@ -25,6 +30,20 @@ interface ScoutPersonalProfileProps {
   userId: string;
   readOnly?: boolean;
   onNavigateToChat?: (userId: string) => void;
+}
+
+function formatExpDate(val: string | null | undefined): string {
+  if (!val) return "";
+  if (val === "Prezent") return "Prezent";
+  if (val.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [y, mo] = val.split("-");
+    return new Date(parseInt(y), parseInt(mo) - 1).toLocaleDateString("ro-RO", { month: "short", year: "numeric" });
+  }
+  if (val.match(/^\d{4}-\d{2}$/)) {
+    const [y, mo] = val.split("-");
+    return new Date(parseInt(y), parseInt(mo) - 1).toLocaleDateString("ro-RO", { month: "short", year: "numeric" });
+  }
+  return val;
 }
 
 /* ─── Player Reports Upload Section ────────────────────────────────── */
@@ -235,6 +254,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const [isAgent, setIsAgent] = useState(false);
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
+  const [recAuthorView, setRecAuthorView] = useState<{ userId: string; role: string } | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setViewerUserId(user?.id || null));
@@ -1000,10 +1020,38 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                       </Button>
                     </div>
                     <Input value={exp.organization || ""} onChange={e => updateExp(index, "organization", e.target.value)} placeholder="Organizație" className="bg-muted border-border text-white text-sm" />
-                    <div className="flex gap-2">
-                      <Input value={exp.location || ""} onChange={e => updateExp(index, "location", e.target.value)} placeholder="Locație" className="bg-muted border-border text-white text-sm" />
-                      <Input value={exp.start_date || ""} onChange={e => updateExp(index, "start_date", e.target.value)} placeholder="Data început (ex: Jan 2023)" className="bg-muted border-border text-white text-sm" />
-                      <Input value={exp.end_date || ""} onChange={e => updateExp(index, "end_date", e.target.value)} placeholder="Data sfârșit (sau Prezent)" className="bg-muted border-border text-white text-sm" />
+                    <Input value={exp.location || ""} onChange={e => updateExp(index, "location", e.target.value)} placeholder="Locație" className="bg-muted border-border text-white text-sm" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-foreground font-medium">Data început</Label>
+                        <Input
+                          type="date"
+                          value={exp.start_date?.match(/^\d{4}-\d{2}-\d{2}$/) ? exp.start_date : ""}
+                          onChange={e => updateExp(index, "start_date", e.target.value)}
+                          className="bg-muted border-border text-white [color-scheme:dark]"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-foreground font-medium">Data sfârșit</Label>
+                        <Input
+                          type="date"
+                          value={exp.end_date?.match(/^\d{4}-\d{2}-\d{2}$/) ? exp.end_date : ""}
+                          min={exp.start_date?.match(/^\d{4}-\d{2}-\d{2}$/) ? exp.start_date : undefined}
+                          onChange={e => updateExp(index, "end_date", e.target.value)}
+                          disabled={exp.end_date === "Prezent"}
+                          className="bg-muted border-border text-white [color-scheme:dark]"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id={`exp-active-${index}`}
+                        checked={exp.end_date === "Prezent"}
+                        onCheckedChange={(checked) => updateExp(index, "end_date", checked ? "Prezent" : "")}
+                      />
+                      <Label htmlFor={`exp-active-${index}`} className="text-xs text-foreground cursor-pointer">
+                        Activez în acest moment
+                      </Label>
                     </div>
                     <Textarea value={exp.description || ""} onChange={e => updateExp(index, "description", e.target.value)} placeholder="Descriere activitate..." className="bg-muted border-border text-white text-sm min-h-[60px]" />
                     <Input
@@ -1018,9 +1066,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                     <h3 className="font-body font-semibold text-foreground">{exp.role || "Rol nespecificat"}</h3>
                     <p className="text-foreground/70 font-body text-sm">{exp.organization}</p>
                     <p className="text-muted-foreground font-body text-xs mt-0.5">
-                      {exp.start_date && <span>{exp.start_date}</span>}
+                      {exp.start_date && <span>{formatExpDate(exp.start_date)}</span>}
                       {exp.start_date && exp.end_date && <span> – </span>}
-                      {exp.end_date && <span>{exp.end_date}</span>}
+                      {exp.end_date && <span>{formatExpDate(exp.end_date)}</span>}
                       {exp.location && <span> · {exp.location}</span>}
                     </p>
                     {exp.description && (
@@ -1049,6 +1097,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         profileUserId={userId}
         viewerUserId={viewerUserId}
         isOwner={!readOnly || viewerUserId === userId}
+        profileRole="scout"
+        onViewProfile={(uid, role) => setRecAuthorView({ userId: uid, role })}
       />
 
       {/* Message Dialog */}
@@ -1060,6 +1110,19 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
           recipientName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()}
         />
       )}
+
+      {/* Dialog: vizualizare profil autor recomandare */}
+      <Dialog open={!!recAuthorView} onOpenChange={(open) => !open && setRecAuthorView(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+          {recAuthorView && (
+            <Suspense fallback={<div className="flex items-center justify-center py-16"><span className="text-muted-foreground text-sm">Se încarcă...</span></div>}>
+              {recAuthorView.role === "player"
+                ? <LazyPersonalProfile userId={recAuthorView.userId} readOnly />
+                : <LazyScoutPersonalProfile userId={recAuthorView.userId} readOnly />}
+            </Suspense>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
