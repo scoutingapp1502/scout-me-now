@@ -1,0 +1,1 @@
+ALTER TABLE public.scout_education ADD COLUMN documents text[] DEFAULT '{}'::text[];

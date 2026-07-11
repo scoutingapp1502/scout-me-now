@@ -1,0 +1,1 @@
+UPDATE player_profiles SET sport = 'basketball' WHERE user_id = 'fdd3ad60-275a-40f3-a06a-c9b5931e5bfc';

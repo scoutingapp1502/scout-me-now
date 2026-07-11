@@ -1,0 +1,1 @@
+ALTER TABLE public.player_profiles ADD COLUMN IF NOT EXISTS free_throw_shooting_video text DEFAULT NULL;

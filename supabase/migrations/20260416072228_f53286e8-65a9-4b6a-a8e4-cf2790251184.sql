@@ -1,0 +1,1 @@
+ALTER TABLE public.agent_collaboration_requests ADD COLUMN initiated_by text NOT NULL DEFAULT 'player';
