@@ -25,19 +25,17 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   const notifCount = useNotificationCount(userId ?? null);
 
   useEffect(() => {
-    let userId: string | null = null;
+    let cancelled = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const fetchUnread = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      userId = user.id;
-
+    const fetchUnread = async (uid: string) => {
       // Get all conversation IDs for this user
       const { data: convs } = await supabase
         .from("conversations")
         .select("id")
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+        .or(`user1_id.eq.${uid},user2_id.eq.${uid}`);
 
+      if (cancelled) return;
       if (!convs || convs.length === 0) { setUnreadCount(0); return; }
 
       const convIds = convs.map(c => c.id);
@@ -47,24 +45,39 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         .select("*", { count: "exact", head: true })
         .in("conversation_id", convIds)
         .eq("read", false)
-        .neq("sender_id", user.id);
+        .neq("sender_id", uid);
 
-      setUnreadCount(count || 0);
+      if (!cancelled) setUnreadCount(count || 0);
     };
 
-    fetchUnread();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    // Realtime: listen for new messages
-    const channel = supabase
-      .channel("sidebar-unread")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages" },
-        () => { fetchUnread(); }
-      )
-      .subscribe();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user || cancelled) return;
+      fetchUnread(user.id);
 
-    return () => { supabase.removeChannel(channel); };
+      // Realtime: listen for new messages. There's no recipient column on
+      // messages to filter by precisely (only sender_id + conversation_id),
+      // so we scope out our own sends and debounce bursts of unrelated
+      // messages between other users instead of refetching on every event.
+      channel = supabase
+        .channel(`sidebar-unread-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "messages", filter: `sender_id=neq.${user.id}` },
+          () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => fetchUnread(user.id), 500);
+          }
+        )
+        .subscribe();
+    }).catch((err) => console.error("Failed to get current user:", err));
+
+    return () => {
+      cancelled = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   // Reset unread when viewing messages

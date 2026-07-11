@@ -47,11 +47,76 @@ interface PostCardProps {
   hideLikeCounts?: boolean;
 }
 
+// Batches the per-post engagement lookup (likes count, my like state,
+// comments count) across every PostCard that mounts within the same tick,
+// so a feed of N posts fires one request instead of N. Each card just calls
+// requestEngagement(); the module-level queue does the rest.
+interface EngagementResult {
+  likes_count: number;
+  liked_by_me: boolean;
+  comments_count: number;
+}
+const EMPTY_ENGAGEMENT: EngagementResult = { likes_count: 0, liked_by_me: false, comments_count: 0 };
+let pendingEngagementBatch: Map<string, Array<(r: EngagementResult) => void>> | null = null;
+let pendingEngagementViewerId: string | null = null;
+let engagementBatchTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flushEngagementBatch() {
+  const batch = pendingEngagementBatch;
+  const viewerId = pendingEngagementViewerId;
+  pendingEngagementBatch = null;
+  pendingEngagementViewerId = null;
+  engagementBatchTimer = null;
+  if (!batch || batch.size === 0) return;
+
+  const postIds = [...batch.keys()];
+  (supabase as any)
+    .rpc("get_post_engagement_summary", {
+      p_post_ids: postIds,
+      p_viewer_id: viewerId ?? "00000000-0000-0000-0000-000000000000",
+    })
+    .then(({ data }: { data: any[] | null }) => {
+      const resultMap = new Map<string, EngagementResult>();
+      (data || []).forEach((row) => {
+        resultMap.set(row.post_id, {
+          likes_count: row.likes_count ?? 0,
+          liked_by_me: !!row.liked_by_me,
+          comments_count: row.comments_count ?? 0,
+        });
+      });
+      batch.forEach((callbacks, postId) => {
+        const result = resultMap.get(postId) ?? EMPTY_ENGAGEMENT;
+        callbacks.forEach((cb) => cb(result));
+      });
+    })
+    .catch((err: unknown) => {
+      console.error("Failed to load post engagement:", err);
+      batch.forEach((callbacks) => callbacks.forEach((cb) => cb(EMPTY_ENGAGEMENT)));
+    });
+}
+
+function requestEngagement(postId: string, viewerId: string | null): Promise<EngagementResult> {
+  return new Promise((resolve) => {
+    if (!pendingEngagementBatch) {
+      pendingEngagementBatch = new Map();
+      pendingEngagementViewerId = viewerId;
+    }
+    const callbacks = pendingEngagementBatch.get(postId) ?? [];
+    callbacks.push(resolve);
+    pendingEngagementBatch.set(postId, callbacks);
+
+    if (engagementBatchTimer) clearTimeout(engagementBatchTimer);
+    engagementBatchTimer = setTimeout(flushEngagementBatch, 30);
+  });
+}
+
 const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLikeCounts = false }: PostCardProps) => {
   const { lang } = useLanguage();
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [showComments, setShowComments] = useState(false);
+  const showCommentsRef = useRef(false);
+  useEffect(() => { showCommentsRef.current = showComments; }, [showComments]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [commentsCount, setCommentsCount] = useState(0);
@@ -71,49 +136,72 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     return () => clearTimeout(timer);
   }, [post.created_at, isNew]);
 
-  // Load likes count + user like status
+  // Load likes count + user like status + comments count in one batched
+  // request shared across every PostCard mounted at the same time.
   useEffect(() => {
-    loadLikes();
-    loadCommentsCount();
+    let cancelled = false;
+    requestEngagement(post.id, currentUserId).then((result) => {
+      if (cancelled) return;
+      setLikesCount(result.likes_count);
+      setLiked(result.liked_by_me);
+      setCommentsCount(result.comments_count);
+    });
+    return () => { cancelled = true; };
   }, [post.id, currentUserId]);
 
-  const loadLikes = async () => {
-    // Use RPC to respect feed_activity_visibility privacy setting
-    const { data: rpcData } = await (supabase as any).rpc("get_visible_likes_count", {
-      p_post_id: post.id,
-      p_viewer_id: currentUserId ?? "00000000-0000-0000-0000-000000000000",
-    });
-    setLikesCount(typeof rpcData === "number" ? rpcData : 0);
+  // Live-update likes/comments for anyone with this post open, so the
+  // author sees engagement from other users without refreshing. Events
+  // caused by the current viewer's own actions are skipped here because
+  // toggleLike/submitComment/deleteComment already update local state
+  // optimistically — applying both would double-count.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`post-engagement-${post.id}-${Date.now()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_likes", filter: `post_id=eq.${post.id}` },
+        (payload: any) => {
+          if (payload.eventType === "INSERT") {
+            if (payload.new?.user_id === currentUserId) return;
+            setLikesCount((c) => c + 1);
+          } else if (payload.eventType === "DELETE") {
+            if (payload.old?.user_id === currentUserId) return;
+            setLikesCount((c) => Math.max(0, c - 1));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_comments", filter: `post_id=eq.${post.id}` },
+        (payload: any) => {
+          if (payload.eventType === "INSERT") {
+            if (payload.new?.user_id !== currentUserId) setCommentsCount((c) => c + 1);
+          } else if (payload.eventType === "DELETE") {
+            if (payload.old?.user_id !== currentUserId) setCommentsCount((c) => Math.max(0, c - 1));
+          }
+          // Refresh the visible comment list (with author profiles) whenever
+          // the panel is open, regardless of who made the change.
+          if (showCommentsRef.current) loadComments();
+        }
+      )
+      .subscribe();
 
-    if (currentUserId) {
-      const { data } = await supabase
-        .from("post_likes")
-        .select("id")
-        .eq("post_id", post.id)
-        .eq("user_id", currentUserId)
-        .maybeSingle();
-      setLiked(!!data);
-    }
-  };
-
-  const loadCommentsCount = async () => {
-    const { count } = await supabase
-      .from("post_comments")
-      .select("*", { count: "exact", head: true })
-      .eq("post_id", post.id);
-    setCommentsCount(count || 0);
-  };
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id, currentUserId]);
 
   const toggleLike = async () => {
     if (!currentUserId) return;
     if (liked) {
-      await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", currentUserId);
       setLiked(false);
       setLikesCount(c => Math.max(0, c - 1));
+      const { error } = await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", currentUserId);
+      if (error) { setLiked(true); setLikesCount(c => c + 1); }
     } else {
-      await supabase.from("post_likes").insert({ post_id: post.id, user_id: currentUserId } as any);
       setLiked(true);
       setLikesCount(c => c + 1);
+      const { error } = await supabase.from("post_likes").insert({ post_id: post.id, user_id: currentUserId } as any);
+      if (error) { setLiked(false); setLikesCount(c => Math.max(0, c - 1)); }
     }
   };
 
@@ -190,11 +278,16 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
   const submitComment = async () => {
     if (!commentText.trim() || !currentUserId) return;
-    await supabase.from("post_comments").insert({
+    const text = commentText.trim();
+    const { error } = await supabase.from("post_comments").insert({
       post_id: post.id,
       user_id: currentUserId,
-      content: commentText.trim(),
+      content: text,
     } as any);
+    if (error) {
+      toast.error(lang === "ro" ? "Comentariul nu a putut fi trimis." : "Comment could not be sent.");
+      return;
+    }
     setCommentText("");
     setCommentsCount(c => c + 1);
     loadComments();
@@ -205,16 +298,22 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     const comment = comments.find(c => c.id === commentId);
     if (!comment) return;
     if (comment.liked_by_me) {
-      await supabase.from("comment_likes").delete().eq("comment_id", commentId).eq("user_id", currentUserId);
       setComments(prev => prev.map(c => c.id === commentId ? { ...c, liked_by_me: false, likes_count: Math.max(0, c.likes_count - 1) } : c));
+      const { error } = await supabase.from("comment_likes").delete().eq("comment_id", commentId).eq("user_id", currentUserId);
+      if (error) setComments(prev => prev.map(c => c.id === commentId ? { ...c, liked_by_me: true, likes_count: c.likes_count + 1 } : c));
     } else {
-      await supabase.from("comment_likes").insert({ comment_id: commentId, user_id: currentUserId } as any);
       setComments(prev => prev.map(c => c.id === commentId ? { ...c, liked_by_me: true, likes_count: c.likes_count + 1 } : c));
+      const { error } = await supabase.from("comment_likes").insert({ comment_id: commentId, user_id: currentUserId } as any);
+      if (error) setComments(prev => prev.map(c => c.id === commentId ? { ...c, liked_by_me: false, likes_count: Math.max(0, c.likes_count - 1) } : c));
     }
   };
 
   const deleteComment = async (commentId: string) => {
-    await supabase.from("post_comments").delete().eq("id", commentId);
+    const { error } = await supabase.from("post_comments").delete().eq("id", commentId);
+    if (error) {
+      toast.error(lang === "ro" ? "Comentariul nu a putut fi șters." : "Comment could not be deleted.");
+      return;
+    }
     setCommentsCount(c => Math.max(0, c - 1));
     setComments(prev => prev.filter(c => c.id !== commentId));
   };
@@ -262,7 +361,11 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
   const handleArchive = async () => {
     if (!currentUserId || currentUserId !== post.user_id) return;
-    await (supabase as any).from("posts").update({ is_archived: true }).eq("id", post.id);
+    const { error } = await (supabase as any).from("posts").update({ is_archived: true }).eq("id", post.id);
+    if (error) {
+      toast.error(lang === "ro" ? "Nu s-a putut arhiva postarea." : "Failed to archive post.");
+      return;
+    }
     toast.success(lang === "ro" ? "Postare arhivată." : "Post archived.");
     onDelete(post.id);
   };
@@ -275,17 +378,28 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
       .eq("post_id", post.id)
       .eq("user_id", currentUserId)
       .maybeSingle()
-      .then(({ data }) => setSaved(!!data));
+      .then(
+        ({ data }) => setSaved(!!data),
+        (err) => console.error("Failed to check saved state:", err)
+      );
   }, [post.id, currentUserId]);
 
   const toggleSave = async () => {
     if (!currentUserId) return;
     if (saved) {
-      await supabase.from("saved_posts" as any).delete().eq("post_id", post.id).eq("user_id", currentUserId);
+      const { error } = await supabase.from("saved_posts" as any).delete().eq("post_id", post.id).eq("user_id", currentUserId);
+      if (error) {
+        toast.error(lang === "ro" ? "Nu s-a putut elimina din salvate." : "Failed to remove from saved.");
+        return;
+      }
       setSaved(false);
       toast.info(lang === "ro" ? "Postare eliminată din salvate." : "Post removed from saved.");
     } else {
-      await supabase.from("saved_posts" as any).insert({ post_id: post.id, user_id: currentUserId });
+      const { error } = await supabase.from("saved_posts" as any).insert({ post_id: post.id, user_id: currentUserId });
+      if (error) {
+        toast.error(lang === "ro" ? "Nu s-a putut salva postarea." : "Failed to save post.");
+        return;
+      }
       setSaved(true);
       toast.success(lang === "ro" ? "Postare salvată." : "Post saved.");
     }
@@ -345,8 +459,12 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     }
     const excerpt = post.content.length > 120 ? post.content.slice(0, 120) + "…" : post.content;
     const messageContent = `🔗 ${author.name}:\n"${excerpt}"`;
-    await supabase.from("messages").insert({ conversation_id: convId, sender_id: currentUserId, content: messageContent } as any);
+    const { error: sendError } = await supabase.from("messages").insert({ conversation_id: convId, sender_id: currentUserId, content: messageContent } as any);
     setSendingTo(null);
+    if (sendError) {
+      toast.error(lang === "ro" ? "Nu s-a putut trimite postarea." : "Could not send the post.");
+      return;
+    }
     setShowShareDialog(false);
     toast.success(lang === "ro" ? "Postare trimisă!" : "Post sent!");
   };

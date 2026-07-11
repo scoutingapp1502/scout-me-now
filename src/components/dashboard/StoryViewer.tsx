@@ -42,7 +42,8 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
   // Resolve currentUserId (prop or session)
   useEffect(() => {
     if (currentUserId) { setViewerId(currentUserId); return; }
-    supabase.auth.getUser().then(({ data }) => { if (data.user) setViewerId(data.user.id); });
+    supabase.auth.getUser().then(({ data }) => { if (data.user) setViewerId(data.user.id); })
+      .catch((err) => console.error("Failed to get current user:", err));
   }, [currentUserId]);
 
   useEffect(() => {
@@ -60,6 +61,36 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
     };
     fetch();
   }, [open, userId]);
+
+  // Load/track whether the viewer already liked the current story.
+  useEffect(() => {
+    const current = stories[index];
+    if (!current || !viewerId) { setLiked(false); return; }
+    (supabase as any)
+      .from("story_likes")
+      .select("id")
+      .eq("story_id", current.id)
+      .eq("user_id", viewerId)
+      .maybeSingle()
+      .then(
+        ({ data }: any) => setLiked(!!data),
+        (err: unknown) => console.error("Failed to check story like:", err)
+      );
+  }, [stories, index, viewerId]);
+
+  const toggleLike = async () => {
+    const current = stories[index];
+    if (!current || !viewerId) return;
+    if (liked) {
+      setLiked(false);
+      const { error } = await (supabase as any).from("story_likes").delete().eq("story_id", current.id).eq("user_id", viewerId);
+      if (error) setLiked(true);
+    } else {
+      setLiked(true);
+      const { error } = await (supabase as any).from("story_likes").insert({ story_id: current.id, user_id: viewerId });
+      if (error) setLiked(false);
+    }
+  };
 
   const goNext = useCallback(() => {
     if (index < stories.length - 1) { setIndex(i => i + 1); setProgress(0); }
@@ -82,10 +113,70 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
     return () => clearInterval(interval);
   }, [open, index, loading, stories.length, goNext, paused, showShare]);
 
-  const handleSend = () => {
-    if (!message.trim()) return;
-    toast({ title: lang === "ro" ? "Mesaj trimis!" : "Message sent!" });
-    setMessage("");
+  const [sendingReply, setSendingReply] = useState(false);
+
+  const handleSend = async () => {
+    if (!message.trim() || !viewerId || sendingReply) return;
+    const text = message.trim();
+    setSendingReply(true);
+    try {
+      // Respect the story owner's "who can reply to my stories" setting.
+      const { data: privacy } = await (supabase as any)
+        .from("user_privacy_settings")
+        .select("story_replies_visibility")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const visibility = privacy?.story_replies_visibility ?? "everyone";
+      if (visibility === "no_one") {
+        toast({ title: lang === "ro" ? "Acest utilizator nu permite răspunsuri la story." : "This user doesn't allow story replies.", variant: "destructive" });
+        return;
+      }
+      if (visibility === "following") {
+        const { data: followRow } = await supabase
+          .from("follows")
+          .select("id")
+          .eq("follower_id", userId)
+          .eq("following_id", viewerId)
+          .eq("status", "accepted")
+          .maybeSingle();
+        if (!followRow) {
+          toast({ title: lang === "ro" ? "Doar persoanele urmărite pot răspunde la acest story." : "Only people this user follows can reply to this story.", variant: "destructive" });
+          return;
+        }
+      }
+
+      const { data: convId, error: convError } = await supabase.rpc("get_or_create_conversation", { other_user_id: userId });
+      if (convError || !convId) {
+        if (convError?.message?.includes("FOLLOW_REQUIRED")) {
+          toast({
+            title: lang === "ro" ? "Mesaj indisponibil" : "Messaging unavailable",
+            description: lang === "ro" ? "Poți răspunde la story doar dacă urmărești acest utilizator." : "You can reply to a story only if you follow this user.",
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: lang === "ro" ? "Nu s-a putut trimite mesajul." : "Could not send message.", variant: "destructive" });
+        }
+        return;
+      }
+
+      const tag = lang === "ro" ? "Răspuns la story" : "Reply to story";
+      const { error: msgError } = await supabase
+        .from("messages")
+        .insert({ conversation_id: convId, sender_id: viewerId, content: `📖 ${tag}:\n${text}` } as any);
+
+      if (msgError) {
+        toast({ title: lang === "ro" ? "Nu s-a putut trimite mesajul." : "Could not send message.", variant: "destructive" });
+        return;
+      }
+
+      setMessage("");
+      toast({ title: lang === "ro" ? "Mesaj trimis!" : "Message sent!" });
+    } catch (err) {
+      console.error("Failed to send story reply:", err);
+      toast({ title: lang === "ro" ? "Nu s-a putut trimite mesajul." : "Could not send message.", variant: "destructive" });
+    } finally {
+      setSendingReply(false);
+    }
   };
 
   const current = stories[index];
@@ -200,17 +291,18 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
                     onBlur={() => setPaused(false)}
                     onKeyDown={(e) => e.key === "Enter" && handleSend()}
                     placeholder={lang === "ro" ? "Trimite mesaj..." : "Send message..."}
-                    className="flex-1 bg-transparent text-white text-sm placeholder:text-white/50 outline-none border-none font-body"
+                    disabled={sendingReply}
+                    className="flex-1 bg-transparent text-white text-sm placeholder:text-white/50 outline-none border-none font-body disabled:opacity-50"
                   />
                   {message.trim() && (
-                    <button onClick={handleSend} className="text-white/80 hover:text-white shrink-0">
+                    <button onClick={handleSend} disabled={sendingReply} className="text-white/80 hover:text-white shrink-0 disabled:opacity-50">
                       <Send className="h-4 w-4" />
                     </button>
                   )}
                 </div>
 
                 {/* Like */}
-                <button onClick={() => setLiked(l => !l)} className="p-2 transition-transform active:scale-125">
+                <button onClick={toggleLike} className="p-2 transition-transform active:scale-125">
                   <Heart
                     className="h-6 w-6 transition-colors"
                     style={{ color: liked ? "#ef4444" : "rgba(255,255,255,0.8)", fill: liked ? "#ef4444" : "none" }}

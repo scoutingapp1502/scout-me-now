@@ -88,13 +88,18 @@ function PreferredLanguagesPage({
       .maybeSingle()
       .then(({ data }: any) => {
         if (data?.preferred_languages?.length) setPreferred(data.preferred_languages);
-      });
+      })
+      .catch((err: unknown) => console.error("Failed to load preferred languages:", err));
   }, [userId]);
 
   const persist = async (list: string[]) => {
-    await (supabase as any)
-      .from("user_privacy_settings")
-      .upsert({ user_id: userId, preferred_languages: list, updated_at: new Date().toISOString() });
+    try {
+      await (supabase as any)
+        .from("user_privacy_settings")
+        .upsert({ user_id: userId, preferred_languages: list, updated_at: new Date().toISOString() });
+    } catch (err) {
+      console.error("Failed to save preferred languages:", err);
+    }
   };
 
   const handleRemove = (code: string) => {
@@ -243,7 +248,8 @@ export default function LanguageSection({ userId, onBack }: LanguageSectionProps
           if (data.translate_reels_text != null) setTranslateReelsText(data.translate_reels_text);
           if (data.translate_voice != null) setTranslateVoice(data.translate_voice);
         }
-      });
+      })
+      .catch((err: unknown) => console.error("Failed to load translation settings:", err));
   }, [userId]);
 
   if (subPage === "set-language") {

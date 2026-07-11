@@ -113,7 +113,8 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
 
   const handleDeleteCertification = async (id: string) => {
     try {
-      await supabase.from("scout_certifications").delete().eq("id", id);
+      const { error } = await supabase.from("scout_certifications").delete().eq("id", id);
+      if (error) throw error;
       setCertifications(prev => prev.filter(c => c.id !== id));
       notifyProfileUpdated();
       toast({ title: "Licență/atestat eliminat!" });

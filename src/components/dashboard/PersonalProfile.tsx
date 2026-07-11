@@ -10,6 +10,7 @@ import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2,
 import MessageDialog from "./MessageDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PostCard from "./PostCard";
+import NewPostComposer from "./NewPostComposer";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -32,7 +33,7 @@ import ScoutPlayerReportDialog from "./ScoutPlayerReportDialog";
 import { ClipboardList, ChevronDown, FileBarChart, RotateCcw } from "lucide-react";
 import InviteFriendsModal from "./InviteFriendsModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useVideoSubmissions } from "@/hooks/useVideoSubmissions";
+import { useVideoSubmissions, submitVideoSubmission } from "@/hooks/useVideoSubmissions";
 import { useTestReferenceVideos } from "@/hooks/useTestReferenceVideos";
 import AddStoryModal from "./AddStoryModal";
 import StoryViewer from "./StoryViewer";
@@ -451,15 +452,17 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const cancelCollaborationRequest = async () => {
     setCollaborationLoading(true);
     try {
-      await supabase
+      const { error } = await supabase
         .from("agent_collaboration_requests")
         .delete()
         .eq("player_user_id", userId);
+      if (error) throw error;
       setCollaborationStatus("none");
       setSelectedRegisteredAgent(null);
       toast({ title: lang === "ro" ? "Cererea a fost anulată" : "Request cancelled" });
     } catch (err) {
       console.error(err);
+      toast({ title: lang === "ro" ? "Eroare" : "Error", description: lang === "ro" ? "Cererea nu a putut fi anulată." : "Failed to cancel the request.", variant: "destructive" });
     } finally {
       setCollaborationLoading(false);
     }
@@ -498,8 +501,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
     if (!user) return;
     setFollowLoading(true);
     if (followStatus === "accepted" || followStatus === "pending") {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
-      setFollowStatus("none");
+      const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
+      if (!error) setFollowStatus("none");
     } else {
       const { error } = await supabase.rpc("request_follow", { _following_id: userId });
       if (!error) setFollowStatus("pending");
@@ -582,6 +585,17 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
         photoUrl = urlData.publicUrl;
       }
 
+      // Technical test video fields are sport-specific (basketball vs.
+      // football tests use different columns). Resolve them dynamically
+      // instead of hardcoding one sport's set, and fall back to a typed
+      // URL the user forgot to confirm with the "+" button so it isn't
+      // silently dropped.
+      const technicalVideoFields: Record<string, any> = {};
+      getTechnicalTestsBySport((form as any).sport || currentSport).forEach((t) => {
+        const pendingUrl = (form as any)[t.inputKey]?.trim();
+        technicalVideoFields[t.key] = (form as any)[t.key] || pendingUrl || (profile as any)?.[t.key] || null;
+      });
+
       const payload = {
           first_name: form.first_name,
           last_name: form.last_name,
@@ -621,12 +635,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           palmares_documents: form.palmares_documents,
           sport: (form as any).sport,
           star_shooting_drill: (form as any).star_shooting_drill,
-          star_shooting_drill_video: (form as any).star_shooting_drill_video,
-          crossover_video: (form as any).crossover_video,
-          between_the_legs_video: (form as any).between_the_legs_video,
-          double_cross_video: (form as any).double_cross_video,
-          between_legs_cross_video: (form as any).between_legs_cross_video,
-          free_throw_shooting_video: (form as any).free_throw_shooting_video,
+          ...technicalVideoFields,
         };
 
       let error;
@@ -642,6 +651,20 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       }
 
       if (error) throw error;
+
+      // Technical test videos are saved as plain player_profiles columns
+      // above, but the admin review queue is a separate video_submissions
+      // row per test — submit one for every technical test video that was
+      // actually changed in this save (skip unchanged ones so we don't
+      // reset an already-reviewed submission back to "pending").
+      if (editingSection === "technical") {
+        for (const [testKey, videoUrl] of Object.entries(technicalVideoFields)) {
+          const previousUrl = (profile as any)?.[testKey];
+          if (videoUrl && videoUrl !== previousUrl) {
+            await submitVideoSubmission(testKey, videoUrl, userId);
+          }
+        }
+      }
 
       // Save career entries if editing about section
       if (editingSection === "about") {
@@ -761,7 +784,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .gt("expires_at", new Date().toISOString())
-      .then(({ count }: { count: number | null }) => setHasStory((count ?? 0) > 0));
+      .then(({ count }: { count: number | null }) => setHasStory((count ?? 0) > 0))
+      .catch((err: unknown) => console.error("Failed to check active stories:", err));
   }, [userId]);
 
   if (loading) {
@@ -1444,7 +1468,15 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                       toast({ title: "Nu poți trimite un video nou încă", description: `Poți trimite din nou în ${Math.ceil(dl)} zile.`, variant: "destructive" });
                                       return;
                                     }
-                                    const newVideoUrl = (form as any)[test.videoKey] || null;
+                                    // If the user typed a link but never clicked the small "+" to
+                                    // confirm it, fall back to that pending value instead of silently
+                                    // saving nothing.
+                                    const pendingInputUrl = (form as any)[test.inputKey]?.trim();
+                                    const newVideoUrl = (form as any)[test.videoKey] || pendingInputUrl || null;
+                                    if (!newVideoUrl) {
+                                      toast({ title: "Adaugă un video", description: "Încarcă un fișier sau adaugă un link video înainte de a salva.", variant: "destructive" });
+                                      return;
+                                    }
                                     const payload: any = {};
                                     payload[test.videoKey] = newVideoUrl;
                                     const { error } = await supabase
@@ -1454,10 +1486,14 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                     if (error) {
                                       toast({ title: "Eroare la salvare", variant: "destructive" });
                                     } else {
-                                      if (newVideoUrl) {
-                                        await submitVideo(test.videoKey, newVideoUrl, userId);
+                                      const result = await submitVideo(test.videoKey, newVideoUrl, userId);
+                                      if (result.error) {
+                                        toast({ title: "Video salvat, dar trimiterea către verificare a eșuat.", variant: "destructive" });
+                                      } else {
+                                        updateForm(test.videoKey as any, newVideoUrl);
+                                        updateForm(test.inputKey as any, "");
+                                        toast({ title: "Video salvat! Va fi verificat de echipa noastră." });
                                       }
-                                      toast({ title: "Video salvat! Va fi verificat de echipa noastră." });
                                       setInlineEditTest(null);
                                     }
                                   }}
@@ -3112,44 +3148,44 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
   const [authorInfo, setAuthorInfo] = useState<{ name: string; photo: string | null; role: string; title: string } | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
+      .catch((err) => console.error("Failed to get current user:", err));
   }, []);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
+  const fetchPosts = useCallback(async () => {
+    setLoading(true);
 
-      // Fetch posts from both tables
-      const [postsRes, scoutPostsRes] = await Promise.all([
-        supabase.from("posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
-        supabase.from("scout_posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
-      ]);
+    // Fetch posts from both tables
+    const [postsRes, scoutPostsRes] = await Promise.all([
+      supabase.from("posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+      supabase.from("scout_posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+    ]);
 
-      const allPosts = [
-        ...(postsRes.data || []).map(p => ({ ...p, video_url: p.video_url || null })),
-        ...(scoutPostsRes.data || []).map(p => ({ ...p, post_type: "scout", video_url: null })),
-      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const allPosts = [
+      ...(postsRes.data || []).map(p => ({ ...p, video_url: p.video_url || null })),
+      ...(scoutPostsRes.data || []).map(p => ({ ...p, post_type: "scout", video_url: null })),
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      setPosts(allPosts);
+    setPosts(allPosts);
 
-      // Fetch author info
-      const [playerRes, scoutRes, roleRes] = await Promise.all([
-        supabase.from("player_profiles").select("first_name, last_name, photo_url").eq("user_id", userId).maybeSingle(),
-        supabase.from("scout_profiles").select("first_name, last_name, photo_url, title").eq("user_id", userId).maybeSingle(),
-        supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
-      ]);
+    // Fetch author info
+    const [playerRes, scoutRes, roleRes] = await Promise.all([
+      supabase.from("player_profiles").select("first_name, last_name, photo_url").eq("user_id", userId).maybeSingle(),
+      supabase.from("scout_profiles").select("first_name, last_name, photo_url, title").eq("user_id", userId).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
+    ]);
 
-      const role = roleRes.data?.role || "player";
-      if (role === "player" && playerRes.data) {
-        setAuthorInfo({ name: `${playerRes.data.first_name} ${playerRes.data.last_name}`.trim(), photo: playerRes.data.photo_url, role, title: "" });
-      } else if (scoutRes.data) {
-        setAuthorInfo({ name: `${scoutRes.data.first_name} ${scoutRes.data.last_name}`.trim(), photo: scoutRes.data.photo_url, role, title: scoutRes.data.title || "" });
-      }
+    const role = roleRes.data?.role || "player";
+    if (role === "player" && playerRes.data) {
+      setAuthorInfo({ name: `${playerRes.data.first_name} ${playerRes.data.last_name}`.trim(), photo: playerRes.data.photo_url, role, title: "" });
+    } else if (scoutRes.data) {
+      setAuthorInfo({ name: `${scoutRes.data.first_name} ${scoutRes.data.last_name}`.trim(), photo: scoutRes.data.photo_url, role, title: scoutRes.data.title || "" });
+    }
 
-      setLoading(false);
-    };
-    fetchPosts();
+    setLoading(false);
   }, [userId]);
+
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   const handleDelete = useCallback(async (postId: string) => {
     await supabase.from("posts").delete().eq("id", postId);
@@ -3167,32 +3203,33 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
     );
   }
 
-  if (posts.length === 0) {
-    return (
-      <p className="text-center text-muted-foreground py-12 font-body">
-        {lang === "ro" ? "Nicio postare încă." : "No posts yet."}
-      </p>
-    );
-  }
-
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
-      {posts.map(post => (
-        <PostCard
-          key={post.id}
-          post={post}
-          author={{
-            user_id: userId,
-            name: authorInfo?.name || "",
-            photo: authorInfo?.photo || null,
-            role: authorInfo?.role || "player",
-            title: authorInfo?.title || "",
-          }}
-          currentUserId={currentUserId}
-          onDelete={handleDelete}
-          onViewProfile={handleViewProfile}
-        />
-      ))}
+      {!readOnly && currentUserId && (
+        <NewPostComposer currentUserId={currentUserId} myPhoto={authorInfo?.photo} onPosted={fetchPosts} />
+      )}
+      {posts.length === 0 ? (
+        <p className="text-center text-muted-foreground py-12 font-body">
+          {lang === "ro" ? "Nicio postare încă." : "No posts yet."}
+        </p>
+      ) : (
+        posts.map(post => (
+          <PostCard
+            key={post.id}
+            post={post}
+            author={{
+              user_id: userId,
+              name: authorInfo?.name || "",
+              photo: authorInfo?.photo || null,
+              role: authorInfo?.role || "player",
+              title: authorInfo?.title || "",
+            }}
+            currentUserId={currentUserId}
+            onDelete={handleDelete}
+            onViewProfile={handleViewProfile}
+          />
+        ))
+      )}
     </div>
   );
 }

@@ -156,39 +156,34 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       }
     });
 
+    // Last message + unread count for every conversation in a single round
+    // trip (previously: 2 sequential queries per conversation in a loop).
+    const convIds = convs.map((c) => c.id);
+    const { data: previews } = await (supabase as any).rpc("get_conversation_previews", {
+      p_conversation_ids: convIds,
+      p_user_id: user.id,
+    });
+    const previewMap = new Map<string, any>((previews || []).map((p: any) => [p.conversation_id, p]));
+
     const items: ConversationItem[] = [];
     for (const conv of convs) {
       const otherUserId = conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
       const profile = profileMap.get(otherUserId);
-
-      const { data: lastMsgs } = await supabase
-        .from("messages")
-        .select("content, created_at, sender_id, read")
-        .eq("conversation_id", conv.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      const { count } = await supabase
-        .from("messages")
-        .select("*", { count: "exact", head: true })
-        .eq("conversation_id", conv.id)
-        .eq("read", false)
-        .neq("sender_id", user.id);
-
+      const preview = previewMap.get(conv.id);
       const draft = localStorage.getItem(`draft-${conv.id}`);
 
-      if (lastMsgs && lastMsgs.length > 0) {
+      if (preview && preview.last_content != null) {
         items.push({
           conversation_id: conv.id,
           other_user_id: otherUserId,
           other_name: profile?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
           other_photo: profile?.photo || null,
           other_role: roleMap.get(otherUserId) || null,
-          last_message: draft ? `[${lang === "ro" ? "Ciornă" : "Draft"}] ${draft}` : lastMsgs[0].content,
-          last_message_at: lastMsgs[0].created_at,
-          last_message_sender_id: draft ? null : lastMsgs[0].sender_id,
-          last_message_read: lastMsgs[0].read,
-          unread_count: count || 0,
+          last_message: draft ? `[${lang === "ro" ? "Ciornă" : "Draft"}] ${draft}` : preview.last_content,
+          last_message_at: preview.last_created_at,
+          last_message_sender_id: draft ? null : preview.last_sender_id,
+          last_message_read: preview.last_read,
+          unread_count: preview.unread_count || 0,
         });
       } else {
         // Empty conversation — show if created within 24h or has draft
@@ -224,36 +219,46 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     if (!myMemberships?.length) { setGroups([]); return; }
 
     const groupIds = myMemberships.map((m: any) => m.group_id);
-    const { data: groupsData } = await (supabase as any)
-      .from("group_conversations").select("id, name, updated_at").in("id", groupIds).order("updated_at", { ascending: false });
+
+    // Batch everything that was previously fetched per-group in a loop
+    // (members, profiles, last message) into a fixed number of queries.
+    const [{ data: groupsData }, { data: allMembers }, { data: previews }] = await Promise.all([
+      (supabase as any).from("group_conversations").select("id, name, updated_at").in("id", groupIds).order("updated_at", { ascending: false }),
+      (supabase as any).from("group_members").select("group_id, user_id").in("group_id", groupIds),
+      (supabase as any).rpc("get_group_message_previews", { p_group_ids: groupIds }),
+    ]);
     if (!groupsData?.length) { setGroups([]); return; }
 
-    const result: GroupItem[] = [];
-    for (const g of groupsData) {
-      const { data: members } = await (supabase as any)
-        .from("group_members").select("user_id").eq("group_id", g.id);
-      const memberIds = (members ?? []).map((m: any) => m.user_id);
+    const memberIdsByGroup = new Map<string, string[]>();
+    (allMembers ?? []).forEach((m: any) => {
+      const arr = memberIdsByGroup.get(m.group_id) ?? [];
+      arr.push(m.user_id);
+      memberIdsByGroup.set(m.group_id, arr);
+    });
+    const allMemberIds = [...new Set((allMembers ?? []).map((m: any) => m.user_id))];
 
-      const [{ data: players }, { data: scouts }] = await Promise.all([
-        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", memberIds),
-        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", memberIds),
-      ]);
-      const pMap = new Map<string, { name: string; photo: string | null }>();
-      for (const p of [...(players ?? []), ...(scouts ?? [])]) {
-        if (!pMap.has(p.user_id)) pMap.set(p.user_id, { name: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), photo: p.photo_url ?? null });
-      }
+    const [{ data: players }, { data: scouts }] = await Promise.all([
+      (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", allMemberIds),
+      (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", allMemberIds),
+    ]);
+    const pMap = new Map<string, { name: string; photo: string | null }>();
+    for (const p of [...(players ?? []), ...(scouts ?? [])]) {
+      if (!pMap.has(p.user_id)) pMap.set(p.user_id, { name: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), photo: p.photo_url ?? null });
+    }
 
-      const { data: lastMsgs } = await (supabase as any)
-        .from("group_messages").select("content, created_at").eq("group_id", g.id).order("created_at", { ascending: false }).limit(1);
+    const previewByGroup = new Map<string, any>((previews ?? []).map((p: any) => [p.group_id, p]));
 
-      result.push({
+    const result: GroupItem[] = groupsData.map((g: any) => {
+      const memberIds = memberIdsByGroup.get(g.id) ?? [];
+      const preview = previewByGroup.get(g.id);
+      return {
         id: g.id,
         name: g.name || (lang === "ro" ? "Grup fără nume" : "Unnamed group"),
         members: memberIds.map((uid: string) => ({ userId: uid, name: pMap.get(uid)?.name ?? "", photo: pMap.get(uid)?.photo ?? null })),
-        lastMessage: lastMsgs?.[0]?.content ?? (lang === "ro" ? "Grup nou" : "New group"),
-        lastMessageAt: lastMsgs?.[0]?.created_at ?? g.updated_at,
-      });
-    }
+        lastMessage: preview?.content ?? (lang === "ro" ? "Grup nou" : "New group"),
+        lastMessageAt: preview?.created_at ?? g.updated_at,
+      };
+    });
     setGroups(result);
   };
 
@@ -263,19 +268,29 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   }, []);
 
   useEffect(() => {
+    if (!currentUserId) return;
+
+    // messages has no recipient column to filter on directly (only
+    // sender_id + conversation_id), so we exclude our own sends and
+    // debounce bursts instead of rebuilding the whole inbox on every event.
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
-      .channel("messages-inbox")
+      .channel(`messages-inbox-${currentUserId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
+        { event: "INSERT", schema: "public", table: "messages", filter: `sender_id=neq.${currentUserId}` },
         () => {
-          fetchConversations();
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchConversations(), 500);
         }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
 
   // Auto-open chat when initialChatUserId is provided
   useEffect(() => {
@@ -503,8 +518,14 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     const optimisticId = `opt-${Date.now()}`;
     const me = selectedGroup.members.find(m => m.userId === currentUserId);
     setGroupMessages(prev => [...prev, { id: optimisticId, sender_id: currentUserId, content, created_at: new Date().toISOString(), senderName: me?.name ?? "", senderPhoto: me?.photo ?? null }]);
-    const { data } = await (supabase as any).from("group_messages").insert({ group_id: selectedGroup.id, sender_id: currentUserId, content }).select().single();
-    if (data) setGroupMessages(prev => prev.map(m => m.id === optimisticId ? { ...data, senderName: me?.name ?? "", senderPhoto: me?.photo ?? null } : m));
+    const { data, error } = await (supabase as any).from("group_messages").insert({ group_id: selectedGroup.id, sender_id: currentUserId, content }).select().single();
+    if (error) {
+      setGroupMessages(prev => prev.filter(m => m.id !== optimisticId));
+      setGroupMsgInput(content);
+      toast({ title: lang === "ro" ? "Mesajul nu a putut fi trimis" : "Message could not be sent", variant: "destructive" });
+      return;
+    }
+    setGroupMessages(prev => prev.map(m => m.id === optimisticId ? { ...data, senderName: me?.name ?? "", senderPhoto: me?.photo ?? null } : m));
     await (supabase as any).from("group_conversations").update({ updated_at: new Date().toISOString() }).eq("id", selectedGroup.id);
   };
 

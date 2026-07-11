@@ -149,19 +149,16 @@ const Dashboard = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
         navigate("/auth?tab=login");
-      } else {
-        setUser(session.user);
-        ensureRoleAndProfile(session.user.id, session.user.user_metadata);
+        return;
       }
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/auth?tab=login");
-      } else {
-        setUser(session.user);
-        ensureRoleAndProfile(session.user.id, session.user.user_metadata);
-      }
+      setUser(session.user);
+      // onAuthStateChange already emits an INITIAL_SESSION event as soon as it
+      // subscribes, so a separate getSession() call is unnecessary and was
+      // causing ensureRoleAndProfile to run twice concurrently on load.
+      // TOKEN_REFRESHED/USER_UPDATED fire on the same session repeatedly
+      // (e.g. hourly per open tab) and don't need a role/profile re-check.
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return;
+      ensureRoleAndProfile(session.user.id, session.user.user_metadata);
     });
 
     return () => {
@@ -179,21 +176,27 @@ const Dashboard = () => {
         .select("first_name, last_name")
         .eq("user_id", user.id)
         .maybeSingle()
-        .then(({ data }) => {
-          if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
-        });
+        .then(
+          ({ data }) => {
+            if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+          },
+          (err) => console.error("Failed to load scout display name:", err)
+        );
     } else {
       supabase
         .from("player_profiles")
         .select("first_name, last_name, sport")
         .eq("user_id", user.id)
         .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            setPlayerName(`${data.first_name} ${data.last_name}`.trim());
-            if (data.sport) setPlayerSport(data.sport);
-          }
-        });
+        .then(
+          ({ data }) => {
+            if (data) {
+              setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+              if (data.sport) setPlayerSport(data.sport);
+            }
+          },
+          (err) => console.error("Failed to load player display name:", err)
+        );
     }
   }, [user, userRole]);
 

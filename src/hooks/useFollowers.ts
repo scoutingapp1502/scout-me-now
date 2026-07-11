@@ -76,9 +76,14 @@ export function useFollowers(userId: string | null) {
   };
 
   const removeFollower = async (followId: string) => {
-    await supabase.from("follows").delete().eq("id", followId);
+    const { error } = await supabase.from("follows").delete().eq("id", followId);
+    if (error) {
+      console.error("Failed to remove follower:", error);
+      return false;
+    }
     setFollowers(prev => prev.filter(f => f.id !== followId));
     setCount(prev => Math.max(0, prev - 1));
+    return true;
   };
 
   useEffect(() => {
@@ -86,9 +91,11 @@ export function useFollowers(userId: string | null) {
 
     const channel = supabase
       .channel(`followers-${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => {
-        fetchFollowers();
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${userId}` },
+        () => { fetchFollowers(); }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };

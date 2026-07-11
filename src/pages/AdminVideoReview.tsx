@@ -120,6 +120,7 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
     } else {
       toast({ title: "Video respins." });
       setReviewingId(null);
+      setGrade("");
       setNotes("");
     }
   };
@@ -289,7 +290,7 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                         size="sm"
                         variant="outline"
                         className="mt-3"
-                        onClick={() => setReviewingId(sub.id)}
+                        onClick={() => { setReviewingId(sub.id); setGrade(""); setNotes(""); }}
                       >
                         Verifică acest video
                       </Button>

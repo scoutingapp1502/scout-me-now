@@ -180,7 +180,8 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
 
   useEffect(() => {
     (supabase as any).from("user_privacy_settings").select("hide_like_share_counts").eq("user_id", userId).maybeSingle()
-      .then(({ data }: any) => { if (data) setHideLikeCounts(data.hide_like_share_counts ?? false); });
+      .then(({ data }: any) => { if (data) setHideLikeCounts(data.hide_like_share_counts ?? false); })
+      .catch((err: unknown) => console.error("Failed to load privacy settings:", err));
   }, [userId]);
 
   // Select mode

@@ -50,7 +50,7 @@ const Auth = () => {
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate("/dashboard");
-    });
+    }).catch((err) => console.error("Failed to get session:", err));
     return () => subscription.unsubscribe();
   }, [navigate]);
 

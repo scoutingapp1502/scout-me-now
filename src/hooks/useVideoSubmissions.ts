@@ -15,6 +15,30 @@ export interface VideoSubmission {
   player_name?: string;
 }
 
+// Standalone so callers that don't need the hook's reactive submissions
+// list (e.g. a profile save handler) can still submit a video for review.
+export async function submitVideoSubmission(testKey: string, videoUrl: string, currentUserId: string) {
+  const { data, error } = await supabase
+    .from("video_submissions")
+    .upsert(
+      { user_id: currentUserId, test_key: testKey, video_url: videoUrl, status: "pending", grade: null, reviewer_notes: null, reviewed_by: null, reviewed_at: null },
+      { onConflict: "user_id,test_key" }
+    )
+    .select()
+    .single();
+
+  if (!error) {
+    try {
+      await supabase.functions.invoke("notify-video-submission", {
+        body: { test_key: testKey, video_url: videoUrl },
+      });
+    } catch (e) {
+      console.warn("Email notification failed:", e);
+    }
+  }
+  return { data, error };
+}
+
 export function useVideoSubmissions(userId?: string) {
   const [submissions, setSubmissions] = useState<VideoSubmission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,27 +61,11 @@ export function useVideoSubmissions(userId?: string) {
   }, [fetchSubmissions]);
 
   const submitVideo = async (testKey: string, videoUrl: string, currentUserId: string) => {
-    const { data, error } = await supabase
-      .from("video_submissions")
-      .upsert(
-        { user_id: currentUserId, test_key: testKey, video_url: videoUrl, status: "pending", grade: null, reviewer_notes: null, reviewed_by: null, reviewed_at: null },
-        { onConflict: "user_id,test_key" }
-      )
-      .select()
-      .single();
-
-    if (!error) {
-      // Call edge function for notification
-      try {
-        await supabase.functions.invoke("notify-video-submission", {
-          body: { test_key: testKey, video_url: videoUrl },
-        });
-      } catch (e) {
-        console.warn("Email notification failed:", e);
-      }
+    const result = await submitVideoSubmission(testKey, videoUrl, currentUserId);
+    if (!result.error) {
       await fetchSubmissions();
     }
-    return { data, error };
+    return result;
   };
 
   const getSubmissionForTest = (testKey: string): VideoSubmission | undefined => {

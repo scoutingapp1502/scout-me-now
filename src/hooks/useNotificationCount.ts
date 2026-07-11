@@ -81,7 +81,19 @@ export function useNotificationCount(userId: string | null) {
       }
     }
 
-    setCount(unreadFollows + unreadRejectedFollows + unreadAgentCollabs + unreadPlayerCollabs + unreadPendingRecs + unreadSubmittedRecs + unreadVideoNotifs);
+    // Count unread likes on my stories
+    let unreadStoryLikes = 0;
+    {
+      const { data: myStories } = await (supabase as any).from("stories").select("id").eq("user_id", userId);
+      const myStoryIds = (myStories || []).map((s: any) => s.id);
+      if (myStoryIds.length > 0) {
+        const { data: storyLikesData } = await (supabase as any)
+          .from("story_likes").select("id").in("story_id", myStoryIds).neq("user_id", userId);
+        unreadStoryLikes = (storyLikesData || []).filter((l: any) => !readIds.has(`storylike-${l.id}`)).length;
+      }
+    }
+
+    setCount(unreadFollows + unreadRejectedFollows + unreadAgentCollabs + unreadPlayerCollabs + unreadPendingRecs + unreadSubmittedRecs + unreadVideoNotifs + unreadStoryLikes);
   }, [userId]);
 
   useEffect(() => {
@@ -97,10 +109,14 @@ export function useNotificationCount(userId: string | null) {
 
     const channel = supabase
       .channel(`notif-count-${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => recalc())
-      .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests" }, () => recalc())
-      .on("postgres_changes", { event: "*", schema: "public", table: "recommendations" }, () => recalc())
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${userId}` }, () => recalc())
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${userId}` }, () => recalc())
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests", filter: `agent_user_id=eq.${userId}` }, () => recalc())
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests", filter: `player_user_id=eq.${userId}` }, () => recalc())
+      .on("postgres_changes", { event: "*", schema: "public", table: "recommendations", filter: `author_user_id=eq.${userId}` }, () => recalc())
+      .on("postgres_changes", { event: "*", schema: "public", table: "recommendations", filter: `recipient_user_id=eq.${userId}` }, () => recalc())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "player_video_notifications" }, () => recalc())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "story_likes" }, () => recalc())
       .subscribe();
 
     return () => {

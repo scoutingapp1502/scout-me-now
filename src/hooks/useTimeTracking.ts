@@ -10,11 +10,15 @@ export function useTimeTracking(userId: string | null) {
     startRef.current = null;
     if (elapsed < 2) return;
     const today = new Date().toISOString().slice(0, 10);
-    await (supabase as any).rpc("increment_session_duration", {
-      p_user_id: uid,
-      p_date: today,
-      p_seconds: elapsed,
-    });
+    try {
+      await (supabase as any).rpc("increment_session_duration", {
+        p_user_id: uid,
+        p_date: today,
+        p_seconds: elapsed,
+      });
+    } catch (err) {
+      console.error("Failed to record session duration:", err);
+    }
   };
 
   useEffect(() => {

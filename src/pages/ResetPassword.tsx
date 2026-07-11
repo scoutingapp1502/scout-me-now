@@ -43,7 +43,7 @@ const ResetPassword = () => {
       if (session) {
         setReady(true);
       }
-    });
+    }).catch((err) => console.error("Failed to get session:", err));
 
     // Timeout - if no recovery event after 5s, show error
     const timeout = setTimeout(() => {

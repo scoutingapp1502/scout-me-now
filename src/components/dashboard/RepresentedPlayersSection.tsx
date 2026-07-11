@@ -205,10 +205,12 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
   };
 
   const handleRemovePlayer = async (player: RepresentedPlayer) => {
-    if (player.type === "linked" && player.user_id) {
-      await supabase.from("agent_collaboration_requests").delete().eq("agent_user_id", userId).eq("player_user_id", player.user_id);
-    } else {
-      await supabase.from("agent_manual_players").delete().eq("id", player.id);
+    const { error } = player.type === "linked" && player.user_id
+      ? await supabase.from("agent_collaboration_requests").delete().eq("agent_user_id", userId).eq("player_user_id", player.user_id)
+      : await supabase.from("agent_manual_players").delete().eq("id", player.id);
+    if (error) {
+      toast({ title: "Eroare", description: "Jucătorul nu a putut fi eliminat.", variant: "destructive" });
+      return;
     }
     setPlayers((prev) => prev.filter((p) => p.id !== player.id));
     toast({ title: "Jucător eliminat." });

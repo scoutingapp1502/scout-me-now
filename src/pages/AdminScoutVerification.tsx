@@ -39,27 +39,26 @@ export default function AdminScoutVerification() {
       return;
     }
 
-    // Enrich with profile data
-    const enriched = await Promise.all(
-      (data || []).map(async (req: any) => {
-        const { data: profile } = await supabase
-          .from("scout_profiles")
-          .select("first_name, last_name")
-          .eq("user_id", req.user_id)
-          .maybeSingle();
+    // Enrich with profile data (batched instead of one query per request)
+    const userIds = (data || []).map((req: any) => req.user_id);
+    const { data: profiles } = await supabase
+      .from("scout_profiles")
+      .select("user_id, first_name, last_name")
+      .in("user_id", userIds);
 
-        const { data: authUser } = await supabase.auth.admin
-          ? { data: null }
-          : { data: null };
-
-        return {
-          ...req,
-          full_name: profile
-            ? `${profile.first_name} ${profile.last_name}`.trim()
-            : "Necunoscut",
-        } as VerificationRequest;
-      })
+    const profileByUserId = new Map(
+      (profiles || []).map((p) => [p.user_id, p])
     );
+
+    const enriched = (data || []).map((req: any) => {
+      const profile = profileByUserId.get(req.user_id);
+      return {
+        ...req,
+        full_name: profile
+          ? `${profile.first_name} ${profile.last_name}`.trim()
+          : "Necunoscut",
+      } as VerificationRequest;
+    });
 
     setRequests(enriched);
     setLoading(false);

@@ -168,11 +168,13 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
         supabase.from("user_roles").select("user_id, role"),
         supabase
           .from("player_profiles")
-          .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot, speed, jumping, endurance, acceleration, defense, career_description, video_highlights, instagram_url, tiktok_url, twitter_url"),
+          .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot, speed, jumping, endurance, acceleration, defense, career_description, video_highlights, instagram_url, tiktok_url, twitter_url")
+          .limit(1000),
         supabase.from("player_career_entries").select("user_id"),
         supabase
           .from("scout_profiles")
-          .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills, languages, sports"),
+          .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills, languages, sports")
+          .limit(1000),
         supabase.from("scout_experiences").select("user_id, location"),
         supabase.from("scout_posts").select("user_id"),
         supabase.from("scout_education").select("user_id"),
@@ -696,7 +698,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                     if (data.user && data.user.id !== item.user_id) {
                       trackAnalyticsEvent(item.user_id, "profile_view", data.user.id);
                     }
-                  });
+                  }).catch((err) => console.error("Failed to track profile view:", err));
                 }}
                 className="bg-card border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 transition-colors flex flex-col"
               >

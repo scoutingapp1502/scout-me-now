@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { UserPlus, ArrowLeft, CheckCheck, Handshake, Check, X, Star, Video } from "lucide-react";
+import { UserPlus, ArrowLeft, CheckCheck, Handshake, Check, X, Star, Video, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PersonalProfile, { getTestLabelByKey } from "./PersonalProfile";
@@ -62,7 +62,18 @@ interface VideoNotification {
   isRead: boolean;
 }
 
-type Notification = FollowNotification | CollabNotification | RecommendationNotification | VideoNotification;
+interface StoryLikeNotification {
+  id: string;
+  type: "story_like";
+  other_user_id: string;
+  other_name: string;
+  other_photo: string | null;
+  other_role: "player" | "scout" | "agent";
+  created_at: string;
+  isRead: boolean;
+}
+
+type Notification = FollowNotification | CollabNotification | RecommendationNotification | VideoNotification | StoryLikeNotification;
 
 const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigateToChat?: (userId: string) => void; onNavigateToProfile?: () => void }) => {
   const { lang } = useLanguage();
@@ -464,8 +475,53 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
       }
     }
 
+    // Fetch likes on my stories
+    let storyLikeNotifs: StoryLikeNotification[] = [];
+    {
+      const { data: myStories } = await (supabase as any).from("stories").select("id").eq("user_id", user.id);
+      const myStoryIds = (myStories || []).map((s: any) => s.id);
+      if (myStoryIds.length > 0) {
+        const { data: likesData } = await (supabase as any)
+          .from("story_likes")
+          .select("id, user_id, created_at")
+          .in("story_id", myStoryIds)
+          .neq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        const likerIds: string[] = [...new Set((likesData || []).map((l: any) => l.user_id as string))];
+        if (likerIds.length > 0) {
+          const [likerPlayerRes, likerScoutRes, likerRoleRes] = await Promise.all([
+            supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", likerIds),
+            supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", likerIds),
+            supabase.from("user_roles").select("user_id, role").in("user_id", likerIds),
+          ]);
+          const likerInfoMap: Record<string, { name: string; photo: string | null }> = {};
+          (likerPlayerRes.data || []).forEach((p: any) => {
+            likerInfoMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
+          });
+          (likerScoutRes.data || []).forEach((s: any) => {
+            if (!likerInfoMap[s.user_id]) likerInfoMap[s.user_id] = { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url };
+          });
+          const likerRoleMap: Record<string, string> = {};
+          (likerRoleRes.data || []).forEach((r: any) => { likerRoleMap[r.user_id] = r.role; });
+
+          storyLikeNotifs = (likesData || []).map((l: any) => ({
+            id: `storylike-${l.id}`,
+            type: "story_like" as const,
+            other_user_id: l.user_id,
+            other_name: likerInfoMap[l.user_id]?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
+            other_photo: likerInfoMap[l.user_id]?.photo || null,
+            other_role: (likerRoleMap[l.user_id] || "player") as "player" | "scout" | "agent",
+            created_at: l.created_at,
+            isRead: isNotificationRead(user.id, `storylike-${l.id}`),
+          }));
+        }
+      }
+    }
+
     // Merge and sort by date
-    const allNotifs: Notification[] = [...followNotifs, ...collabNotifs, ...recNotifs, ...videoNotifs]
+    const allNotifs: Notification[] = [...followNotifs, ...collabNotifs, ...recNotifs, ...videoNotifs, ...storyLikeNotifs]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     setNotifications(allNotifs);
@@ -474,25 +530,43 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
 
   useEffect(() => {
     fetchNotifications();
+  }, []);
+
+  // Realtime subscription is scoped to the current user's rows, so it can
+  // only be set up once we know currentUserId (resolved by fetchNotifications).
+  useEffect(() => {
+    if (!currentUserId) return;
 
     const channel = supabase
-      .channel("notifications-all")
-      .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => {
+      .channel(`notifications-all-${currentUserId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${currentUserId}` }, () => {
         fetchNotifications();
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${currentUserId}` }, () => {
         fetchNotifications();
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "recommendations" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests", filter: `agent_user_id=eq.${currentUserId}` }, () => {
+        fetchNotifications();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_collaboration_requests", filter: `player_user_id=eq.${currentUserId}` }, () => {
+        fetchNotifications();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "recommendations", filter: `author_user_id=eq.${currentUserId}` }, () => {
+        fetchNotifications();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "recommendations", filter: `recipient_user_id=eq.${currentUserId}` }, () => {
         fetchNotifications();
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "player_video_notifications" }, () => {
         fetchNotifications();
       })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "story_likes" }, () => {
+        fetchNotifications();
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [currentUserId]);
 
   const handleMarkOneRead = (notifId: string) => {
     if (!currentUserId) return;
@@ -875,6 +949,43 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                     </p>
                   </div>
                   <Video className={`h-4 w-4 shrink-0 ${vn.isRead ? "text-primary/50" : "text-primary"}`} />
+                </button>
+              );
+            }
+
+            if (n.type === "story_like") {
+              const sn = n as StoryLikeNotification;
+              return (
+                <button
+                  key={sn.id}
+                  onClick={() => {
+                    handleMarkOneRead(sn.id);
+                    setViewProfileUserId(sn.other_user_id);
+                    setViewProfileRole(sn.other_role === "player" ? "player" : "scout");
+                  }}
+                  className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
+                    sn.isRead ? "bg-card border-border hover:bg-accent/50" : "bg-primary/5 border-primary/30 hover:bg-primary/10"
+                  }`}
+                >
+                  <div className="shrink-0 w-2.5 flex items-center justify-center">
+                    {!sn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
+                  </div>
+                  <Avatar className="h-10 w-10">
+                    {sn.other_photo ? <AvatarImage src={sn.other_photo} /> : null}
+                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                      {sn.other_name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${sn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                      <span className="font-semibold">{sn.other_name}</span>{" "}
+                      <span className={sn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
+                        {lang === "ro" ? "ți-a apreciat story-ul" : "liked your story"}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{timeAgo(sn.created_at)}</p>
+                  </div>
+                  <Heart className={`h-4 w-4 shrink-0 ${sn.isRead ? "text-primary/50" : "text-primary"} fill-current`} />
                 </button>
               );
             }

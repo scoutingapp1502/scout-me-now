@@ -5,6 +5,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function findUserByEmail(adminClient: ReturnType<typeof createClient>, email: string) {
+  const perPage = 1000;
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const found = data.users.find((u) => u.email === email);
+    if (found) return found;
+    if (data.users.length < perPage) return null;
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -48,9 +60,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const requesterName = requesterProfile?.full_name || "Cineva de pe SportRise";
 
-    // Check if target email belongs to an existing user
-    const { data: usersData } = await adminClient.auth.admin.listUsers();
-    const existingUser = usersData?.users?.find((u) => u.email === targetEmail);
+    // Check if target email belongs to an existing user.
+    // listUsers() defaults to 50 users per page, so a single unpaginated
+    // call would silently miss any user outside the first page once the
+    // user base grows past 50 accounts — page through the full list instead.
+    const existingUser = await findUserByEmail(adminClient, targetEmail);
 
     if (existingUser) {
       // User exists → insert recommendation request into DB

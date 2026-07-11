@@ -101,14 +101,20 @@ export default function StoryShareSheet({ open, onClose, storyOwnerName, storyMe
     if (sent.has(user.userId)) return;
     setSending(user.userId);
     try {
-      const { data: convId } = await supabase.rpc("get_or_create_conversation", { other_user_id: user.userId });
-      if (convId) {
-        const text = storyOwnerName
-          ? `📸 ${lang === "ro" ? "Ți-am trimis un story de la" : "Sent you a story from"} ${storyOwnerName}`
-          : `📸 ${lang === "ro" ? "Ți-am trimis un story" : "Sent you a story"}`;
-        await supabase.from("messages").insert({ conversation_id: convId, sender_id: currentUserId, content: text } as any);
-        setSent(prev => new Set(prev).add(user.userId));
+      const { data: convId, error: convError } = await supabase.rpc("get_or_create_conversation", { other_user_id: user.userId });
+      if (convError || !convId) {
+        toast({ title: lang === "ro" ? "Nu s-a putut trimite story-ul." : "Could not send the story.", variant: "destructive" });
+        return;
       }
+      const text = storyOwnerName
+        ? `📸 ${lang === "ro" ? "Ți-am trimis un story de la" : "Sent you a story from"} ${storyOwnerName}`
+        : `📸 ${lang === "ro" ? "Ți-am trimis un story" : "Sent you a story"}`;
+      const { error: sendError } = await supabase.from("messages").insert({ conversation_id: convId, sender_id: currentUserId, content: text } as any);
+      if (sendError) {
+        toast({ title: lang === "ro" ? "Nu s-a putut trimite story-ul." : "Could not send the story.", variant: "destructive" });
+        return;
+      }
+      setSent(prev => new Set(prev).add(user.userId));
     } finally {
       setSending(null);
     }

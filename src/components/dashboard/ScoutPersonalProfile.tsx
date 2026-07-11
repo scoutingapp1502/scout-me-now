@@ -257,7 +257,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   const [recAuthorView, setRecAuthorView] = useState<{ userId: string; role: string } | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setViewerUserId(user?.id || null));
+    supabase.auth.getUser().then(({ data: { user } }) => setViewerUserId(user?.id || null))
+      .catch((err) => console.error("Failed to get current user:", err));
   }, []);
 
   useEffect(() => {
@@ -265,7 +266,10 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
     if (readOnly) checkFollowStatus();
     // Check if this profile belongs to an agent
     supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "agent").maybeSingle()
-      .then(({ data }) => setIsAgent(!!data));
+      .then(
+        ({ data }) => setIsAgent(!!data),
+        (err) => console.error("Failed to check agent role:", err)
+      );
   }, [userId]);
 
   const checkFollowStatus = async () => {
@@ -285,8 +289,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
     if (!user) return;
     setFollowLoading(true);
     if (followStatus === "accepted" || followStatus === "pending") {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
-      setFollowStatus("none");
+      const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
+      if (!error) setFollowStatus("none");
     } else {
       const { error } = await supabase.rpc("request_follow", { _following_id: userId });
       if (!error) setFollowStatus("pending");
@@ -397,7 +401,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       if (avatarFile) {
         const ext = avatarFile.name.split(".").pop();
         const path = `${userId}/scout-avatar.${ext}`;
-        await supabase.storage.from("avatars").upload(path, avatarFile, { upsert: true });
+        const { error: avatarError } = await supabase.storage.from("avatars").upload(path, avatarFile, { upsert: true });
+        if (avatarError) throw avatarError;
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
         photoUrl = urlData.publicUrl;
       }
@@ -405,7 +410,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       if (coverFile) {
         const ext = coverFile.name.split(".").pop();
         const path = `${userId}/scout-cover.${ext}`;
-        await supabase.storage.from("avatars").upload(path, coverFile, { upsert: true });
+        const { error: coverError } = await supabase.storage.from("avatars").upload(path, coverFile, { upsert: true });
+        if (coverError) throw coverError;
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
         coverUrl = urlData.publicUrl;
       }
@@ -462,7 +468,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       const keptIds = expForms.filter(e => e.id).map(e => e.id!);
       const removedIds = existingIds.filter(id => !keptIds.includes(id));
       if (removedIds.length > 0) {
-        await supabase.from("scout_experiences").delete().in("id", removedIds);
+        const { error: deleteError } = await supabase.from("scout_experiences").delete().in("id", removedIds);
+        if (deleteError) throw deleteError;
       }
 
       for (let i = 0; i < expForms.length; i++) {
@@ -479,9 +486,11 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
           sort_order: i,
         };
         if (exp.id) {
-          await supabase.from("scout_experiences").update(expPayload).eq("id", exp.id);
+          const { error: updateError } = await supabase.from("scout_experiences").update(expPayload).eq("id", exp.id);
+          if (updateError) throw updateError;
         } else {
-          await supabase.from("scout_experiences").insert(expPayload);
+          const { error: insertError } = await supabase.from("scout_experiences").insert(expPayload);
+          if (insertError) throw insertError;
         }
       }
 

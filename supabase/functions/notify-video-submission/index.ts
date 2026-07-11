@@ -58,8 +58,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send email notification via SMTP-like approach using fetch to a simple email service
-    // We'll use Supabase's built-in ability to send via edge function
+    // Send email notification to the admin inbox
     const emailTo = "scoutingapp1502@gmail.com";
     const subject = `🎥 Video nou de verificat: ${test_key} — ${player_name || "Jucător"}`;
     const htmlBody = `
@@ -74,13 +73,28 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    // Use Resend or a simple SMTP - for now we'll log the email content
-    // The admin will see submissions in the admin panel
-    console.log(`Email notification for video submission:`, {
-      to: emailTo,
-      subject,
-      submissionId: submission.id,
-    });
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY not configured — email not sent. Submission:", submission.id);
+    } else {
+      const emailRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "SportRise <onboarding@resend.dev>",
+          to: [emailTo],
+          subject,
+          html: htmlBody,
+        }),
+      });
+      if (!emailRes.ok) {
+        // Don't fail the submission over an email delivery problem — just log it.
+        console.error("Resend error:", await emailRes.text());
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, submission }),

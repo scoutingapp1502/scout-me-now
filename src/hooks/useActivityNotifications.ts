@@ -228,16 +228,28 @@ export function useActivityNotifications(userId: string | null) {
     const onSeenUpdate = () => fetchCount();
     window.addEventListener("activity-seen-update", onSeenUpdate);
 
+    // The relevant post/comment ids for this user (their own posts, and
+    // posts by people they follow) are a dynamic set that Realtime's
+    // single-column filter can't express, so every insert/like/comment in
+    // the app reaches this listener. Debounce bursts into one fetchCount
+    // instead of rebuilding the notification list on every single event.
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetchCount = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchCount(), 500);
+    };
+
     const channel = supabase
       .channel(`activity-notif-${Date.now()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchCount())
-      .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, () => fetchCount())
-      .on("postgres_changes", { event: "*", schema: "public", table: "post_comments" }, () => fetchCount())
-      .on("postgres_changes", { event: "*", schema: "public", table: "comment_likes" }, () => fetchCount())
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, debouncedFetchCount)
+      .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, debouncedFetchCount)
+      .on("postgres_changes", { event: "*", schema: "public", table: "post_comments" }, debouncedFetchCount)
+      .on("postgres_changes", { event: "*", schema: "public", table: "comment_likes" }, debouncedFetchCount)
       .subscribe();
 
     return () => {
       window.removeEventListener("activity-seen-update", onSeenUpdate);
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [fetchCount]);

@@ -152,7 +152,8 @@ export default function StoryArchiveModal({ userId, open, onClose }: StoryArchiv
       .select("id, media_url, caption, overlay_text, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-      .then(({ data }: any) => { setStories(data || []); setLoading(false); });
+      .then(({ data }: any) => { setStories(data || []); setLoading(false); })
+      .catch((err: unknown) => { console.error("Failed to load stories:", err); setLoading(false); });
   }, [open, userId]);
 
   const groups = groupByDate(stories);

@@ -152,9 +152,10 @@ export function useInviteFriends(userId: string, enabled: boolean) {
     async (testKey: string): Promise<boolean> => {
       if (!userId) return false;
 
-      await (supabase as any)
+      const { error: insertError } = await (supabase as any)
         .from("invite_test_unlocks")
         .insert({ user_id: userId, test_key: testKey });
+      if (insertError) return false;
 
       const { data: unlockData } = await (supabase as any)
         .from("player_test_unlocks")
@@ -165,12 +166,13 @@ export function useInviteFriends(userId: string, enabled: boolean) {
       const current =
         ((unlockData as any)?.unlocked_tests as string[] | null) ?? [];
       if (!current.includes(testKey)) {
-        await (supabase as any)
+        const { error: upsertError } = await (supabase as any)
           .from("player_test_unlocks")
           .upsert(
             { user_id: userId, unlocked_tests: [...current, testKey] },
             { onConflict: "user_id" }
           );
+        if (upsertError) return false;
       }
 
       setState((prev) => ({
