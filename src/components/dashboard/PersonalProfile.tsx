@@ -30,7 +30,7 @@ const LazyScoutPersonalProfile = lazy(() => import("./ScoutPersonalProfile"));
 import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
 import ScoutPlayerNoteDialog from "./ScoutPlayerNoteDialog";
 import ScoutPlayerReportDialog from "./ScoutPlayerReportDialog";
-import { ClipboardList, ChevronDown, FileBarChart, RotateCcw } from "lucide-react";
+import { ClipboardList, ChevronDown, ChevronUp, FileBarChart, RotateCcw } from "lucide-react";
 import InviteFriendsModal from "./InviteFriendsModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useVideoSubmissions, submitVideoSubmission } from "@/hooks/useVideoSubmissions";
@@ -815,7 +815,12 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
           backgroundSize: '30px 30px'
         }} />
-        <div className="relative flex flex-col sm:flex-row flex-wrap items-center sm:items-end gap-4 sm:gap-6 p-4 sm:p-8">
+        <div className="relative flex flex-col sm:flex-row flex-wrap items-center sm:items-start gap-4 sm:gap-6 p-4 sm:p-8">
+          {/* FIFA-style card - always visible, top-left */}
+          <div className="order-0 shrink-0">
+            <FifaPlayerCard form={form} profile={profile} photoSrc={photoSrc} userId={userId} />
+          </div>
+
           {/* Info */}
           <div className="flex-1 min-w-0 w-full text-center sm:text-left order-2 sm:order-1">
             {editingSection === "header" ? (
@@ -1104,7 +1109,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       {/* SECTION 2: Tab content */}
       <div className="mt-6 px-2 sm:px-6 pb-8">
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} setEditingSection={setEditingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} viewerUserId={viewerUserId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} readOnly={readOnly} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} collaborationStatus={collaborationStatus} collaborationLoading={collaborationLoading} cancelCollaborationRequest={cancelCollaborationRequest} acceptedAgent={acceptedAgent} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} collaborationStatus={collaborationStatus} collaborationLoading={collaborationLoading} cancelCollaborationRequest={cancelCollaborationRequest} acceptedAgent={acceptedAgent} photoSrc={photoSrc} />}
         {activeTab === "profile" && (
           <div className="mt-6">
             <RecommendationsSection
@@ -1204,6 +1209,81 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   );
 };
 
+/* ======================== FIFA-STYLE PLAYER CARD ======================== */
+function FifaPlayerCard({ form, profile, photoSrc, userId }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; photoSrc?: string | null; userId?: string;
+}) {
+  const { getSubmissionForTest } = useVideoSubmissions(userId);
+  // The old speed/jumping/endurance/acceleration numeric columns on
+  // player_profiles are legacy — nothing writes to them anymore (athletic
+  // tests only ever write to *_video columns and get a grade via
+  // video_submissions once admin-verified). Showing those dead columns as
+  // "0" misrepresented every player's OVR. Use the real verified grades
+  // instead, and only compute an average from tests that actually have one.
+  const verifiedGrades = athleticTests
+    .map((test) => getSubmissionForTest(test.videoKey))
+    .filter((sub) => sub?.status === "verified" && sub.grade !== null)
+    .map((sub) => sub!.grade as number);
+  const overallRating = verifiedGrades.length > 0
+    ? Math.round(verifiedGrades.reduce((sum, g) => sum + g, 0) / verifiedGrades.length)
+    : null;
+
+  return (
+    <div className="mx-auto sm:mx-0 relative w-[220px] shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_hsl(var(--primary)/0.4)]"
+      style={{
+        background: 'linear-gradient(160deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.65) 60%, hsl(var(--primary) / 0.35) 100%)',
+      }}
+    >
+      <div className="absolute inset-0 opacity-[0.07]" style={{
+        backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
+      }} />
+      <div className="relative">
+        <div className="flex items-start px-4 pt-4">
+          <div className="flex flex-col items-center">
+            <span className="font-display text-[42px] text-primary-foreground leading-none drop-shadow-lg">{overallRating ?? "—"}</span>
+            <span className="font-display text-[11px] text-primary-foreground/80 uppercase tracking-[0.2em]">{profile?.position ? profile.position.substring(0, 3).toUpperCase() : "—"}</span>
+          </div>
+        </div>
+        <div className="flex justify-center mt-1 px-5">
+          <div className="w-[130px] h-[130px] rounded-xl overflow-hidden border-2 border-primary-foreground/20 shadow-lg">
+            {photoSrc ? (
+              <img src={photoSrc} alt="Player" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-primary-foreground/10">
+                <Camera className="h-8 w-8 text-primary-foreground/40" />
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="text-center mt-2 pb-2 mx-4">
+          <div className="border-t border-primary-foreground/20 pt-2">
+            <p className="font-display text-sm text-primary-foreground uppercase tracking-[0.15em]">{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-5 pb-4">
+          {[
+            { label: "PLD", key: "speed_video" },
+            { label: "2FVJ", key: "jumping_video" },
+            { label: "SHR", key: "endurance_video" },
+            { label: "2FVJA", key: "acceleration_video" },
+          ].map((stat) => {
+            const sub = getSubmissionForTest(stat.key);
+            const verified = sub?.status === "verified" && sub.grade !== null;
+            return (
+              <div key={stat.label} className="flex items-center gap-2">
+                <span className="font-display text-lg text-primary-foreground leading-none">
+                  {verified ? `${sub!.grade}${athleticTestUnits[stat.key] || ""}` : "—"}
+                </span>
+                <span className="text-[10px] text-primary-foreground/60 font-body uppercase tracking-wider">{stat.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ======================== STATS TAB ======================== */
 function StatsTab({ form, profile, editingSection, setEditingSection, updateForm, photoSrc, userId, viewerUserId, SectionEditButton, SectionSaveButton, readOnly = false }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; setEditingSection: (s: EditingSection) => void; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; viewerUserId: string | null; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC; readOnly?: boolean;
@@ -1216,6 +1296,14 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
   const { toast } = useToast();
   const [inlineEditTest, setInlineEditTest] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
+  const toggleTestExpanded = (key: string) => {
+    setExpandedTests((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
   const { submissions: videoSubmissions, submitVideo, getSubmissionForTest } = useVideoSubmissions(userId);
   const { videos: testReferenceVideos } = useTestReferenceVideos();
   const technicalTests = getTechnicalTestsBySport(currentSport);
@@ -1228,63 +1316,10 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
   );
   const isUnlocked = (key: string) => unlocks.unlockedTests.includes(key);
 
-  const overallRating = Math.round(
-    (((form as any).speed ?? 0) + ((form as any).jumping ?? 0) + ((form as any).endurance ?? 0) + ((form as any).acceleration ?? 0)) / 4
-  );
-
   return (
     <>
     <div className="space-y-6">
-      {/* FIFA card + Stat bars side by side on desktop */}
       <div className="flex flex-col lg:flex-row gap-6 items-center">
-          {/* FIFA-style card - refined */}
-          <div className="mx-auto lg:mx-0 relative w-[220px] shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_hsl(var(--primary)/0.4)]"
-            style={{
-              background: 'linear-gradient(160deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.65) 60%, hsl(var(--primary) / 0.35) 100%)',
-            }}
-          >
-            <div className="absolute inset-0 opacity-[0.07]" style={{
-              backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
-            }} />
-            <div className="relative">
-              <div className="flex items-start px-4 pt-4">
-                <div className="flex flex-col items-center">
-                  <span className="font-display text-[42px] text-primary-foreground leading-none drop-shadow-lg">{overallRating}</span>
-                  <span className="font-display text-[11px] text-primary-foreground/80 uppercase tracking-[0.2em]">{profile?.position ? profile.position.substring(0, 3).toUpperCase() : "—"}</span>
-                </div>
-              </div>
-              <div className="flex justify-center mt-1 px-5">
-                <div className="w-[130px] h-[130px] rounded-xl overflow-hidden border-2 border-primary-foreground/20 shadow-lg">
-                  {photoSrc ? (
-                    <img src={photoSrc} alt="Player" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-primary-foreground/10">
-                      <Camera className="h-8 w-8 text-primary-foreground/40" />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="text-center mt-2 pb-2 mx-4">
-                <div className="border-t border-primary-foreground/20 pt-2">
-                  <p className="font-display text-sm text-primary-foreground uppercase tracking-[0.15em]">{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-5 pb-4">
-                {[
-                  { label: "PLD", value: (form as any).speed ?? 0 },
-                  { label: "2FVJ", value: (form as any).jumping ?? 0 },
-                  { label: "SHR", value: (form as any).endurance ?? 0 },
-                  { label: "2FVJA", value: (form as any).acceleration ?? 0 },
-                ].map((stat) => (
-                  <div key={stat.label} className="flex items-center gap-2">
-                    <span className="font-display text-lg text-primary-foreground leading-none">{stat.value}</span>
-                    <span className="text-[10px] text-primary-foreground/60 font-body uppercase tracking-wider">{stat.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* Stat bars / edit inputs */}
           <div className="flex-1 w-full bg-card border border-border rounded-2xl p-5 sm:p-6">
             <div className="flex items-center justify-between mb-1">
@@ -1326,19 +1361,28 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
                             )}
+                            {videoUrl && sub?.status !== "rejected" && (
+                              <button
+                                className="flex items-center justify-center h-6 w-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                                aria-label={expandedTests.has(test.videoKey) ? `Ascunde video ${test.label}` : `Arată video ${test.label}`}
+                                onClick={() => toggleTestExpanded(test.videoKey)}
+                              >
+                                {expandedTests.has(test.videoKey) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </button>
+                            )}
                           </div>
                         </div>
                         <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-700 ease-out"
                             style={{
-                              width: '0%',
+                              width: sub?.status === "verified" ? "100%" : sub?.status === "pending" ? "50%" : "0%",
                               background: 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))',
                             }}
                           />
                         </div>
 
-                        {videoUrl && sub?.status !== "rejected" && (
+                        {videoUrl && sub?.status !== "rejected" && expandedTests.has(test.videoKey) && (
                           <div className="mt-2">
                             {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
                               <iframe
@@ -1617,7 +1661,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     <div key={test.key} className="opacity-60 p-3 rounded-lg bg-muted/20 border border-dashed border-border">
                       <div className="flex items-center gap-2">
                         <LockIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">??? — Test blocat</span>
+                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label} — Test blocat</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1 font-body">Continuă streak-ul ca să deblochezi acest test.</p>
                     </div>
@@ -1709,7 +1753,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                       <div className="flex items-center gap-2">
                         <LockIcon className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">
-                          {isOwner ? "??? — Test blocat" : `${test.icon} ${test.label}`}
+                          {test.icon} {test.label} — Test blocat
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1 font-body">
@@ -1741,12 +1785,22 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                         <Plus className="h-4 w-4" />
                       </button>
                     )}
+                    {((form as any)[test.key] || (profile as any)?.[test.key]) && getSubmissionForTest(test.key)?.status !== "rejected" && (
+                      <button
+                        className="ml-auto flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                        aria-label={expandedTests.has(test.key) ? `Ascunde video ${test.label}` : `Arată video ${test.label}`}
+                        onClick={() => toggleTestExpanded(test.key)}
+                      >
+                        {expandedTests.has(test.key) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
+                    )}
                   </div>
                   {(() => {
                     const videoUrl = (form as any)[test.key] || (profile as any)?.[test.key] || "";
                     const sub = getSubmissionForTest(test.key);
                     if (sub?.status === "rejected") return null;
                     if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
+                    if (!expandedTests.has(test.key)) return null;
                     return (
                       <div className="mt-2">
                         {videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? (
@@ -2386,8 +2440,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   );
 }
 
-function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport, agentSuggestions, showAgentSuggestions, setShowAgentSuggestions, selectedRegisteredAgent, handleAgentNameChange, selectAgent, collaborationStatus, collaborationLoading, cancelCollaborationRequest, acceptedAgent }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string; agentSuggestions: AgentSuggestion[]; showAgentSuggestions: boolean; setShowAgentSuggestions: (v: boolean) => void; selectedRegisteredAgent: AgentSuggestion | null; handleAgentNameChange: (v: string) => void; selectAgent: (a: AgentSuggestion) => void; collaborationStatus: "none" | "pending" | "accepted" | "rejected"; collaborationLoading: boolean; cancelCollaborationRequest: () => void; acceptedAgent: AgentSuggestion | null;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport, agentSuggestions, showAgentSuggestions, setShowAgentSuggestions, selectedRegisteredAgent, handleAgentNameChange, selectAgent, collaborationStatus, collaborationLoading, cancelCollaborationRequest, acceptedAgent, photoSrc }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string; agentSuggestions: AgentSuggestion[]; showAgentSuggestions: boolean; setShowAgentSuggestions: (v: boolean) => void; selectedRegisteredAgent: AgentSuggestion | null; handleAgentNameChange: (v: string) => void; selectAgent: (a: AgentSuggestion) => void; collaborationStatus: "none" | "pending" | "accepted" | "rejected"; collaborationLoading: boolean; cancelCollaborationRequest: () => void; acceptedAgent: AgentSuggestion | null; photoSrc?: string | null;
 }) {
   const { lang, t } = useLanguage();
 
@@ -3157,8 +3211,8 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
 
     // Fetch posts from both tables
     const [postsRes, scoutPostsRes] = await Promise.all([
-      supabase.from("posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
-      supabase.from("scout_posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+      (supabase as any).from("posts").select("*").eq("user_id", userId).is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }),
+      (supabase as any).from("scout_posts").select("*").eq("user_id", userId).is("deleted_at", null).order("created_at", { ascending: false }),
     ]);
 
     const allPosts = [
@@ -3188,8 +3242,9 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   const handleDelete = useCallback(async (postId: string) => {
-    await supabase.from("posts").delete().eq("id", postId);
-    await supabase.from("scout_posts").delete().eq("id", postId);
+    const deletedAt = new Date().toISOString();
+    await (supabase as any).from("posts").update({ deleted_at: deletedAt }).eq("id", postId);
+    await (supabase as any).from("scout_posts").update({ deleted_at: deletedAt }).eq("id", postId);
     setPosts(prev => prev.filter(p => p.id !== postId));
   }, []);
 

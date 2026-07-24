@@ -60,7 +60,7 @@ export default function NotificationSettingsSection({ onBack, onNavigateToSleepM
         {/* Section title */}
         <div className="px-5 pt-5 pb-2">
           <p className="text-sm font-semibold text-foreground font-body">
-            {lang === "ro" ? "Notificări push" : "Push notifications"}
+            {lang === "ro" ? "Notificări în aplicație" : "In-app notifications"}
           </p>
         </div>
 
@@ -73,8 +73,8 @@ export default function NotificationSettingsSection({ onBack, onNavigateToSleepM
               </p>
               <p className="text-xs text-muted-foreground font-body mt-0.5 leading-relaxed">
                 {lang === "ro"
-                  ? "Oprește temporar toate notificările."
-                  : "Temporarily pause notifications."}
+                  ? "Notă: SportRise nu trimite notificări push în afara aplicației — aceasta e doar o preferință personală, salvată local pe acest dispozitiv."
+                  : "Note: SportRise doesn't send push notifications outside the app — this is only a personal preference saved locally on this device."}
               </p>
             </div>
             <div className="pt-0.5">
@@ -93,8 +93,8 @@ export default function NotificationSettingsSection({ onBack, onNavigateToSleepM
               </p>
               <p className="text-xs text-muted-foreground font-body mt-0.5 leading-relaxed">
                 {lang === "ro"
-                  ? "Silențiază automat notificările noaptea sau când ai nevoie să te concentrezi."
-                  : "Automatically mute notifications at night or whenever you need to focus."}
+                  ? "Setează un interval orar de liniște, ca reamintire personală (nu afectează notificările altor persoane)."
+                  : "Set a quiet-hours reminder for yourself (doesn't affect notifications for anyone else)."}
               </p>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -108,8 +108,8 @@ export default function NotificationSettingsSection({ onBack, onNavigateToSleepM
               </p>
               <p className="text-xs text-muted-foreground font-body mt-0.5 leading-relaxed">
                 {lang === "ro"
-                  ? "Primește notificări doar pentru mesaje noi și alte notificări de mesagerie, cum ar fi solicitările și mementourile."
-                  : "Only receive notifications about new messages and other message notifications, such as requests and reminders."}
+                  ? "Preferință personală salvată local pe acest dispozitiv."
+                  : "Personal preference saved locally on this device."}
               </p>
             </div>
             <div className="pt-0.5">

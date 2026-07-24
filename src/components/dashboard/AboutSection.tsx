@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import TermsSection from "./TermsSection";
 
 interface AboutSectionProps {
   userId: string;
@@ -124,21 +125,18 @@ function AboutAccountPage({ userId, lang, onBack }: { userId: string; lang: stri
 // ── Main About section ────────────────────────────────────────────────────────
 export default function AboutSection({ userId, onBack }: AboutSectionProps) {
   const { lang } = useLanguage();
-  const { toast } = useToast();
-  const [subPage, setSubPage] = useState<"about-account" | null>(null);
+  const [subPage, setSubPage] = useState<"about-account" | "terms" | null>(null);
 
   if (subPage === "about-account") {
     return <AboutAccountPage userId={userId} lang={lang} onBack={() => setSubPage(null)} />;
   }
-
-  const soon = () => toast({ title: lang === "ro" ? "Funcționalitate în curând." : "Coming soon." });
+  if (subPage === "terms") {
+    return <TermsSection onBack={() => setSubPage(null)} />;
+  }
 
   const rows = [
-    { labelRo: "Despre contul tău",            labelEn: "About your account",     chevron: true,  action: () => setSubPage("about-account") },
-    { labelRo: "Politica de confidențialitate", labelEn: "Privacy Policy",         chevron: true,  action: soon },
-    { labelRo: "Termeni de utilizare",          labelEn: "Terms of Use",           chevron: true,  action: soon },
-    { labelRo: "Biblioteci open-source",        labelEn: "Open-source libraries",  chevron: true,  action: soon },
-    { labelRo: "Regulamentul UE 2021/1232",     labelEn: "EU regulation 2021/1232", chevron: false, action: soon },
+    { labelRo: "Despre contul tău", labelEn: "About your account", chevron: true, action: () => setSubPage("about-account") },
+    { labelRo: "Termeni de utilizare", labelEn: "Terms of Use", chevron: true, action: () => setSubPage("terms") },
   ];
 
   return (

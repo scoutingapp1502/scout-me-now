@@ -88,12 +88,21 @@ export default function AddStoryModal({ userId, open, onClose, onPosted, userPho
         const ext = selectedFile.name.split(".").pop() || "jpg";
         const path = `${userId}/${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("stories").upload(path, selectedFile, { upsert: false });
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage.from("stories").getPublicUrl(path);
-          mediaUrl = urlData.publicUrl;
+        if (uploadError) {
+          toast({ title: lang === "ro" ? "Nu s-a putut încărca imaginea." : "Failed to upload the image.", variant: "destructive" });
+          setPosting(false);
+          return;
         }
+        const { data: urlData } = supabase.storage.from("stories").getPublicUrl(path);
+        mediaUrl = urlData.publicUrl;
       }
-      await (supabase as any).from("stories").insert({ user_id: userId, media_url: mediaUrl, caption: caption.trim(), overlay_text: overlayText.trim() });
+      const { error: insertError } = await (supabase as any)
+        .from("stories")
+        .insert({ user_id: userId, media_url: mediaUrl, caption: caption.trim(), overlay_text: overlayText.trim() });
+      if (insertError) {
+        toast({ title: lang === "ro" ? "Eroare la postare." : "Failed to post.", variant: "destructive" });
+        return;
+      }
       toast({ title: lang === "ro" ? "Story postat!" : "Story posted!" });
       onPosted?.(); onClose();
     } catch {

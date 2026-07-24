@@ -489,7 +489,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
           .order("created_at", { ascending: false })
           .limit(50);
 
-        const likerIds: string[] = [...new Set((likesData || []).map((l: any) => l.user_id as string))];
+        const likerIds = Array.from(new Set<string>((likesData || []).map((l: any) => l.user_id as string)));
         if (likerIds.length > 0) {
           const [likerPlayerRes, likerScoutRes, likerRoleRes] = await Promise.all([
             supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", likerIds),

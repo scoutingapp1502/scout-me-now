@@ -11,14 +11,12 @@ type StoryRepliesValue = "everyone" | "followers" | "no_one";
 interface Config {
   messageRequests: MsgRequestsValue;
   groupChat: GroupChatValue;
-  hideUnwanted: boolean;
   storyReplies: StoryRepliesValue;
 }
 
 const DEFAULT_CONFIG: Config = {
   messageRequests: "everyone",
   groupChat: "everyone",
-  hideUnwanted: true,
   storyReplies: "everyone",
 };
 
@@ -129,21 +127,6 @@ function MessageRequestsPage({
             : "People that you've blocked cannot add you to group chats."}
         </p>
 
-        {/* Hide unwanted */}
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-5 pb-1">
-          {lang === "ro" ? "Tipuri de solicitări de mesaje" : "Types of message requests"}
-        </p>
-        <div className="flex items-center justify-between py-4 border-b border-border">
-          <span className="text-sm font-body text-foreground flex-1 pr-4">
-            {lang === "ro" ? "Ascunde solicitările nedorite" : "Hide unwanted message requests"}
-          </span>
-          <Toggle on={config.hideUnwanted} onToggle={() => onSave({ hideUnwanted: !config.hideUnwanted })} />
-        </div>
-        <p className="text-xs text-muted-foreground font-body py-3 leading-relaxed">
-          {lang === "ro"
-            ? "Solicitările de mesaje care pot fi ofensatoare, spam sau înșelătorii vor fi mutate în dosarul de solicitări ascunse. Vom filtra și notificările pentru aceste mesaje."
-            : "Message requests that may be offensive, spam or scams will be moved to the Hidden requests folder. We'll also filter notifications for these messages."}
-        </p>
       </div>
     </div>
   );
@@ -201,14 +184,13 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
     const fetch = async () => {
       const { data } = await (supabase as any)
         .from("user_privacy_settings")
-        .select("message_requests_visibility, group_chat_visibility, hide_unwanted_requests, story_replies_visibility")
+        .select("message_requests_visibility, group_chat_visibility, story_replies_visibility")
         .eq("user_id", userId)
         .maybeSingle();
       if (data) {
         setConfig({
           messageRequests: data.message_requests_visibility ?? "everyone",
           groupChat: data.group_chat_visibility ?? "everyone",
-          hideUnwanted: data.hide_unwanted_requests ?? true,
           storyReplies: data.story_replies_visibility ?? "everyone",
         });
       }
@@ -226,7 +208,6 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
         user_id: userId,
         message_requests_visibility: next.messageRequests,
         group_chat_visibility: next.groupChat,
-        hide_unwanted_requests: next.hideUnwanted,
         story_replies_visibility: next.storyReplies,
         updated_at: new Date().toISOString(),
       });

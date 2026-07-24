@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, Heart, MessageCircle, Repeat2, Tag, Sticker, Star, Trash2, RotateCcw, Grid3x3, Film, Bookmark, EyeOff, Eye, Timer, Clock, History, Search, Link } from "lucide-react";
+import { ArrowLeft, ChevronRight, Heart, Trash2, RotateCcw, Timer } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,48 +25,22 @@ const GROUPS: ActivityGroup[] = [
     titleRo: "Interacțiuni",
     titleEn: "Interactions",
     items: [
-      { icon: Heart,         labelRo: "Aprecieri",           labelEn: "Likes",              navigateTo: "likes-activity" },
-      { icon: MessageCircle, labelRo: "Comentarii",          labelEn: "Comments"           },
-      { icon: Repeat2,       labelRo: "Redistribuiri",       labelEn: "Reposts"            },
-      { icon: Tag,           labelRo: "Etichete",            labelEn: "Tags"               },
-      { icon: Sticker,       labelRo: "Răspunsuri stickere", labelEn: "Sticker responses"  },
-      { icon: Star,          labelRo: "Recenzii",            labelEn: "Reviews"            },
+      { icon: Heart, labelRo: "Aprecieri", labelEn: "Likes", navigateTo: "likes-activity" },
     ],
   },
   {
     titleRo: "Conținut eliminat și arhivat",
     titleEn: "Removed and archived content",
     items: [
-      { icon: Trash2,    labelRo: "Șters recent",  labelEn: "Recently deleted" },
+      { icon: Trash2,    labelRo: "Șters recent",  labelEn: "Recently deleted", navigateTo: "recently-deleted" },
       { icon: RotateCcw, labelRo: "Arhivat",       labelEn: "Archived",        navigateTo: "archive" },
-    ],
-  },
-  {
-    titleRo: "Conținut distribuit",
-    titleEn: "Content you shared",
-    items: [
-      { icon: Grid3x3,  labelRo: "Postări",     labelEn: "Posts"      },
-      { icon: Film,     labelRo: "Reels",       labelEn: "Reels"      },
-      { icon: Bookmark, labelRo: "Highlighturi",labelEn: "Highlights" },
-    ],
-  },
-  {
-    titleRo: "Conținut sugerat",
-    titleEn: "Suggested content",
-    items: [
-      { icon: EyeOff, labelRo: "Nu mă interesează", labelEn: "Not interested" },
-      { icon: Eye,    labelRo: "Mă interesează",     labelEn: "Interested"    },
     ],
   },
   {
     titleRo: "Cum folosești SportRise",
     titleEn: "How you use SportRise",
     items: [
-      { icon: Timer,   labelRo: "Gestionarea timpului", labelEn: "Time management",  navigateTo: "time-management" },
-      { icon: Clock,   labelRo: "Istoric vizionări",    labelEn: "Watch history"    },
-      { icon: History, labelRo: "Istoricul contului",   labelEn: "Account history"  },
-      { icon: Search,  labelRo: "Căutări recente",      labelEn: "Recent searches"  },
-      { icon: Link,    labelRo: "Istoricul linkurilor", labelEn: "Link history"     },
+      { icon: Timer, labelRo: "Gestionarea timpului", labelEn: "Time management", navigateTo: "time-management" },
     ],
   },
 ];

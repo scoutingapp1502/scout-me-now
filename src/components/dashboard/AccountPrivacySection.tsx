@@ -4,44 +4,63 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 
+type AccountVisibility = "scouts_only" | "scouts_and_mutual" | "everyone";
+
 interface AccountPrivacySectionProps {
   userId: string;
   onBack: () => void;
 }
 
 interface PrivacyConfig {
-  isPrivate: boolean;
-  allowPicExpansion: boolean;
+  visibility: AccountVisibility;
 }
 
-function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+function RadioRow({
+  value, current, labelRo, labelEn, lang, onSelect,
+}: {
+  value: AccountVisibility; current: AccountVisibility; labelRo: string; labelEn: string; lang: string; onSelect: (v: AccountVisibility) => void;
+}) {
   return (
-    <button
-      onClick={onToggle}
-      className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${on ? "bg-primary" : "bg-muted-foreground/30"}`}
-    >
-      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-6" : "translate-x-0.5"}`} />
+    <button onClick={() => onSelect(value)} className="w-full flex items-center justify-between py-3.5 hover:bg-muted/20 transition-colors text-left">
+      <span className="text-sm font-body text-foreground">{lang === "ro" ? labelRo : labelEn}</span>
+      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${current === value ? "border-foreground" : "border-muted-foreground/40"}`}>
+        {current === value && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
+      </div>
     </button>
   );
 }
 
+const DESCRIPTIONS: Record<AccountVisibility, { ro: string; en: string }> = {
+  scouts_only: {
+    ro: "Profilul și postările tale sunt vizibile doar pentru utilizatorii cu rol de scouter sau agent. Ceilalți jucători nu te pot vedea.",
+    en: "Your profile and posts are visible only to users with a scout or agent role. Other players can't see you.",
+  },
+  scouts_and_mutual: {
+    ro: "Vizibil pentru scouteri și agenți, plus urmăritorii cu care ai o relație reciprocă (tu îi urmărești și ei te urmăresc înapoi).",
+    en: "Visible to scouts and agents, plus followers you have a mutual relationship with (you follow them and they follow you back).",
+  },
+  everyone: {
+    ro: "Profilul și postările tale sunt vizibile pentru orice utilizator autentificat din aplicație.",
+    en: "Your profile and posts are visible to any authenticated user in the app.",
+  },
+};
+
 export default function AccountPrivacySection({ userId, onBack }: AccountPrivacySectionProps) {
   const { lang } = useLanguage();
   const { toast } = useToast();
-  const [config, setConfig] = useState<PrivacyConfig>({ isPrivate: false, allowPicExpansion: false });
+  const [config, setConfig] = useState<PrivacyConfig>({ visibility: "scouts_only" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
       const { data } = await (supabase as any)
         .from("user_privacy_settings")
-        .select("is_private_account, allow_profile_pic_expansion")
+        .select("account_visibility")
         .eq("user_id", userId)
         .maybeSingle();
       if (data) {
         setConfig({
-          isPrivate: data.is_private_account ?? false,
-          allowPicExpansion: data.allow_profile_pic_expansion ?? false,
+          visibility: (data.account_visibility as AccountVisibility) ?? "scouts_only",
         });
       }
     };
@@ -56,8 +75,7 @@ export default function AccountPrivacySection({ userId, onBack }: AccountPrivacy
       .from("user_privacy_settings")
       .upsert({
         user_id: userId,
-        is_private_account: next.isPrivate,
-        allow_profile_pic_expansion: next.allowPicExpansion,
+        account_visibility: next.visibility,
         updated_at: new Date().toISOString(),
       });
     setSaving(false);
@@ -80,41 +98,44 @@ export default function AccountPrivacySection({ userId, onBack }: AccountPrivacy
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 space-y-0">
-        {/* Private account */}
+        {/* Visibility choice */}
         <div className="py-5 border-b border-border">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold font-body text-foreground">
-              {lang === "ro" ? "Cont privat" : "Private account"}
-            </span>
-            <Toggle on={config.isPrivate} onToggle={() => save({ isPrivate: !config.isPrivate })} />
-          </div>
-          {!config.isPrivate ? (
-            <p className="text-sm text-muted-foreground font-body leading-relaxed">
-              {lang === "ro"
-                ? "Când contul tău este public, profilul și postările tale pot fi văzute de oricine, indiferent dacă are sau nu un cont SportRise."
-                : "When your account is public, your profile and posts can be seen by anyone, on or off SportRise, even if they don't have a SportRise account."}
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground font-body leading-relaxed">
-              {lang === "ro"
-                ? "Când contul tău este privat, numai urmăritorii pe care îi aprobi pot vedea ce distribui, inclusiv fotografiile sau videoclipurile tale, și listele tale de urmăritori și urmăriri. Anumite informații din profilul tău, cum ar fi poza de profil și numele de utilizator, sunt vizibile pentru toată lumea."
-                : "When your account is private, only the followers that you approve can see what you share, including your photos or videos, and your followers and following lists. Certain info on your profile, such as your profile picture and username, is visible to everyone."}
-            </p>
-          )}
-        </div>
-
-        {/* Allow profile picture expansion */}
-        <div className="py-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold font-body text-foreground">
-              {lang === "ro" ? "Permite extinderea pozei de profil" : "Allow profile picture expansion"}
-            </span>
-            <Toggle on={config.allowPicExpansion} onToggle={() => save({ allowPicExpansion: !config.allowPicExpansion })} />
-          </div>
-          <p className="text-sm text-muted-foreground font-body leading-relaxed">
+          <p className="text-sm font-semibold font-body text-foreground mb-1">
+            {lang === "ro" ? "Cine îți poate vedea profilul și postările" : "Who can see your profile and posts"}
+          </p>
+          <p className="text-xs text-muted-foreground font-body mb-3 leading-relaxed">
             {lang === "ro"
-              ? "Permite oamenilor să vadă o versiune mai mare a pozei tale de profil pentru a te recunoaște mai ușor. Poza ta de profil va fi întotdeauna vizibilă pentru toată lumea."
-              : "Let people see a larger version of your profile picture to help them know that it's you. Your profile picture will always be visible to everyone."}
+              ? "Alege cine îți poate vedea profilul și postările."
+              : "Choose who can see your profile and posts."}
+          </p>
+          <div className="divide-y divide-border/60">
+            <RadioRow
+              value="scouts_only"
+              current={config.visibility}
+              labelRo="Scouteri și agenți"
+              labelEn="Scouts and agents"
+              lang={lang}
+              onSelect={(v) => save({ visibility: v })}
+            />
+            <RadioRow
+              value="scouts_and_mutual"
+              current={config.visibility}
+              labelRo="Scouteri, agenți și urmăritorii pe care îi urmăresc înapoi"
+              labelEn="Scouts, agents and followers who follow me back"
+              lang={lang}
+              onSelect={(v) => save({ visibility: v })}
+            />
+            <RadioRow
+              value="everyone"
+              current={config.visibility}
+              labelRo="Toată lumea"
+              labelEn="Everyone"
+              lang={lang}
+              onSelect={(v) => save({ visibility: v })}
+            />
+          </div>
+          <p className="text-sm text-muted-foreground font-body leading-relaxed mt-3">
+            {lang === "ro" ? DESCRIPTIONS[config.visibility].ro : DESCRIPTIONS[config.visibility].en}
           </p>
         </div>
       </div>

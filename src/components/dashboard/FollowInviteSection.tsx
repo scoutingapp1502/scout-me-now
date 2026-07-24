@@ -14,7 +14,6 @@ interface FollowInviteSectionProps {
 
 interface Config {
   autoConfirm: boolean;
-  flagForReview: boolean;
   invitationCode: string;
 }
 
@@ -78,7 +77,7 @@ function generateCode(): string {
 export default function FollowInviteSection({ userId, onBack }: FollowInviteSectionProps) {
   const { lang } = useLanguage();
   const { toast } = useToast();
-  const [config, setConfig] = useState<Config>({ autoConfirm: false, flagForReview: true, invitationCode: "" });
+  const [config, setConfig] = useState<Config>({ autoConfirm: false, invitationCode: "" });
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -86,7 +85,7 @@ export default function FollowInviteSection({ userId, onBack }: FollowInviteSect
     const load = async () => {
       const { data } = await (supabase as any)
         .from("user_privacy_settings")
-        .select("auto_confirm_followers, flag_for_review, invitation_code")
+        .select("auto_confirm_followers, invitation_code")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -102,7 +101,6 @@ export default function FollowInviteSection({ userId, onBack }: FollowInviteSect
 
       setConfig({
         autoConfirm: data?.auto_confirm_followers ?? false,
-        flagForReview: data?.flag_for_review ?? true,
         invitationCode: code,
       });
     };
@@ -116,7 +114,6 @@ export default function FollowInviteSection({ userId, onBack }: FollowInviteSect
     await (supabase as any).from("user_privacy_settings").upsert({
       user_id: userId,
       auto_confirm_followers: next.autoConfirm,
-      flag_for_review: next.flagForReview,
       updated_at: new Date().toISOString(),
     });
     setSaving(false);
@@ -219,22 +216,6 @@ export default function FollowInviteSection({ userId, onBack }: FollowInviteSect
           {lang === "ro"
             ? "Confirmă automat cererile de urmărire de la persoanele care vor să te urmărească înapoi. Nu se va aplica creatorilor și companiilor."
             : "Automatically confirm follow requests from people who want to follow you back. This won't apply to creators and businesses."}
-        </p>
-
-        <div className="bg-card border-y border-border divide-y divide-border">
-          <div className="flex items-center justify-between px-5 py-4">
-            <span className="text-sm font-body text-foreground">
-              {lang === "ro" ? "Marchează pentru revizuire" : "Flag for review"}
-            </span>
-            <Toggle on={config.flagForReview} onToggle={() => save({ flagForReview: !config.flagForReview })} />
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground font-body px-5 py-3 leading-relaxed border-b border-border">
-          {lang === "ro"
-            ? "Urmăritorii și cererile de urmărire de la anumite profiluri, inclusiv spam potențial, vor fi marcate și mutate într-o secțiune separată a listei de urmăritori."
-            : "Followers and follow requests from certain profiles, including potential spam, will be flagged and moved to a separate section of your followers list."}
-          {" "}
-          <span className="text-primary font-body">{lang === "ro" ? "Află mai multe." : "Learn more."}</span>
         </p>
 
         {/* ── Invite your friends ── */}

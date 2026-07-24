@@ -1,52 +1,139 @@
 import { useState } from "react";
-import { ArrowLeft, ChevronRight, Search, LifeBuoy, AlertTriangle, UserCheck, BadgeCheck, MessageSquareWarning } from "lucide-react";
+import { LifeBuoy, ArrowLeft, ChevronRight, Send, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 interface HelpSectionProps {
+  userId: string;
   onBack: () => void;
 }
 
-export default function HelpSection({ onBack }: HelpSectionProps) {
-  const { lang } = useLanguage();
+type Category = "bug" | "account" | "report_user" | "payment" | "other";
+
+const CATEGORIES: { value: Category; labelRo: string; labelEn: string }[] = [
+  { value: "bug",         labelRo: "O funcție nu merge",         labelEn: "Something isn't working" },
+  { value: "account",     labelRo: "Probleme cu contul",         labelEn: "Account issue" },
+  { value: "report_user", labelRo: "Raportează un utilizator",   labelEn: "Report a user" },
+  { value: "payment",     labelRo: "Plăți și abonamente",        labelEn: "Payments and subscriptions" },
+  { value: "other",       labelRo: "Altceva",                    labelEn: "Something else" },
+];
+
+// ── Contact form sub-page ────────────────────────────────────────────────────
+function ReportProblemPage({ userId, lang, onBack }: { userId: string; lang: string; onBack: () => void }) {
   const { toast } = useToast();
-  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<Category>("bug");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  const soon = () => toast({ title: lang === "ro" ? "Funcționalitate în curând." : "Coming soon." });
+  const handleSubmit = async () => {
+    if (!message.trim()) {
+      toast({ title: lang === "ro" ? "Scrie un mesaj înainte de a trimite." : "Write a message before submitting.", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await (supabase as any).from("support_tickets").insert({
+      user_id: userId,
+      category,
+      message: message.trim(),
+    });
+    setSubmitting(false);
+    if (error) {
+      toast({ title: lang === "ro" ? "Nu s-a putut trimite raportul." : "Could not send your report.", variant: "destructive" });
+      return;
+    }
+    setSubmitted(true);
+  };
 
-  const mainRows = [
-    {
-      icon: AlertTriangle,
-      labelRo: "Raportează o problemă",
-      labelEn: "Report a problem",
-      descRo: null,
-      descEn: null,
-    },
-    {
-      icon: UserCheck,
-      labelRo: "Starea contului",
-      labelEn: "Account status",
-      descRo: "Verifică starea contului tău.",
-      descEn: "Review your Account Status.",
-    },
-    {
-      icon: BadgeCheck,
-      labelRo: "SportRise Verificat",
-      labelEn: "SportRise Verified",
-      descRo: "Abonații primesc suport îmbunătățit, un insignă verificată și alte beneficii exclusive.",
-      descEn: "Subscribers get enhanced support, a verified badge and other exclusive benefits.",
-    },
-  ];
+  if (submitted) {
+    return (
+      <div className="flex flex-col h-full bg-background">
+        <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
+          <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground"><ArrowLeft className="h-5 w-5" /></button>
+          <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+            {lang === "ro" ? "Raportează o problemă" : "Report a problem"}
+          </h2>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center">
+          <CheckCircle2 className="h-14 w-14 text-primary" />
+          <p className="text-sm font-semibold font-body text-foreground">
+            {lang === "ro" ? "Raportul a fost trimis." : "Your report was sent."}
+          </p>
+          <p className="text-xs text-muted-foreground font-body">
+            {lang === "ro" ? "Îl vom analiza cât mai curând posibil." : "We'll review it as soon as possible."}
+          </p>
+          <Button variant="outline" size="sm" className="mt-2" onClick={onBack}>
+            {lang === "ro" ? "Înapoi" : "Back"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-  const activityRows = [
-    {
-      icon: MessageSquareWarning,
-      labelRo: "Rapoarte și încălcări",
-      labelEn: "Reports and violations",
-      descRo: "Rapoarte, încălcări și orice solicitări de asistență privind monetizarea.",
-      descEn: "Reports, violations and any monetisation support requests.",
-    },
-  ];
+  return (
+    <div className="flex flex-col h-full bg-background">
+      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
+        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground"><ArrowLeft className="h-5 w-5" /></button>
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+          {lang === "ro" ? "Raportează o problemă" : "Report a problem"}
+        </h2>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+        <div>
+          <p className="text-sm font-semibold font-body text-foreground mb-2">
+            {lang === "ro" ? "Ce categorie descrie cel mai bine problema?" : "Which category best describes the issue?"}
+          </p>
+          <div className="space-y-2">
+            {CATEGORIES.map(c => (
+              <button
+                key={c.value}
+                onClick={() => setCategory(c.value)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border text-left transition-colors ${
+                  category === c.value ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-muted/30"
+                }`}
+              >
+                <span className="text-sm font-body text-foreground">{lang === "ro" ? c.labelRo : c.labelEn}</span>
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${category === c.value ? "border-primary" : "border-muted-foreground/40"}`}>
+                  {category === c.value && <div className="w-2 h-2 rounded-full bg-primary" />}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold font-body text-foreground mb-2">
+            {lang === "ro" ? "Descrie problema" : "Describe the issue"}
+          </p>
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={lang === "ro" ? "Spune-ne ce s-a întâmplat..." : "Tell us what happened..."}
+            className="min-h-32 text-white"
+          />
+        </div>
+
+        <Button onClick={handleSubmit} disabled={submitting} className="w-full gap-2">
+          <Send className="h-4 w-4" />
+          {submitting ? (lang === "ro" ? "Se trimite..." : "Sending...") : (lang === "ro" ? "Trimite raportul" : "Send report")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Help section ────────────────────────────────────────────────────────
+export default function HelpSection({ userId, onBack }: HelpSectionProps) {
+  const { lang } = useLanguage();
+  const [subPage, setSubPage] = useState<"report" | null>(null);
+
+  if (subPage === "report") {
+    return <ReportProblemPage userId={userId} lang={lang} onBack={() => setSubPage(null)} />;
+  }
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -61,20 +148,6 @@ export default function HelpSection({ onBack }: HelpSectionProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Search */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2.5">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-            <input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onFocus={soon}
-              placeholder={lang === "ro" ? "Caută articole de ajutor" : "Search help articles"}
-              className="flex-1 bg-transparent text-sm font-body outline-none text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
-        </div>
-
         {/* Icon + title */}
         <div className="flex flex-col items-center px-8 py-8 text-center">
           <LifeBuoy className="h-20 w-20 text-primary mb-4" strokeWidth={1.2} />
@@ -83,59 +156,16 @@ export default function HelpSection({ onBack }: HelpSectionProps) {
           </p>
         </div>
 
-        {/* Main rows */}
-        <div className="bg-card border-y border-border divide-y divide-border">
-          {mainRows.map((row) => {
-            const Icon = row.icon;
-            return (
-              <button
-                key={row.labelEn}
-                onClick={soon}
-                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors text-left"
-              >
-                <Icon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-body text-foreground">
-                    {lang === "ro" ? row.labelRo : row.labelEn}
-                  </p>
-                  {(lang === "ro" ? row.descRo : row.descEn) && (
-                    <p className="text-xs text-muted-foreground font-body mt-0.5 leading-relaxed">
-                      {lang === "ro" ? row.descRo : row.descEn}
-                    </p>
-                  )}
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Your support activity */}
-        <p className="text-sm font-semibold font-body text-foreground px-5 pt-5 pb-2">
-          {lang === "ro" ? "Activitatea ta de asistență" : "Your support activity"}
-        </p>
-        <div className="bg-card border-y border-border divide-y divide-border">
-          {activityRows.map((row) => {
-            const Icon = row.icon;
-            return (
-              <button
-                key={row.labelEn}
-                onClick={soon}
-                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors text-left"
-              >
-                <Icon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-body text-foreground">
-                    {lang === "ro" ? row.labelRo : row.labelEn}
-                  </p>
-                  <p className="text-xs text-muted-foreground font-body mt-0.5 leading-relaxed">
-                    {lang === "ro" ? row.descRo : row.descEn}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-              </button>
-            );
-          })}
+        <div className="bg-card border-y border-border">
+          <button
+            onClick={() => setSubPage("report")}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
+          >
+            <span className="text-sm font-body text-foreground">
+              {lang === "ro" ? "Raportează o problemă" : "Report a problem"}
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+          </button>
         </div>
       </div>
     </div>

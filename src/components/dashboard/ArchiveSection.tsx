@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Heart, Calendar, MapPin, RotateCcw, X, ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Calendar, RotateCcw, X, ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -26,14 +26,12 @@ interface ArchiveSectionProps {
   onBack: () => void;
 }
 
-type StoryTab = "stories" | "highlights" | "calendar" | "map";
+type StoryTab = "stories" | "calendar";
 type ArchiveMode = "stories" | "posts";
 
 const STORY_TABS: { id: StoryTab; icon: React.ElementType }[] = [
-  { id: "stories",    icon: RotateCcw },
-  { id: "highlights", icon: Heart     },
-  { id: "calendar",   icon: Calendar  },
-  { id: "map",        icon: MapPin    },
+  { id: "stories",  icon: RotateCcw },
+  { id: "calendar", icon: Calendar  },
 ];
 
 const MONTH_RO = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
@@ -290,35 +288,7 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
                   )
                 )}
 
-                {storyTab === "highlights" && (
-                  <div className="flex flex-col items-center justify-center py-16 gap-4 px-8 text-center">
-                    <div className="w-16 h-16 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center">
-                      <RotateCcw className="h-7 w-7 text-muted-foreground/50" />
-                    </div>
-                    <p className="text-base font-semibold text-foreground font-body">
-                      {lang === "ro" ? "Niciun highlight arhivat" : "No archived highlights"}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-body leading-relaxed">
-                      {lang === "ro" ? "Când arhivezi highlighturi, vor apărea aici. Doar tu le poți vedea." : "When you archive highlights, they'll appear here. Only you can see them."}
-                    </p>
-                  </div>
-                )}
-
                 {storyTab === "calendar" && <CalendarView stories={stories} />}
-
-                {storyTab === "map" && (
-                  <div className="flex flex-col items-center justify-center py-16 gap-4 px-8 text-center">
-                    <MapPin className="h-12 w-12 text-muted-foreground/40" />
-                    <p className="text-sm font-semibold text-foreground font-body">
-                      {lang === "ro" ? "Hartă locații" : "Locations map"}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-body leading-relaxed">
-                      {lang === "ro"
-                        ? "Când adaugi un sticker de locație la story-urile tale, ele vor apărea pe această hartă."
-                        : "When you add a location sticker to your stories, they'll appear on this map."}
-                    </p>
-                  </div>
-                )}
               </>
             )}
 

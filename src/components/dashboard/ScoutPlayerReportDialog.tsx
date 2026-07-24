@@ -626,7 +626,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
         setCurrentClub(playerProfile?.current_team || "");
         setAgentName(playerProfile?.agent_name || "");
         setLeague(""); setContractUntil("");
-        setSalaryRange(""); setTransferValue(""); setAgentName("");
+        setSalaryRange(""); setTransferValue("");
         setOverallRating(0); setFitRating(0);
         setTechnicalRating(0); setTechnicalNotes("");
         setPhysicalRating(0); setPhysicalNotes("");

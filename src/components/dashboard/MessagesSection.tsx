@@ -105,6 +105,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
   const [viewProfileRole, setViewProfileRole] = useState<string | null>(null);
   const [canMessageSelected, setCanMessageSelected] = useState(true);
+  const [restrictedByOther, setRestrictedByOther] = useState(false);
   const { toast } = useToast();
 
   // Group states
@@ -369,10 +370,22 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   // Load chat messages when conversation selected
   useEffect(() => {
     if (!selectedConversation) return;
+    // Guards against a stale response overwriting state after the user has
+    // already switched to a different conversation (e.g. clicking A then B
+    // in quick succession, where A's fetch resolves after B's).
+    let cancelled = false;
     const load = async () => {
       setChatLoading(true);
       const { data: allowed } = await supabase.rpc("can_message_user", { _other_user_id: selectedConversation.other_user_id });
+      if (cancelled) return;
       setCanMessageSelected(!!allowed);
+
+      // If the other person restricted me, don't show their online status to me.
+      const { data: restricted } = await (supabase as any).rpc("am_i_restricted_by", {
+        _other_user_id: selectedConversation.other_user_id,
+      });
+      if (cancelled) return;
+      setRestrictedByOther(!!restricted);
       // Always load existing messages so historical conversation is visible,
       // even when the follow relationship no longer permits sending new ones.
       const { data: msgs } = await supabase
@@ -381,6 +394,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         .eq("conversation_id", selectedConversation.conversation_id)
         .order("created_at", { ascending: true });
 
+      if (cancelled) return;
       setMessages((msgs as Message[]) || []);
 
       if (msgs && currentUserId) {
@@ -392,12 +406,14 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             .in("id", unread.map((m: any) => m.id));
         }
       }
+      if (cancelled) return;
       setChatLoading(false);
       // Load draft
       const draft = localStorage.getItem(`draft-${selectedConversation.conversation_id}`);
       if (draft) setNewMessage(draft);
     };
     load();
+    return () => { cancelled = true; };
   }, [selectedConversation, currentUserId]);
 
   useEffect(() => {
@@ -655,9 +671,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               {selectedConversation.other_name}
             </h2>
             <div className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${isOnline(selectedConversation.other_user_id) ? "bg-green-500" : "bg-muted-foreground/40"}`} />
+              <span className={`w-2 h-2 rounded-full ${!restrictedByOther && isOnline(selectedConversation.other_user_id) ? "bg-green-500" : "bg-muted-foreground/40"}`} />
               <span className="text-xs text-muted-foreground">
-                {isOnline(selectedConversation.other_user_id)
+                {!restrictedByOther && isOnline(selectedConversation.other_user_id)
                   ? "Online"
                   : "Offline"}
               </span>

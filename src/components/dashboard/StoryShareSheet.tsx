@@ -13,6 +13,7 @@ interface FollowingUser {
 interface StoryShareSheetProps {
   open: boolean;
   onClose: () => void;
+  storyOwnerId?: string;
   storyOwnerName?: string;
   storyMediaUrl?: string;
   currentUserId: string;
@@ -53,7 +54,7 @@ const EXTERNAL_ACTIONS = [
   },
 ];
 
-export default function StoryShareSheet({ open, onClose, storyOwnerName, storyMediaUrl, currentUserId }: StoryShareSheetProps) {
+export default function StoryShareSheet({ open, onClose, storyOwnerId, storyOwnerName, storyMediaUrl, currentUserId }: StoryShareSheetProps) {
   const { toast } = useToast();
   const { lang } = useLanguage();
 
@@ -63,6 +64,15 @@ export default function StoryShareSheet({ open, onClose, storyOwnerName, storyMe
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState<string | null>(null);
+  const [storySharesAllowed, setStorySharesAllowed] = useState(true);
+
+  useEffect(() => {
+    if (!open || !storyOwnerId) return;
+    (supabase as any)
+      .rpc("get_story_shares_enabled", { _story_owner_id: storyOwnerId })
+      .then(({ data }: any) => setStorySharesAllowed(data ?? true))
+      .catch((err: unknown) => console.error("Failed to load story-share setting:", err));
+  }, [open, storyOwnerId]);
 
   useEffect(() => {
     if (!open) { setSearch(""); setSent(new Set()); return; }
@@ -99,6 +109,10 @@ export default function StoryShareSheet({ open, onClose, storyOwnerName, storyMe
 
   const handleSendTo = async (user: FollowingUser) => {
     if (sent.has(user.userId)) return;
+    if (!storySharesAllowed) {
+      toast({ title: lang === "ro" ? "Această persoană nu permite distribuirea story-urilor sale." : "This person doesn't allow their stories to be shared.", variant: "destructive" });
+      return;
+    }
     setSending(user.userId);
     try {
       const { data: convId, error: convError } = await supabase.rpc("get_or_create_conversation", { other_user_id: user.userId });

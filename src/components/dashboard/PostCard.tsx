@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send, Forward, Loader2, Bookmark, Instagram, TrendingUp, RefreshCw, Archive, Eye, EyeOff, Film, Pencil, Crop, Pin, MessageSquare } from "lucide-react";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { isLikelyUnwantedComment, type HideUnwantedLevel } from "@/lib/commentModeration";
 
 interface PostAuthor {
   user_id: string;
@@ -55,25 +56,28 @@ interface EngagementResult {
   likes_count: number;
   liked_by_me: boolean;
   comments_count: number;
+  hide_unwanted_comments: HideUnwantedLevel;
 }
-const EMPTY_ENGAGEMENT: EngagementResult = { likes_count: 0, liked_by_me: false, comments_count: 0 };
-let pendingEngagementBatch: Map<string, Array<(r: EngagementResult) => void>> | null = null;
-let pendingEngagementViewerId: string | null = null;
-let engagementBatchTimer: ReturnType<typeof setTimeout> | null = null;
+const EMPTY_ENGAGEMENT: EngagementResult = { likes_count: 0, liked_by_me: false, comments_count: 0, hide_unwanted_comments: "some" };
+// Keyed per-viewer so PostCards for two different viewer ids that happen to
+// mount within the same 30ms window (e.g. two profile views open at once)
+// never share a batch — the previous single shared batch pinned every
+// request in the window to whichever viewerId arrived first, silently
+// computing liked_by_me against the wrong viewer for the others.
+const pendingEngagementBatches = new Map<string, Map<string, Array<(r: EngagementResult) => void>>>();
+const engagementBatchTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-function flushEngagementBatch() {
-  const batch = pendingEngagementBatch;
-  const viewerId = pendingEngagementViewerId;
-  pendingEngagementBatch = null;
-  pendingEngagementViewerId = null;
-  engagementBatchTimer = null;
+function flushEngagementBatch(viewerKey: string) {
+  const batch = pendingEngagementBatches.get(viewerKey);
+  pendingEngagementBatches.delete(viewerKey);
+  engagementBatchTimers.delete(viewerKey);
   if (!batch || batch.size === 0) return;
 
   const postIds = [...batch.keys()];
   (supabase as any)
     .rpc("get_post_engagement_summary", {
       p_post_ids: postIds,
-      p_viewer_id: viewerId ?? "00000000-0000-0000-0000-000000000000",
+      p_viewer_id: viewerKey === "anon" ? "00000000-0000-0000-0000-000000000000" : viewerKey,
     })
     .then(({ data }: { data: any[] | null }) => {
       const resultMap = new Map<string, EngagementResult>();
@@ -82,6 +86,7 @@ function flushEngagementBatch() {
           likes_count: row.likes_count ?? 0,
           liked_by_me: !!row.liked_by_me,
           comments_count: row.comments_count ?? 0,
+          hide_unwanted_comments: (row.hide_unwanted_comments as HideUnwantedLevel) ?? "some",
         });
       });
       batch.forEach((callbacks, postId) => {
@@ -97,27 +102,88 @@ function flushEngagementBatch() {
 
 function requestEngagement(postId: string, viewerId: string | null): Promise<EngagementResult> {
   return new Promise((resolve) => {
-    if (!pendingEngagementBatch) {
-      pendingEngagementBatch = new Map();
-      pendingEngagementViewerId = viewerId;
+    const viewerKey = viewerId ?? "anon";
+    let batch = pendingEngagementBatches.get(viewerKey);
+    if (!batch) {
+      batch = new Map();
+      pendingEngagementBatches.set(viewerKey, batch);
     }
-    const callbacks = pendingEngagementBatch.get(postId) ?? [];
+    const callbacks = batch.get(postId) ?? [];
     callbacks.push(resolve);
-    pendingEngagementBatch.set(postId, callbacks);
+    batch.set(postId, callbacks);
 
-    if (engagementBatchTimer) clearTimeout(engagementBatchTimer);
-    engagementBatchTimer = setTimeout(flushEngagementBatch, 30);
+    const existingTimer = engagementBatchTimers.get(viewerKey);
+    if (existingTimer) clearTimeout(existingTimer);
+    engagementBatchTimers.set(viewerKey, setTimeout(() => flushEngagementBatch(viewerKey), 30));
   });
+}
+
+function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, onToggleLike, timeAgo }: {
+  comment: Comment;
+  currentUserId: string | null;
+  lang: string;
+  onViewProfile: (userId: string, role: string) => void;
+  onDelete: (commentId: string) => void;
+  onToggleLike: (commentId: string) => void;
+  timeAgo: (dateStr: string) => string;
+}) {
+  return (
+    <div className="flex items-start gap-2 group">
+      <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+        {c.author_photo ? (
+          <img src={c.author_photo} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <User className="h-3.5 w-3.5 text-muted-foreground" />
+        )}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start gap-1">
+          <div className="flex-1 bg-muted/50 rounded-lg px-3 py-1.5">
+            <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="text-xs font-medium text-foreground hover:underline cursor-pointer text-left">{c.author_name}</button>
+            <p className="text-xs text-foreground/80">{c.content}</p>
+          </div>
+          {c.user_id === currentUserId && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onDelete(c.id)} className="text-destructive">
+                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                  {lang === "ro" ? "Șterge mesajul" : "Delete message"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+        <div className="flex items-center gap-2 ml-1 mt-0.5">
+          <span className="text-[10px] text-muted-foreground/60">{timeAgo(c.created_at)}</span>
+          <button
+            onClick={() => onToggleLike(c.id)}
+            className={`flex items-center gap-0.5 text-[10px] transition-colors ${c.liked_by_me ? "text-red-500" : "text-muted-foreground/60 hover:text-foreground"}`}
+          >
+            <Heart className={`h-3 w-3 ${c.liked_by_me ? "fill-red-500" : ""}`} />
+            {c.likes_count > 0 && <span>{c.likes_count}</span>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLikeCounts = false }: PostCardProps) => {
   const { lang } = useLanguage();
   const [liked, setLiked] = useState(false);
+  const [likingPending, setLikingPending] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const showCommentsRef = useRef(false);
   useEffect(() => { showCommentsRef.current = showComments; }, [showComments]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [showHiddenComments, setShowHiddenComments] = useState(false);
+  const [hideUnwantedLevel, setHideUnwantedLevel] = useState<HideUnwantedLevel>("some");
   const [commentText, setCommentText] = useState("");
   const [commentsCount, setCommentsCount] = useState(0);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -145,6 +211,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
       setLikesCount(result.likes_count);
       setLiked(result.liked_by_me);
       setCommentsCount(result.comments_count);
+      setHideUnwantedLevel(result.hide_unwanted_comments);
     });
     return () => { cancelled = true; };
   }, [post.id, currentUserId]);
@@ -191,7 +258,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   }, [post.id, currentUserId]);
 
   const toggleLike = async () => {
-    if (!currentUserId) return;
+    if (!currentUserId || likingPending) return;
+    setLikingPending(true);
     if (liked) {
       setLiked(false);
       setLikesCount(c => Math.max(0, c - 1));
@@ -201,17 +269,26 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
       setLiked(true);
       setLikesCount(c => c + 1);
       const { error } = await supabase.from("post_likes").insert({ post_id: post.id, user_id: currentUserId } as any);
-      if (error) { setLiked(false); setLikesCount(c => Math.max(0, c - 1)); }
+      // A unique-violation here means a nearly-simultaneous click already
+      // succeeded — treat it as "still liked" instead of rolling back to a
+      // false "unliked" state that doesn't match the DB.
+      if (error && error.code !== "23505") { setLiked(false); setLikesCount(c => Math.max(0, c - 1)); }
     }
+    setLikingPending(false);
   };
 
   const loadComments = async () => {
     setLoadingComments(true);
-    const { data: rawComments } = await supabase
+    // Cap at the 100 most recent comments to avoid an unbounded query/render
+    // on posts with very large comment counts, then re-sort ascending for
+    // display so the visible order still reads oldest-to-newest.
+    const { data: latestComments } = await supabase
       .from("post_comments")
       .select("*")
       .eq("post_id", post.id)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false })
+      .limit(100);
+    const rawComments = (latestComments || []).slice().reverse();
 
     if (!rawComments || rawComments.length === 0) {
       setComments([]);
@@ -356,8 +433,24 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
   const isOwnPost = post.user_id === currentUserId;
 
+  // Split comments into visible / likely-unwanted using the post author's
+  // "hide unwanted comments" level. Own comments are never hidden from you.
+  const { visibleComments, hiddenComments } = useMemo(() => {
+    const visible: Comment[] = [];
+    const hidden: Comment[] = [];
+    for (const c of comments) {
+      if (c.user_id !== currentUserId && isLikelyUnwantedComment(c.content, hideUnwantedLevel)) {
+        hidden.push(c);
+      } else {
+        visible.push(c);
+      }
+    }
+    return { visibleComments: visible, hiddenComments: hidden };
+  }, [comments, hideUnwantedLevel, currentUserId]);
+
   // Saved state
   const [saved, setSaved] = useState(false);
+  const [savingPending, setSavingPending] = useState(false);
 
   const handleArchive = async () => {
     if (!currentUserId || currentUserId !== post.user_id) return;
@@ -385,23 +478,30 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   }, [post.id, currentUserId]);
 
   const toggleSave = async () => {
-    if (!currentUserId) return;
-    if (saved) {
-      const { error } = await supabase.from("saved_posts" as any).delete().eq("post_id", post.id).eq("user_id", currentUserId);
-      if (error) {
-        toast.error(lang === "ro" ? "Nu s-a putut elimina din salvate." : "Failed to remove from saved.");
-        return;
+    if (!currentUserId || savingPending) return;
+    setSavingPending(true);
+    try {
+      if (saved) {
+        const { error } = await supabase.from("saved_posts" as any).delete().eq("post_id", post.id).eq("user_id", currentUserId);
+        if (error) {
+          toast.error(lang === "ro" ? "Nu s-a putut elimina din salvate." : "Failed to remove from saved.");
+          return;
+        }
+        setSaved(false);
+        toast.info(lang === "ro" ? "Postare eliminată din salvate." : "Post removed from saved.");
+      } else {
+        const { error } = await supabase.from("saved_posts" as any).insert({ post_id: post.id, user_id: currentUserId });
+        // A unique-violation means an almost-simultaneous click already
+        // saved it — treat as success instead of surfacing a spurious error.
+        if (error && error.code !== "23505") {
+          toast.error(lang === "ro" ? "Nu s-a putut salva postarea." : "Failed to save post.");
+          return;
+        }
+        setSaved(true);
+        toast.success(lang === "ro" ? "Postare salvată." : "Post saved.");
       }
-      setSaved(false);
-      toast.info(lang === "ro" ? "Postare eliminată din salvate." : "Post removed from saved.");
-    } else {
-      const { error } = await supabase.from("saved_posts" as any).insert({ post_id: post.id, user_id: currentUserId });
-      if (error) {
-        toast.error(lang === "ro" ? "Nu s-a putut salva postarea." : "Failed to save post.");
-        return;
-      }
-      setSaved(true);
-      toast.success(lang === "ro" ? "Postare salvată." : "Post saved.");
+    } finally {
+      setSavingPending(false);
     }
   };
 
@@ -599,19 +699,20 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
       {/* Image */}
       {post.image_url && (
-        <img src={post.image_url} alt="" className="w-full max-h-96 object-cover" />
+        <img src={post.image_url} alt="" loading="lazy" className="w-full max-h-96 object-cover" />
       )}
 
       {/* Video */}
       {post.video_url && (
-        <video src={post.video_url} className="w-full max-h-96" controls />
+        <video src={post.video_url} className="w-full max-h-96" controls preload="none" />
       )}
 
       {/* Like & Comment bar */}
       <div className="px-4 py-2 border-t border-border flex items-center gap-4 flex-wrap">
         <button
           onClick={toggleLike}
-          className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
+          disabled={likingPending}
+          className={`flex items-center gap-1.5 text-sm transition-colors disabled:opacity-60 ${liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
         >
           <Heart className={`h-4 w-4 ${liked ? "fill-red-500" : ""}`} />
           {likesCount > 0 && !hideLikeCounts && <span className="text-xs">{likesCount}</span>}
@@ -631,7 +732,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         </button>
         <button
           onClick={toggleSave}
-          className={`ml-auto flex items-center transition-colors ${saved ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          disabled={savingPending}
+          className={`ml-auto flex items-center transition-colors disabled:opacity-60 ${saved ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           <Bookmark className={`h-5 w-5 ${saved ? "fill-current" : ""}`} />
         </button>
@@ -681,50 +783,46 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
             <p className="text-xs text-muted-foreground">{lang === "ro" ? "Se încarcă..." : "Loading..."}</p>
           ) : comments.length > 0 ? (
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {comments.map(c => (
-                <div key={c.id} className="flex items-start gap-2 group">
-                  <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
-                    {c.author_photo ? (
-                      <img src={c.author_photo} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-1">
-                      <div className="flex-1 bg-muted/50 rounded-lg px-3 py-1.5">
-                        <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="text-xs font-medium text-foreground hover:underline cursor-pointer text-left">{c.author_name}</button>
-                        <p className="text-xs text-foreground/80">{c.content}</p>
-                      </div>
-                      {c.user_id === currentUserId && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground">
-                              <MoreHorizontal className="h-3.5 w-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => deleteComment(c.id)} className="text-destructive">
-                              <Trash2 className="h-3.5 w-3.5 mr-2" />
-                              {lang === "ro" ? "Șterge mesajul" : "Delete message"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 ml-1 mt-0.5">
-                      <span className="text-[10px] text-muted-foreground/60">{timeAgo(c.created_at)}</span>
-                      <button
-                        onClick={() => toggleCommentLike(c.id)}
-                        className={`flex items-center gap-0.5 text-[10px] transition-colors ${c.liked_by_me ? "text-red-500" : "text-muted-foreground/60 hover:text-foreground"}`}
-                      >
-                        <Heart className={`h-3 w-3 ${c.liked_by_me ? "fill-red-500" : ""}`} />
-                        {c.likes_count > 0 && <span>{c.likes_count}</span>}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              {visibleComments.map(c => (
+                <CommentRow
+                  key={c.id}
+                  comment={c}
+                  currentUserId={currentUserId}
+                  lang={lang}
+                  onViewProfile={onViewProfile}
+                  onDelete={deleteComment}
+                  onToggleLike={toggleCommentLike}
+                  timeAgo={timeAgo}
+                />
               ))}
+              {hiddenComments.length > 0 && (
+                <div className="pt-1">
+                  <button
+                    onClick={() => setShowHiddenComments(v => !v)}
+                    className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >
+                    {showHiddenComments
+                      ? (lang === "ro" ? "Ascunde comentariile nedorite" : "Hide unwanted comments")
+                      : (lang === "ro" ? `Arată ${hiddenComments.length} comentarii nedorite` : `Show ${hiddenComments.length} unwanted comments`)}
+                  </button>
+                  {showHiddenComments && (
+                    <div className="space-y-2 mt-2">
+                      {hiddenComments.map(c => (
+                        <CommentRow
+                          key={c.id}
+                          comment={c}
+                          currentUserId={currentUserId}
+                          lang={lang}
+                          onViewProfile={onViewProfile}
+                          onDelete={deleteComment}
+                          onToggleLike={toggleCommentLike}
+                          timeAgo={timeAgo}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">{lang === "ro" ? "Niciun comentariu încă" : "No comments yet"}</p>

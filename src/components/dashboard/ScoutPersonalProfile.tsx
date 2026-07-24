@@ -358,7 +358,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   };
 
   const handleDeletePost = async (postId: string) => {
-    await supabase.from("scout_posts").delete().eq("id", postId);
+    await (supabase as any).from("scout_posts").update({ deleted_at: new Date().toISOString() }).eq("id", postId);
     setPosts(prev => prev.filter(p => p.id !== postId));
     notifyProfileUpdated();
   };

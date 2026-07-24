@@ -1,20 +1,17 @@
--- Each rendered PostCard used to call get_visible_likes_count, then query
--- post_likes and post_comments separately — 3 round trips per post, so a
--- 20-post feed fired 40-60 requests. This batched version takes an array of
--- post ids and returns likes/comments counts + the viewer's own like state
--- for all of them in a single call.
+-- Add the post author's hide_unwanted_comments level to the existing
+-- batched engagement RPC, so PostCard can apply the "hide unwanted
+-- comments" heuristic without a new per-card query.
 --
--- Defensive: some environments may already have an older/differently-shaped
--- version of this function (e.g. from get_visible_likes_count-era
--- migrations) — CREATE OR REPLACE cannot change OUT-parameter shape, so
--- drop first regardless of what's currently live.
+-- Postgres won't let CREATE OR REPLACE change a function's OUT-parameter
+-- shape (adding a column here), so drop the old 4-column version first.
 DROP FUNCTION IF EXISTS public.get_post_engagement_summary(uuid[], uuid);
 CREATE OR REPLACE FUNCTION public.get_post_engagement_summary(p_post_ids uuid[], p_viewer_id uuid)
 RETURNS TABLE (
   post_id uuid,
   likes_count integer,
   liked_by_me boolean,
-  comments_count integer
+  comments_count integer,
+  hide_unwanted_comments text
 )
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
@@ -22,16 +19,19 @@ AS $$
     ids.post_id,
     COALESCE(lc.likes_count, 0)::integer,
     COALESCE(ml.liked, false),
-    COALESCE(cc.comments_count, 0)::integer
+    COALESCE(cc.comments_count, 0)::integer,
+    COALESCE(ups.hide_unwanted_comments, 'some')
   FROM unnest(p_post_ids) AS ids(post_id)
+  LEFT JOIN public.posts p ON p.id = ids.post_id
+  LEFT JOIN public.user_privacy_settings ups ON ups.user_id = p.user_id
   LEFT JOIN LATERAL (
     SELECT count(*)::integer AS likes_count
     FROM public.post_likes pl
-    LEFT JOIN public.user_privacy_settings ups ON ups.user_id = pl.user_id
+    LEFT JOIN public.user_privacy_settings vups ON vups.user_id = pl.user_id
     WHERE pl.post_id = ids.post_id
       AND (
         pl.user_id = p_viewer_id
-        OR COALESCE(ups.feed_activity_visibility, 'followers') <> 'no_one'
+        OR COALESCE(vups.feed_activity_visibility, 'followers') <> 'no_one'
       )
   ) lc ON true
   LEFT JOIN LATERAL (

@@ -120,29 +120,12 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
     const text = message.trim();
     setSendingReply(true);
     try {
-      // Respect the story owner's "who can reply to my stories" setting.
-      const { data: privacy } = await (supabase as any)
-        .from("user_privacy_settings")
-        .select("story_replies_visibility")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const visibility = privacy?.story_replies_visibility ?? "everyone";
-      if (visibility === "no_one") {
-        toast({ title: lang === "ro" ? "Acest utilizator nu permite răspunsuri la story." : "This user doesn't allow story replies.", variant: "destructive" });
+      // Respect the story owner's "who can reply to my stories" setting —
+      // enforced server-side (SECURITY DEFINER RPC), not just client-side.
+      const { data: canReply } = await (supabase as any).rpc("can_reply_to_story", { _story_owner_id: userId });
+      if (!canReply) {
+        toast({ title: lang === "ro" ? "Nu poți răspunde la acest story." : "You can't reply to this story.", variant: "destructive" });
         return;
-      }
-      if (visibility === "following") {
-        const { data: followRow } = await supabase
-          .from("follows")
-          .select("id")
-          .eq("follower_id", userId)
-          .eq("following_id", viewerId)
-          .eq("status", "accepted")
-          .maybeSingle();
-        if (!followRow) {
-          toast({ title: lang === "ro" ? "Doar persoanele urmărite pot răspunde la acest story." : "Only people this user follows can reply to this story.", variant: "destructive" });
-          return;
-        }
       }
 
       const { data: convId, error: convError } = await supabase.rpc("get_or_create_conversation", { other_user_id: userId });
@@ -323,6 +306,7 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
       <StoryShareSheet
         open={showShare}
         onClose={() => { setShowShare(false); setPaused(false); }}
+        storyOwnerId={userId}
         storyOwnerName={displayName}
         storyMediaUrl={current?.media_url}
         currentUserId={viewerId}

@@ -4,7 +4,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import {
   Bookmark, Archive, Activity, Bell, Timer, Lock, Star,
-  Ban, MessageCircle, Tag, MessageSquare, Share2, AlertOctagon,
+  Ban, MessageCircle, MessageSquare, Share2, AlertOctagon,
   EyeOff, UserPlus, Heart, VolumeX, LayoutGrid, Film,
   Languages, HelpCircle, Shield, Info,
   ChevronRight, Trash2, LogOut, UserCheck, Globe,
@@ -61,7 +61,6 @@ const groups: SettingsGroup[] = [
     titleEn: "How others can interact with you",
     items: [
       { icon: MessageCircle, labelRo: "Mesaje și răspunsuri",     labelEn: "Messages and replies",   navigateTo: "messages-replies" },
-      { icon: Tag,           labelRo: "Etichete și mențiuni",     labelEn: "Tags and mentions",      navigateTo: "tags-mentions" },
       { icon: MessageSquare, labelRo: "Comentarii",               labelEn: "Comments",               navigateTo: "comments" },
       { icon: Share2,        labelRo: "Distribuire și reutilizare", labelEn: "Sharing and reuse",   navigateTo: "sharing-reuse" },
       { icon: Ban,           labelRo: "Restricționat",            labelEn: "Restricted",               navigateTo: "restricted" },
@@ -107,6 +106,7 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
   const navigate = useNavigate();
 
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
@@ -115,6 +115,10 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const handleChangePassword = async () => {
+    if (!currentPassword) {
+      toast({ title: lang === "ro" ? "Introdu parola actuală." : "Enter your current password.", variant: "destructive" });
+      return;
+    }
     if (newPassword !== confirmPassword) {
       toast({ title: lang === "ro" ? "Parolele nu coincid." : "Passwords don't match.", variant: "destructive" });
       return;
@@ -123,14 +127,37 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
       toast({ title: lang === "ro" ? "Parola trebuie să aibă minim 6 caractere." : "Password must be at least 6 characters.", variant: "destructive" });
       return;
     }
+    if (newPassword === currentPassword) {
+      toast({ title: lang === "ro" ? "Parola nouă trebuie să fie diferită de cea actuală." : "New password must be different from the current one.", variant: "destructive" });
+      return;
+    }
     setSavingPassword(true);
+
+    // Supabase Auth has no direct "verify current password" endpoint, so we
+    // confirm it by re-authenticating with it — this also prevents someone
+    // with a merely-open session (shared/public device) from locking the
+    // real owner out by changing the password without knowing it.
+    const { data: userData } = await supabase.auth.getUser();
+    const email = userData.user?.email;
+    if (!email) {
+      toast({ title: lang === "ro" ? "Eroare la verificarea contului." : "Error verifying account.", variant: "destructive" });
+      setSavingPassword(false);
+      return;
+    }
+    const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+    if (reauthError) {
+      toast({ title: lang === "ro" ? "Parola actuală este incorectă." : "Current password is incorrect.", variant: "destructive" });
+      setSavingPassword(false);
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       toast({ title: lang === "ro" ? "Eroare la schimbarea parolei." : "Error changing password.", description: error.message, variant: "destructive" });
     } else {
       toast({ title: lang === "ro" ? "Parolă schimbată cu succes!" : "Password changed successfully!" });
       setShowChangePassword(false);
-      setNewPassword(""); setConfirmPassword("");
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
     }
     setSavingPassword(false);
   };
@@ -156,6 +183,7 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
     } else if (item.action === "password") {
       setShowDeleteConfirm(false);
       setShowChangePassword((v) => !v);
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
     } else if (item.action === "delete") {
       setShowChangePassword(false);
       setShowDeleteConfirm((v) => !v);
@@ -202,6 +230,10 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
                     {isPasswordRow && showChangePassword && (
                       <div className="px-5 py-4 space-y-3 bg-muted/20 border-t border-border">
                         <div className="space-y-1">
+                          <Label className="text-xs font-body">{lang === "ro" ? "Parola actuală" : "Current password"}</Label>
+                          <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="h-9 text-sm font-body" />
+                        </div>
+                        <div className="space-y-1">
                           <Label className="text-xs font-body">{lang === "ro" ? "Parolă nouă" : "New password"}</Label>
                           <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="h-9 text-sm font-body" />
                         </div>
@@ -210,10 +242,10 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
                           <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="h-9 text-sm font-body" />
                         </div>
                         <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm" className="font-body text-xs" onClick={() => { setShowChangePassword(false); setNewPassword(""); setConfirmPassword(""); }}>
+                          <Button variant="ghost" size="sm" className="font-body text-xs" onClick={() => { setShowChangePassword(false); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); }}>
                             {lang === "ro" ? "Anulează" : "Cancel"}
                           </Button>
-                          <Button size="sm" className="font-body text-xs" onClick={handleChangePassword} disabled={savingPassword || !newPassword || !confirmPassword}>
+                          <Button size="sm" className="font-body text-xs" onClick={handleChangePassword} disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword}>
                             {lang === "ro" ? "Salvează" : "Save"}
                           </Button>
                         </div>

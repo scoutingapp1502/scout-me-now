@@ -67,20 +67,26 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
       const ext = imageFile.name.split(".").pop();
       const path = `${currentUserId}/${Date.now()}.${ext}`;
       const { error } = await supabase.storage.from("player-documents").upload(path, imageFile);
-      if (!error) {
-        const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
-        imageUrl = urlData.publicUrl;
+      if (error) {
+        toast.error(lang === "ro" ? "Nu s-a putut încărca imaginea." : "Failed to upload the image.");
+        setPosting(false);
+        return;
       }
+      const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
+      imageUrl = urlData.publicUrl;
     }
     let videoUrl: string | null = null;
     if (videoFile) {
       const ext = videoFile.name.split(".").pop();
       const path = `${currentUserId}/${Date.now()}-video.${ext}`;
       const { error } = await supabase.storage.from("player-videos").upload(path, videoFile);
-      if (!error) {
-        const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-        videoUrl = urlData.publicUrl;
+      if (error) {
+        toast.error(lang === "ro" ? "Nu s-a putut încărca videoclipul." : "Failed to upload the video.");
+        setPosting(false);
+        return;
       }
+      const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+      videoUrl = urlData.publicUrl;
     }
     const { error } = await supabase
       .from("posts")

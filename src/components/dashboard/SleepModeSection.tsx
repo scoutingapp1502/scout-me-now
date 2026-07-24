@@ -96,8 +96,8 @@ export default function SleepModeSection({ onBack }: SleepModeSectionProps) {
         {/* Description */}
         <p className="text-xs text-muted-foreground font-body py-3 leading-relaxed border-b border-border">
           {lang === "ro"
-            ? "Notificările tale vor fi silențioase în perioadele pe care le alegi. Oamenii vor vedea că ești în modul somn."
-            : "Your notifications will be muted during the times you choose. People will see that you're in sleep mode."}
+            ? "Setează un interval orar de liniște, doar ca reamintire personală. Aplicația nu trimite notificări push în acest moment, iar statusul nu este afișat public."
+            : "Set a quiet-hours reminder for yourself. The app doesn't send push notifications right now, and this status isn't shown to other people."}
         </p>
 
         {/* Start time */}

@@ -6,23 +6,21 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type PostsVisibility    = "everyone" | "following" | "followers" | "following_and_followers" | "no_one";
-type StoriesVisibility  = "everyone" | "following" | "no_one";
 type HideUnwanted       = "off" | "some" | "more";
 
 interface Config {
   postsVisibility: PostsVisibility;
-  storiesVisibility: StoriesVisibility;
   hideUnwanted: HideUnwanted;
 }
 
-const DEFAULT_CONFIG: Config = { postsVisibility: "everyone", storiesVisibility: "everyone", hideUnwanted: "some" };
+const DEFAULT_CONFIG: Config = { postsVisibility: "everyone", hideUnwanted: "some" };
 
 interface CommentsSectionProps {
   userId: string;
   onBack: () => void;
 }
 
-type SubPage = "block-commenters" | "posts-visibility" | "stories-visibility" | "hide-unwanted" | null;
+type SubPage = "block-commenters" | "posts-visibility" | "hide-unwanted" | null;
 
 // ── Posts visibility sub-page (with follower/following counts) ────────────────
 function PostsVisibilityPage({ userId, lang, value, onSelect, onBack, saving }: {
@@ -71,7 +69,7 @@ function PostsVisibilityPage({ userId, lang, value, onSelect, onBack, saving }: 
       </div>
       <div className="flex-1 overflow-y-auto px-5">
         <p className="text-xs text-muted-foreground font-body pt-5 pb-4 leading-relaxed">
-          {lang === "ro" ? "Această setare se va aplica tuturor postărilor tale." : "This setting will apply to all of your posts."}
+          {lang === "ro" ? "Această setare se va aplica tuturor postărilor și reels-urilor tale." : "This setting will apply to all of your posts and reels."}
         </p>
         <div className="divide-y divide-border/60">
           {options.map(o => (
@@ -127,59 +125,6 @@ function VisibilityPage<T extends string>({
         <p className="text-xs text-muted-foreground font-body pt-5 pb-3 leading-relaxed">{lang === "ro" ? descRo : descEn}</p>
         <div className="divide-y divide-border/60">
           {options.map(o => <RadioRow key={o.value} value={o.value} current={value} labelRo={o.labelRo} labelEn={o.labelEn} lang={lang} onSelect={onSelect} />)}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Stories visibility sub-page ───────────────────────────────────────────────
-function StoriesVisibilityPage({ lang, value, blockedCount, onSelect, onBack, onOpenBlockCommenters, saving }: {
-  lang: string; value: StoriesVisibility; blockedCount: number;
-  onSelect: (v: StoriesVisibility) => void; onBack: () => void;
-  onOpenBlockCommenters: () => void; saving: boolean;
-}) {
-  const options: { value: StoriesVisibility; labelRo: string; labelEn: string }[] = [
-    { value: "everyone",  labelRo: "Toată lumea",                   labelEn: "Everyone" },
-    { value: "following", labelRo: "Persoane pe care le urmărești", labelEn: "People you follow" },
-    { value: "no_one",    labelRo: "Dezactivat",                    labelEn: "Off" },
-  ];
-
-  return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground"><ArrowLeft className="h-5 w-5" /></button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
-          {lang === "ro" ? "Permite comentarii la story de la" : "Allow story comments from"}
-        </h2>
-        {saving && <div className="ml-auto w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        {/* Block comments from row */}
-        <div className="bg-card border-b border-border">
-          <button onClick={onOpenBlockCommenters} className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors">
-            <span className="text-sm font-body text-foreground">{lang === "ro" ? "Blochează comentarii de la" : "Block comments from"}</span>
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-muted-foreground font-body">{blockedCount} {lang === "ro" ? "persoane" : "people"}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </button>
-        </div>
-
-        {/* Controls section */}
-        <div className="px-5 pt-5 pb-2">
-          <p className="text-sm font-bold font-body text-foreground">{lang === "ro" ? "Controale" : "Controls"}</p>
-        </div>
-        <div className="bg-card border-y border-border divide-y divide-border/60">
-          {options.map(o => (
-            <button key={o.value} onClick={() => onSelect(o.value)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/20 transition-colors text-left">
-              <span className="text-sm font-body text-foreground">{lang === "ro" ? o.labelRo : o.labelEn}</span>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${value === o.value ? "border-foreground" : "border-muted-foreground/40"}`}>
-                {value === o.value && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
-              </div>
-            </button>
-          ))}
         </div>
       </div>
     </div>
@@ -359,10 +304,10 @@ export default function CommentsSection({ userId, onBack }: CommentsSectionProps
   useEffect(() => {
     const fetch = async () => {
       const [{ data: privacy }, { count }] = await Promise.all([
-        (supabase as any).from("user_privacy_settings").select("posts_comments_visibility, stories_comments_visibility, hide_unwanted_comments").eq("user_id", userId).maybeSingle(),
+        (supabase as any).from("user_privacy_settings").select("posts_comments_visibility, hide_unwanted_comments").eq("user_id", userId).maybeSingle(),
         (supabase as any).from("blocked_commenters").select("id", { count: "exact", head: true }).eq("blocker_id", userId),
       ]);
-      if (privacy) setConfig({ postsVisibility: privacy.posts_comments_visibility ?? "everyone", storiesVisibility: privacy.stories_comments_visibility ?? "everyone", hideUnwanted: privacy.hide_unwanted_comments ?? "some" });
+      if (privacy) setConfig({ postsVisibility: privacy.posts_comments_visibility ?? "everyone", hideUnwanted: privacy.hide_unwanted_comments ?? "some" });
       setBlockedCount(count ?? 0);
     };
     fetch();
@@ -372,7 +317,7 @@ export default function CommentsSection({ userId, onBack }: CommentsSectionProps
     const next = { ...config, ...patch };
     setConfig(next);
     setSaving(true);
-    const { error } = await (supabase as any).from("user_privacy_settings").upsert({ user_id: userId, posts_comments_visibility: next.postsVisibility, stories_comments_visibility: next.storiesVisibility, hide_unwanted_comments: next.hideUnwanted, updated_at: new Date().toISOString() });
+    const { error } = await (supabase as any).from("user_privacy_settings").upsert({ user_id: userId, posts_comments_visibility: next.postsVisibility, hide_unwanted_comments: next.hideUnwanted, updated_at: new Date().toISOString() });
     setSaving(false);
     if (error) toast({ title: lang === "ro" ? "Eroare la salvare." : "Save error.", variant: "destructive" });
   };
@@ -387,7 +332,6 @@ export default function CommentsSection({ userId, onBack }: CommentsSectionProps
 
   if (subPage === "block-commenters") return <BlockCommentersPage userId={userId} lang={lang} onBack={() => setSubPage(blockCommentersReturn)} />;
   if (subPage === "posts-visibility") return <PostsVisibilityPage userId={userId} lang={lang} value={config.postsVisibility} onSelect={v => { save({ postsVisibility: v }); setSubPage(null); }} onBack={() => setSubPage(null)} saving={saving} />;
-  if (subPage === "stories-visibility") return <StoriesVisibilityPage lang={lang} value={config.storiesVisibility} blockedCount={blockedCount} onSelect={v => { save({ storiesVisibility: v }); }} onBack={() => setSubPage(null)} onOpenBlockCommenters={() => { setBlockCommentersReturn("stories-visibility"); setSubPage("block-commenters"); }} saving={saving} />;
   if (subPage === "hide-unwanted") return <HideUnwantedPage lang={lang} value={config.hideUnwanted} onSelect={v => { save({ hideUnwanted: v }); }} onBack={() => setSubPage(null)} saving={saving} />;
 
   return (
@@ -426,10 +370,6 @@ export default function CommentsSection({ userId, onBack }: CommentsSectionProps
               <span className="text-sm text-muted-foreground font-body">{lang === "ro" ? POSTS_LABEL_MAP[config.postsVisibility].ro : POSTS_LABEL_MAP[config.postsVisibility].en}</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
-          </button>
-          <button onClick={() => setSubPage("stories-visibility")} className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors">
-            <span className="text-sm font-body text-foreground">{lang === "ro" ? "Story-uri" : "Stories"}</span>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 

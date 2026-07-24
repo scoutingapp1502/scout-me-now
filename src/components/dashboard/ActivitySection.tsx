@@ -78,10 +78,10 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
     const followedIds = (followsData || []).map(f => f.following_id);
     const allIds = [...new Set([userId, ...followedIds])];
 
-    const { data: rawPosts } = await supabase.from("posts").select("*").in("user_id", allIds).order("created_at", { ascending: false }).limit(50);
+    const { data: rawPosts } = await (supabase as any).from("posts").select("*").in("user_id", allIds).is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }).limit(50);
     if (!rawPosts || rawPosts.length === 0) { setPosts([]); setLoading(false); return; }
 
-    const userIds = [...new Set(rawPosts.map(p => p.user_id))];
+    const userIds = Array.from(new Set<string>(rawPosts.map((p: any) => p.user_id)));
     const [playerRes, scoutRes, roleRes] = await Promise.all([
       supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url, position, current_team").in("user_id", userIds),
       supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url, title, organization").in("user_id", userIds),
@@ -139,7 +139,7 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
   }, []);
 
   const handleDelete = async (postId: string) => {
-    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    const { error } = await (supabase as any).from("posts").update({ deleted_at: new Date().toISOString() }).eq("id", postId);
     if (error) toast.error(lang === "ro" ? "Eroare la ștergere" : "Failed to delete");
     else if (currentUserId) fetchPosts(currentUserId);
   };

@@ -116,18 +116,52 @@ export default function NewGroupChat({ currentUserId, lang, onBack, onCreated }:
       return;
     }
 
-    // 2. Insert members (creator + selected)
+    // 2. Insert members (creator + selected). This is a bulk insert whose
+    // RLS check (can_add_to_group) can reject individual rows — a bulk
+    // INSERT is all-or-nothing, so if even one selected member can't be
+    // added, the whole statement (including the creator's own row) used to
+    // fail silently, leaving an orphaned group with zero members. Insert
+    // members one at a time so a single rejected member doesn't sink the
+    // whole group, and surface which ones failed.
     const memberIds = [currentUserId, ...Array.from(selected)];
-    await (supabase as any).from("group_members").insert(memberIds.map(uid => ({ group_id: group.id, user_id: uid })));
+    const failedIds: string[] = [];
+    for (const uid of memberIds) {
+      const { error: memberErr } = await (supabase as any)
+        .from("group_members")
+        .insert({ group_id: group.id, user_id: uid });
+      if (memberErr) failedIds.push(uid);
+    }
 
-    // 3. Build GroupItem for navigation
+    if (failedIds.includes(currentUserId)) {
+      // Creator couldn't even be added to their own group — delete the
+      // orphaned group_conversations row and report failure.
+      await (supabase as any).from("group_conversations").delete().eq("id", group.id);
+      toast({ title: lang === "ro" ? "Eroare la creare grup." : "Error creating group.", variant: "destructive" });
+      setCreating(false);
+      return;
+    }
+
+    // 3. Build GroupItem for navigation (only successfully-added members)
     const allUsers = [...suggested, ...searchResults];
-    const members = memberIds.map(uid => {
+    const addedIds = memberIds.filter(uid => !failedIds.includes(uid));
+    const members = addedIds.map(uid => {
       const u = allUsers.find(x => x.userId === uid);
       return { userId: uid, name: u?.name ?? "", photo: u?.photo ?? null };
     });
 
-    toast({ title: lang === "ro" ? `Grupul "${name}" a fost creat!` : `Group "${name}" created!` });
+    if (failedIds.length > 0) {
+      const failedNames = failedIds
+        .map(uid => allUsers.find(x => x.userId === uid)?.name)
+        .filter(Boolean)
+        .join(", ");
+      toast({
+        title: lang === "ro" ? "Unii utilizatori nu au putut fi adăugați." : "Some users couldn't be added.",
+        description: failedNames || undefined,
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: lang === "ro" ? `Grupul "${name}" a fost creat!` : `Group "${name}" created!` });
+    }
     onCreated({ id: group.id, name, members, lastMessage: lang === "ro" ? "Grup nou" : "New group", lastMessageAt: group.created_at });
     setCreating(false);
   };
