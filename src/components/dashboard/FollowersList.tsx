@@ -10,23 +10,26 @@ interface Follower {
   follower_id: string;
   name: string;
   photo: string | null;
-  role: "player" | "scout" | "agent";
+  role: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
 }
 
 interface FollowersListProps {
   followers: Follower[];
   onRemove: (followId: string) => void;
-  onViewProfile: (userId: string, role: "player" | "scout" | "agent") => void;
+  onViewProfile: (userId: string, role: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator") => void;
   onClose: () => void;
+  isLocked?: boolean;
 }
 
-const FollowersList = ({ followers, onRemove, onViewProfile, onClose }: FollowersListProps) => {
+const FollowersList = ({ followers, onRemove, onViewProfile, onClose, isLocked = false }: FollowersListProps) => {
   const { lang } = useLanguage();
   const [search, setSearch] = useState("");
 
   const roleLabel = (role: string) => {
     if (role === "player") return lang === "ro" ? "Jucător" : "Player";
     if (role === "scout") return "Scouter";
+    if (role === "club_rep") return lang === "ro" ? "Reprezentant club" : "Club Representative";
+    if (role === "cauta_jucator") return lang === "ro" ? "Caută Jucător" : "Search Player";
     return "Agent";
   };
 
@@ -83,6 +86,7 @@ const FollowersList = ({ followers, onRemove, onViewProfile, onClose }: Follower
                 variant="ghost"
                 size="sm"
                 onClick={() => onRemove(f.id)}
+                disabled={isLocked}
                 className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
                 title={lang === "ro" ? "Elimină urmăritor" : "Remove follower"}
               >

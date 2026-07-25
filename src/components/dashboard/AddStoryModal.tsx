@@ -63,8 +63,18 @@ export default function AddStoryModal({ userId, open, onClose, onPosted, userPho
     setSelectedUrl(url); setSelectedFile(file || null); setView("editor");
   };
 
+  const ALLOWED_STORY_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
+    if (!ALLOWED_STORY_TYPES.includes(file.type)) {
+      toast({ title: lang === "ro" ? "Format nesuportat." : "Unsupported format.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast({ title: lang === "ro" ? "Fișierul trebuie să fie sub 50MB." : "File must be under 50MB.", variant: "destructive" });
+      return;
+    }
     selectImage(URL.createObjectURL(file), file);
   };
 

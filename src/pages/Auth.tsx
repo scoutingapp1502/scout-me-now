@@ -14,6 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 
+// Roles that must upload a verification document at signup and stay
+// gated until an admin approves it — currently scout (full-page block)
+// and cauta_jucator (dashboard visible, actions disabled until approved).
+const REQUIRES_VERIFICATION = ["scout", "cauta_jucator"];
+
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -23,17 +28,13 @@ const Auth = () => {
   const [tab, setTab] = useState<"login" | "register" | "forgot">(
     searchParams.get("tab") === "login" ? "login" : "register"
   );
-  const [role, setRole] = useState<"player" | "scout" | "agent" | "club_rep">(
-    searchParams.get("role") === "scout" ? "scout"
-      : searchParams.get("role") === "agent" ? "agent"
-      : searchParams.get("role") === "club_rep" ? "club_rep"
-      : "player"
+  const [role, setRole] = useState<"player" | "scout" | "agent" | "club_rep" | "cauta_jucator">(
+    searchParams.get("role") === "cauta_jucator" ? "cauta_jucator" : "player"
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [clubName, setClubName] = useState("");
   const [sport, setSport] = useState("football");
   const [gender, setGender] = useState("");
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
@@ -68,18 +69,15 @@ const Auth = () => {
       toast({ title: t.auth.errorRegister, description: t.auth.passwordsMismatch, variant: "destructive" });
       return;
     }
-    if (role === "scout" && !scoutDocument) {
-      toast({ title: "Document lipsă", description: "Încarcă un document de verificare pentru contul de Scouter.", variant: "destructive" });
+    if (REQUIRES_VERIFICATION.includes(role) && !scoutDocument) {
+      toast({ title: "Document lipsă", description: "Încarcă un document de verificare pentru acest tip de cont.", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       const metadata: Record<string, any> = { full_name: fullName, role, gender, sport };
-      if (role === "scout" || role === "agent" || role === "club_rep") {
+      if (role === "scout" || role === "agent" || role === "club_rep" || role === "cauta_jucator") {
         metadata.sports = selectedSports;
-      }
-      if (role === "club_rep") {
-        metadata.club_name = clubName;
       }
       const { data, error } = await supabase.auth.signUp({
         email, password,
@@ -105,8 +103,8 @@ const Auth = () => {
             if (inviteErr) console.error("invite_uses insert failed:", inviteErr);
           }
         }
-        // Upload scout document if provided
-        if (role === "scout" && scoutDocument && data.user) {
+        // Upload verification document if provided
+        if (REQUIRES_VERIFICATION.includes(role) && scoutDocument && data.user) {
           try {
             const fileBase64 = await toBase64(scoutDocument);
             const { error: fnError } = await supabase.functions.invoke("submit-scout-document", {
@@ -161,7 +159,7 @@ const Auth = () => {
   };
 
   if (registeredEmail) {
-    const isScout = role === "scout";
+    const isScout = REQUIRES_VERIFICATION.includes(role);
     return (
       <div className="min-h-screen bg-gradient-to-br from-pitch via-pitch/95 to-primary/20 flex items-center justify-center p-4">
         <div className="absolute inset-0 opacity-5" style={{
@@ -294,7 +292,7 @@ const Auth = () => {
                     <>
                       <div className="space-y-2">
                         <Label className="font-body text-sm">{t.auth.accountType}</Label>
-                        <Select value={role} onValueChange={(v) => setRole(v as "player" | "scout" | "agent" | "club_rep")}>
+                        <Select value={role} onValueChange={(v) => setRole(v as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator")}>
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder={t.auth.selectAccountType} />
                           </SelectTrigger>
@@ -305,22 +303,10 @@ const Auth = () => {
                                 <span className="text-xs text-muted-foreground">{t.auth.playerDesc}</span>
                               </div>
                             </SelectItem>
-                            <SelectItem value="scout">
+                            <SelectItem value="cauta_jucator">
                               <div className="flex flex-col">
-                                <span className="font-semibold text-sm">{t.auth.scout}</span>
-                                <span className="text-xs text-muted-foreground">{t.auth.scoutDesc}</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="agent">
-                              <div className="flex flex-col">
-                                <span className="font-semibold text-sm">{t.auth.agent}</span>
-                                <span className="text-xs text-muted-foreground">{t.auth.agentDesc}</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="club_rep">
-                              <div className="flex flex-col">
-                                <span className="font-semibold text-sm">{t.auth.clubRep}</span>
-                                <span className="text-xs text-muted-foreground">{t.auth.clubRepDesc}</span>
+                                <span className="font-semibold text-sm">{t.auth.cautaJucator}</span>
+                                <span className="text-xs text-muted-foreground">{t.auth.cautaJucatorDesc}</span>
                               </div>
                             </SelectItem>
                           </SelectContent>
@@ -330,12 +316,6 @@ const Auth = () => {
                         <Label htmlFor="fullName" className="font-body">{t.auth.fullName}</Label>
                         <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.auth.fullNamePlaceholder} required />
                       </div>
-                      {role === "club_rep" && (
-                        <div className="space-y-2">
-                          <Label htmlFor="clubName" className="font-body">{t.auth.clubName}</Label>
-                          <Input id="clubName" value={clubName} onChange={(e) => setClubName(e.target.value)} placeholder={t.auth.clubNamePlaceholder} required />
-                        </div>
-                      )}
                       {role === "player" && (
                         <>
                           <div className="space-y-2">
@@ -390,7 +370,7 @@ const Auth = () => {
                           </p>
                         </div>
                       )}
-                      {(role === "scout" || role === "agent" || role === "club_rep") && (
+                      {(role === "scout" || role === "agent" || role === "club_rep" || role === "cauta_jucator") && (
                         <div className="space-y-2">
                           <Label className="font-body text-sm">{t.auth.sportsInterest}</Label>
                           <Popover>
@@ -456,7 +436,7 @@ const Auth = () => {
                      </div>
                    )}
 
-                   {tab === "register" && role === "scout" && (
+                   {tab === "register" && REQUIRES_VERIFICATION.includes(role) && (
                      <div className="space-y-2">
                        <Label className="font-body text-sm">
                          Document de verificare <span className="text-destructive">*</span>

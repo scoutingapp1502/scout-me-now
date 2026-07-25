@@ -1,3 +1,8 @@
+-- PART 1 of 2 — paste and RUN this first, then paste and run PART 2 separately.
+-- (Postgres requires a new enum value like 'cauta_jucator' to be committed
+-- before it can be referenced elsewhere, so the two parts cannot run in one script/transaction.)
+-- Regenerated 2026-07-25.
+
 -- ===== 20260711120000_fix_user_roles_privilege_escalation.sql =====
 -- Security fix: the original INSERT policy on user_roles only checked
 -- auth.uid() = user_id, without restricting which role value could be
@@ -253,8 +258,28 @@ ALTER TABLE public.user_privacy_settings
   ADD COLUMN IF NOT EXISTS account_visibility text NOT NULL DEFAULT 'scouts_only'
     CHECK (account_visibility IN ('scouts_only', 'private'));
 
-UPDATE public.user_privacy_settings
-SET account_visibility = CASE WHEN is_private_account THEN 'private' ELSE 'scouts_only' END;
+-- One-time backfill only: this must NOT blindly re-run on every replay of
+-- this idempotent bundle. account_visibility was later widened to a
+-- 3-option domain (scouts_only/scouts_and_mutual/everyone) by
+-- 20260724140000_account_visibility_three_options.sql, which drops
+-- 'private' as a valid value entirely and re-normalizes every row into the
+-- 3-option domain. So: if the constraint currently in force already allows
+-- 'scouts_and_mutual'/'everyone' (i.e. the later migration has already run
+-- at some point), this backfill is obsolete and must be skipped — an
+-- unconditional UPDATE here would stomp already-migrated rows back to the
+-- no-longer-valid 'private' value and violate that later CHECK constraint.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.user_privacy_settings'::regclass
+      AND conname = 'user_privacy_settings_account_visibility_check'
+      AND pg_get_constraintdef(oid) LIKE '%scouts_and_mutual%'
+  ) THEN
+    UPDATE public.user_privacy_settings
+    SET account_visibility = CASE WHEN is_private_account THEN 'private' ELSE 'scouts_only' END;
+  END IF;
+END $$;
 
 CREATE OR REPLACE FUNCTION public.can_view_profile(_profile_user_id uuid)
 RETURNS boolean
@@ -998,9 +1023,13 @@ $$;
 ALTER TABLE public.user_privacy_settings
   DROP CONSTRAINT IF EXISTS user_privacy_settings_account_visibility_check;
 
+-- Unconditional re-run (not gated on migration having run before): a user
+-- could still write the old 'private' value between bundle re-runs via a
+-- stale/cached client build, so re-normalize every time rather than only
+-- once historically.
 UPDATE public.user_privacy_settings
 SET account_visibility = 'scouts_and_mutual'
-WHERE account_visibility = 'private';
+WHERE account_visibility NOT IN ('scouts_only', 'scouts_and_mutual', 'everyone');
 
 ALTER TABLE public.user_privacy_settings
   ADD CONSTRAINT user_privacy_settings_account_visibility_check
@@ -1028,6 +1057,15 @@ BEGIN
     RETURN true;
   END IF;
 
+  -- account_visibility only ever restricts access for scouts/agents vs.
+  -- everyone else — it was never meant to hide ordinary players from each
+  -- other in Community. An ordinary player viewing another player's profile
+  -- always passes, regardless of the profile owner's scouts_only/
+  -- scouts_and_mutual choice.
+  IF public.has_role(_profile_user_id, 'player'::app_role) AND public.has_role(auth.uid(), 'player'::app_role) THEN
+    RETURN true;
+  END IF;
+
   IF _visibility = 'scouts_and_mutual' THEN
     -- Mutual follow: viewer follows the profile owner AND the owner follows
     -- the viewer back, both accepted.
@@ -1043,4 +1081,194 @@ BEGIN
   RETURN false; -- 'scouts_only' and viewer is neither a scout/agent nor mutual
 END;
 $$;
+
+-- ===== 20260724150000_ping_daily_visit_server_side_tests.sql =====
+-- ping_daily_visit(_available_tests text[]) trusted the client-supplied test
+-- list to decide which technical test gets unlocked next. Since a player's
+-- sport (and therefore their real test list) lives in player_profiles.sport
+-- and the client can pass any array it wants, a malicious client could pass
+-- an arbitrary/foreign test_key array to influence which key ends up in
+-- unlocked_tests (e.g. keys belonging to the other sport, or a made-up key).
+-- Actual video verification is still admin-gated elsewhere, so this couldn't
+-- forge a verified result, but the unlock-gate itself should not trust
+-- client input. This recomputes the available test list server-side from
+-- the caller's own player_profiles.sport, ignoring the parameter.
+CREATE OR REPLACE FUNCTION public.ping_daily_visit(_available_tests text[])
+RETURNS TABLE(current_streak integer, unlocked_tests text[], days_until_next_unlock integer, newly_unlocked text, next_test_preview text, best_streak integer, login_streak integer, best_login_streak integer)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _uid uuid := auth.uid();
+  _row public.player_test_unlocks%ROWTYPE;
+  _today date := (now() AT TIME ZONE 'UTC')::date;
+  _gap integer;
+  _required integer;
+  _candidates text[];
+  _new_test text := NULL;
+  _days_left integer := 0;
+  _grace_earned integer;
+  _sport text;
+  _real_available_tests text[];
+BEGIN
+  IF _uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  SELECT sport INTO _sport FROM public.player_profiles WHERE user_id = _uid;
+
+  _real_available_tests := CASE COALESCE(_sport, 'football')
+    WHEN 'basketball' THEN ARRAY[
+      'free_throw_shooting_video', 'star_shooting_drill_video', 'crossover_video',
+      'between_the_legs_video', 'double_cross_video', 'between_legs_cross_video'
+    ]
+    ELSE ARRAY[
+      'control_pass_video', 'slalom_video', 'precision_video', 'coordination_video'
+    ]
+  END;
+
+  INSERT INTO public.player_test_unlocks (user_id, current_streak, last_visit_date, next_unlock_started_on, best_streak, login_streak, best_login_streak)
+  VALUES (_uid, 1, _today, _today, 1, 1, 1)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  SELECT * INTO _row FROM public.player_test_unlocks WHERE user_id = _uid;
+
+  IF _row.last_visit_date IS NULL THEN
+    _row.current_streak := 1;
+    _row.login_streak := 1;
+    _row.last_visit_date := _today;
+    _row.next_unlock_started_on := _today;
+    _row.grace_days_used := 0;
+  ELSE
+    _gap := _today - _row.last_visit_date;
+    IF _gap = 0 THEN
+      IF _row.current_streak < 1 THEN
+        _row.current_streak := 1;
+      END IF;
+      IF COALESCE(_row.login_streak, 0) < 1 THEN
+        _row.login_streak := 1;
+      END IF;
+    ELSIF _gap = 1 THEN
+      _row.current_streak := _row.current_streak + 1;
+      _row.login_streak := COALESCE(_row.login_streak, 0) + 1;
+      _row.last_visit_date := _today;
+    ELSIF _gap = 2 THEN
+      _grace_earned := floor(COALESCE(_row.login_streak, _row.current_streak) / 7);
+      IF COALESCE(_row.grace_days_used, 0) < _grace_earned THEN
+        _row.grace_days_used := COALESCE(_row.grace_days_used, 0) + 1;
+        _row.last_visit_date := _today;
+      ELSE
+        _row.current_streak := 1;
+        _row.login_streak := 1;
+        _row.last_visit_date := _today;
+        _row.next_unlock_started_on := _today;
+        _row.next_test_preview := NULL;
+        _row.grace_days_used := 0;
+      END IF;
+    ELSE
+      _row.current_streak := 1;
+      _row.login_streak := 1;
+      _row.last_visit_date := _today;
+      _row.next_unlock_started_on := _today;
+      _row.next_test_preview := NULL;
+      _row.grace_days_used := 0;
+    END IF;
+  END IF;
+
+  IF _row.current_streak > COALESCE(_row.best_streak, 0) THEN
+    _row.best_streak := _row.current_streak;
+  END IF;
+  IF COALESCE(_row.login_streak, 0) > COALESCE(_row.best_login_streak, 0) THEN
+    _row.best_login_streak := _row.login_streak;
+  END IF;
+
+  IF array_length(_row.unlocked_tests, 1) IS NULL OR array_length(_row.unlocked_tests, 1) = 0 THEN
+    _required := 3;
+  ELSE
+    _required := 4;
+  END IF;
+
+  IF _row.current_streak >= _required AND array_length(COALESCE(_row.unlocked_tests, '{}'), 1) IS DISTINCT FROM array_length(_real_available_tests, 1) THEN
+    SELECT array_agg(t) INTO _candidates
+    FROM unnest(_real_available_tests) t
+    WHERE t <> ALL (COALESCE(_row.unlocked_tests, '{}'::text[]));
+
+    IF _candidates IS NOT NULL AND array_length(_candidates, 1) > 0 THEN
+      IF _row.next_test_preview IS NOT NULL AND _row.next_test_preview = ANY(_candidates) THEN
+        _new_test := _row.next_test_preview;
+      ELSE
+        _new_test := _candidates[1 + floor(random() * array_length(_candidates, 1))::int];
+      END IF;
+      _row.unlocked_tests := array_append(COALESCE(_row.unlocked_tests, '{}'::text[]), _new_test);
+      _row.current_streak := 1;
+      _row.next_unlock_started_on := _today;
+      _row.next_test_preview := NULL;
+      _row.grace_days_used := 0;
+      _required := 4;
+    END IF;
+  ELSE
+    IF (_required - _row.current_streak) = 1 THEN
+      SELECT array_agg(t) INTO _candidates
+      FROM unnest(_real_available_tests) t
+      WHERE t <> ALL (COALESCE(_row.unlocked_tests, '{}'::text[]));
+      IF _candidates IS NOT NULL AND array_length(_candidates, 1) > 0 THEN
+        IF _row.next_test_preview IS NULL OR NOT (_row.next_test_preview = ANY(_candidates)) THEN
+          _row.next_test_preview := _candidates[1 + floor(random() * array_length(_candidates, 1))::int];
+        END IF;
+      END IF;
+    ELSE
+      _row.next_test_preview := NULL;
+    END IF;
+  END IF;
+
+  UPDATE public.player_test_unlocks
+  SET current_streak = _row.current_streak,
+      last_visit_date = _row.last_visit_date,
+      unlocked_tests = _row.unlocked_tests,
+      next_unlock_started_on = _row.next_unlock_started_on,
+      next_test_preview = _row.next_test_preview,
+      grace_days_used = _row.grace_days_used,
+      best_streak = _row.best_streak,
+      login_streak = _row.login_streak,
+      best_login_streak = _row.best_login_streak
+  WHERE user_id = _uid;
+
+  _days_left := GREATEST(_required - _row.current_streak, 0);
+
+  RETURN QUERY SELECT _row.current_streak, _row.unlocked_tests, _days_left, _new_test, _row.next_test_preview, _row.best_streak, _row.login_streak, _row.best_login_streak;
+END;
+$function$;
+
+-- ===== 20260724160000_stories_and_scout_posts_visibility.sql =====
+-- Two remaining places account_visibility (scouts_only/scouts_and_mutual/
+-- everyone) was never actually enforced, same class of leak already fixed
+-- for posts/player_profiles/post_likes/post_comments:
+--
+-- 1. stories: "Anyone can view active stories" only checked expires_at, not
+--    who's asking — any authenticated user could open StoryViewer for any
+--    userId and see the story regardless of the owner's account_visibility.
+-- 2. scout_posts: "Anyone can read scout posts" only checked deleted_at
+--    (added in 20260724090000) but never gated on can_view_profile like its
+--    sibling policy on posts did in the same migration.
+DROP POLICY IF EXISTS "Anyone can view active stories" ON public.stories;
+DROP POLICY IF EXISTS "Stories respect author account visibility" ON public.stories;
+CREATE POLICY "Stories respect author account visibility"
+  ON public.stories FOR SELECT
+  USING (expires_at > now() AND public.can_view_profile(user_id));
+
+DROP POLICY IF EXISTS "Anyone can read scout posts" ON public.scout_posts;
+DROP POLICY IF EXISTS "Scout posts respect author account visibility" ON public.scout_posts;
+CREATE POLICY "Scout posts respect author account visibility"
+  ON public.scout_posts FOR SELECT
+  USING (deleted_at IS NULL AND public.can_view_profile(user_id));
+
+-- ===== 20260725100000_add_cauta_jucator_role.sql =====
+-- New role: "Caută Jucător" ("Search Player") — mirrors scout/club_rep in
+-- the dashboard UI but goes through the same document-verification flow as
+-- scout. This migration only adds the enum value; Postgres forbids using a
+-- freshly-added enum value inside the same transaction that added it, so
+-- every migration referencing 'cauta_jucator' must run in a later, separate
+-- migration file.
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'cauta_jucator';
 

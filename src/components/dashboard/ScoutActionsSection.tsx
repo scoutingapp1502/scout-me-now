@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLanguage } from "@/i18n/LanguageContext";
 import ScoutPlayerNoteDialog from "./ScoutPlayerNoteDialog";
 import ScoutPlayerReportDialog, { exportReportPDF } from "./ScoutPlayerReportDialog";
+import { useAccountLock } from "@/hooks/useAccountLock";
 
 interface Props {
   scoutUserId: string;
+  userRole?: string | null;
   onNavigateToChat?: (userId: string) => void;
 }
 
@@ -86,17 +88,18 @@ function StarRow({ value, max = 10 }: { value: number | null; max?: number }) {
 
 /* ─── Main component ─────────────────────────────────────────────── */
 
-export default function ScoutActionsSection({ scoutUserId }: Props) {
+export default function ScoutActionsSection({ scoutUserId, userRole }: Props) {
   const { lang } = useLanguage();
   const ro = lang === "ro";
   const [tab, setTab] = useState<"notes" | "reports">("notes");
+  const { isLocked } = useAccountLock(scoutUserId, userRole);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-display text-foreground flex items-center gap-3">
           <ClipboardList className="h-8 w-8 text-primary" />
-          {ro ? "Acțiuni scouter" : "Scout actions"}
+          {ro ? "Acțiuni" : "Actions"}
         </h1>
         <p className="text-sm text-muted-foreground font-body mt-1">
           {ro ? "Toate notițele și rapoartele tale despre jucători." : "All your notes and reports about players."}
@@ -121,15 +124,15 @@ export default function ScoutActionsSection({ scoutUserId }: Props) {
         </button>
       </div>
 
-      {tab === "notes" && <NotesTab scoutUserId={scoutUserId} />}
-      {tab === "reports" && <ReportsTab scoutUserId={scoutUserId} />}
+      {tab === "notes" && <NotesTab scoutUserId={scoutUserId} isLocked={isLocked} />}
+      {tab === "reports" && <ReportsTab scoutUserId={scoutUserId} isLocked={isLocked} />}
     </div>
   );
 }
 
 /* ─── Notes tab ──────────────────────────────────────────────────── */
 
-function NotesTab({ scoutUserId }: { scoutUserId: string }) {
+function NotesTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: boolean }) {
   const { lang } = useLanguage();
   const ro = lang === "ro";
   const priorityLabel = ro ? PRIORITY_LABEL_RO : PRIORITY_LABEL_EN;
@@ -299,7 +302,7 @@ function NotesTab({ scoutUserId }: { scoutUserId: string }) {
                       <span className="text-[11px] text-muted-foreground font-body">{ro ? "Actualizat" : "Updated"}: {new Date(n.updated_at).toLocaleDateString(ro ? "ro-RO" : "en-US")}</span>
                       <div className="flex gap-1.5">
                         <Button size="sm" variant="outline" onClick={() => handleExportSinglePDF(n)} title="Export PDF"><Download className="h-3.5 w-3.5" /></Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingPlayer(n)}><Pencil className="h-3.5 w-3.5 mr-1" />{ro ? "Editează" : "Edit"}</Button>
+                        <Button size="sm" variant="outline" disabled={isLocked} onClick={() => setEditingPlayer(n)}><Pencil className="h-3.5 w-3.5 mr-1" />{ro ? "Editează" : "Edit"}</Button>
                       </div>
                     </div>
                   </div>
@@ -327,7 +330,7 @@ function NotesTab({ scoutUserId }: { scoutUserId: string }) {
 
 /* ─── Reports tab ────────────────────────────────────────────────── */
 
-function ReportsTab({ scoutUserId }: { scoutUserId: string }) {
+function ReportsTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: boolean }) {
   const { lang } = useLanguage();
   const ro = lang === "ro";
   const recLabel = ro ? REC_LABEL_RO : REC_LABEL_EN;
@@ -476,7 +479,7 @@ function ReportsTab({ scoutUserId }: { scoutUserId: string }) {
                       <span className="text-[11px] text-muted-foreground font-body">{ro ? "Actualizat" : "Updated"}: {new Date(r.updated_at).toLocaleDateString(ro ? "ro-RO" : "en-US")}</span>
                       <div className="flex gap-1.5">
                         <Button size="sm" variant="outline" onClick={() => handleExportPDF(r)} title="Export PDF"><Download className="h-3.5 w-3.5" /></Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingReport(r)}><Pencil className="h-3.5 w-3.5 mr-1" />{ro ? "Editează" : "Edit"}</Button>
+                        <Button size="sm" variant="outline" disabled={isLocked} onClick={() => setEditingReport(r)}><Pencil className="h-3.5 w-3.5 mr-1" />{ro ? "Editează" : "Edit"}</Button>
                       </div>
                     </div>
                   </div>

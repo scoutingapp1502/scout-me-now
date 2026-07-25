@@ -32,9 +32,20 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error(lang === "ro" ? "Format nesuportat. Folosește JPG, PNG, WebP sau GIF." : "Unsupported format. Use JPG, PNG, WebP or GIF.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(lang === "ro" ? "Imaginea trebuie să fie sub 10MB" : "Image must be under 10MB");
+      return;
+    }
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
   };
@@ -46,6 +57,10 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+      toast.error(lang === "ro" ? "Format nesuportat. Folosește MP4, WebM, OGG sau MOV." : "Unsupported format. Use MP4, WebM, OGG or MOV.");
+      return;
+    }
     if (file.size > 50 * 1024 * 1024) {
       toast.error(lang === "ro" ? "Videoclipul trebuie să fie sub 50MB" : "Video must be under 50MB");
       return;

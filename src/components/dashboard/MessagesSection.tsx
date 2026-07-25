@@ -5,6 +5,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePresence } from "@/hooks/usePresence";
+import { useAccountLock } from "@/hooks/useAccountLock";
 import { useToast } from "@/hooks/use-toast";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
@@ -31,6 +32,7 @@ const getRoleLabel = (role: string | null, lang: string) => {
     player: { ro: "Jucător", en: "Player" },
     scout: { ro: "Scouter", en: "Scout" },
     agent: { ro: "Agent", en: "Agent" },
+    cauta_jucator: { ro: "Caută Jucător", en: "Search Player" },
   };
   return labels[role]?.[lang] || role;
 };
@@ -97,6 +99,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [newMessage, setNewMessage] = useState("");
   const [sending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const { isLocked: messagingLocked } = useAccountLock(currentUserId, currentUserRole);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const { isOnline } = usePresence(currentUserId);
@@ -121,6 +125,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setCurrentUserId(user.id);
+    supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setCurrentUserRole(data?.role ?? null))
+      .catch((err) => console.error("Failed to load current user role:", err));
 
     const { data: convs } = await supabase
       .from("conversations")
@@ -544,6 +551,23 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     setGroupMessages(prev => prev.map(m => m.id === optimisticId ? { ...data, senderName: me?.name ?? "", senderPhoto: me?.photo ?? null } : m));
     await (supabase as any).from("group_conversations").update({ updated_at: new Date().toISOString() }).eq("id", selectedGroup.id);
   };
+
+  // ---- LOCKED (unapproved Caută Jucător): no read, no send ----
+  if (messagingLocked) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center px-6 py-16">
+        <MessageSquare className="w-12 h-12 text-muted-foreground/40 mb-4" />
+        <h3 className="font-heading font-semibold text-lg mb-2">
+          {lang === "ro" ? "Mesageria este indisponibilă" : "Messaging is unavailable"}
+        </h3>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          {lang === "ro"
+            ? "Contul tău este în curs de verificare. Vei putea trimite și primi mesaje după aprobarea contului."
+            : "Your account is pending verification. You'll be able to send and receive messages once your account is approved."}
+        </p>
+      </div>
+    );
+  }
 
   // ---- NEW GROUP VIEW ----
   if (showNewGroup) {

@@ -13,7 +13,7 @@ interface DashboardSidebarProps {
   playerName?: string;
   playerSport?: string;
   profileLabel?: string;
-  userRole?: "player" | "scout" | "agent" | "club_rep" | null;
+  userRole?: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator" | null;
   userId?: string | null;
 }
 
@@ -107,13 +107,13 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
     }
   }, [activeSection]);
 
-  const showPlayerNotes = userRole === "scout" || userRole === "club_rep";
+  const showPlayerNotes = userRole === "scout" || userRole === "club_rep" || userRole === "cauta_jucator";
   const mySpaceSections = [
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
     { id: "messages", label: (t as any).dashboard?.sidebar?.messages ?? "Messages", icon: MessageCircle },
     { id: "notifications", label: (t as any).dashboard?.sidebar?.notifications ?? "Notifications", icon: Bell },
     { id: "activity", label: (t as any).dashboard?.sidebar?.activity ?? "Activity", icon: Newspaper },
-    ...(showPlayerNotes ? [{ id: "player-notes", label: (t as any).dashboard?.sidebar?.scoutActions ?? "Scout actions", icon: ClipboardList }] : []),
+    ...(showPlayerNotes ? [{ id: "player-notes", label: (t as any).dashboard?.sidebar?.scoutActions ?? "Actions", icon: ClipboardList }] : []),
   ];
   const discoverSections = [
     { id: "community", label: (t as any).dashboard?.sidebar?.community ?? "Community", icon: Sparkles },
@@ -128,7 +128,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   return (
     <aside className="w-64 min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="p-6 border-b border-sidebar-border">
-        <span className="font-display text-2xl text-primary">{(userRole === "scout" || userRole === "agent" || userRole === "club_rep") ? "" : "⚽ "}SPORTRISE</span>
+        <span className="font-display text-2xl text-primary">{(userRole === "scout" || userRole === "agent" || userRole === "club_rep" || userRole === "cauta_jucator") ? "" : "⚽ "}SPORTRISE</span>
         {playerName && (
           <p className="text-sm text-sidebar-foreground/60 font-body mt-1 truncate">
             {playerName}{userRole === "player" && playerSport ? ` · ${playerSport.charAt(0).toUpperCase() + playerSport.slice(1)}` : ""}
@@ -142,6 +142,9 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         )}
         {userRole === "club_rep" && (
           <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">CLUB REPRESENTATIVE</p>
+        )}
+        {userRole === "cauta_jucator" && (
+          <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">CAUTĂ JUCĂTOR</p>
         )}
       </div>
 

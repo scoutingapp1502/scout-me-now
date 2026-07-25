@@ -18,7 +18,7 @@ interface FollowNotification {
   status: "pending" | "accepted" | "rejected";
   follower_name: string;
   follower_photo: string | null;
-  follower_role: "player" | "scout" | "agent";
+  follower_role: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
   isRead: boolean;
   direction: "incoming" | "outgoing";
 }
@@ -42,7 +42,7 @@ interface RecommendationNotification {
   other_user_id: string;
   other_name: string;
   other_photo: string | null;
-  other_role: "player" | "scout" | "agent";
+  other_role: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
   created_at: string;
   status: "pending" | "submitted";
   perspective: "author" | "recipient";
@@ -83,7 +83,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
-  const [viewProfileRole, setViewProfileRole] = useState<"player" | "scout" | "agent" | null>(null);
+  const [viewProfileRole, setViewProfileRole] = useState<"player" | "scout" | "agent" | "club_rep" | "cauta_jucator" | null>(null);
 
   const fetchNotifications = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -138,7 +138,9 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
       roles?.forEach(r => { roleMap[r.user_id] = r.role; });
 
       const playerIds = followerIds.filter(id => roleMap[id] === "player");
-      const scoutIds = followerIds.filter(id => roleMap[id] === "scout" || roleMap[id] === "agent");
+      const scoutIds = followerIds.filter(id =>
+        roleMap[id] === "scout" || roleMap[id] === "agent" || roleMap[id] === "club_rep" || roleMap[id] === "cauta_jucator"
+      );
 
       let playerMap: Record<string, { name: string; photo: string | null }> = {};
       let scoutMap: Record<string, { name: string; photo: string | null }> = {};
@@ -165,7 +167,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
 
       followNotifs = [
         ...(follows || []).map(f => {
-          const role = (roleMap[f.follower_id] || "player") as "player" | "scout" | "agent";
+          const role = (roleMap[f.follower_id] || "player") as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
           const info = role === "player" ? playerMap[f.follower_id] : scoutMap[f.follower_id];
           return {
             id: f.id,
@@ -182,7 +184,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
           };
         }),
         ...(respondedSentFollows || []).map(f => {
-          const role = (roleMap[f.following_id] || "player") as "player" | "scout" | "agent";
+          const role = (roleMap[f.following_id] || "player") as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
           const info = role === "player" ? playerMap[f.following_id] : scoutMap[f.following_id];
           return {
             id: `${f.id}-response`,
@@ -382,7 +384,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
 
       pendingAsAuthor.forEach((r: any) => {
         const info = recNameMap[r.recipient_user_id];
-        const role = (recRoleMap[r.recipient_user_id] || "scout") as "player" | "scout" | "agent";
+        const role = (recRoleMap[r.recipient_user_id] || "scout") as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
         recNotifs.push({
           id: `rec-${r.id}-author`,
           type: "recommendation",
@@ -399,7 +401,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
 
       submittedAsRecipient.forEach((r: any) => {
         const info = recNameMap[r.author_user_id];
-        const role = (recRoleMap[r.author_user_id] || "player") as "player" | "scout" | "agent";
+        const role = (recRoleMap[r.author_user_id] || "player") as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
         recNotifs.push({
           id: `rec-${r.id}-recipient`,
           type: "recommendation",
@@ -512,7 +514,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
             other_user_id: l.user_id,
             other_name: likerInfoMap[l.user_id]?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
             other_photo: likerInfoMap[l.user_id]?.photo || null,
-            other_role: (likerRoleMap[l.user_id] || "player") as "player" | "scout" | "agent",
+            other_role: (likerRoleMap[l.user_id] || "player") as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator",
             created_at: l.created_at,
             isRead: isNotificationRead(user.id, `storylike-${l.id}`),
           }));
@@ -661,6 +663,8 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
   const roleLabel = (role: string) => {
     if (role === "player") return lang === "ro" ? "Jucător" : "Player";
     if (role === "scout") return "Scouter";
+    if (role === "club_rep") return lang === "ro" ? "Reprezentant club" : "Club Representative";
+    if (role === "cauta_jucator") return lang === "ro" ? "Caută Jucător" : "Search Player";
     return "Agent";
   };
 

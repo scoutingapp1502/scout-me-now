@@ -31,7 +31,7 @@ const HeroSection = () => {
               <ChevronRight className="ml-1 h-5 w-5" />
             </Button>
           </Link>
-          <Link to="/auth?tab=register&role=scout">
+          <Link to="/auth?tab=register&role=cauta_jucator">
             <Button size="lg" className="w-full sm:w-auto border-2 border-electric/50 text-electric hover:bg-electric/10 font-bold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl bg-transparent">
               {t.hero.ctaScout}
             </Button>

@@ -231,12 +231,16 @@ export function useActivityNotifications(userId: string | null) {
     // The relevant post/comment ids for this user (their own posts, and
     // posts by people they follow) are a dynamic set that Realtime's
     // single-column filter can't express, so every insert/like/comment in
-    // the app reaches this listener. Debounce bursts into one fetchCount
-    // instead of rebuilding the notification list on every single event.
+    // the app reaches this listener — a global fan-out shared by every
+    // online user, unrelated to their own follow-graph size. A longer
+    // debounce window (vs. the original 500ms) coalesces more of that
+    // unrelated traffic into fewer fetchCount() calls per user under load,
+    // without changing when a genuinely-relevant update becomes visible by
+    // more than ~1.5s in the worst case.
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const debouncedFetchCount = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchCount(), 500);
+      debounceTimer = setTimeout(() => fetchCount(), 2000);
     };
 
     const channel = supabase

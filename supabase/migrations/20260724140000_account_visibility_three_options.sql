@@ -11,9 +11,13 @@
 ALTER TABLE public.user_privacy_settings
   DROP CONSTRAINT IF EXISTS user_privacy_settings_account_visibility_check;
 
+-- Unconditional re-run (not gated on migration having run before): a user
+-- could still write the old 'private' value between bundle re-runs via a
+-- stale/cached client build, so re-normalize every time rather than only
+-- once historically.
 UPDATE public.user_privacy_settings
 SET account_visibility = 'scouts_and_mutual'
-WHERE account_visibility = 'private';
+WHERE account_visibility NOT IN ('scouts_only', 'scouts_and_mutual', 'everyone');
 
 ALTER TABLE public.user_privacy_settings
   ADD CONSTRAINT user_privacy_settings_account_visibility_check
@@ -38,6 +42,15 @@ BEGIN
   END IF;
 
   IF public.has_role(auth.uid(), 'scout'::app_role) OR public.has_role(auth.uid(), 'agent'::app_role) THEN
+    RETURN true;
+  END IF;
+
+  -- account_visibility only ever restricts access for scouts/agents vs.
+  -- everyone else — it was never meant to hide ordinary players from each
+  -- other in Community. An ordinary player viewing another player's profile
+  -- always passes, regardless of the profile owner's scouts_only/
+  -- scouts_and_mutual choice.
+  IF public.has_role(_profile_user_id, 'player'::app_role) AND public.has_role(auth.uid(), 'player'::app_role) THEN
     RETURN true;
   END IF;
 

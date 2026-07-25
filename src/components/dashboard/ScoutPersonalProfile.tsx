@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useFollowers } from "@/hooks/useFollowers";
+import { useAccountLock } from "@/hooks/useAccountLock";
 import FollowersList from "./FollowersList";
 import RecommendationsSection from "./RecommendationsSection";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -254,11 +255,19 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const [isAgent, setIsAgent] = useState(false);
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
+  const { isLocked: viewerLocked } = useAccountLock(viewerUserId, viewerRole);
   const [recAuthorView, setRecAuthorView] = useState<{ userId: string; role: string } | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setViewerUserId(user?.id || null))
-      .catch((err) => console.error("Failed to get current user:", err));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setViewerUserId(user?.id || null);
+      if (user?.id) {
+        supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle()
+          .then(({ data }) => setViewerRole(data?.role ?? null))
+          .catch((err) => console.error("Failed to load viewer role:", err));
+      }
+    }).catch((err) => console.error("Failed to get current user:", err));
   }, []);
 
   useEffect(() => {
@@ -520,12 +529,28 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         onRemove={removeFollower}
         onViewProfile={() => {}}
         onClose={() => setShowFollowersList(false)}
+        isLocked={viewerLocked}
       />
     );
   }
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-3 sm:p-6">
+      {!readOnly && viewerLocked && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <Lock className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-500">
+              {lang === "ro" ? "Cont în curs de verificare" : "Account pending verification"}
+            </p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {lang === "ro"
+                ? "Poți edita liber propriul profil, dar restul funcționalităților (mesaje, urmărire, acțiuni) rămân dezactivate până când documentul tău este aprobat de echipa SportRise."
+                : "You can freely edit your own profile, but the rest of the features (messages, follow, actions) stay disabled until your document is approved by the SportRise team."}
+            </p>
+          </div>
+        </div>
+      )}
       {/* ===== HEADER CARD (LinkedIn-style) ===== */}
       <div className="bg-card rounded-xl overflow-hidden border border-border">
         {/* Cover Photo */}
@@ -668,7 +693,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                         <Button
                           onClick={(e) => { e.stopPropagation(); onNavigateToChat ? onNavigateToChat(userId) : setShowMessageDialog(true); }}
                           size="sm"
-                          disabled={followStatus !== "accepted"}
+                          disabled={followStatus !== "accepted" || viewerLocked}
                           className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 disabled:opacity-50"
                         >
                           {followStatus !== "accepted" ? <Lock className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
@@ -689,7 +714,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                   onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
                   size="sm"
                   variant={followStatus === "accepted" ? "secondary" : "outline"}
-                  disabled={followLoading}
+                  disabled={followLoading || viewerLocked}
                   className="font-body gap-2"
                 >
                   {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : followStatus === "accepted" ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}

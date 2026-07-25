@@ -58,7 +58,7 @@ const Dashboard = () => {
   const [playerSport, setPlayerSport] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [completionBarDismissed, setCompletionBarDismissed] = useState(false);
-  const [userRole, setUserRole] = useState<"player" | "scout" | "agent" | "club_rep" | null>(null);
+  const [userRole, setUserRole] = useState<"player" | "scout" | "agent" | "club_rep" | "cauta_jucator" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [pendingChatUserId, setPendingChatUserId] = useState<string | null>(null);
@@ -83,7 +83,7 @@ const Dashboard = () => {
           navigate("/admin");
           return;
         }
-        if (roleData.role === 'scout') {
+        if (roleData.role === 'scout' || roleData.role === 'cauta_jucator') {
           const { data: verif } = await supabase
             .from("scout_verification_requests")
             .select("status")
@@ -92,14 +92,14 @@ const Dashboard = () => {
           if (isMounted) setScoutVerificationStatus(verif?.status ?? null);
         }
         if (isMounted) {
-          setUserRole(roleData.role as "player" | "scout" | "agent" | "club_rep");
+          setUserRole(roleData.role as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator");
           setRoleLoading(false);
         }
         return;
       }
 
       // Role missing — create from user metadata (set during registration)
-      const metaRole = userMeta?.role as "player" | "scout" | "agent" | "club_rep" | undefined;
+      const metaRole = userMeta?.role as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator" | undefined;
       if (!metaRole) {
         if (isMounted) setRoleLoading(false);
         return;
@@ -131,7 +131,7 @@ const Dashboard = () => {
         );
       }
 
-      if (metaRole === "scout") {
+      if (metaRole === "scout" || metaRole === "cauta_jucator") {
         const { data: verif } = await supabase
           .from("scout_verification_requests")
           .select("status")
@@ -170,7 +170,7 @@ const Dashboard = () => {
   // Fetch display name based on role
   useEffect(() => {
     if (!user || !userRole) return;
-    if (userRole === "scout" || userRole === "agent" || userRole === "club_rep") {
+    if (userRole === "scout" || userRole === "agent" || userRole === "club_rep" || userRole === "cauta_jucator") {
       supabase
         .from("scout_profiles")
         .select("first_name, last_name")
@@ -336,7 +336,7 @@ const Dashboard = () => {
         return (
           <>
             {completionBar}
-            {(userRole === "scout" || userRole === "agent" || userRole === "club_rep")
+            {(userRole === "scout" || userRole === "agent" || userRole === "club_rep" || userRole === "cauta_jucator")
               ? <ScoutPersonalProfile userId={user.id} />
               : <PersonalProfile userId={user.id} />}
           </>
@@ -348,8 +348,8 @@ const Dashboard = () => {
       case "community":
         return <CommunitySection onNavigateToChat={handleNavigateToChat} />;
       case "player-notes":
-        return (userRole === "scout" || userRole === "club_rep")
-          ? <ScoutActionsSection scoutUserId={user.id} onNavigateToChat={handleNavigateToChat} />
+        return (userRole === "scout" || userRole === "club_rep" || userRole === "cauta_jucator")
+          ? <ScoutActionsSection scoutUserId={user.id} userRole={userRole} onNavigateToChat={handleNavigateToChat} />
           : null;
       case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
       case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} />;
@@ -386,7 +386,7 @@ const Dashboard = () => {
         return (
           <>
             {completionBar}
-            {(userRole === "scout" || userRole === "agent" || userRole === "club_rep")
+            {(userRole === "scout" || userRole === "agent" || userRole === "club_rep" || userRole === "cauta_jucator")
               ? <ScoutPersonalProfile userId={user.id} />
               : <PersonalProfile userId={user.id} />}
           </>
@@ -394,7 +394,7 @@ const Dashboard = () => {
     }
   };
 
-  const sidebarFirstLabel = (userRole === "scout" || userRole === "agent" || userRole === "club_rep") ? "Personal Area" : undefined;
+  const sidebarFirstLabel = (userRole === "scout" || userRole === "agent" || userRole === "club_rep" || userRole === "cauta_jucator") ? "Personal Area" : undefined;
 
   return (
     <div className="flex h-screen bg-background dark overflow-hidden">

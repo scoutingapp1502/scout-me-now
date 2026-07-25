@@ -20,6 +20,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import PlayerStats from "./PlayerStats";
 import NationalityInput, { getDisplayNationality } from "@/components/ui/nationality-input";
 import { useFollowers } from "@/hooks/useFollowers";
+import { useAccountLock } from "@/hooks/useAccountLock";
 import FollowersList from "./FollowersList";
 import { useTestUnlocks } from "@/hooks/useTestUnlocks";
 import { Progress } from "@/components/ui/progress";
@@ -291,6 +292,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [viewerRole, setViewerRole] = useState<string | null>(null);
+  const { isLocked: viewerLocked } = useAccountLock(viewerUserId, viewerRole);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [showAddStory, setShowAddStory] = useState(false);
@@ -802,6 +804,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
         onRemove={removeFollower}
         onViewProfile={() => {}}
         onClose={() => setShowFollowersList(false)}
+        isLocked={viewerLocked}
       />
     );
   }
@@ -954,7 +957,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                         <Button
                           onClick={(e) => { e.stopPropagation(); onNavigateToChat ? onNavigateToChat(userId) : setShowMessageDialog(true); }}
                           size="sm"
-                          disabled={followStatus !== "accepted"}
+                          disabled={followStatus !== "accepted" || viewerLocked}
                           className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 disabled:opacity-50"
                         >
                           {followStatus !== "accepted" ? <Lock className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
@@ -975,7 +978,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                   onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
                   size="sm"
                   variant={followStatus === "accepted" ? "secondary" : "outline"}
-                  disabled={followLoading}
+                  disabled={followLoading || viewerLocked}
                   className="font-body gap-2"
                 >
                   {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : followStatus === "accepted" ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
@@ -985,16 +988,17 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                       ? (lang === "ro" ? "Cerere trimisă" : "Request sent")
                       : (lang === "ro" ? "Urmărește" : "Follow")}
                 </Button>
-                {viewerRole === "scout" && viewerUserId && viewerUserId !== userId && (
+                {(viewerRole === "scout" || viewerRole === "cauta_jucator") && viewerUserId && viewerUserId !== userId && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         size="sm"
                         variant="outline"
+                        disabled={viewerLocked}
                         className="font-body gap-2 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
                       >
                         <ClipboardList className="h-4 w-4" />
-                        {lang === "ro" ? "Acțiuni scouter" : "Scout actions"}
+                        {lang === "ro" ? "Acțiuni" : "Actions"}
                         <ChevronDown className="h-3.5 w-3.5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -1148,7 +1152,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       )}
 
       {/* Scout Player Note Dialog */}
-      {viewerRole === "scout" && viewerUserId && viewerUserId !== userId && (
+      {(viewerRole === "scout" || viewerRole === "cauta_jucator") && viewerUserId && viewerUserId !== userId && (
         <ScoutPlayerNoteDialog
           open={showNoteDialog}
           onOpenChange={setShowNoteDialog}
@@ -1161,7 +1165,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       )}
 
       {/* Scout Player Report Dialog */}
-      {viewerRole === "scout" && viewerUserId && viewerUserId !== userId && (
+      {(viewerRole === "scout" || viewerRole === "cauta_jucator") && viewerUserId && viewerUserId !== userId && (
         <ScoutPlayerReportDialog
           open={showReportDialog}
           onOpenChange={setShowReportDialog}
@@ -3196,6 +3200,7 @@ function VideoSection({
 /* ======================== POSTS TAB ======================== */
 function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boolean }) {
   const { lang } = useLanguage();
+  const { toast } = useToast();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -3243,10 +3248,22 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
 
   const handleDelete = useCallback(async (postId: string) => {
     const deletedAt = new Date().toISOString();
-    await (supabase as any).from("posts").update({ deleted_at: deletedAt }).eq("id", postId);
-    await (supabase as any).from("scout_posts").update({ deleted_at: deletedAt }).eq("id", postId);
+    const [postsRes, scoutPostsRes] = await Promise.all([
+      (supabase as any).from("posts").update({ deleted_at: deletedAt }).eq("id", postId).select("id"),
+      (supabase as any).from("scout_posts").update({ deleted_at: deletedAt }).eq("id", postId).select("id"),
+    ]);
+    // The post lives in exactly one of the two tables, so one call always
+    // affects 0 rows — that's expected. Only treat this as a failure if
+    // neither call actually updated a row (both errored, or both matched
+    // nothing), so a real failure doesn't silently remove the post from the
+    // UI while leaving it un-deleted in the database.
+    const succeeded = (postsRes.data?.length ?? 0) > 0 || (scoutPostsRes.data?.length ?? 0) > 0;
+    if (!succeeded) {
+      toast({ title: lang === "ro" ? "Eroare la ștergere." : "Failed to delete.", variant: "destructive" });
+      return;
+    }
     setPosts(prev => prev.filter(p => p.id !== postId));
-  }, []);
+  }, [lang, toast]);
 
   const handleViewProfile = useCallback(() => {}, []);
 

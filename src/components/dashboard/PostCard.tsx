@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { isLikelyUnwantedComment, type HideUnwantedLevel } from "@/lib/commentModeration";
+import { useAccountLock } from "@/hooks/useAccountLock";
 
 interface PostAuthor {
   user_id: string;
@@ -175,6 +176,14 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
 
 const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLikeCounts = false }: PostCardProps) => {
   const { lang } = useLanguage();
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  useEffect(() => {
+    if (!currentUserId) return;
+    supabase.from("user_roles").select("role").eq("user_id", currentUserId).maybeSingle()
+      .then(({ data }) => setCurrentUserRole(data?.role ?? null))
+      .catch((err) => console.error("Failed to load current user role:", err));
+  }, [currentUserId]);
+  const { isLocked: viewerLocked } = useAccountLock(currentUserId, currentUserRole);
   const [liked, setLiked] = useState(false);
   const [likingPending, setLikingPending] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
@@ -410,6 +419,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   const getRoleLabel = (role: string) => {
     if (role === "scout") return "Scouter";
     if (role === "agent") return "Agent";
+    if (role === "club_rep") return lang === "ro" ? "Reprezentant club" : "Club Representative";
+    if (role === "cauta_jucator") return lang === "ro" ? "Caută Jucător" : "Search Player";
     return lang === "ro" ? "Jucător" : "Player";
   };
 
@@ -614,7 +625,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={toggleSave}>
+                <DropdownMenuItem onClick={toggleSave} disabled={viewerLocked}>
                   <Bookmark className={`h-4 w-4 mr-2 ${saved ? "fill-current" : ""}`} />
                   {saved ? (lang === "ro" ? "Elimină din salvate" : "Unsave") : (lang === "ro" ? "Salvează" : "Save")}
                 </DropdownMenuItem>
@@ -711,7 +722,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
       <div className="px-4 py-2 border-t border-border flex items-center gap-4 flex-wrap">
         <button
           onClick={toggleLike}
-          disabled={likingPending}
+          disabled={likingPending || viewerLocked}
           className={`flex items-center gap-1.5 text-sm transition-colors disabled:opacity-60 ${liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
         >
           <Heart className={`h-4 w-4 ${liked ? "fill-red-500" : ""}`} />
@@ -726,13 +737,14 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         </button>
         <button
           onClick={() => { setShowShareDialog(true); fetchFollowing(); }}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          disabled={viewerLocked}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
         >
           <Forward className="h-4 w-4" />
         </button>
         <button
           onClick={toggleSave}
-          disabled={savingPending}
+          disabled={savingPending || viewerLocked}
           className={`ml-auto flex items-center transition-colors disabled:opacity-60 ${saved ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           <Bookmark className={`h-5 w-5 ${saved ? "fill-current" : ""}`} />
@@ -837,8 +849,9 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
               onKeyDown={(e) => e.key === "Enter" && submitComment()}
               placeholder={lang === "ro" ? "Scrie un comentariu..." : "Write a comment..."}
               className="text-xs h-8 bg-background border-border"
+              disabled={viewerLocked}
             />
-            <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={submitComment} disabled={!commentText.trim()}>
+            <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={submitComment} disabled={!commentText.trim() || viewerLocked}>
               <Send className="h-3.5 w-3.5" />
             </Button>
           </div>

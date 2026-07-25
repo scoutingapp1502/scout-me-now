@@ -9,7 +9,7 @@ export interface ProfileSection {
   weight: number; // percentage points
 }
 
-export function useProfileCompletion(userId: string | null, role: "player" | "scout" | "agent" | "club_rep" | null) {
+export function useProfileCompletion(userId: string | null, role: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator" | null) {
   const [sections, setSections] = useState<ProfileSection[]>([]);
   const [percentage, setPercentage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -303,6 +303,7 @@ export function useProfileCompletion(userId: string | null, role: "player" | "sc
         setSections(s);
         setPercentage(s.reduce((acc, sec) => acc + (sec.completed ? sec.weight : 0), 0));
       } else {
+        // scout + cauta_jucator share the same scout_profiles-backed shape
         const [profileRes, expRes, postsRes, eduRes, certRes] = await Promise.all([
           supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
           supabase.from("scout_experiences").select("id").eq("user_id", userId).limit(1),

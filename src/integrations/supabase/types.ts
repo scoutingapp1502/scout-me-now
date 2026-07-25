@@ -1187,7 +1187,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "player" | "scout" | "agent" | "club_rep" | "admin"
+      app_role: "player" | "scout" | "agent" | "club_rep" | "admin" | "cauta_jucator"
       weekly_challenge_type:
         | "add_video_highlight"
         | "add_match_video"
@@ -1321,7 +1321,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["player", "scout", "agent", "club_rep", "admin"],
+      app_role: ["player", "scout", "agent", "club_rep", "admin", "cauta_jucator"],
       weekly_challenge_type: [
         "add_video_highlight",
         "add_match_video",

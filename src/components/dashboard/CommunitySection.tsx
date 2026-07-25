@@ -15,7 +15,7 @@ import { getDisplayNationality } from "@/components/ui/nationality-input";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 
-type RoleKey = "player" | "scout" | "agent" | "club_rep";
+type RoleKey = "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
 
 interface CommunityCard {
   user_id: string;
@@ -44,6 +44,7 @@ const ROLE_COLOR: Record<RoleKey, string> = {
   scout: "bg-blue-600",
   agent: "bg-orange-500",
   club_rep: "bg-emerald-600",
+  cauta_jucator: "bg-teal-600",
 };
 
 const ROLE_BADGE: Record<RoleKey, string> = {
@@ -51,6 +52,7 @@ const ROLE_BADGE: Record<RoleKey, string> = {
   scout: "bg-purple-500/20 text-purple-300 border-purple-500/40",
   agent: "bg-orange-500/20 text-orange-300 border-orange-500/40",
   club_rep: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+  cauta_jucator: "bg-teal-500/20 text-teal-300 border-teal-500/40",
 };
 
 interface Props {
@@ -94,6 +96,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     scouts: "Scouteri",
     agents: "Agenți",
     clubs: "Cluburi",
+    cautaJucatori: "Caută Jucător",
     results: "rezultate găsite",
     none: "Niciun rezultat.",
     sport: "Sport",
@@ -115,7 +118,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     language: "Limbă vorbită",
     clubName: "Nume club",
     clubCountry: "Țară club",
-    roleLabel: { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Club" } as Record<RoleKey, string>,
+    roleLabel: { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Club", cauta_jucator: "Caută Jucător" } as Record<RoleKey, string>,
   } : {
     title: "Community",
     searchPh: "Search by name...",
@@ -125,6 +128,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     scouts: "Scouts",
     agents: "Agents",
     clubs: "Clubs",
+    cautaJucatori: "Search Player",
     results: "results found",
     none: "No results.",
     sport: "Sport",
@@ -146,7 +150,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     language: "Language spoken",
     clubName: "Club name",
     clubCountry: "Club country",
-    roleLabel: { player: "Player", scout: "Scout", agent: "Agent", club_rep: "Club" } as Record<RoleKey, string>,
+    roleLabel: { player: "Player", scout: "Scout", agent: "Agent", club_rep: "Club", cauta_jucator: "Search Player" } as Record<RoleKey, string>,
   };
 
   useEffect(() => {
@@ -185,6 +189,15 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
 
       const roleMap = new Map<string, RoleKey>();
       (rolesRes.data || []).forEach((r: any) => roleMap.set(r.user_id, r.role as RoleKey));
+
+      const cautaJucatorIds = (scoutsRes.data || [])
+        .map((s: any) => s.user_id)
+        .filter((id: string) => roleMap.get(id) === "cauta_jucator");
+      let approvedIds = new Set<string>();
+      if (cautaJucatorIds.length > 0) {
+        const { data: approvedData } = await (supabase as any).rpc("get_approved_verification_ids", { _user_ids: cautaJucatorIds });
+        approvedIds = new Set((approvedData || []).map((r: any) => r.user_id));
+      }
 
       const careerIds = new Set((playerCareerRes.data || []).map((e: any) => e.user_id));
       const expIds = new Set((scoutExpRes.data || []).map((e: any) => e.user_id));
@@ -225,6 +238,9 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
           visible = calcAgentCompletion(s, expIds.has(s.user_id), certIds.has(s.user_id), manualIds.has(s.user_id) || collabIds.has(s.user_id), locIds.has(s.user_id)) >= 55;
         } else if (role === "club_rep") {
           visible = calcClubRepCompletion(s, expIds.has(s.user_id), certIds.has(s.user_id), postIds.has(s.user_id)) >= 55;
+        } else if (role === "cauta_jucator") {
+          visible = calcScoutCompletion(s, expIds.has(s.user_id), postIds.has(s.user_id), eduIds.has(s.user_id), certIds.has(s.user_id)) >= 55
+            && approvedIds.has(s.user_id);
         }
         if (!visible) return;
         cards.push({
@@ -299,7 +315,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
   }, [items]);
 
   const counts = useMemo(() => {
-    const c = { all: items.length, player: 0, scout: 0, agent: 0, club_rep: 0 } as Record<string, number>;
+    const c = { all: items.length, player: 0, scout: 0, agent: 0, club_rep: 0, cauta_jucator: 0 } as Record<string, number>;
     items.forEach(i => { c[i.role]++; });
     return c;
   }, [items]);
@@ -353,6 +369,10 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
         if (filterSport !== "all" && !i.sports?.includes(filterSport)) return false;
         if (filterOrganization !== "all" && i.organization !== filterOrganization) return false;
         if (filterActivityCountry !== "all" && i.country !== filterActivityCountry) return false;
+      } else if (i.role === "cauta_jucator") {
+        if (filterSportSpec !== "all" && !i.sports?.includes(filterSportSpec)) return false;
+        if (filterOrganization !== "all" && i.organization !== filterOrganization) return false;
+        if (filterActivityCountry !== "all" && i.country !== filterActivityCountry) return false;
       }
 
       return true;
@@ -400,6 +420,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     { key: "scout", label: tr.scouts, count: counts.scout },
     { key: "agent", label: tr.agents, count: counts.agent },
     { key: "club_rep", label: tr.clubs, count: counts.club_rep },
+    { key: "cauta_jucator", label: tr.cautaJucatori, count: counts.cauta_jucator },
   ];
 
   return (
@@ -616,6 +637,40 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
                     {uniqueLanguages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>)}
+
+            {/* ── CAUTA_JUCATOR tab ───────────────────────────────────── */}
+            {activeTab === "cauta_jucator" && (<>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.sportSpec}</label>
+                <Select value={filterSportSpec} onValueChange={setFilterSportSpec}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueSportSpecs.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.organization}</label>
+                <Select value={filterOrganization} onValueChange={setFilterOrganization}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueOrganizations.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.activityCountry}</label>
+                <Select value={filterActivityCountry} onValueChange={setFilterActivityCountry}>
+                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tr.allOpt}</SelectItem>
+                    {uniqueActivityCountries.map(c => <SelectItem key={c} value={c}>{getDisplayNationality(c, lang)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
