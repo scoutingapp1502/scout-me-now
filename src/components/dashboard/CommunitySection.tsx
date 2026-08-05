@@ -96,7 +96,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     scouts: "Scouteri",
     agents: "Agenți",
     clubs: "Cluburi",
-    cautaJucatori: "Caută Jucător",
+    cautaJucatori: "Descoperitori",
     results: "rezultate găsite",
     none: "Niciun rezultat.",
     sport: "Sport",
@@ -118,7 +118,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     language: "Limbă vorbită",
     clubName: "Nume club",
     clubCountry: "Țară club",
-    roleLabel: { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Club", cauta_jucator: "Caută Jucător" } as Record<RoleKey, string>,
+    roleLabel: { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Club", cauta_jucator: "Descoperitor" } as Record<RoleKey, string>,
   } : {
     title: "Community",
     searchPh: "Search by name...",
@@ -128,7 +128,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     scouts: "Scouts",
     agents: "Agents",
     clubs: "Clubs",
-    cautaJucatori: "Search Player",
+    cautaJucatori: "Discoverers",
     results: "results found",
     none: "No results.",
     sport: "Sport",
@@ -150,7 +150,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     language: "Language spoken",
     clubName: "Club name",
     clubCountry: "Club country",
-    roleLabel: { player: "Player", scout: "Scout", agent: "Agent", club_rep: "Club", cauta_jucator: "Search Player" } as Record<RoleKey, string>,
+    roleLabel: { player: "Player", scout: "Scout", agent: "Agent", club_rep: "Club", cauta_jucator: "Discoverer" } as Record<RoleKey, string>,
   };
 
   useEffect(() => {

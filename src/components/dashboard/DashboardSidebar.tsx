@@ -144,7 +144,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
           <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">CLUB REPRESENTATIVE</p>
         )}
         {userRole === "cauta_jucator" && (
-          <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">CAUTĂ JUCĂTOR</p>
+          <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">DESCOPERITOR</p>
         )}
       </div>
 

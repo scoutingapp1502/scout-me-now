@@ -949,7 +949,7 @@ const RequestDialog = ({
     const scoutMap = new Map<string, { org?: string; country?: string }>();
     (scoutRes.data || []).forEach((s: any) => scoutMap.set(s.user_id, { org: s.organization, country: s.country }));
 
-    const roleLabels: Record<string, string> = { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Reprezentant Club", cauta_jucator: "Caută Jucător" };
+    const roleLabels: Record<string, string> = { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Reprezentant Club", cauta_jucator: "Descoperitor" };
 
     const enriched = data.map((p) => {
       const role = rolesMap.get(p.user_id);
@@ -1415,7 +1415,7 @@ const OfferDialog = ({
     const scoutMap = new Map<string, { org?: string; country?: string }>();
     (scoutRes.data || []).forEach((s: any) => scoutMap.set(s.user_id, { org: s.organization, country: s.country }));
 
-    const roleLabels: Record<string, string> = { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Reprezentant Club", cauta_jucator: "Caută Jucător" };
+    const roleLabels: Record<string, string> = { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Reprezentant Club", cauta_jucator: "Descoperitor" };
     const enriched = data.map((p) => {
       const role = rolesMap.get(p.user_id);
       const roleLabel = role ? roleLabels[role] || role : undefined;

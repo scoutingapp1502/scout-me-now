@@ -418,6 +418,7 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
                 onDelete={() => { setSelectedPost(null); setLiked(prev => prev.filter(l => l.post.id !== selectedPost.post.id)); }}
                 onViewProfile={(uid, role) => { setSelectedPost(null); onViewProfile(uid, role); }}
                 hideLikeCounts={hideLikeCounts}
+                hideMenu
               />
             </div>
           </DialogContent>

@@ -13,7 +13,7 @@ const adminSections = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
   { id: "video-review", label: "Verificare Videouri", icon: Video },
   { id: "test-videos", label: "Video-uri Exemplu Teste", icon: Film },
-  { id: "scout-verification", label: "Verificare Scouteri", icon: UserCheck },
+  { id: "scout-verification", label: "Verificare Documente Înregistrate", icon: UserCheck },
   { id: "support-tickets", label: "Rapoarte Utilizatori", icon: MessageSquareWarning },
 ];
 

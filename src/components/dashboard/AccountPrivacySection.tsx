@@ -48,7 +48,7 @@ const DESCRIPTIONS: Record<AccountVisibility, { ro: string; en: string }> = {
 export default function AccountPrivacySection({ userId, onBack }: AccountPrivacySectionProps) {
   const { lang } = useLanguage();
   const { toast } = useToast();
-  const [config, setConfig] = useState<PrivacyConfig>({ visibility: "scouts_only" });
+  const [config, setConfig] = useState<PrivacyConfig>({ visibility: "everyone" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function AccountPrivacySection({ userId, onBack }: AccountPrivacy
         .maybeSingle();
       if (data) {
         setConfig({
-          visibility: (data.account_visibility as AccountVisibility) ?? "scouts_only",
+          visibility: (data.account_visibility as AccountVisibility) ?? "everyone",
         });
       }
     };

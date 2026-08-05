@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, ArrowLeft, ChevronDown, Upload, FileCheck } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, ChevronDown, Upload, FileCheck, Star } from "lucide-react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,18 @@ import LanguageToggle from "@/components/LanguageToggle";
 // gated until an admin approves it — currently scout (full-page block)
 // and cauta_jucator (dashboard visible, actions disabled until approved).
 const REQUIRES_VERIFICATION = ["scout", "cauta_jucator"];
+
+const SportriseWordmark = ({ className = "" }: { className?: string }) => (
+  <div className={`font-display inline-flex items-end justify-center leading-none tracking-wide ${className}`}>
+    <span className="text-white">SPORT</span>
+    <span className="text-primary">R</span>
+    <span className="relative inline-block h-[1em] w-[0.32em] mx-[0.02em]">
+      <Star className="absolute left-1/2 -translate-x-1/2 -top-[0.4em] h-[0.55em] w-[0.55em] fill-electric text-electric" />
+      <span className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[0.16em] h-[0.72em] bg-primary rounded-[0.02em]" />
+    </span>
+    <span className="text-primary">SE</span>
+  </div>
+);
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -250,9 +262,7 @@ const Auth = () => {
 
         <Card className="bg-card/95 backdrop-blur border-primary/20 shadow-2xl">
           <CardHeader className="text-center pb-2">
-            <div className="mx-auto mb-2 w-12 h-12 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-2xl">⚽</span>
-            </div>
+            <SportriseWordmark className="mx-auto mb-3 text-4xl" />
             <CardTitle className="font-display text-3xl text-foreground">
               {tab === "register" ? t.auth.createAccount : tab === "forgot" ? t.auth.forgotPasswordTitle : t.auth.login}
             </CardTitle>
@@ -293,18 +303,18 @@ const Auth = () => {
                       <div className="space-y-2">
                         <Label className="font-body text-sm">{t.auth.accountType}</Label>
                         <Select value={role} onValueChange={(v) => setRole(v as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator")}>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full [&>span]:flex-1">
                             <SelectValue placeholder={t.auth.selectAccountType} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="player">
-                              <div className="flex flex-col">
+                            <SelectItem value="player" className="pr-8 [&>span]:flex-1">
+                              <div className="flex flex-col items-center text-center w-full">
                                 <span className="font-semibold text-sm">{t.auth.player}</span>
                                 <span className="text-xs text-muted-foreground">{t.auth.playerDesc}</span>
                               </div>
                             </SelectItem>
-                            <SelectItem value="cauta_jucator">
-                              <div className="flex flex-col">
+                            <SelectItem value="cauta_jucator" className="pr-8 [&>span]:flex-1">
+                              <div className="flex flex-col items-center text-center w-full">
                                 <span className="font-semibold text-sm">{t.auth.cautaJucator}</span>
                                 <span className="text-xs text-muted-foreground">{t.auth.cautaJucatorDesc}</span>
                               </div>
@@ -327,13 +337,6 @@ const Auth = () => {
                               <SelectContent>
                                 <SelectItem value="football">{t.auth.sportFootball}</SelectItem>
                                 <SelectItem value="basketball">{t.auth.sportBasketball}</SelectItem>
-                                <SelectItem value="tennis">{t.auth.sportTennis}</SelectItem>
-                                <SelectItem value="handball">{t.auth.sportHandball}</SelectItem>
-                                <SelectItem value="volleyball">{t.auth.sportVolleyball}</SelectItem>
-                                <SelectItem value="rugby">{t.auth.sportRugby}</SelectItem>
-                                <SelectItem value="swimming">{t.auth.sportSwimming}</SelectItem>
-                                <SelectItem value="athletics">{t.auth.sportAthletics}</SelectItem>
-                                <SelectItem value="other">{t.auth.sportOther}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -387,13 +390,6 @@ const Auth = () => {
                                 {([
                                   { value: "football", label: t.auth.sportFootball },
                                   { value: "basketball", label: t.auth.sportBasketball },
-                                  { value: "tennis", label: t.auth.sportTennis },
-                                  { value: "handball", label: t.auth.sportHandball },
-                                  { value: "volleyball", label: t.auth.sportVolleyball },
-                                  { value: "rugby", label: t.auth.sportRugby },
-                                  { value: "swimming", label: t.auth.sportSwimming },
-                                  { value: "athletics", label: t.auth.sportAthletics },
-                                  { value: "other", label: t.auth.sportOther },
                                 ]).map((item) => (
                                   <label key={item.value} className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all text-sm font-body hover:bg-muted">
                                     <Checkbox

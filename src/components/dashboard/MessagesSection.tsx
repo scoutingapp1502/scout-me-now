@@ -32,7 +32,7 @@ const getRoleLabel = (role: string | null, lang: string) => {
     player: { ro: "Jucător", en: "Player" },
     scout: { ro: "Scouter", en: "Scout" },
     agent: { ro: "Agent", en: "Agent" },
-    cauta_jucator: { ro: "Caută Jucător", en: "Search Player" },
+    cauta_jucator: { ro: "Descoperitor", en: "Discoverer" },
   };
   return labels[role]?.[lang] || role;
 };

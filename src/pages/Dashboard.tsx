@@ -355,7 +355,7 @@ const Dashboard = () => {
       case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} />;
       case "settings": return <SettingsSection userId={user.id} userRole={userRole} onNavigate={navigateTo} />;
       case "saved": return <SavedSection userId={user.id} onBack={() => setActiveSection("settings")} />;
-      case "archive": return <ArchiveSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "archive": return <ArchiveSection userId={user.id} onBack={() => setActiveSection(prevSection)} />;
       case "your-activity": return <YourActivitySection onBack={() => setActiveSection("settings")} onNavigate={navigateTo} />;
       case "likes-activity": return <LikesActivitySection userId={user.id} onBack={() => setActiveSection("your-activity")} onViewProfile={() => setActiveSection("profile")} />;
       case "recently-deleted": return <RecentlyDeletedSection userId={user.id} onBack={() => setActiveSection("your-activity")} />;

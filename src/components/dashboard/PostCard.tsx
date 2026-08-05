@@ -47,6 +47,7 @@ interface PostCardProps {
   onDelete: (postId: string) => void;
   onViewProfile: (userId: string, role: string) => void;
   hideLikeCounts?: boolean;
+  hideMenu?: boolean;
 }
 
 // Batches the per-post engagement lookup (likes count, my like state,
@@ -174,7 +175,7 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
   );
 }
 
-const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLikeCounts = false }: PostCardProps) => {
+const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLikeCounts = false, hideMenu = false }: PostCardProps) => {
   const { lang } = useLanguage();
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   useEffect(() => {
@@ -187,6 +188,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   const [liked, setLiked] = useState(false);
   const [likingPending, setLikingPending] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [otherLikerName, setOtherLikerName] = useState<string | null>(null);
+  const likerFetchedForRef = useRef<number>(-1);
   const [showComments, setShowComments] = useState(false);
   const showCommentsRef = useRef(false);
   useEffect(() => { showCommentsRef.current = showComments; }, [showComments]);
@@ -196,6 +199,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   const [commentText, setCommentText] = useState("");
   const [commentsCount, setCommentsCount] = useState(0);
   const [loadingComments, setLoadingComments] = useState(false);
+  const commentsLoadedRef = useRef(false);
   const commentInputRef = useRef<HTMLInputElement>(null);
   const [isNew, setIsNew] = useState(() => {
     const diff = Date.now() - new Date(post.created_at).getTime();
@@ -224,6 +228,33 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     });
     return () => { cancelled = true; };
   }, [post.id, currentUserId]);
+
+  // Fetch the most recent liker (other than the viewer) for the "Liked by
+  // X and others" line. Re-runs when the count changes so a fresh like
+  // updates who's shown, but not on every unrelated re-render.
+  useEffect(() => {
+    if (hideLikeCounts || likesCount <= 0 || likerFetchedForRef.current === likesCount) return;
+    likerFetchedForRef.current = likesCount;
+    let cancelled = false;
+    (async () => {
+      const { data: likeRows } = await supabase
+        .from("post_likes")
+        .select("user_id")
+        .eq("post_id", post.id)
+        .neq("user_id", currentUserId ?? "00000000-0000-0000-0000-000000000000")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const likerId = likeRows?.[0]?.user_id;
+      if (!likerId) { if (!cancelled) setOtherLikerName(null); return; }
+      const [{ data: p }, { data: s }] = await Promise.all([
+        supabase.from("player_profiles").select("first_name, last_name").eq("user_id", likerId).maybeSingle(),
+        supabase.from("scout_profiles").select("first_name, last_name").eq("user_id", likerId).maybeSingle(),
+      ]);
+      const prof = p || s;
+      if (!cancelled) setOtherLikerName(prof ? `${prof.first_name} ${prof.last_name}`.trim() : null);
+    })();
+    return () => { cancelled = true; };
+  }, [likesCount, post.id, currentUserId, hideLikeCounts]);
 
   // Live-update likes/comments for anyone with this post open, so the
   // author sees engagement from other users without refreshing. Events
@@ -257,7 +288,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
           }
           // Refresh the visible comment list (with author profiles) whenever
           // the panel is open, regardless of who made the change.
-          if (showCommentsRef.current) loadComments();
+          if (showCommentsRef.current) loadComments(true);
         }
       )
       .subscribe();
@@ -286,8 +317,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     setLikingPending(false);
   };
 
-  const loadComments = async () => {
-    setLoadingComments(true);
+  const loadComments = async (silent = false) => {
+    if (!silent) setLoadingComments(true);
     // Cap at the 100 most recent comments to avoid an unbounded query/render
     // on posts with very large comment counts, then re-sort ascending for
     // display so the visible order still reads oldest-to-newest.
@@ -301,7 +332,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
     if (!rawComments || rawComments.length === 0) {
       setComments([]);
-      setLoadingComments(false);
+      commentsLoadedRef.current = true;
+      if (!silent) setLoadingComments(false);
       return;
     }
 
@@ -344,20 +376,22 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         liked_by_me: myLikedSet.has(c.id),
       };
     }));
-    setLoadingComments(false);
-  };
-
-  const handleToggleComments = () => {
-    if (!showComments) {
-      loadComments();
-    }
-    setShowComments(!showComments);
+    commentsLoadedRef.current = true;
+    if (!silent) setLoadingComments(false);
   };
 
   const handleCommentClick = () => {
-    if (!showComments) {
+    if (showComments) {
+      setShowComments(false);
+      return;
+    }
+    setShowComments(true);
+    if (commentsLoadedRef.current) {
+      // Already loaded at least once — open instantly and refresh quietly
+      // in the background instead of blocking on a fresh round trip.
+      loadComments(true);
+    } else {
       loadComments();
-      setShowComments(true);
     }
     setTimeout(() => commentInputRef.current?.focus(), 100);
   };
@@ -376,7 +410,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     }
     setCommentText("");
     setCommentsCount(c => c + 1);
-    loadComments();
+    loadComments(true);
   };
 
   const toggleCommentLike = async (commentId: string) => {
@@ -416,11 +450,32 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     return new Date(dateStr).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", { day: "numeric", month: "short" });
   };
 
+  const timeAgoLong = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return lang === "ro" ? "acum câteva secunde" : "just now";
+    if (mins < 60) return lang === "ro" ? `acum ${mins} ${mins === 1 ? "minut" : "minute"}` : `${mins} ${mins === 1 ? "minute" : "minutes"} ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return lang === "ro" ? `acum ${hours} ${hours === 1 ? "oră" : "ore"}` : `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return lang === "ro" ? `acum ${days} ${days === 1 ? "zi" : "zile"}` : `${days} ${days === 1 ? "day" : "days"} ago`;
+    return new Date(dateStr).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", { day: "numeric", month: "short" });
+  };
+
+  const likedByText = () => {
+    if (hideLikeCounts || likesCount <= 0) return null;
+    if (liked && likesCount === 1) return lang === "ro" ? "Apreciat de tine" : "Liked by you";
+    if (liked) return lang === "ro" ? `Apreciat de tine și alți ${likesCount - 1}` : `Liked by you and ${likesCount - 1} others`;
+    if (otherLikerName && likesCount === 1) return lang === "ro" ? `Apreciat de ${otherLikerName}` : `Liked by ${otherLikerName}`;
+    if (otherLikerName) return lang === "ro" ? `Apreciat de ${otherLikerName} și alți ${likesCount - 1}` : `Liked by ${otherLikerName} and ${likesCount - 1} others`;
+    return lang === "ro" ? `${likesCount} aprecieri` : `${likesCount} likes`;
+  };
+
   const getRoleLabel = (role: string) => {
     if (role === "scout") return "Scouter";
     if (role === "agent") return "Agent";
     if (role === "club_rep") return lang === "ro" ? "Reprezentant club" : "Club Representative";
-    if (role === "cauta_jucator") return lang === "ro" ? "Caută Jucător" : "Search Player";
+    if (role === "cauta_jucator") return lang === "ro" ? "Descoperitor" : "Discoverer";
     return lang === "ro" ? "Jucător" : "Player";
   };
 
@@ -587,9 +642,9 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
           {lang === "ro" ? "✨ Postare nouă" : "✨ New post"}
         </div>
       )}
-      <div className="p-4">
+      <div className="p-4 pb-3">
         {/* Header */}
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => onViewProfile(author.user_id, author.role)}
@@ -614,10 +669,9 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 </span>
               </div>
               <p className="text-xs text-muted-foreground truncate">{author.title}</p>
-              <p className="text-[10px] text-muted-foreground/60">{timeAgo(post.created_at)}</p>
             </div>
           </div>
-          {isOwnPost && (
+          {isOwnPost && !hideMenu && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
@@ -675,37 +729,6 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
             </DropdownMenu>
           )}
         </div>
-
-        {/* Type badge */}
-        {post.post_type !== "general" && (
-          <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-medium mb-2 ${getTypeBadgeColor(post.post_type)}`}>
-            {getTypeLabel(post.post_type)}
-          </span>
-        )}
-
-        {/* Content */}
-        {isEditing ? (
-          <div className="space-y-2 mt-1">
-            <textarea
-              value={editContent}
-              onChange={e => setEditContent(e.target.value)}
-              className="w-full text-sm bg-muted/50 border border-border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-              rows={3}
-              autoFocus
-            />
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => { setIsEditing(false); setEditContent(post.content); }} className="text-xs text-muted-foreground hover:text-foreground font-body px-2 py-1">
-                {lang === "ro" ? "Anulează" : "Cancel"}
-              </button>
-              <button onClick={handleEditSave} disabled={savingEdit || !editContent.trim()} className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-md font-body disabled:opacity-50 flex items-center gap-1">
-                {savingEdit && <Loader2 className="h-3 w-3 animate-spin" />}
-                {lang === "ro" ? "Salvează" : "Save"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-foreground/90 whitespace-pre-wrap">{editContent}</p>
-        )}
       </div>
 
       {/* Image */}
@@ -726,7 +749,6 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
           className={`flex items-center gap-1.5 text-sm transition-colors disabled:opacity-60 ${liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
         >
           <Heart className={`h-4 w-4 ${liked ? "fill-red-500" : ""}`} />
-          {likesCount > 0 && !hideLikeCounts && <span className="text-xs">{likesCount}</span>}
         </button>
         <button
           onClick={handleCommentClick}
@@ -749,6 +771,52 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         >
           <Bookmark className={`h-5 w-5 ${saved ? "fill-current" : ""}`} />
         </button>
+      </div>
+
+      {/* Liked by + caption + timestamp */}
+      <div className="px-4 pb-3 space-y-1">
+        {likedByText() && (
+          <p className="text-sm font-medium text-foreground">{likedByText()}</p>
+        )}
+
+        {post.post_type !== "general" && (
+          <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-medium ${getTypeBadgeColor(post.post_type)}`}>
+            {getTypeLabel(post.post_type)}
+          </span>
+        )}
+
+        {isEditing ? (
+          <div className="space-y-2 mt-1">
+            <textarea
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              className="w-full text-sm bg-muted/50 border border-border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+              rows={3}
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setIsEditing(false); setEditContent(post.content); }} className="text-xs text-muted-foreground hover:text-foreground font-body px-2 py-1">
+                {lang === "ro" ? "Anulează" : "Cancel"}
+              </button>
+              <button onClick={handleEditSave} disabled={savingEdit || !editContent.trim()} className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-md font-body disabled:opacity-50 flex items-center gap-1">
+                {savingEdit && <Loader2 className="h-3 w-3 animate-spin" />}
+                {lang === "ro" ? "Salvează" : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-foreground/90 whitespace-pre-wrap">
+            <button
+              onClick={() => onViewProfile(author.user_id, author.role)}
+              className="font-semibold text-foreground hover:underline mr-1.5"
+            >
+              {author.name}
+            </button>
+            {editContent}
+          </p>
+        )}
+
+        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wide pt-0.5">{timeAgoLong(post.created_at)}</p>
       </div>
 
       {/* Share dialog */}

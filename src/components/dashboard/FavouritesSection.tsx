@@ -45,16 +45,24 @@ function HowFavouritesWorksSheet({ lang, onClose }: { lang: string; onClose: () 
   ];
 
   return (
-    <>
-      <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} />
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[61] w-full max-w-sm bg-background rounded-t-2xl shadow-2xl pb-8">
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-border" />
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm max-h-[85vh] overflow-y-auto bg-background rounded-2xl shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative py-4 border-b border-border">
+          <p className="text-center text-base font-semibold font-heading text-foreground">
+            {lang === "ro" ? "Cum funcționează Favorite" : "How Favourites works"}
+          </p>
+          <button
+            onClick={onClose}
+            className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={lang === "ro" ? "Închide" : "Close"}
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        <p className="text-center text-base font-semibold font-heading text-foreground py-3 border-b border-border">
-          {lang === "ro" ? "Cum funcționează Favorite" : "How Favourites works"}
-        </p>
-        <div className="px-5 pt-2 space-y-5 pb-2">
+        <div className="px-5 pt-2 space-y-5 pb-5">
           {items.map((item, i) => {
             const Icon = item.icon;
             return (
@@ -73,7 +81,7 @@ function HowFavouritesWorksSheet({ lang, onClose }: { lang: string; onClose: () 
           })}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

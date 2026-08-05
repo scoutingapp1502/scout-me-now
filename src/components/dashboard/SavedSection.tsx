@@ -169,6 +169,7 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
               }}
               onViewProfile={() => setSelectedPost(null)}
               hideLikeCounts={hideLikeCounts}
+              hideMenu
             />
           ) : null}
         </DialogContent>

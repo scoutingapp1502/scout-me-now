@@ -107,7 +107,7 @@ export default function AdminScoutVerification() {
       });
       toast({
         title: decision === "approved" ? "Cont aprobat" : "Cont respins",
-        description: `Scouter-ul ${req.full_name} a fost ${decision === "approved" ? "aprobat" : "respins"}.`,
+        description: `Contul lui ${req.full_name} a fost ${decision === "approved" ? "aprobat" : "respins"}.`,
       });
       await fetchRequests();
     }
@@ -131,14 +131,14 @@ export default function AdminScoutVerification() {
   if (requests.length === 0) {
     return (
       <div className="max-w-3xl mx-auto p-6 text-center text-muted-foreground font-body">
-        Nu există solicitări de verificare scouter.
+        Nu există solicitări de verificare a documentelor.
       </div>
     );
   }
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-4">
-      <h2 className="text-xl font-heading font-bold">Verificare Conturi Scouter</h2>
+      <h2 className="text-xl font-heading font-bold">Verificare Documente Înregistrate</h2>
       <p className="text-sm text-muted-foreground font-body">
         {requests.filter(r => r.status === "pending").length} solicitări în așteptare
       </p>
@@ -176,7 +176,7 @@ export default function AdminScoutVerification() {
           {req.status === "pending" && (
             <div className="space-y-3">
               <Textarea
-                placeholder="Notă opțională pentru scouter (vizibilă după decizie)..."
+                placeholder="Notă opțională (vizibilă după decizie)..."
                 value={notes[req.id] ?? ""}
                 onChange={(e) => setNotes((prev) => ({ ...prev, [req.id]: e.target.value }))}
                 className="font-body text-sm resize-none"

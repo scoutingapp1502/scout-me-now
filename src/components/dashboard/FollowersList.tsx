@@ -29,7 +29,7 @@ const FollowersList = ({ followers, onRemove, onViewProfile, onClose, isLocked =
     if (role === "player") return lang === "ro" ? "Jucător" : "Player";
     if (role === "scout") return "Scouter";
     if (role === "club_rep") return lang === "ro" ? "Reprezentant club" : "Club Representative";
-    if (role === "cauta_jucator") return lang === "ro" ? "Caută Jucător" : "Search Player";
+    if (role === "cauta_jucator") return lang === "ro" ? "Descoperitor" : "Discoverer";
     return "Agent";
   };
 
