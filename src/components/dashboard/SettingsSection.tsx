@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 
 interface SettingsSectionProps {
   userId: string;
-  userRole: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator" | null;
+  userRole: "player" | "cauta_jucator" | null;
   onNavigate?: (section: string) => void;
 }
 

@@ -253,7 +253,6 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
-  const [isAgent, setIsAgent] = useState(false);
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [viewerRole, setViewerRole] = useState<string | null>(null);
   const { isLocked: viewerLocked } = useAccountLock(viewerUserId, viewerRole);
@@ -273,12 +272,6 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   useEffect(() => {
     fetchData();
     if (readOnly) checkFollowStatus();
-    // Check if this profile belongs to an agent
-    supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "agent").maybeSingle()
-      .then(
-        ({ data }) => setIsAgent(!!data),
-        (err) => console.error("Failed to check agent role:", err)
-      );
   }, [userId]);
 
   const checkFollowStatus = async () => {
@@ -828,8 +821,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       {/* ===== RAPOARTE JUCĂTORI ===== */}
       <PlayerReportsSection userId={userId} readOnly={readOnly} />
 
-      {/* ===== JUCĂTORI REPREZENTAȚI (doar agenți) ===== */}
-      {isAgent && <RepresentedPlayersSection userId={userId} readOnly={readOnly} />}
+      {/* ===== JUCĂTORI REPREZENTAȚI ===== */}
+      <RepresentedPlayersSection userId={userId} readOnly={readOnly} />
 
       {/* ===== ACTIVITATE ===== */}
       <div className="bg-card rounded-xl border border-border p-6">

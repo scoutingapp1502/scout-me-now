@@ -7,7 +7,7 @@ interface Follower {
   created_at: string;
   name: string;
   photo: string | null;
-  role: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
+  role: "player" | "cauta_jucator";
 }
 
 export function useFollowers(userId: string | null) {
@@ -44,9 +44,7 @@ export function useFollowers(userId: string | null) {
     roles?.forEach(r => { roleMap[r.user_id] = r.role; });
 
     const playerIds = followerIds.filter(id => roleMap[id] === "player");
-    const scoutIds = followerIds.filter(id =>
-      roleMap[id] === "scout" || roleMap[id] === "agent" || roleMap[id] === "club_rep" || roleMap[id] === "cauta_jucator"
-    );
+    const scoutIds = followerIds.filter(id => roleMap[id] === "cauta_jucator");
 
     let playerMap: Record<string, { name: string; photo: string | null }> = {};
     let scoutMap: Record<string, { name: string; photo: string | null }> = {};

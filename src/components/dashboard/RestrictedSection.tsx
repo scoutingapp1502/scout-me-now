@@ -14,7 +14,6 @@ interface RestrictedUser {
   id: string;
   userId: string;
   name: string;
-  username: string;
   photo: string | null;
 }
 
@@ -93,8 +92,8 @@ export default function RestrictedSection({ currentUserId, onBack }: RestrictedS
 
     const ids = data.map((d: any) => d.restricted_id);
     const [{ data: players }, { data: scouts }] = await Promise.all([
-      (supabase as any).from("player_profiles").select("user_id, first_name, last_name, username, photo_url").in("user_id", ids),
-      (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, username, photo_url").in("user_id", ids),
+      (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", ids),
+      (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", ids),
     ]);
     const pMap = new Map<string, any>();
     for (const p of [...(players ?? []), ...(scouts ?? [])]) if (!pMap.has(p.user_id)) pMap.set(p.user_id, p);
@@ -105,7 +104,6 @@ export default function RestrictedSection({ currentUserId, onBack }: RestrictedS
         id: d.id,
         userId: d.restricted_id,
         name: `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim(),
-        username: p?.username ?? "",
         photo: p?.photo_url ?? null,
       };
     }));
@@ -118,30 +116,31 @@ export default function RestrictedSection({ currentUserId, onBack }: RestrictedS
     if (!query.trim()) { setResults([]); return; }
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
+      const orFilter = `first_name.ilike.%${query.trim()}%,last_name.ilike.%${query.trim()}%`;
       const [{ data: p }, { data: s }] = await Promise.all([
-        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, username, photo_url").ilike("username", `%${query.trim()}%`).neq("user_id", currentUserId).limit(10),
-        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, username, photo_url").ilike("username", `%${query.trim()}%`).neq("user_id", currentUserId).limit(10),
+        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", currentUserId).limit(10),
+        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", currentUserId).limit(10),
       ]);
       const seen = new Set<string>();
       setResults([...(p ?? []), ...(s ?? [])].filter(x => { if (seen.has(x.user_id)) return false; seen.add(x.user_id); return true; }));
     }, 300);
   }, [query]);
 
-  const handleRestrict = async (uid: string, username: string) => {
+  const handleRestrict = async (uid: string, name: string) => {
     const { error } = await (supabase as any)
       .from("restricted_accounts")
       .insert({ restrictor_id: currentUserId, restricted_id: uid });
     if (!error || error.code === "23505") {
-      toast({ title: lang === "ro" ? `@${username} restricționat.` : `@${username} restricted.` });
+      toast({ title: lang === "ro" ? `${name} restricționat.` : `${name} restricted.` });
       setQuery("");
       fetchRestricted();
     }
   };
 
-  const handleUnrestrict = async (id: string, username: string) => {
+  const handleUnrestrict = async (id: string, name: string) => {
     await (supabase as any).from("restricted_accounts").delete().eq("id", id);
     setRestricted(prev => prev.filter(r => r.id !== id));
-    toast({ title: lang === "ro" ? `@${username} derestrictionat.` : `@${username} unrestricted.` });
+    toast({ title: lang === "ro" ? `${name} derestrictionat.` : `${name} unrestricted.` });
   };
 
   const isRestricted = (uid: string) => restricted.some(r => r.userId === uid);
@@ -192,18 +191,17 @@ export default function RestrictedSection({ currentUserId, onBack }: RestrictedS
               <div key={u.user_id} className="flex items-center gap-3 px-4 py-3 border-b border-border/40 last:border-0">
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarImage src={u.photo_url ?? undefined} />
-                  <AvatarFallback>{(u.username || "?")[0]?.toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{(u.first_name || "?")[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold font-body text-foreground truncate">{u.username}</p>
-                  {u.first_name && <p className="text-xs text-muted-foreground font-body truncate">{`${u.first_name} ${u.last_name}`.trim()}</p>}
+                  <p className="text-sm font-semibold font-body text-foreground truncate">{`${u.first_name ?? ""} ${u.last_name ?? ""}`.trim()}</p>
                 </div>
                 {isRestricted(u.user_id) ? (
                   <span className="px-3 py-1.5 text-xs font-semibold font-body text-muted-foreground border border-border rounded-lg">
                     {lang === "ro" ? "Restricționat" : "Restricted"}
                   </span>
                 ) : (
-                  <button onClick={() => handleRestrict(u.user_id, u.username)}
+                  <button onClick={() => handleRestrict(u.user_id, `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim())}
                     className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shrink-0">
                     {lang === "ro" ? "Restricționează" : "Restrict"}
                   </button>
@@ -230,13 +228,12 @@ export default function RestrictedSection({ currentUserId, onBack }: RestrictedS
                   <div key={u.id} className="flex items-center gap-3 px-4 py-3 border-b border-border/40">
                     <Avatar className="h-11 w-11 shrink-0">
                       <AvatarImage src={u.photo ?? undefined} />
-                      <AvatarFallback>{(u.username || "?")[0]?.toUpperCase()}</AvatarFallback>
+                      <AvatarFallback>{(u.name || "?")[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold font-body text-foreground truncate">{u.username || u.name}</p>
-                      {u.name && u.username && <p className="text-xs text-muted-foreground font-body truncate">{u.name}</p>}
+                      <p className="text-sm font-semibold font-body text-foreground truncate">{u.name}</p>
                     </div>
-                    <button onClick={() => handleUnrestrict(u.id, u.username)}
+                    <button onClick={() => handleUnrestrict(u.id, u.name)}
                       className="px-3 py-1.5 rounded-lg border border-border text-sm font-semibold font-body text-foreground shrink-0">
                       {lang === "ro" ? "Derestrictionează" : "Unrestrict"}
                     </button>

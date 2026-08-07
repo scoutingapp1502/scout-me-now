@@ -20,23 +20,27 @@ export function useNotificationCount(userId: string | null) {
   const recalc = useCallback(async () => {
     if (!userId) return;
 
-    // Count unread incoming follow requests
+    // Count unread incoming follow notifications: pending requests, plus
+    // confirmations of requests you've already accepted/rejected. Mirrors
+    // NotificationsSection's incoming-follows list, which reads all three
+    // statuses under the plain follow id as the read-key.
     const { data: follows } = await supabase
       .from("follows")
       .select("id")
       .eq("following_id", userId)
-      .eq("status", "pending");
+      .in("status", ["pending", "accepted", "rejected"]);
     const readIds = getReadIds(userId);
     const unreadFollows = follows ? follows.filter(f => !readIds.has(f.id)).length : 0;
 
-    // Count unread rejected follow requests sent by the current user
-    const { data: rejectedFollows } = await supabase
+    // Count unread outgoing follow requests that have since been accepted or
+    // rejected by the other person. Mirrors NotificationsSection's `${id}-response` key.
+    const { data: respondedFollows } = await supabase
       .from("follows")
       .select("id")
       .eq("follower_id", userId)
-      .eq("status", "rejected");
-    const unreadRejectedFollows = rejectedFollows
-      ? rejectedFollows.filter(f => !readIds.has(`${f.id}-rejected`)).length
+      .in("status", ["accepted", "rejected"]);
+    const unreadRespondedFollows = respondedFollows
+      ? respondedFollows.filter(f => !readIds.has(`${f.id}-response`)).length
       : 0;
 
     // Count pending collaboration requests (for agents)
@@ -93,7 +97,7 @@ export function useNotificationCount(userId: string | null) {
       }
     }
 
-    setCount(unreadFollows + unreadRejectedFollows + unreadAgentCollabs + unreadPlayerCollabs + unreadPendingRecs + unreadSubmittedRecs + unreadVideoNotifs + unreadStoryLikes);
+    setCount(unreadFollows + unreadRespondedFollows + unreadAgentCollabs + unreadPlayerCollabs + unreadPendingRecs + unreadSubmittedRecs + unreadVideoNotifs + unreadStoryLikes);
   }, [userId]);
 
   useEffect(() => {

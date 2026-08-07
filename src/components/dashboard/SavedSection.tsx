@@ -20,6 +20,7 @@ interface SavedPost {
     video_url: string | null;
     post_type: string;
     created_at: string;
+    comments_disabled: boolean;
   };
 }
 
@@ -53,7 +54,7 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
       setLoadingPosts(true);
       const { data } = await (supabase as any)
         .from("saved_posts")
-        .select("id, posts(id, user_id, content, image_url, video_url, post_type, created_at)")
+        .select("id, posts(id, user_id, content, image_url, video_url, post_type, created_at, comments_disabled)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
@@ -82,7 +83,7 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
     ]);
 
     const role = (roleRes.data?.role as string) || "player";
-    const isScout = role === "scout" || role === "agent" || role === "club_rep";
+    const isScout = role === "cauta_jucator";
     const profile = isScout ? scoutRes.data : (playerRes.data || scoutRes.data);
 
     const name = profile ? `${(profile as any).first_name} ${(profile as any).last_name}`.trim() : (lang === "ro" ? "Utilizator" : "User");

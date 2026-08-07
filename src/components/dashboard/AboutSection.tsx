@@ -14,7 +14,7 @@ interface AboutSectionProps {
 // ── About your account sub-page ───────────────────────────────────────────────
 function AboutAccountPage({ userId, lang, onBack }: { userId: string; lang: string; onBack: () => void }) {
   const { toast } = useToast();
-  const [username, setUsername]     = useState("");
+  const [name, setName]             = useState("");
   const [photo, setPhoto]           = useState<string | null>(null);
   const [dateJoined, setDateJoined] = useState("");
   const [country, setCountry]       = useState("");
@@ -31,12 +31,12 @@ function AboutAccountPage({ userId, lang, onBack }: { userId: string; lang: stri
       // Try player profile first, then scout
       const { data: player } = await (supabase as any)
         .from("player_profiles")
-        .select("username, photo_url, nationality")
+        .select("first_name, last_name, photo_url, nationality")
         .eq("user_id", userId)
         .maybeSingle();
 
       if (player) {
-        setUsername(player.username ?? "");
+        setName(`${player.first_name ?? ""} ${player.last_name ?? ""}`.trim());
         setPhoto(player.photo_url ?? null);
         setCountry(player.nationality ?? "");
         return;
@@ -44,12 +44,12 @@ function AboutAccountPage({ userId, lang, onBack }: { userId: string; lang: stri
 
       const { data: scout } = await (supabase as any)
         .from("scout_profiles")
-        .select("username, photo_url, nationality")
+        .select("first_name, last_name, photo_url, nationality")
         .eq("user_id", userId)
         .maybeSingle();
 
       if (scout) {
-        setUsername(scout.username ?? "");
+        setName(`${scout.first_name ?? ""} ${scout.last_name ?? ""}`.trim());
         setPhoto(scout.photo_url ?? null);
         setCountry(scout.nationality ?? "");
       }
@@ -69,14 +69,14 @@ function AboutAccountPage({ userId, lang, onBack }: { userId: string; lang: stri
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Avatar + username + description */}
+        {/* Avatar + name + description */}
         <div className="flex flex-col items-center px-8 pt-8 pb-6 text-center">
           <Avatar className="h-20 w-20 mb-3">
             <AvatarImage src={photo ?? undefined} />
-            <AvatarFallback>{(username || "?")[0]?.toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{(name || "?")[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
-          {username && (
-            <p className="text-sm font-semibold font-body text-foreground mb-3">{username}</p>
+          {name && (
+            <p className="text-sm font-semibold font-body text-foreground mb-3">{name}</p>
           )}
           <p className="text-sm text-muted-foreground font-body leading-relaxed">
             {lang === "ro"

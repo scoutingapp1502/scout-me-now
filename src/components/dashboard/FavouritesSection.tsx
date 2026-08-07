@@ -14,7 +14,6 @@ interface UserProfile {
   id: string;
   userId: string;
   name: string;
-  username: string;
   photo: string | null;
 }
 
@@ -120,8 +119,8 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
     if (!allIds.length) { setFavourites([]); setSuggested([]); setLoading(false); return; }
 
     const [{ data: players }, { data: scouts }] = await Promise.all([
-      (supabase as any).from("player_profiles").select("user_id, first_name, last_name, username, photo_url").in("user_id", allIds),
-      (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, username, photo_url").in("user_id", allIds),
+      (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", allIds),
+      (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", allIds),
     ]);
 
     const pMap = new Map<string, any>();
@@ -133,7 +132,6 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
         id: rowId ?? uid,
         userId: uid,
         name: `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim(),
-        username: p?.username ?? "",
         photo: p?.photo_url ?? null,
       };
     };
@@ -150,9 +148,10 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
     if (!query.trim()) { setSearchResults([]); return; }
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
+      const orFilter = `first_name.ilike.%${query.trim()}%,last_name.ilike.%${query.trim()}%`;
       const [{ data: p }, { data: s }] = await Promise.all([
-        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, username, photo_url").ilike("username", `%${query.trim()}%`).neq("user_id", userId).limit(10),
-        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, username, photo_url").ilike("username", `%${query.trim()}%`).neq("user_id", userId).limit(10),
+        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", userId).limit(10),
+        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", userId).limit(10),
       ]);
       const seen = new Set<string>();
       const results = [...(p ?? []), ...(s ?? [])].filter(x => {
@@ -161,7 +160,6 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
       setSearchResults(results.map(u => ({
         id: u.user_id, userId: u.user_id,
         name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
-        username: u.username ?? "",
         photo: u.photo_url ?? null,
       })));
     }, 300);
@@ -174,7 +172,7 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
       .from("user_favourites")
       .insert({ user_id: userId, favourite_user_id: u.userId });
     if (!error || error.code === "23505") {
-      toast({ title: lang === "ro" ? `@${u.username} adăugat la favorite.` : `@${u.username} added to favourites.` });
+      toast({ title: lang === "ro" ? `${u.name} adăugat la favorite.` : `${u.name} added to favourites.` });
       fetchData();
     }
   };
@@ -182,7 +180,7 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
   const handleRemove = async (u: UserProfile) => {
     await (supabase as any).from("user_favourites").delete().eq("id", u.id);
     setFavourites(prev => prev.filter(f => f.id !== u.id));
-    toast({ title: lang === "ro" ? `@${u.username} eliminat din favorite.` : `@${u.username} removed from favourites.` });
+    toast({ title: lang === "ro" ? `${u.name} eliminat din favorite.` : `${u.name} removed from favourites.` });
   };
 
   const handleRemoveAll = async () => {
@@ -195,11 +193,10 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
     <div className="flex items-center gap-3 py-3">
       <Avatar className="h-12 w-12 shrink-0">
         <AvatarImage src={u.photo ?? undefined} />
-        <AvatarFallback>{(u.username || "?")[0]?.toUpperCase()}</AvatarFallback>
+        <AvatarFallback>{(u.name || "?")[0]?.toUpperCase()}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold font-body text-foreground truncate">{u.name || u.username}</p>
-        <p className="text-xs text-muted-foreground font-body truncate">{u.username}</p>
+        <p className="text-sm font-semibold font-body text-foreground truncate">{u.name}</p>
       </div>
       {isFav ? (
         <button

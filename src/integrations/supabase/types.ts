@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.15"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -83,6 +108,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_sessions: {
+        Row: {
+          created_at: string
+          date: string
+          duration_seconds: number
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          duration_seconds?: number
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          duration_seconds?: number
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       athletic_test_registrations: {
         Row: {
           created_at: string
@@ -115,6 +164,69 @@ export type Database = {
           notification_method?: string
           phone?: string
           scheduled_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      blocked_commenters: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      collections: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
           user_id?: string
         }
         Relationships: []
@@ -191,6 +303,98 @@ export type Database = {
         }
         Relationships: []
       }
+      external_recommendation_requests: {
+        Row: {
+          club: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          message: string | null
+          relationship: string | null
+          requester_name: string
+          requester_user_id: string
+          season_from: string | null
+          season_to: string | null
+          status: string
+          target_email: string
+          token: string
+        }
+        Insert: {
+          club?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          relationship?: string | null
+          requester_name: string
+          requester_user_id: string
+          season_from?: string | null
+          season_to?: string | null
+          status?: string
+          target_email: string
+          token?: string
+        }
+        Update: {
+          club?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          relationship?: string | null
+          requester_name?: string
+          requester_user_id?: string
+          season_from?: string | null
+          season_to?: string | null
+          status?: string
+          target_email?: string
+          token?: string
+        }
+        Relationships: []
+      }
+      external_recommendations: {
+        Row: {
+          author_email: string
+          author_name: string
+          content: string
+          created_at: string | null
+          id: string
+          recipient_user_id: string
+          request_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_email: string
+          author_name: string
+          content: string
+          created_at?: string | null
+          id?: string
+          recipient_user_id: string
+          request_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_email?: string
+          author_name?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          recipient_user_id?: string
+          request_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_recommendations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "external_recommendation_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorite_players: {
         Row: {
           created_at: string
@@ -239,6 +443,181 @@ export type Database = {
         }
         Relationships: []
       }
+      group_conversations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          invite_token: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          invite_token?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          invite_token?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          muted: boolean
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          muted?: boolean
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          muted?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "group_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_messages: {
+        Row: {
+          content: string
+          created_at: string
+          group_id: string
+          id: string
+          sender_id: string
+          shared_post_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          group_id: string
+          id?: string
+          sender_id: string
+          shared_post_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          sender_id?: string
+          shared_post_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "group_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_messages_shared_post_id_fkey"
+            columns: ["shared_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_restricted_senders: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          restricted_user_id: string
+          restrictor_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          restricted_user_id: string
+          restrictor_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          restricted_user_id?: string
+          restrictor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_restricted_senders_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "group_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invite_test_unlocks: {
+        Row: {
+          created_at: string | null
+          id: string
+          test_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          test_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          test_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invite_uses: {
+        Row: {
+          created_at: string | null
+          id: string
+          invitee_id: string
+          inviter_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invitee_id: string
+          inviter_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invitee_id?: string
+          inviter_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -247,6 +626,7 @@ export type Database = {
           id: string
           read: boolean
           sender_id: string
+          shared_post_id: string | null
         }
         Insert: {
           content: string
@@ -255,6 +635,7 @@ export type Database = {
           id?: string
           read?: boolean
           sender_id: string
+          shared_post_id?: string | null
         }
         Update: {
           content?: string
@@ -263,6 +644,7 @@ export type Database = {
           id?: string
           read?: boolean
           sender_id?: string
+          shared_post_id?: string | null
         }
         Relationships: [
           {
@@ -270,6 +652,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_shared_post_id_fkey"
+            columns: ["shared_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
@@ -334,6 +723,7 @@ export type Database = {
           double_cross_video: string | null
           endurance: number | null
           endurance_video: string | null
+          father_height_cm: number | null
           first_name: string
           free_throw_shooting_video: string | null
           full_match_descriptions: string[] | null
@@ -348,6 +738,7 @@ export type Database = {
           last_name: string
           long_pass_video: string | null
           matches_played: number | null
+          mother_height_cm: number | null
           nationality: string | null
           palmares: string | null
           palmares_documents: string[] | null
@@ -393,6 +784,7 @@ export type Database = {
           double_cross_video?: string | null
           endurance?: number | null
           endurance_video?: string | null
+          father_height_cm?: number | null
           first_name?: string
           free_throw_shooting_video?: string | null
           full_match_descriptions?: string[] | null
@@ -407,6 +799,7 @@ export type Database = {
           last_name?: string
           long_pass_video?: string | null
           matches_played?: number | null
+          mother_height_cm?: number | null
           nationality?: string | null
           palmares?: string | null
           palmares_documents?: string[] | null
@@ -452,6 +845,7 @@ export type Database = {
           double_cross_video?: string | null
           endurance?: number | null
           endurance_video?: string | null
+          father_height_cm?: number | null
           first_name?: string
           free_throw_shooting_video?: string | null
           full_match_descriptions?: string[] | null
@@ -466,6 +860,7 @@ export type Database = {
           last_name?: string
           long_pass_video?: string | null
           matches_played?: number | null
+          mother_height_cm?: number | null
           nationality?: string | null
           palmares?: string | null
           palmares_documents?: string[] | null
@@ -538,6 +933,33 @@ export type Database = {
         }
         Relationships: []
       }
+      player_video_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          player_id: string
+          test_key: string | null
+          type: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          player_id: string
+          test_key?: string | null
+          type: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          player_id?: string
+          test_key?: string | null
+          type?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       post_comments: {
         Row: {
           content: string
@@ -583,32 +1005,79 @@ export type Database = {
         }
         Relationships: []
       }
-      posts: {
+      post_tags: {
         Row: {
-          content: string
           created_at: string
           id: string
+          is_hidden: boolean
+          is_visible_on_profile: boolean
+          post_id: string
+          tagged_by_user_id: string
+          tagged_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_visible_on_profile?: boolean
+          post_id: string
+          tagged_by_user_id: string
+          tagged_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_visible_on_profile?: boolean
+          post_id?: string
+          tagged_by_user_id?: string
+          tagged_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_tags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          comments_disabled: boolean
+          content: string
+          created_at: string
+          deleted_at: string | null
+          id: string
           image_url: string | null
+          is_archived: boolean
           post_type: string
           updated_at: string
           user_id: string
           video_url: string | null
         }
         Insert: {
+          comments_disabled?: boolean
           content: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           image_url?: string | null
+          is_archived?: boolean
           post_type?: string
           updated_at?: string
           user_id: string
           video_url?: string | null
         }
         Update: {
+          comments_disabled?: boolean
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           image_url?: string | null
+          is_archived?: boolean
           post_type?: string
           updated_at?: string
           user_id?: string
@@ -718,6 +1187,66 @@ export type Database = {
         }
         Relationships: []
       }
+      restricted_accounts: {
+        Row: {
+          created_at: string
+          id: string
+          restricted_id: string
+          restrictor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          restricted_id: string
+          restrictor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          restricted_id?: string
+          restrictor_id?: string
+        }
+        Relationships: []
+      }
+      saved_posts: {
+        Row: {
+          collection_id: string | null
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          collection_id?: string | null
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          collection_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_posts_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_posts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scout_certifications: {
         Row: {
           created_at: string
@@ -799,48 +1328,6 @@ export type Database = {
         }
         Relationships: []
       }
-      scout_experiences: {
-        Row: {
-          created_at: string
-          description: string | null
-          end_date: string | null
-          id: string
-          location: string | null
-          organization: string
-          role: string
-          skills: string[] | null
-          sort_order: number
-          start_date: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          end_date?: string | null
-          id?: string
-          location?: string | null
-          organization?: string
-          role?: string
-          skills?: string[] | null
-          sort_order?: number
-          start_date?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          end_date?: string | null
-          id?: string
-          location?: string | null
-          organization?: string
-          role?: string
-          skills?: string[] | null
-          sort_order?: number
-          start_date?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       scout_player_notes: {
         Row: {
           created_at: string
@@ -892,10 +1379,101 @@ export type Database = {
         }
         Relationships: []
       }
+      scout_player_reports: {
+        Row: {
+          agent_name: string | null
+          conclusion_text: string | null
+          cons_list: string[] | null
+          contract_until: string | null
+          created_at: string | null
+          current_club: string | null
+          custom_sections: Json | null
+          financial_notes: string | null
+          fit_rating: number | null
+          hidden_sections: string[] | null
+          id: string
+          league: string | null
+          mental_notes: string | null
+          mental_rating: number | null
+          overall_rating: number | null
+          physical_notes: string | null
+          physical_rating: number | null
+          player_user_id: string
+          position: string | null
+          pros_list: string[] | null
+          recommendation: string | null
+          salary_range: string | null
+          scout_user_id: string
+          technical_notes: string | null
+          technical_rating: number | null
+          transfer_value: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_name?: string | null
+          conclusion_text?: string | null
+          cons_list?: string[] | null
+          contract_until?: string | null
+          created_at?: string | null
+          current_club?: string | null
+          custom_sections?: Json | null
+          financial_notes?: string | null
+          fit_rating?: number | null
+          hidden_sections?: string[] | null
+          id?: string
+          league?: string | null
+          mental_notes?: string | null
+          mental_rating?: number | null
+          overall_rating?: number | null
+          physical_notes?: string | null
+          physical_rating?: number | null
+          player_user_id: string
+          position?: string | null
+          pros_list?: string[] | null
+          recommendation?: string | null
+          salary_range?: string | null
+          scout_user_id: string
+          technical_notes?: string | null
+          technical_rating?: number | null
+          transfer_value?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_name?: string | null
+          conclusion_text?: string | null
+          cons_list?: string[] | null
+          contract_until?: string | null
+          created_at?: string | null
+          current_club?: string | null
+          custom_sections?: Json | null
+          financial_notes?: string | null
+          fit_rating?: number | null
+          hidden_sections?: string[] | null
+          id?: string
+          league?: string | null
+          mental_notes?: string | null
+          mental_rating?: number | null
+          overall_rating?: number | null
+          physical_notes?: string | null
+          physical_rating?: number | null
+          player_user_id?: string
+          position?: string | null
+          pros_list?: string[] | null
+          recommendation?: string | null
+          salary_range?: string | null
+          scout_user_id?: string
+          technical_notes?: string | null
+          technical_rating?: number | null
+          transfer_value?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       scout_posts: {
         Row: {
           content: string
           created_at: string
+          deleted_at: string | null
           id: string
           image_url: string | null
           updated_at: string
@@ -904,6 +1482,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           image_url?: string | null
           updated_at?: string
@@ -912,6 +1491,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           image_url?: string | null
           updated_at?: string
@@ -974,6 +1554,322 @@ export type Database = {
           skills?: string[] | null
           sports?: string[] | null
           title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scout_uploaded_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_name: string | null
+          file_url: string
+          id: string
+          scout_user_id: string
+          source_report_id: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_url: string
+          id?: string
+          scout_user_id: string
+          source_report_id?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_url?: string
+          id?: string
+          scout_user_id?: string
+          source_report_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_uploaded_reports_source_report_id_fkey"
+            columns: ["source_report_id"]
+            isOneToOne: false
+            referencedRelation: "scout_player_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_verification_requests: {
+        Row: {
+          created_at: string | null
+          document_url: string
+          id: string
+          reviewed_at: string | null
+          reviewer_notes: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_url: string
+          id?: string
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          document_url?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          media_url: string
+          overlay_text: string | null
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_url: string
+          overlay_text?: string | null
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_url?: string
+          overlay_text?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_likes: {
+        Row: {
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_likes_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          admin_notes: string | null
+          category: string
+          created_at: string
+          id: string
+          message: string
+          resolved_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message: string
+          resolved_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      test_reference_videos: {
+        Row: {
+          created_at: string
+          test_key: string
+          updated_at: string
+          updated_by: string | null
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          test_key: string
+          updated_at?: string
+          updated_by?: string | null
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          test_key?: string
+          updated_at?: string
+          updated_by?: string | null
+          video_url?: string
+        }
+        Relationships: []
+      }
+      user_favourites: {
+        Row: {
+          created_at: string
+          favourite_user_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          favourite_user_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          favourite_user_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_invite_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_privacy_settings: {
+        Row: {
+          account_visibility: string
+          allow_profile_pic_expansion: boolean
+          auto_confirm_followers: boolean
+          feed_activity_visibility: string
+          flag_for_review: boolean
+          group_chat_visibility: string
+          hide_like_share_counts: boolean
+          hide_unwanted_comments: string
+          hide_unwanted_requests: boolean
+          invitation_code: string | null
+          is_private_account: boolean
+          manually_approve_tags: boolean
+          mentions_visibility: string
+          message_requests_visibility: string
+          posts_comments_visibility: string
+          posts_to_stories_enabled: boolean
+          preferred_languages: string[]
+          reposts_enabled: boolean
+          stories_comments_visibility: string
+          stories_to_stories: string
+          story_replies_visibility: string
+          story_shares_enabled: boolean
+          tags_visibility: string
+          translate_reels_text: boolean
+          translate_voice: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_visibility?: string
+          allow_profile_pic_expansion?: boolean
+          auto_confirm_followers?: boolean
+          feed_activity_visibility?: string
+          flag_for_review?: boolean
+          group_chat_visibility?: string
+          hide_like_share_counts?: boolean
+          hide_unwanted_comments?: string
+          hide_unwanted_requests?: boolean
+          invitation_code?: string | null
+          is_private_account?: boolean
+          manually_approve_tags?: boolean
+          mentions_visibility?: string
+          message_requests_visibility?: string
+          posts_comments_visibility?: string
+          posts_to_stories_enabled?: boolean
+          preferred_languages?: string[]
+          reposts_enabled?: boolean
+          stories_comments_visibility?: string
+          stories_to_stories?: string
+          story_replies_visibility?: string
+          story_shares_enabled?: boolean
+          tags_visibility?: string
+          translate_reels_text?: boolean
+          translate_voice?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_visibility?: string
+          allow_profile_pic_expansion?: boolean
+          auto_confirm_followers?: boolean
+          feed_activity_visibility?: string
+          flag_for_review?: boolean
+          group_chat_visibility?: string
+          hide_like_share_counts?: boolean
+          hide_unwanted_comments?: string
+          hide_unwanted_requests?: boolean
+          invitation_code?: string | null
+          is_private_account?: boolean
+          manually_approve_tags?: boolean
+          mentions_visibility?: string
+          message_requests_visibility?: string
+          posts_comments_visibility?: string
+          posts_to_stories_enabled?: boolean
+          preferred_languages?: string[]
+          reposts_enabled?: boolean
+          stories_comments_visibility?: string
+          stories_to_stories?: string
+          story_replies_visibility?: string
+          story_shares_enabled?: boolean
+          tags_visibility?: string
+          translate_reels_text?: boolean
+          translate_voice?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -1115,9 +2011,42 @@ export type Database = {
         Args: { _follow_id: string }
         Returns: undefined
       }
+      am_i_restricted_by: { Args: { _other_user_id: string }; Returns: boolean }
+      can_add_to_group: { Args: { _target_user_id: string }; Returns: boolean }
+      can_comment_on_post: { Args: { _post_id: string }; Returns: boolean }
       can_message_user: { Args: { _other_user_id: string }; Returns: boolean }
+      can_reply_to_story: {
+        Args: { _story_owner_id: string }
+        Returns: boolean
+      }
+      can_view_profile: { Args: { _profile_user_id: string }; Returns: boolean }
       censor_profanity: { Args: { input_text: string }; Returns: string }
       current_week_start: { Args: never; Returns: string }
+      get_approved_verification_ids: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      get_conversation_previews: {
+        Args: { p_conversation_ids: string[]; p_user_id: string }
+        Returns: {
+          conversation_id: string
+          last_content: string
+          last_created_at: string
+          last_read: boolean
+          last_sender_id: string
+          unread_count: number
+        }[]
+      }
+      get_group_message_previews: {
+        Args: { p_group_ids: string[] }
+        Returns: {
+          content: string
+          created_at: string
+          group_id: string
+        }[]
+      }
       get_or_create_conversation: {
         Args: { other_user_id: string }
         Returns: string
@@ -1134,9 +2063,27 @@ export type Database = {
           week_start: string
         }[]
       }
+      get_post_engagement_summary: {
+        Args: { p_post_ids: string[]; p_viewer_id: string }
+        Returns: {
+          comments_count: number
+          hide_unwanted_comments: string
+          liked_by_me: boolean
+          likes_count: number
+          post_id: string
+        }[]
+      }
+      get_story_shares_enabled: {
+        Args: { _story_owner_id: string }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_visible_likes_count: {
+        Args: { p_post_id: string; p_viewer_id: string }
+        Returns: number
       }
       has_role: {
         Args: {
@@ -1145,6 +2092,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_session_duration: {
+        Args: { p_date: string; p_seconds: number; p_user_id: string }
+        Returns: number
+      }
+      is_group_member: { Args: { p_group_id: string }; Returns: boolean }
+      is_verification_approved: { Args: { _user_id: string }; Returns: boolean }
+      join_group_via_invite: { Args: { _token: string }; Returns: string }
       ping_daily_visit: {
         Args: { _available_tests: string[] }
         Returns: {
@@ -1158,6 +2112,7 @@ export type Database = {
           unlocked_tests: string[]
         }[]
       }
+      purge_expired_deleted_posts: { Args: never; Returns: undefined }
       reject_collaboration_request: {
         Args: { _request_id: string }
         Returns: undefined
@@ -1185,9 +2140,18 @@ export type Database = {
         }
         Returns: string
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      unlock_test_via_invite: { Args: { _test_key: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "player" | "scout" | "agent" | "club_rep" | "admin" | "cauta_jucator"
+      app_role:
+        | "player"
+        | "scout"
+        | "agent"
+        | "club_rep"
+        | "admin"
+        | "cauta_jucator"
       weekly_challenge_type:
         | "add_video_highlight"
         | "add_match_video"
@@ -1319,9 +2283,19 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
-      app_role: ["player", "scout", "agent", "club_rep", "admin", "cauta_jucator"],
+      app_role: [
+        "player",
+        "scout",
+        "agent",
+        "club_rep",
+        "admin",
+        "cauta_jucator",
+      ],
       weekly_challenge_type: [
         "add_video_highlight",
         "add_match_video",

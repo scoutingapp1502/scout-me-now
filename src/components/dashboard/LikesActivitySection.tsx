@@ -10,7 +10,7 @@ interface LikedPost {
   likedAt: string;
   post: {
     id: string; content: string; image_url: string | null; video_url: string | null;
-    post_type: string; user_id: string; created_at: string; is_archived: boolean;
+    post_type: string; user_id: string; created_at: string; is_archived: boolean; comments_disabled: boolean;
   };
   author: { user_id: string; name: string; photo: string | null; role: string } | null;
 }
@@ -225,7 +225,7 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
 
       const postIds = likes.map((l: any) => l.post_id);
       const { data: posts } = await (supabase as any)
-        .from("posts").select("id, content, image_url, video_url, post_type, user_id, created_at, is_archived")
+        .from("posts").select("id, content, image_url, video_url, post_type, user_id, created_at, is_archived, comments_disabled")
         .in("id", postIds).eq("is_archived", false);
 
       if (!posts?.length) { setLiked([]); setLoading(false); return; }
@@ -237,7 +237,7 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
       ]);
       const authorMap = new Map<string, { name: string; photo: string | null; role: string }>();
       (playerRes.data || []).forEach((p: any) => authorMap.set(p.user_id, { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url, role: "player" }));
-      (scoutRes.data  || []).forEach((s: any) => { if (!authorMap.has(s.user_id)) authorMap.set(s.user_id, { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url, role: "scout" }); });
+      (scoutRes.data  || []).forEach((s: any) => { if (!authorMap.has(s.user_id)) authorMap.set(s.user_id, { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url, role: "cauta_jucator" }); });
 
       const postMap = new Map(posts.map((p: any) => [p.id, p]));
       setLiked(
@@ -408,7 +408,7 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
                   id: selectedPost.post.id, content: selectedPost.post.content,
                   image_url: selectedPost.post.image_url, video_url: selectedPost.post.video_url,
                   post_type: selectedPost.post.post_type, user_id: selectedPost.post.user_id,
-                  created_at: selectedPost.post.created_at, likes_count: 0, liked_by_me: true,
+                  created_at: selectedPost.post.created_at, comments_disabled: selectedPost.post.comments_disabled, likes_count: 0, liked_by_me: true,
                   author_name: selectedPost.author?.name || "",
                   author_photo: selectedPost.author?.photo || null,
                   author_role: selectedPost.author?.role || "player",

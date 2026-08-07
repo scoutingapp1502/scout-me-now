@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star, Plus, X, Download, Minus } from "lucide-react";
+import { Loader2, Star, Plus, X, Minus } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export type Block =
   | { type: 'text';   id: string; value: string }
@@ -86,243 +87,61 @@ function nd(s: string | null | undefined): string {
   return result;
 }
 
+const REC_LABEL: Record<string, { ro: string; en: string }> = {
+  buy:       { ro: "Cumpara",      en: "Buy" },
+  shortlist: { ro: "Lista scurta", en: "Shortlist" },
+  follow:    { ro: "Urmarire",     en: "Follow" },
+  forget:    { ro: "Renunta",      en: "Forget" },
+};
+
 function buildReportDoc(d: ReportPDFData, ro: boolean): jsPDF {
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const W = 210;
-  const M = 14;
-  const CW = W - M * 2;
-
-  type RGB = [number, number, number];
-  const BG: RGB      = [18,  18,  18];
-  const PRI: RGB     = [180, 30,  30];
-  const WHITE: RGB   = [255, 255, 255];
-  const GR: RGB      = [150, 150, 150];
-  const TXT: RGB     = [30,  30,  30];
-  const GREEN: RGB   = [22,  163, 74];
-  const RED_C: RGB   = [220, 38,  38];
-  const YLW: RGB     = [202, 138, 4];
-  const BLU: RGB     = [37,  99,  235];
-  const ZINC: RGB    = [113, 113, 122];
-
-  let y = 0;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
   const today = new Date().toLocaleDateString(ro ? "ro-RO" : "en-GB");
 
-  const checkPage = (need: number) => {
-    if (y + need > 283) { doc.addPage(); y = 15; }
-  };
+  doc.setFontSize(18); doc.text(ro ? "Raport jucator" : "Player report", 14, 18);
+  doc.setFontSize(13); doc.setTextColor(60); doc.text(nd(d.playerName) || "-", 14, 28);
+  doc.setFontSize(10); doc.setTextColor(120);
+  doc.text(`${ro ? "Data raportului" : "Report date"}: ${today}`, pageWidth - 14, 18, { align: "right" });
 
-  const secHeader = (label: string) => {
-    checkPage(14);
-    doc.setFillColor(...PRI);
-    doc.rect(M, y - 2.5, 2.5, 2.5, "F");
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...TXT);
-    doc.text(label.toUpperCase(), M + 5, y);
-    y += 3;
-    doc.setDrawColor(...PRI);
-    doc.setLineWidth(0.4);
-    doc.line(M, y, M + CW, y);
-    y += 5;
-  };
+  const rec = d.recommendation ? REC_LABEL[d.recommendation] : null;
+  const pros = nd(d.pros.join("\n")) || "-";
+  const cons = nd(d.cons.join("\n")) || "-";
 
-  const para = (text: string, fs = 9, color: RGB = TXT) => {
-    doc.setFontSize(fs);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...color);
-    const lines = doc.splitTextToSize(text, CW) as string[];
-    for (const ln of lines) {
-      checkPage(5);
-      doc.text(ln, M, y);
-      y += fs * 0.42;
-    }
-    y += 1.5;
-  };
-
-  const ratingLine = (label: string, val: number) => {
-    if (!val) return;
-    doc.setFontSize(8.5);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...TXT);
-    const lw = doc.getTextWidth(label + ": ");
-    doc.text(label + ": ", M, y);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...YLW);
-    doc.text(`${val}/10`, M + lw, y);
-    y += 5;
-  };
-
-  /* ── HEADER ── */
-  const HDR = 56;
-  doc.setFillColor(...BG);
-  doc.rect(0, 0, W, HDR, "F");
-  doc.setFillColor(...PRI);
-  doc.rect(0, 0, W, 3, "F");
-
-  doc.setTextColor(...WHITE);
-  doc.setFontSize(22);
-  doc.setFont("helvetica", "bold");
-  doc.text(nd(d.playerName), W / 2, 16, { align: "center" });
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...GR);
-  if (d.position) doc.text(nd(d.position), W / 2, 23, { align: "center" });
-
-  if (d.overallRating > 0) {
-    doc.setFontSize(7);
-    doc.setTextColor(...GR);
-    doc.text(ro ? "NOTA GENERALA" : "OVERALL RATING", W / 2 - 26, 31, { align: "center" });
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...YLW);
-    doc.text(`${d.overallRating}/10`, W / 2 - 26, 38, { align: "center" });
-  }
-  if (d.fitRating > 0) {
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...GR);
-    doc.text(ro ? "POTRIVIRE" : "FIT RATING", W / 2 + 26, 31, { align: "center" });
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...YLW);
-    doc.text(`${d.fitRating}/10`, W / 2 + 26, 38, { align: "center" });
-  }
-
-  const clubLines = [
-    nd(d.currentClub),
-    nd(d.league),
-    d.contractUntil ? `Contract: ${nd(d.contractUntil)}` : "",
-    d.salaryRange   ? `${ro ? "Salariu:" : "Salary:"}   ${nd(d.salaryRange)}` : "",
-    d.transferValue ? `${ro ? "Valoare:" : "Value:"}    ${nd(d.transferValue)}` : "",
-  ].filter(Boolean);
-  let cy = 10;
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...GR);
-  clubLines.forEach(ln => { doc.text(ln!, W - M, cy, { align: "right" }); cy += 4.2; });
-
-  if (d.agentName) {
-    doc.setFontSize(7.5);
-    doc.setTextColor(...GR);
-    doc.text(`Agent: ${nd(d.agentName)}`, M, HDR - 5);
-  }
-  doc.setFontSize(7);
-  doc.setTextColor(...GR);
-  doc.text(`${ro ? "Data raportului:" : "Report date:"} ${today}`, W - M, HDR - 5, { align: "right" });
-
-  y = HDR + 8;
-
-  /* ── SECTIONS ── */
-  if (d.technicalRating > 0 || d.technicalNotes) {
-    secHeader(ro ? "Tehnic + Tactic" : "Technical + Tactical");
-    ratingLine(ro ? "Nota" : "Rating", d.technicalRating);
-    if (d.technicalNotes) para(nd(d.technicalNotes));
-    y += 2;
-  }
-  if (d.physicalRating > 0 || d.physicalNotes) {
-    secHeader(ro ? "Fizic" : "Physical");
-    ratingLine(ro ? "Nota" : "Rating", d.physicalRating);
-    if (d.physicalNotes) para(nd(d.physicalNotes));
-    y += 2;
-  }
-  if (d.mentalRating > 0 || d.mentalNotes) {
-    secHeader("Mental & Socio-cultural");
-    ratingLine(ro ? "Nota" : "Rating", d.mentalRating);
-    if (d.mentalNotes) para(nd(d.mentalNotes));
-    y += 2;
-  }
-  if (d.financialNotes) {
-    secHeader(ro ? "Financiar" : "Financial");
-    para(nd(d.financialNotes));
-    y += 2;
-  }
-
-  /* ── CONCLUZIE ── */
-  const hasConcl = d.pros.length > 0 || d.cons.length > 0 || d.conclusionText || d.recommendation;
-  if (hasConcl) {
-    secHeader(ro ? "Concluzie" : "Conclusion");
-    const colW = (CW - 6) / 2;
-
-    if (d.pros.length > 0 || d.cons.length > 0) {
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...GREEN);
-      doc.text(ro ? "Avantaje:" : "Pros:", M, y);
-      doc.setTextColor(...RED_C);
-      doc.text(ro ? "Dezavantaje:" : "Cons:", M + colW + 6, y);
-      y += 5;
-
-      const startY = y;
-
-      /* left column: pros */
-      let leftY = y;
-      d.pros.forEach(item => {
-        doc.setFontSize(8.5);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(...TXT);
-        const lines = doc.splitTextToSize(`• ${nd(item)}`, colW) as string[];
-        lines.forEach(ln => { doc.text(ln, M, leftY); leftY += 4; });
-      });
-
-      /* right column: cons */
-      let rightY = startY;
-      d.cons.forEach(item => {
-        doc.setFontSize(8.5);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(...TXT);
-        const lines = doc.splitTextToSize(`• ${nd(item)}`, colW) as string[];
-        lines.forEach(ln => { doc.text(ln, M + colW + 6, rightY); rightY += 4; });
-      });
-
-      y = Math.max(leftY, rightY) + 4;
-    }
-
-    if (d.conclusionText) { checkPage(10); para(nd(d.conclusionText)); y += 1; }
-
-    if (d.recommendation) {
-      checkPage(18);
-      const REC_MAP: Record<string, { ro: string; en: string; c: RGB }> = {
-        buy:       { ro: "Cumpara",      en: "Buy",       c: GREEN },
-        shortlist: { ro: "Lista scurta", en: "Shortlist",  c: YLW  },
-        follow:    { ro: "Urmarire",     en: "Follow",     c: BLU  },
-        forget:    { ro: "Renunta",      en: "Forget",     c: ZINC },
-      };
-      const rec = REC_MAP[d.recommendation];
-      if (rec) {
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(...TXT);
-        doc.text(ro ? "Recomandare:" : "Recommendation:", M, y);
-        y += 6;
-        doc.setFontSize(18);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(...rec.c);
-        doc.text(ro ? rec.ro : rec.en, M, y);
-        y += 8;
-      }
-    }
-  }
-
-  /* ── FOOTER on every page ── */
-  const total = (doc as any).internal.getNumberOfPages() as number;
-  for (let p = 1; p <= total; p++) {
-    doc.setPage(p);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...GR);
-    doc.text(
-      `SportRise · ${ro ? "Raport generat" : "Report generated"} ${today} · ${p}/${total}`,
-      W / 2, 292, { align: "center" }
-    ); // footer uses only ASCII-safe chars, no nd() needed
-  }
+  autoTable(doc, {
+    startY: 42, theme: "grid", styles: { fontSize: 10, cellPadding: 3, overflow: "linebreak" },
+    columnStyles: { 0: { cellWidth: 45, fontStyle: "bold", fillColor: [240, 245, 240] }, 1: { cellWidth: "auto" } },
+    body: [
+      [ro ? "Pozitie" : "Position", nd(d.position) || "-"],
+      [ro ? "Club actual" : "Current club", nd(d.currentClub) || "-"],
+      [ro ? "Liga" : "League", nd(d.league) || "-"],
+      [ro ? "Contract pana la" : "Contract until", nd(d.contractUntil) || "-"],
+      [ro ? "Interval salarial" : "Salary range", nd(d.salaryRange) || "-"],
+      [ro ? "Valoare transfer" : "Transfer value", nd(d.transferValue) || "-"],
+      ["Agent", nd(d.agentName) || "-"],
+      [ro ? "Nota generala" : "Overall rating", d.overallRating ? `${d.overallRating}/10` : "-"],
+      [ro ? "Potrivire" : "Fit rating", d.fitRating ? `${d.fitRating}/10` : "-"],
+      [ro ? "Nota tehnica" : "Technical rating", d.technicalRating ? `${d.technicalRating}/10` : "-"],
+      [ro ? "Observatii tehnice" : "Technical notes", nd(d.technicalNotes) || "-"],
+      [ro ? "Nota fizica" : "Physical rating", d.physicalRating ? `${d.physicalRating}/10` : "-"],
+      [ro ? "Observatii fizice" : "Physical notes", nd(d.physicalNotes) || "-"],
+      [ro ? "Nota mentala" : "Mental rating", d.mentalRating ? `${d.mentalRating}/10` : "-"],
+      [ro ? "Observatii mentale" : "Mental notes", nd(d.mentalNotes) || "-"],
+      [ro ? "Financiar" : "Financial", nd(d.financialNotes) || "-"],
+      [ro ? "Avantaje" : "Pros", pros],
+      [ro ? "Dezavantaje" : "Cons", cons],
+      [ro ? "Concluzie" : "Conclusion", nd(d.conclusionText) || "-"],
+      [ro ? "Recomandare" : "Recommendation", rec ? (ro ? rec.ro : rec.en) : "-"],
+    ],
+  });
 
   return doc;
 }
 
 export function exportReportPDF(d: ReportPDFData, ro: boolean): void {
   const doc = buildReportDoc(d, ro);
-  doc.save(`raport_${d.playerName.replace(/\s+/g, "_")}.pdf`);
+  const fullName = nd(d.playerName).toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  doc.save(`raport-${fullName}-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 export function getReportPDFBlob(d: ReportPDFData, ro: boolean): Blob {
@@ -506,7 +325,6 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [addingToProfile, setAddingToProfile] = useState(false);
 
   // Informații jucător
   const [position, setPosition] = useState("");
@@ -677,40 +495,6 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
     } else {
       toast({ title: ro ? "Raport salvat!" : "Report saved!" });
       onOpenChange(false);
-    }
-  };
-
-  const handleAddToProfile = async () => {
-    setAddingToProfile(true);
-    try {
-      const pdfData: ReportPDFData = {
-        playerName, position, currentClub, league, contractUntil, salaryRange,
-        transferValue, agentName, overallRating, fitRating,
-        technicalRating, technicalNotes, physicalRating, physicalNotes,
-        mentalRating, mentalNotes, financialNotes, pros, cons, conclusionText, recommendation,
-      };
-      const blob = getReportPDFBlob(pdfData, ro);
-      const fileName = `raport_${playerName.replace(/\s+/g, "_")}_${Date.now()}.pdf`;
-      const path = `${scoutUserId}/${fileName}`;
-      const { error: uploadError } = await supabase.storage
-        .from("scout-reports")
-        .upload(path, blob, { contentType: "application/pdf", upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("scout-reports").getPublicUrl(path);
-      const { error: dbError } = await (supabase as any)
-        .from("scout_uploaded_reports")
-        .insert({
-          scout_user_id: scoutUserId,
-          title: ro ? `Raport — ${playerName}` : `Report — ${playerName}`,
-          file_url: urlData.publicUrl,
-          file_name: fileName,
-        });
-      if (dbError) throw dbError;
-      toast({ title: ro ? "Raport adăugat în profilul tău!" : "Report added to your profile!" });
-    } catch (err: any) {
-      toast({ title: ro ? "Eroare" : "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setAddingToProfile(false);
     }
   };
 
@@ -1034,33 +818,14 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                 </Button>
               </div>
 
-              <div className="flex items-center justify-between gap-2 pt-2 flex-wrap">
-                <div className="flex gap-2 flex-wrap">
-                  <Button variant="outline" onClick={() => exportReportPDF({
-                    playerName, position, currentClub, league, contractUntil, salaryRange, transferValue, agentName,
-                    overallRating, fitRating, technicalRating, technicalNotes,
-                    physicalRating, physicalNotes, mentalRating, mentalNotes,
-                    financialNotes, pros, cons, conclusionText, recommendation,
-                  }, ro)}>
-                    <Download className="h-4 w-4 mr-2" />
-                    {ro ? "Exportă PDF" : "Export PDF"}
-                  </Button>
-                  <Button variant="outline" onClick={handleAddToProfile} disabled={addingToProfile}>
-                    {addingToProfile
-                      ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      : <Download className="h-4 w-4 mr-2" />}
-                    {ro ? "Adaugă în profilul meu" : "Add to my profile"}
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-                    {ro ? "Anulează" : "Cancel"}
-                  </Button>
-                  <Button onClick={handleSave} disabled={saving}>
-                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    {ro ? "Salvează raportul" : "Save report"}
-                  </Button>
-                </div>
+              <div className="flex items-center justify-end gap-2 pt-2 flex-wrap">
+                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+                  {ro ? "Anulează" : "Cancel"}
+                </Button>
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {ro ? "Salvează raportul" : "Save report"}
+                </Button>
               </div>
             </div>
           )}

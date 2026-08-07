@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 interface BlockedUser {
   blockId: string;
   userId: string;
-  username: string;
   fullName: string;
   avatarUrl: string | null;
 }
@@ -48,23 +47,27 @@ function AddBlockSheet({
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
       setSearching(true);
+      const q = query.trim();
+      const orFilter = `first_name.ilike.%${q}%,last_name.ilike.%${q}%`;
       const [{ data: players }, { data: scouts }] = await Promise.all([
-        (supabase as any).from("player_profiles").select("user_id, username, full_name, avatar_url").ilike("username", `%${query.trim()}%`).neq("user_id", currentUserId).limit(10),
-        (supabase as any).from("scout_profiles").select("user_id, username, full_name, avatar_url").ilike("username", `%${query.trim()}%`).neq("user_id", currentUserId).limit(10),
+        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", currentUserId).limit(10),
+        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", currentUserId).limit(10),
       ]);
       const seen = new Set<string>();
-      const combined = [...(players ?? []), ...(scouts ?? [])].filter(p => { if (seen.has(p.user_id)) return false; seen.add(p.user_id); return true; });
+      const combined = [...(players ?? []), ...(scouts ?? [])]
+        .filter(p => { if (seen.has(p.user_id)) return false; seen.add(p.user_id); return true; })
+        .map(p => ({ user_id: p.user_id, full_name: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), avatar_url: p.photo_url }));
       setResults(combined);
       setSearching(false);
     }, 300);
   }, [query, currentUserId]);
 
-  const handleBlock = async (userId: string, username: string) => {
+  const handleBlock = async (userId: string, fullName: string) => {
     const { error } = await (supabase as any).from("blocks").insert({ blocker_id: currentUserId, blocked_id: userId });
     if (error && error.code !== "23505") {
       toast({ title: lang === "ro" ? "Eroare la blocare." : "Error blocking.", variant: "destructive" });
     } else {
-      toast({ title: lang === "ro" ? `@${username} a fost blocat.` : `@${username} blocked.` });
+      toast({ title: lang === "ro" ? `${fullName} a fost blocat.` : `${fullName} blocked.` });
       onBlocked();
     }
   };
@@ -86,7 +89,7 @@ function AddBlockSheet({
             autoFocus
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder={lang === "ro" ? "Caută după username..." : "Search by username..."}
+            placeholder={lang === "ro" ? "Caută după nume..." : "Search by name..."}
             className="w-full bg-muted rounded-xl px-3 py-2 text-sm font-body outline-none text-foreground placeholder:text-muted-foreground"
           />
         </div>
@@ -100,14 +103,13 @@ function AddBlockSheet({
             <div key={u.user_id} className="flex items-center gap-3 px-4 py-3 border-b border-border/40">
               <Avatar className="h-10 w-10 shrink-0">
                 <AvatarImage src={u.avatar_url ?? undefined} />
-                <AvatarFallback className="bg-muted text-sm">{(u.username || "?")[0]?.toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="bg-muted text-sm">{(u.full_name || "?")[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold font-body text-foreground truncate">{u.username}</p>
-                {u.full_name && <p className="text-xs text-muted-foreground font-body truncate">{u.full_name}</p>}
+                <p className="text-sm font-semibold font-body text-foreground truncate">{u.full_name}</p>
               </div>
               <button
-                onClick={() => handleBlock(u.user_id, u.username)}
+                onClick={() => handleBlock(u.user_id, u.full_name)}
                 className="shrink-0 px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-semibold font-body hover:bg-destructive/90 transition-colors"
               >
                 {lang === "ro" ? "Blochează" : "Block"}
@@ -167,7 +169,7 @@ function BlockedProfileView({
     if (error) {
       toast({ title: lang === "ro" ? "Eroare la deblocare." : "Error unblocking.", variant: "destructive" });
     } else {
-      toast({ title: lang === "ro" ? `@${user.username} a fost deblocat.` : `@${user.username} unblocked.` });
+      toast({ title: lang === "ro" ? `${user.fullName} a fost deblocat.` : `${user.fullName} unblocked.` });
       onUnblocked();
     }
   };
@@ -180,7 +182,7 @@ function BlockedProfileView({
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground">
-          {user.username || user.fullName}
+          {user.fullName}
         </h2>
         <div className="ml-auto relative">
           <button onClick={() => setShowMenu(v => !v)} className="p-1 text-muted-foreground hover:text-foreground">
@@ -215,7 +217,7 @@ function BlockedProfileView({
             <Avatar className="h-20 w-20 shrink-0">
               <AvatarImage src={user.avatarUrl ?? undefined} />
               <AvatarFallback className="bg-muted text-2xl">
-                {(user.username || user.fullName || "?")[0]?.toUpperCase()}
+                {(user.fullName || "?")[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex gap-6 flex-1">
@@ -311,30 +313,30 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
 
     const userIds = blocks.map((b: any) => b.blocked_id);
     const [{ data: players }, { data: scouts }] = await Promise.all([
-      (supabase as any).from("player_profiles").select("user_id, username, full_name, avatar_url").in("user_id", userIds),
-      (supabase as any).from("scout_profiles").select("user_id, username, full_name, avatar_url").in("user_id", userIds),
+      (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", userIds),
+      (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", userIds),
     ]);
 
-    const profileMap = new Map<string, { username: string; fullName: string; avatarUrl: string | null }>();
-    for (const p of players ?? []) profileMap.set(p.user_id, { username: p.username ?? "", fullName: p.full_name ?? "", avatarUrl: p.avatar_url });
-    for (const s of scouts ?? []) if (!profileMap.has(s.user_id)) profileMap.set(s.user_id, { username: s.username ?? "", fullName: s.full_name ?? "", avatarUrl: s.avatar_url });
+    const profileMap = new Map<string, { fullName: string; avatarUrl: string | null }>();
+    for (const p of players ?? []) profileMap.set(p.user_id, { fullName: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), avatarUrl: p.photo_url });
+    for (const s of scouts ?? []) if (!profileMap.has(s.user_id)) profileMap.set(s.user_id, { fullName: `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim(), avatarUrl: s.photo_url });
 
     setBlocked(blocks.map((b: any) => {
       const p = profileMap.get(b.blocked_id);
-      return { blockId: b.id, userId: b.blocked_id, username: p?.username ?? "", fullName: p?.fullName ?? "", avatarUrl: p?.avatarUrl ?? null };
+      return { blockId: b.id, userId: b.blocked_id, fullName: p?.fullName ?? "", avatarUrl: p?.avatarUrl ?? null };
     }));
     setLoading(false);
   };
 
   useEffect(() => { fetchBlocked(); }, [currentUserId]);
 
-  const handleUnblock = async (blockId: string, username: string) => {
+  const handleUnblock = async (blockId: string, fullName: string) => {
     const { error } = await (supabase as any).from("blocks").delete().eq("id", blockId);
     if (error) {
       toast({ title: lang === "ro" ? "Eroare la deblocare." : "Error unblocking.", variant: "destructive" });
     } else {
       setBlocked(prev => prev.filter(b => b.blockId !== blockId));
-      toast({ title: lang === "ro" ? `@${username} a fost deblocat.` : `@${username} unblocked.` });
+      toast({ title: lang === "ro" ? `${fullName} a fost deblocat.` : `${fullName} unblocked.` });
     }
   };
 
@@ -349,7 +351,7 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
         onUnblocked={() => {
           setBlocked(prev => prev.filter(b => b.blockId !== selectedUser.blockId));
           setSelectedUser(null);
-          toast({ title: lang === "ro" ? `@${selectedUser.username} a fost deblocat.` : `@${selectedUser.username} unblocked.` });
+          toast({ title: lang === "ro" ? `${selectedUser.fullName} a fost deblocat.` : `${selectedUser.fullName} unblocked.` });
         }}
       />
     );
@@ -386,17 +388,14 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
                 <Avatar className="h-12 w-12 shrink-0">
                   <AvatarImage src={user.avatarUrl ?? undefined} />
                   <AvatarFallback className="bg-muted text-sm">
-                    {(user.username || user.fullName || "?")[0]?.toUpperCase()}
+                    {(user.fullName || "?")[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold font-body text-foreground truncate">{user.username || user.fullName}</p>
-                  {user.fullName && user.username && (
-                    <p className="text-xs text-muted-foreground font-body truncate">{user.fullName}</p>
-                  )}
+                  <p className="text-sm font-semibold font-body text-foreground truncate">{user.fullName}</p>
                 </div>
                 <button
-                  onClick={e => { e.stopPropagation(); handleUnblock(user.blockId, user.username); }}
+                  onClick={e => { e.stopPropagation(); handleUnblock(user.blockId, user.fullName); }}
                   className="shrink-0 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold font-body hover:bg-primary/90 transition-colors"
                 >
                   {lang === "ro" ? "Deblochează" : "Unblock"}

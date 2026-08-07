@@ -187,7 +187,7 @@ function HideUnwantedPage({ lang, value, onSelect, onBack, saving }: {
 // ── Block commenters sub-page ─────────────────────────────────────────────────
 function BlockCommentersPage({ userId, lang, onBack }: { userId: string; lang: string; onBack: () => void }) {
   const { toast } = useToast();
-  const [blocked, setBlocked] = useState<{ id: string; userId: string; name: string; username: string; photo: string | null }[]>([]);
+  const [blocked, setBlocked] = useState<{ id: string; userId: string; name: string; photo: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -199,14 +199,14 @@ function BlockCommentersPage({ userId, lang, onBack }: { userId: string; lang: s
     if (!data?.length) { setBlocked([]); setLoading(false); return; }
     const ids = data.map((d: any) => d.blocked_id);
     const [{ data: players }, { data: scouts }] = await Promise.all([
-      (supabase as any).from("player_profiles").select("user_id, first_name, last_name, username, photo_url").in("user_id", ids),
-      (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, username, photo_url").in("user_id", ids),
+      (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", ids),
+      (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", ids),
     ]);
     const pMap = new Map<string, any>();
     for (const p of [...(players ?? []), ...(scouts ?? [])]) if (!pMap.has(p.user_id)) pMap.set(p.user_id, p);
     setBlocked(data.map((d: any) => {
       const p = pMap.get(d.blocked_id);
-      return { id: d.id, userId: d.blocked_id, name: `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim(), username: p?.username ?? "", photo: p?.photo_url ?? null };
+      return { id: d.id, userId: d.blocked_id, name: `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim(), photo: p?.photo_url ?? null };
     }));
     setLoading(false);
   };
@@ -217,24 +217,25 @@ function BlockCommentersPage({ userId, lang, onBack }: { userId: string; lang: s
     if (!query.trim()) { setResults([]); return; }
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
+      const orFilter = `first_name.ilike.%${query.trim()}%,last_name.ilike.%${query.trim()}%`;
       const [{ data: p }, { data: s }] = await Promise.all([
-        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, username, photo_url").ilike("username", `%${query.trim()}%`).neq("user_id", userId).limit(10),
-        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, username, photo_url").ilike("username", `%${query.trim()}%`).neq("user_id", userId).limit(10),
+        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", userId).limit(10),
+        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", userId).limit(10),
       ]);
       const seen = new Set<string>();
       setResults([...(p ?? []), ...(s ?? [])].filter(x => { if (seen.has(x.user_id)) return false; seen.add(x.user_id); return true; }));
     }, 300);
   }, [query]);
 
-  const handleBlock = async (uid: string, username: string) => {
+  const handleBlock = async (uid: string, name: string) => {
     const { error } = await (supabase as any).from("blocked_commenters").insert({ blocker_id: userId, blocked_id: uid });
-    if (!error || error.code === "23505") { toast({ title: lang === "ro" ? `@${username} blocat din comentarii.` : `@${username} blocked from commenting.` }); setQuery(""); fetchBlocked(); }
+    if (!error || error.code === "23505") { toast({ title: lang === "ro" ? `${name} blocat din comentarii.` : `${name} blocked from commenting.` }); setQuery(""); fetchBlocked(); }
   };
 
-  const handleUnblock = async (id: string, username: string) => {
+  const handleUnblock = async (id: string, name: string) => {
     await (supabase as any).from("blocked_commenters").delete().eq("id", id);
     setBlocked(prev => prev.filter(b => b.id !== id));
-    toast({ title: lang === "ro" ? `@${username} deblocat.` : `@${username} unblocked.` });
+    toast({ title: lang === "ro" ? `${name} deblocat.` : `${name} unblocked.` });
   };
 
   return (
@@ -250,7 +251,7 @@ function BlockCommentersPage({ userId, lang, onBack }: { userId: string; lang: s
           autoFocus
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder={lang === "ro" ? "Caută după username..." : "Search by username..."}
+          placeholder={lang === "ro" ? "Caută după nume..." : "Search by name..."}
           className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm font-body outline-none text-foreground placeholder:text-muted-foreground"
         />
       </div>
@@ -261,9 +262,9 @@ function BlockCommentersPage({ userId, lang, onBack }: { userId: string; lang: s
           <div className="border-b border-border">
             {results.map(u => (
               <div key={u.user_id} className="flex items-center gap-3 px-4 py-3 border-b border-border/40 last:border-0">
-                <Avatar className="h-10 w-10 shrink-0"><AvatarImage src={u.photo_url ?? undefined} /><AvatarFallback>{(u.username || "?")[0]?.toUpperCase()}</AvatarFallback></Avatar>
-                <div className="flex-1 min-w-0"><p className="text-sm font-semibold font-body text-foreground truncate">{u.username}</p>{u.first_name && <p className="text-xs text-muted-foreground font-body truncate">{`${u.first_name} ${u.last_name}`.trim()}</p>}</div>
-                <button onClick={() => handleBlock(u.user_id, u.username)} className="px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-semibold shrink-0">{lang === "ro" ? "Blochează" : "Block"}</button>
+                <Avatar className="h-10 w-10 shrink-0"><AvatarImage src={u.photo_url ?? undefined} /><AvatarFallback>{(u.first_name || "?")[0]?.toUpperCase()}</AvatarFallback></Avatar>
+                <div className="flex-1 min-w-0"><p className="text-sm font-semibold font-body text-foreground truncate">{`${u.first_name ?? ""} ${u.last_name ?? ""}`.trim()}</p></div>
+                <button onClick={() => handleBlock(u.user_id, `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim())} className="px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-semibold shrink-0">{lang === "ro" ? "Blochează" : "Block"}</button>
               </div>
             ))}
           </div>
@@ -280,9 +281,9 @@ function BlockCommentersPage({ userId, lang, onBack }: { userId: string; lang: s
               ? <p className="text-sm text-muted-foreground font-body text-center py-12">{lang === "ro" ? "Nicio persoană blocată din comentarii." : "No one blocked from commenting."}</p>
               : <>{blocked.map(u => (
                   <div key={u.id} className="flex items-center gap-3 px-4 py-3 border-b border-border/40">
-                    <Avatar className="h-11 w-11 shrink-0"><AvatarImage src={u.photo ?? undefined} /><AvatarFallback>{(u.username || "?")[0]?.toUpperCase()}</AvatarFallback></Avatar>
-                    <div className="flex-1 min-w-0"><p className="text-sm font-semibold font-body text-foreground truncate">{u.username || u.name}</p>{u.name && u.username && <p className="text-xs text-muted-foreground font-body truncate">{u.name}</p>}</div>
-                    <button onClick={() => handleUnblock(u.id, u.username)} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">{lang === "ro" ? "Deblochează" : "Unblock"}</button>
+                    <Avatar className="h-11 w-11 shrink-0"><AvatarImage src={u.photo ?? undefined} /><AvatarFallback>{(u.name || "?")[0]?.toUpperCase()}</AvatarFallback></Avatar>
+                    <div className="flex-1 min-w-0"><p className="text-sm font-semibold font-body text-foreground truncate">{u.name}</p></div>
+                    <button onClick={() => handleUnblock(u.id, u.name)} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">{lang === "ro" ? "Deblochează" : "Unblock"}</button>
                   </div>
                 ))}</>
         )}

@@ -8,7 +8,7 @@ import type { ProfileSection } from "@/hooks/useProfileCompletion";
 interface OnboardingWizardProps {
   sections: ProfileSection[];
   percentage: number;
-  role: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
+  role: "player" | "cauta_jucator";
   onGoToSection: (sectionKey: string) => void;
   onDismiss: () => void;
 }

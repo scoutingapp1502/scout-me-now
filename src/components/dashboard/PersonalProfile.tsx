@@ -988,7 +988,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                       ? (lang === "ro" ? "Cerere trimisă" : "Request sent")
                       : (lang === "ro" ? "Urmărește" : "Follow")}
                 </Button>
-                {(viewerRole === "scout" || viewerRole === "cauta_jucator") && viewerUserId && viewerUserId !== userId && (
+                {viewerRole === "cauta_jucator" && viewerUserId && viewerUserId !== userId && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -1152,7 +1152,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       )}
 
       {/* Scout Player Note Dialog */}
-      {(viewerRole === "scout" || viewerRole === "cauta_jucator") && viewerUserId && viewerUserId !== userId && (
+      {viewerRole === "cauta_jucator" && viewerUserId && viewerUserId !== userId && (
         <ScoutPlayerNoteDialog
           open={showNoteDialog}
           onOpenChange={setShowNoteDialog}
@@ -1165,7 +1165,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       )}
 
       {/* Scout Player Report Dialog */}
-      {(viewerRole === "scout" || viewerRole === "cauta_jucator") && viewerUserId && viewerUserId !== userId && (
+      {viewerRole === "cauta_jucator" && viewerUserId && viewerUserId !== userId && (
         <ScoutPlayerReportDialog
           open={showReportDialog}
           onOpenChange={setShowReportDialog}

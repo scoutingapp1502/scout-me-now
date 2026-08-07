@@ -2,14 +2,13 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useActivityNotifications, markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotifications";
-import { Loader2, Bell, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import PostCard from "./PostCard";
 import PersonalProfile from "./PersonalProfile";
 import ScoutPersonalProfile from "./ScoutPersonalProfile";
-import ActivityNotificationsList from "./ActivityNotificationsList";
 import NewPostComposer from "./NewPostComposer";
 
 interface Post {
@@ -31,11 +30,10 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
-  const { followingCount, mineCount, notifications: activityNotifs, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
+  const { followingCount, mineCount, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
   const [viewingSinglePostId, setViewingSinglePostId] = useState<string | null>(null);
   const [singlePost, setSinglePost] = useState<Post | null>(null);
   const [loadingSinglePost, setLoadingSinglePost] = useState(false);
-  const [activitySubTab, setActivitySubTab] = useState<"feed" | "notifications">("feed");
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const feedTabRef = useRef<"following" | "mine">("following");
 
@@ -186,12 +184,13 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : singlePost ? (
           <PostCard
-            post={{ id: singlePost.id, user_id: singlePost.user_id, content: singlePost.content, image_url: singlePost.image_url, video_url: (singlePost as any).video_url || null, post_type: singlePost.post_type, created_at: singlePost.created_at }}
+            post={{ id: singlePost.id, user_id: singlePost.user_id, content: singlePost.content, image_url: singlePost.image_url, video_url: (singlePost as any).video_url || null, post_type: singlePost.post_type, created_at: singlePost.created_at, comments_disabled: (singlePost as any).comments_disabled || false }}
             author={{ user_id: singlePost.user_id, name: singlePost.author_name, photo: singlePost.author_photo, role: singlePost.author_role, title: singlePost.author_title }}
             currentUserId={currentUserId}
             onDelete={handleDelete}
             onViewProfile={handleViewProfile}
             hideLikeCounts={hideLikeCounts}
+            simplifiedMenu
           />
         ) : (
           <div className="text-center py-12 text-muted-foreground">
@@ -217,63 +216,43 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-2xl text-foreground">{lang === "ro" ? "Activitate" : "Activity"}</h2>
-        <button
-          onClick={() => setActivitySubTab(activitySubTab === "notifications" ? "feed" : "notifications")}
-          className={`relative p-2 rounded-lg transition-colors ${activitySubTab === "notifications" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
-        >
-          <Bell className="h-5 w-5" />
-          {activityNotifs.length > 0 && activitySubTab !== "notifications" && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-              {activityNotifs.length > 99 ? "99+" : activityNotifs.length}
-            </span>
-          )}
-        </button>
+      <h2 className="font-display text-2xl text-foreground">{lang === "ro" ? "Activitate" : "Activity"}</h2>
+
+      {/* Feed Tab Toggle */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2 flex justify-center">
+        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+          <button
+            onClick={() => {
+              setFeedTab("following");
+              if (currentUserId) { markFollowingSeen(currentUserId); refetchNotifications(); }
+            }}
+            className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {lang === "ro" ? "Urmăritori" : "Following"}
+            {followingCount > 0 && feedTab !== "following" && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                {followingCount > 99 ? "99+" : followingCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setFeedTab("mine");
+              if (currentUserId) { markMineSeen(currentUserId); refetchNotifications(); }
+            }}
+            className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {lang === "ro" ? "Postările mele" : "My Posts"}
+            {mineCount > 0 && feedTab !== "mine" && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                {mineCount > 99 ? "99+" : mineCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
-      {activitySubTab === "notifications" ? (
-        <ActivityNotificationsList
-          notifications={activityNotifs}
-          onViewPost={handleViewSinglePost}
-        />
-      ) : (
-        <>
-          {/* Feed Tab Toggle */}
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2 flex justify-center">
-            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
-            <button
-              onClick={() => {
-                setFeedTab("following");
-                if (currentUserId) { markFollowingSeen(currentUserId); refetchNotifications(); }
-              }}
-              className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {lang === "ro" ? "Urmăritori" : "Following"}
-              {followingCount > 0 && feedTab !== "following" && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-                  {followingCount > 99 ? "99+" : followingCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => {
-                setFeedTab("mine");
-                if (currentUserId) { markMineSeen(currentUserId); refetchNotifications(); }
-              }}
-              className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {lang === "ro" ? "Postările mele" : "My Posts"}
-              {mineCount > 0 && feedTab !== "mine" && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-                  {mineCount > 99 ? "99+" : mineCount}
-                </span>
-              )}
-            </button>
-            </div>
-          </div>
-
-          {feedTab === "mine" && currentUserId && (
+      {feedTab === "mine" && currentUserId && (
             <NewPostComposer currentUserId={currentUserId} myPhoto={myPhoto} onPosted={() => fetchPosts(currentUserId)} />
           )}
 
@@ -308,19 +287,18 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
                 {filteredPosts.map((post) => (
                   <PostCard
                     key={post.id}
-                    post={{ id: post.id, user_id: post.user_id, content: post.content, image_url: post.image_url, video_url: (post as any).video_url || null, post_type: post.post_type, created_at: post.created_at }}
+                    post={{ id: post.id, user_id: post.user_id, content: post.content, image_url: post.image_url, video_url: (post as any).video_url || null, post_type: post.post_type, created_at: post.created_at, comments_disabled: (post as any).comments_disabled || false }}
                     author={{ user_id: post.user_id, name: post.author_name, photo: post.author_photo, role: post.author_role, title: post.author_title }}
                     currentUserId={currentUserId}
                     onDelete={handleDelete}
                     onViewProfile={handleViewProfile}
                     hideLikeCounts={hideLikeCounts}
+                    simplifiedMenu
                   />
                 ))}
               </div>
             );
           })()}
-        </>
-      )}
 
       {/* Profile View Dialog */}
       <Dialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)}>

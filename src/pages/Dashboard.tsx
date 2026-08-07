@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import MessagesSection from "@/components/dashboard/MessagesSection";
@@ -46,8 +46,9 @@ import { getTechnicalTestsBySport, getTestLabelByKey } from "@/components/dashbo
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<any>(null);
-  const [activeSection, setActiveSection] = useState("profile");
+  const [activeSection, setActiveSection] = useState(() => searchParams.get("section") || "profile");
   const [prevSection, setPrevSection] = useState("settings");
 
   const navigateTo = (section: string) => {
@@ -58,11 +59,10 @@ const Dashboard = () => {
   const [playerSport, setPlayerSport] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [completionBarDismissed, setCompletionBarDismissed] = useState(false);
-  const [userRole, setUserRole] = useState<"player" | "scout" | "agent" | "club_rep" | "cauta_jucator" | null>(null);
+  const [userRole, setUserRole] = useState<"player" | "cauta_jucator" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [pendingChatUserId, setPendingChatUserId] = useState<string | null>(null);
-  const [scoutVerificationStatus, setScoutVerificationStatus] = useState<"pending" | "approved" | "rejected" | null>(null);
   const isMobile = useIsMobile();
   const { sections, percentage, loading: completionLoading } = useProfileCompletion(user?.id ?? null, userRole);
   useTimeTracking(user?.id ?? null);
@@ -83,23 +83,15 @@ const Dashboard = () => {
           navigate("/admin");
           return;
         }
-        if (roleData.role === 'scout' || roleData.role === 'cauta_jucator') {
-          const { data: verif } = await supabase
-            .from("scout_verification_requests")
-            .select("status")
-            .eq("user_id", userId)
-            .maybeSingle();
-          if (isMounted) setScoutVerificationStatus(verif?.status ?? null);
-        }
         if (isMounted) {
-          setUserRole(roleData.role as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator");
+          setUserRole(roleData.role as "player" | "cauta_jucator");
           setRoleLoading(false);
         }
         return;
       }
 
       // Role missing — create from user metadata (set during registration)
-      const metaRole = userMeta?.role as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator" | undefined;
+      const metaRole = userMeta?.role as "player" | "cauta_jucator" | undefined;
       if (!metaRole) {
         if (isMounted) setRoleLoading(false);
         return;
@@ -124,20 +116,11 @@ const Dashboard = () => {
           { onConflict: "user_id" }
         );
       } else {
-        // Both scout and agent use scout_profiles
+        // cauta_jucator uses scout_profiles
         await supabase.from("scout_profiles").upsert(
           { user_id: userId, first_name: firstName, last_name: lastName },
           { onConflict: "user_id" }
         );
-      }
-
-      if (metaRole === "scout" || metaRole === "cauta_jucator") {
-        const { data: verif } = await supabase
-          .from("scout_verification_requests")
-          .select("status")
-          .eq("user_id", userId)
-          .maybeSingle();
-        if (isMounted) setScoutVerificationStatus(verif?.status ?? null);
       }
 
       if (isMounted) {
@@ -152,6 +135,14 @@ const Dashboard = () => {
         return;
       }
       setUser(session.user);
+      // A fresh login (as opposed to a page refresh restoring an existing
+      // session, which fires INITIAL_SESSION instead) should always be able
+      // to show the profile-completion wizard again, even if it was
+      // dismissed earlier — sessionStorage otherwise keeps the dismissal
+      // across a logout/login within the same browser tab.
+      if (event === "SIGNED_IN") {
+        sessionStorage.removeItem(`wizard-dismissed-${session.user.id}`);
+      }
       // onAuthStateChange already emits an INITIAL_SESSION event as soon as it
       // subscribes, so a separate getSession() call is unnecessary and was
       // causing ensureRoleAndProfile to run twice concurrently on load.
@@ -170,7 +161,7 @@ const Dashboard = () => {
   // Fetch display name based on role
   useEffect(() => {
     if (!user || !userRole) return;
-    if (userRole === "scout" || userRole === "agent" || userRole === "club_rep" || userRole === "cauta_jucator") {
+    if (userRole === "cauta_jucator") {
       supabase
         .from("scout_profiles")
         .select("first_name, last_name")
@@ -199,6 +190,19 @@ const Dashboard = () => {
         );
     }
   }, [user, userRole]);
+
+  // Finish joining a group via invite link if the user had to log in first
+  // (JoinGroup.tsx stashes the token before redirecting to /auth).
+  useEffect(() => {
+    if (!user?.id) return;
+    const pendingToken = sessionStorage.getItem("pending-group-invite-token");
+    if (!pendingToken) return;
+    (async () => {
+      const { data: groupId, error } = await (supabase as any).rpc("join_group_via_invite", { _token: pendingToken });
+      sessionStorage.removeItem("pending-group-invite-token");
+      if (!error && groupId) setActiveSection("messages");
+    })();
+  }, [user?.id]);
 
   // Show wizard for new users (percentage < 100 on first load)
   useEffect(() => {
@@ -284,33 +288,6 @@ const Dashboard = () => {
     );
   }
 
-  if (userRole === "scout" && (scoutVerificationStatus === "pending" || scoutVerificationStatus === "rejected")) {
-    const isPending = scoutVerificationStatus === "pending" || scoutVerificationStatus === null;
-    return (
-      <div className="flex min-h-screen bg-background dark items-center justify-center p-6">
-        <div className="max-w-md w-full text-center space-y-5">
-          <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${isPending ? "bg-yellow-500/10" : "bg-destructive/10"}`}>
-            <Loader2 className={`h-8 w-8 ${isPending ? "text-yellow-500 animate-spin" : "text-destructive"}`} />
-          </div>
-          <h1 className="font-heading text-2xl font-bold">
-            {isPending ? "Cont în curs de verificare" : "Cont respins"}
-          </h1>
-          <p className="font-body text-muted-foreground text-sm leading-relaxed">
-            {isPending
-              ? "Documentul tău de scouter a fost primit și este în curs de analiză de către echipa SportRise. Vei primi acces imediat după aprobare."
-              : "Documentul tău de scouter nu a fost aprobat. Te rugăm să contactezi echipa SportRise pentru mai multe detalii."}
-          </p>
-          <button
-            onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}
-            className="font-body text-sm text-muted-foreground hover:text-foreground underline"
-          >
-            Deconectare
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const handleSectionChange = (section: string) => {
     if (section === "activity" && user?.id) {
       markFollowingSeen(user.id);
@@ -336,7 +313,7 @@ const Dashboard = () => {
         return (
           <>
             {completionBar}
-            {(userRole === "scout" || userRole === "agent" || userRole === "club_rep" || userRole === "cauta_jucator")
+            {(userRole === "cauta_jucator")
               ? <ScoutPersonalProfile userId={user.id} />
               : <PersonalProfile userId={user.id} />}
           </>
@@ -348,7 +325,7 @@ const Dashboard = () => {
       case "community":
         return <CommunitySection onNavigateToChat={handleNavigateToChat} />;
       case "player-notes":
-        return (userRole === "scout" || userRole === "club_rep" || userRole === "cauta_jucator")
+        return (userRole === "cauta_jucator")
           ? <ScoutActionsSection scoutUserId={user.id} userRole={userRole} onNavigateToChat={handleNavigateToChat} />
           : null;
       case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
@@ -358,7 +335,7 @@ const Dashboard = () => {
       case "archive": return <ArchiveSection userId={user.id} onBack={() => setActiveSection(prevSection)} />;
       case "your-activity": return <YourActivitySection onBack={() => setActiveSection("settings")} onNavigate={navigateTo} />;
       case "likes-activity": return <LikesActivitySection userId={user.id} onBack={() => setActiveSection("your-activity")} onViewProfile={() => setActiveSection("profile")} />;
-      case "recently-deleted": return <RecentlyDeletedSection userId={user.id} onBack={() => setActiveSection("your-activity")} />;
+      case "recently-deleted": return <RecentlyDeletedSection userId={user.id} onBack={() => setActiveSection("your-activity")} onViewProfile={() => setActiveSection("profile")} />;
       case "time-management": return <TimeManagementSection userId={user.id} onBack={() => setActiveSection(prevSection)} />;
       case "blocked": return <BlockedSection currentUserId={user.id} onBack={() => setActiveSection("settings")} />;
       case "feed-activity": return <FeedActivitySection userId={user.id} onBack={() => setActiveSection("settings")} />;
@@ -386,7 +363,7 @@ const Dashboard = () => {
         return (
           <>
             {completionBar}
-            {(userRole === "scout" || userRole === "agent" || userRole === "club_rep" || userRole === "cauta_jucator")
+            {(userRole === "cauta_jucator")
               ? <ScoutPersonalProfile userId={user.id} />
               : <PersonalProfile userId={user.id} />}
           </>
@@ -394,7 +371,7 @@ const Dashboard = () => {
     }
   };
 
-  const sidebarFirstLabel = (userRole === "scout" || userRole === "agent" || userRole === "club_rep" || userRole === "cauta_jucator") ? "Personal Area" : undefined;
+  const sidebarFirstLabel = (userRole === "cauta_jucator") ? "Personal Area" : undefined;
 
   return (
     <div className="flex h-screen bg-background dark overflow-hidden">

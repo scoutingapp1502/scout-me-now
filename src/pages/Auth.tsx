@@ -15,9 +15,8 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 
 // Roles that must upload a verification document at signup and stay
-// gated until an admin approves it — currently scout (full-page block)
-// and cauta_jucator (dashboard visible, actions disabled until approved).
-const REQUIRES_VERIFICATION = ["scout", "cauta_jucator"];
+// gated (dashboard visible, actions disabled) until an admin approves it.
+const REQUIRES_VERIFICATION = ["cauta_jucator"];
 
 const SportriseWordmark = ({ className = "" }: { className?: string }) => (
   <div className={`font-display inline-flex items-end justify-center leading-none tracking-wide ${className}`}>
@@ -40,7 +39,7 @@ const Auth = () => {
   const [tab, setTab] = useState<"login" | "register" | "forgot">(
     searchParams.get("tab") === "login" ? "login" : "register"
   );
-  const [role, setRole] = useState<"player" | "scout" | "agent" | "club_rep" | "cauta_jucator">(
+  const [role, setRole] = useState<"player" | "cauta_jucator">(
     searchParams.get("role") === "cauta_jucator" ? "cauta_jucator" : "player"
   );
   const [email, setEmail] = useState("");
@@ -88,7 +87,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const metadata: Record<string, any> = { full_name: fullName, role, gender, sport };
-      if (role === "scout" || role === "agent" || role === "club_rep" || role === "cauta_jucator") {
+      if (role === "cauta_jucator") {
         metadata.sports = selectedSports;
       }
       const { data, error } = await supabase.auth.signUp({
@@ -302,7 +301,7 @@ const Auth = () => {
                     <>
                       <div className="space-y-2">
                         <Label className="font-body text-sm">{t.auth.accountType}</Label>
-                        <Select value={role} onValueChange={(v) => setRole(v as "player" | "scout" | "agent" | "club_rep" | "cauta_jucator")}>
+                        <Select value={role} onValueChange={(v) => setRole(v as "player" | "cauta_jucator")}>
                           <SelectTrigger className="w-full [&>span]:flex-1">
                             <SelectValue placeholder={t.auth.selectAccountType} />
                           </SelectTrigger>
@@ -373,7 +372,7 @@ const Auth = () => {
                           </p>
                         </div>
                       )}
-                      {(role === "scout" || role === "agent" || role === "club_rep" || role === "cauta_jucator") && (
+                      {role === "cauta_jucator" && (
                         <div className="space-y-2">
                           <Label className="font-body text-sm">{t.auth.sportsInterest}</Label>
                           <Popover>

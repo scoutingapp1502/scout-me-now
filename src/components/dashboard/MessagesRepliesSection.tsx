@@ -112,21 +112,56 @@ function MessageRequestsPage({
             ? "Persoanele pe care le urmărești sau cu care ai vorbit pot întotdeauna să îți trimită mesaje, dacă nu le-ai blocat."
             : "People that you follow or have chatted with before can always send you messages unless you block them."}
         </p>
+      </div>
+    </div>
+  );
+}
 
-        {/* Who can add to group chats */}
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-5 pb-1">
+// ── Group Requests sub-page ───────────────────────────────────────────────────
+function GroupRequestsPage({
+  config,
+  saving,
+  onSave,
+  onBack,
+}: {
+  config: Config;
+  saving: boolean;
+  onSave: (patch: Partial<Config>) => void;
+  onBack: () => void;
+}) {
+  const { lang } = useLanguage();
+
+  return (
+    <div className="flex flex-col h-full bg-background">
+      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
+        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+          {lang === "ro" ? "Solicitări de grup" : "Group requests"}
+        </h2>
+        {saving && <div className="ml-auto w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5">
+        <p className="text-sm text-muted-foreground font-body pt-5 pb-1 leading-relaxed">
+          {lang === "ro"
+            ? "Alege cine te poate adăuga direct într-o conversație de grup."
+            : "Choose who can add you directly to a group chat."}
+        </p>
+
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-4 pb-1">
           {lang === "ro" ? "Cine te poate adăuga în conversații de grup" : "Who can add you to group chats"}
         </p>
         <div className="divide-y divide-border/60">
-          <RadioRow value="everyone"              current={config.groupChat} labelRo="Toată lumea"                               labelEn="Everyone"                           lang={lang} onSelect={v => onSave({ groupChat: v })} />
-          <RadioRow value="following_or_messaged" current={config.groupChat} labelRo="Persoanele urmărite sau cu care ai vorbit" labelEn="People that you follow or have messaged before" lang={lang} onSelect={v => onSave({ groupChat: v })} />
+          <RadioRow value="everyone"              current={config.groupChat} labelRo="Toată lumea"                              labelEn="Everyone"                                        lang={lang} onSelect={v => onSave({ groupChat: v })} />
+          <RadioRow value="following_or_messaged" current={config.groupChat} labelRo="Doar cei pe care îi urmăresc"             labelEn="Only people that I follow"                       lang={lang} onSelect={v => onSave({ groupChat: v })} />
         </div>
         <p className="text-xs text-muted-foreground font-body py-3 leading-relaxed border-b border-border">
           {lang === "ro"
-            ? "Persoanele pe care le-ai blocat nu te pot adăuga în conversații de grup."
-            : "People that you've blocked cannot add you to group chats."}
+            ? "Persoanele care te urmăresc sau cu care ai vorbit deja pot întotdeauna să te adauge într-un grup nou. Persoanele pe care le-ai blocat nu te pot adăuga niciodată."
+            : "People that follow you or that you've already chatted with can always add you to a new group. People that you've blocked can never add you."}
         </p>
-
       </div>
     </div>
   );
@@ -177,7 +212,7 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
   const { lang } = useLanguage();
   const { toast } = useToast();
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
-  const [subPage, setSubPage] = useState<"message-requests" | "story-replies" | null>(null);
+  const [subPage, setSubPage] = useState<"message-requests" | "group-requests" | "story-replies" | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -233,8 +268,20 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
     return lang === "ro" ? map[config.storyReplies].ro : map[config.storyReplies].en;
   };
 
+  const labelGroupChat = () => {
+    const map: Record<GroupChatValue, { ro: string; en: string }> = {
+      everyone:              { ro: "Toată lumea",                  en: "Everyone" },
+      following_or_messaged: { ro: "Cei pe care îi urmăresc",       en: "People I follow" },
+    };
+    return lang === "ro" ? map[config.groupChat].ro : map[config.groupChat].en;
+  };
+
   if (subPage === "message-requests") {
     return <MessageRequestsPage config={config} saving={saving} onSave={save} onBack={() => setSubPage(null)} />;
+  }
+
+  if (subPage === "group-requests") {
+    return <GroupRequestsPage config={config} saving={saving} onSave={save} onBack={() => setSubPage(null)} />;
   }
 
   if (subPage === "story-replies") {
@@ -262,6 +309,13 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
             <span className="text-sm font-body text-foreground">{lang === "ro" ? "Solicitări de mesaje" : "Message requests"}</span>
             <div className="flex items-center gap-1">
               <span className="text-sm text-muted-foreground font-body">{labelMsgReq()}</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </button>
+          <button onClick={() => setSubPage("group-requests")} className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors">
+            <span className="text-sm font-body text-foreground">{lang === "ro" ? "Solicitări de grup" : "Group requests"}</span>
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-muted-foreground font-body">{labelGroupChat()}</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
           </button>

@@ -10,13 +10,13 @@ interface Follower {
   follower_id: string;
   name: string;
   photo: string | null;
-  role: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator";
+  role: "player" | "cauta_jucator";
 }
 
 interface FollowersListProps {
   followers: Follower[];
   onRemove: (followId: string) => void;
-  onViewProfile: (userId: string, role: "player" | "scout" | "agent" | "club_rep" | "cauta_jucator") => void;
+  onViewProfile: (userId: string, role: "player" | "cauta_jucator") => void;
   onClose: () => void;
   isLocked?: boolean;
 }
@@ -27,10 +27,7 @@ const FollowersList = ({ followers, onRemove, onViewProfile, onClose, isLocked =
 
   const roleLabel = (role: string) => {
     if (role === "player") return lang === "ro" ? "Jucător" : "Player";
-    if (role === "scout") return "Scouter";
-    if (role === "club_rep") return lang === "ro" ? "Reprezentant club" : "Club Representative";
-    if (role === "cauta_jucator") return lang === "ro" ? "Descoperitor" : "Discoverer";
-    return "Agent";
+    return lang === "ro" ? "Descoperitor" : "Discoverer";
   };
 
   const filtered = followers.filter(f =>

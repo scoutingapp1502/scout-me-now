@@ -32,12 +32,12 @@ function RadioRow({
 
 const DESCRIPTIONS: Record<AccountVisibility, { ro: string; en: string }> = {
   scouts_only: {
-    ro: "Profilul și postările tale sunt vizibile doar pentru utilizatorii cu rol de scouter sau agent. Ceilalți jucători nu te pot vedea.",
-    en: "Your profile and posts are visible only to users with a scout or agent role. Other players can't see you.",
+    ro: "Profilul și postările tale sunt vizibile doar pentru utilizatorii cu rol de descoperitor. Ceilalți jucători nu te pot vedea.",
+    en: "Your profile and posts are visible only to users with a discoverer role. Other players can't see you.",
   },
   scouts_and_mutual: {
-    ro: "Vizibil pentru scouteri și agenți, plus urmăritorii cu care ai o relație reciprocă (tu îi urmărești și ei te urmăresc înapoi).",
-    en: "Visible to scouts and agents, plus followers you have a mutual relationship with (you follow them and they follow you back).",
+    ro: "Vizibil pentru descoperitori, plus urmăritorii cu care ai o relație reciprocă (tu îi urmărești și ei te urmăresc înapoi).",
+    en: "Visible to discoverers, plus followers you have a mutual relationship with (you follow them and they follow you back).",
   },
   everyone: {
     ro: "Profilul și postările tale sunt vizibile pentru orice utilizator autentificat din aplicație.",
@@ -112,16 +112,16 @@ export default function AccountPrivacySection({ userId, onBack }: AccountPrivacy
             <RadioRow
               value="scouts_only"
               current={config.visibility}
-              labelRo="Scouteri și agenți"
-              labelEn="Scouts and agents"
+              labelRo="Descoperitori"
+              labelEn="Discoverers"
               lang={lang}
               onSelect={(v) => save({ visibility: v })}
             />
             <RadioRow
               value="scouts_and_mutual"
               current={config.visibility}
-              labelRo="Scouteri, agenți și urmăritorii pe care îi urmăresc înapoi"
-              labelEn="Scouts, agents and followers who follow me back"
+              labelRo="Descoperitori și urmăritorii pe care îi urmăresc înapoi"
+              labelEn="Discoverers and followers who follow me back"
               lang={lang}
               onSelect={(v) => save({ visibility: v })}
             />

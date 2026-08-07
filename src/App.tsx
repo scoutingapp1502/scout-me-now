@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import ResetPassword from "./pages/ResetPassword";
 import AdminVideoReview from "./pages/AdminVideoReview";
 import ExternalRecommend from "./pages/ExternalRecommend";
+import JoinGroup from "./pages/JoinGroup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/video-review" element={<AdminVideoReview />} />
             <Route path="/recommend" element={<ExternalRecommend />} />
+            <Route path="/join-group/:token" element={<JoinGroup />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
