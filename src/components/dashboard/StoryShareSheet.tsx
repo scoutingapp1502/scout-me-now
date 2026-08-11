@@ -109,22 +109,21 @@ export default function StoryShareSheet({ open, onClose, storyOwnerId, storyOwne
 
   const handleSendTo = async (user: FollowingUser) => {
     if (sent.has(user.userId)) return;
-    if (!storySharesAllowed) {
+    if (!storySharesAllowed || !storyOwnerId) {
       toast({ title: lang === "ro" ? "Această persoană nu permite distribuirea story-urilor sale." : "This person doesn't allow their stories to be shared.", variant: "destructive" });
       return;
     }
     setSending(user.userId);
     try {
-      const { data: convId, error: convError } = await supabase.rpc("get_or_create_conversation", { other_user_id: user.userId });
-      if (convError || !convId) {
-        toast({ title: lang === "ro" ? "Nu s-a putut trimite story-ul." : "Could not send the story.", variant: "destructive" });
-        return;
-      }
       const text = storyOwnerName
         ? `📸 ${lang === "ro" ? "Ți-am trimis un story de la" : "Sent you a story from"} ${storyOwnerName}`
         : `📸 ${lang === "ro" ? "Ți-am trimis un story" : "Sent you a story"}`;
-      const { error: sendError } = await supabase.from("messages").insert({ conversation_id: convId, sender_id: currentUserId, content: text } as any);
-      if (sendError) {
+      const { error } = await (supabase as any).rpc("share_story_to_conversation", {
+        _story_owner_id: storyOwnerId,
+        _recipient_id: user.userId,
+        _content: text,
+      });
+      if (error) {
         toast({ title: lang === "ro" ? "Nu s-a putut trimite story-ul." : "Could not send the story.", variant: "destructive" });
         return;
       }

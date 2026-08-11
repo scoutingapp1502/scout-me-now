@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, User, X, Loader2, Plus, Star } from "lucide-react";
+import { Users, User, X, Loader2, Plus, Star, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import SportInput, { SPORTS_LIST } from "@/components/ui/sport-input";
 
@@ -231,6 +232,23 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
           <h2 className="font-display text-2xl text-foreground">Jucători reprezentați</h2>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="p-1.5 -m-1.5 text-muted-foreground hover:text-primary transition-colors rounded-full"
+              >
+                <Info className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" align="start" className="w-72 text-sm">
+              <p className="font-semibold mb-2">Ce este această secțiune?</p>
+              <p className="text-muted-foreground">
+                Aici adaugi jucătorii pe care îi reprezinți sau pe care i-ai descoperit — fie legând contul lor din aplicație (dacă au deja profil SportRise), fie adăugându-i manual, cu datele lor de bază. Lista e vizibilă pe profilul tău public, ca dovadă a activității tale.
+              </p>
+            </PopoverContent>
+          </Popover>
         </div>
         {!readOnly && (
           <button

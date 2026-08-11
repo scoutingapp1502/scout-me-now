@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getOrCreateInviteCode } from "@/lib/inviteCode";
 
 export interface Invitee {
   userId: string;
@@ -31,42 +32,6 @@ function calcCompletion(p: any): number {
   return pct;
 }
 
-function genCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  const suffix = Array.from({ length: 5 }, () =>
-    chars[Math.floor(Math.random() * chars.length)]
-  ).join("");
-  return `SPORT-${suffix}`;
-}
-
-async function getOrCreateCode(userId: string): Promise<string> {
-  // 1. Try to read existing code
-  const { data: existing } = await (supabase as any)
-    .from("user_invite_codes")
-    .select("code")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if ((existing as any)?.code) return (existing as any).code;
-
-  // 2. Generate and upsert (ON CONFLICT DO NOTHING)
-  const newCode = genCode();
-  const { error } = await (supabase as any)
-    .from("user_invite_codes")
-    .upsert({ user_id: userId, code: newCode }, { onConflict: "user_id", ignoreDuplicates: true });
-
-  if (!error) return newCode;
-
-  // 3. Upsert failed → another session may have inserted concurrently; retry read
-  const { data: retry } = await (supabase as any)
-    .from("user_invite_codes")
-    .select("code")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  return (retry as any)?.code ?? newCode;
-}
-
 export function useInviteFriends(userId: string, enabled: boolean) {
   const [state, setState] = useState<InviteFriendsState>({
     code: "",
@@ -85,7 +50,7 @@ export function useInviteFriends(userId: string, enabled: boolean) {
 
     setState((prev) => ({ ...prev, loading: true }));
 
-    const code = await getOrCreateCode(userId);
+    const code = await getOrCreateInviteCode(userId);
 
     // Fetch invite uses
     const { data: uses } = await (supabase as any)

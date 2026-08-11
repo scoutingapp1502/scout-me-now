@@ -3217,7 +3217,7 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
     // Fetch posts from both tables
     const [postsRes, scoutPostsRes] = await Promise.all([
       (supabase as any).from("posts").select("*").eq("user_id", userId).is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }),
-      (supabase as any).from("scout_posts").select("*").eq("user_id", userId).is("deleted_at", null).order("created_at", { ascending: false }),
+      (supabase as any).from("scout_posts").select("*").eq("user_id", userId).is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }),
     ]);
 
     const allPosts = [

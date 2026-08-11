@@ -55,7 +55,7 @@ export default function LikeShareCountsSection({ userId, onBack }: LikeShareCoun
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
-          {lang === "ro" ? "Aprecieri și distribuiri" : "Like and share counts"}
+          {lang === "ro" ? "Aprecieri" : "Like counts"}
         </h2>
         {saving && <div className="ml-auto w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
       </div>
@@ -64,15 +64,15 @@ export default function LikeShareCountsSection({ userId, onBack }: LikeShareCoun
         <div className="bg-card border-y border-border">
           <div className="flex items-center justify-between px-5 py-4">
             <span className="text-sm font-body text-foreground flex-1 pr-4">
-              {lang === "ro" ? "Ascunde aprecierile și distribuirile" : "Hide like and share counts"}
+              {lang === "ro" ? "Ascunde numărul de aprecieri" : "Hide like counts"}
             </span>
             <Toggle on={hideCounts} onToggle={() => save(!hideCounts)} />
           </div>
         </div>
         <p className="text-xs text-muted-foreground font-body px-5 py-3 leading-relaxed">
           {lang === "ro"
-            ? "Pe SportRise, numărul de aprecieri și distribuiri la postările și reels-urile altor conturi va fi ascuns. Poți ascunde numărul de aprecieri și distribuiri la propriile postări și reels din Setări avansate înainte de publicare."
-            : "On SportRise, the number of likes and shares on posts and reels from other accounts will be hidden. You can hide the number of likes and shares on your own posts and reels by going to Advanced settings before sharing."}
+            ? "Pe SportRise, numărul de aprecieri la postările și reels-urile altor conturi va fi ascuns pentru tine."
+            : "On SportRise, the number of likes on posts and reels from other accounts will be hidden for you."}
         </p>
       </div>
     </div>

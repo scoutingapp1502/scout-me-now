@@ -187,6 +187,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [viewProfileRole, setViewProfileRole] = useState<string | null>(null);
   const [canMessageSelected, setCanMessageSelected] = useState(true);
   const [restrictedByOther, setRestrictedByOther] = useState(false);
+  const [iRestrictedOther, setIRestrictedOther] = useState(false);
   const { toast } = useToast();
 
   // Viewing a shared post
@@ -503,6 +504,14 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       });
       if (cancelled) return;
       setRestrictedByOther(!!restricted);
+
+      // If I restricted the other person, don't let them see that I've read
+      // their messages — skip marking their messages as read below.
+      const { data: iRestrictedThem } = await (supabase as any).rpc("have_i_restricted", {
+        _other_user_id: selectedConversation.other_user_id,
+      });
+      if (cancelled) return;
+      setIRestrictedOther(!!iRestrictedThem);
       // Always load existing messages so historical conversation is visible,
       // even when the follow relationship no longer permits sending new ones.
       const { data: msgs } = await supabase
@@ -517,7 +526,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       if (cancelled) return;
       setMessages(((msgs as Message[]) || []).map((m) => m.shared_post_id ? { ...m, sharedPost: sharedPostMap.get(m.shared_post_id) ?? null } : m));
 
-      if (msgs && currentUserId) {
+      if (msgs && currentUserId && !iRestrictedThem) {
         const unread = msgs.filter((m: any) => !m.read && m.sender_id !== currentUserId);
         if (unread.length > 0) {
           await supabase
@@ -566,7 +575,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               if (sp) setMessages((prev) => prev.map((m) => m.id === newMsg.id ? { ...m, sharedPost: sp } : m));
             });
           }
-          if (newMsg.sender_id !== currentUserId) {
+          if (newMsg.sender_id !== currentUserId && !iRestrictedOther) {
             supabase.from("messages").update({ read: true }).eq("id", newMsg.id);
           }
         }
@@ -574,7 +583,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [selectedConversation, currentUserId]);
+  }, [selectedConversation, currentUserId, iRestrictedOther]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

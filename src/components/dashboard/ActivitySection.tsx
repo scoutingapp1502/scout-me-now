@@ -68,16 +68,30 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
 
   const fetchPosts = async (userId: string) => {
     setLoading(true);
-    const { data: followsData } = await supabase
-      .from("follows")
-      .select("following_id")
-      .eq("follower_id", userId)
-      .eq("status", "accepted");
+    const [{ data: followsData }, { data: favouritesData }] = await Promise.all([
+      supabase.from("follows").select("following_id").eq("follower_id", userId).eq("status", "accepted"),
+      (supabase as any).from("user_favourites").select("favourite_user_id").eq("user_id", userId),
+    ]);
     const followedIds = (followsData || []).map(f => f.following_id);
     const allIds = [...new Set([userId, ...followedIds])];
+    const favouriteIds = new Set((favouritesData || []).map((f: any) => f.favourite_user_id as string));
 
-    const { data: rawPosts } = await (supabase as any).from("posts").select("*").in("user_id", allIds).is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }).limit(50);
-    if (!rawPosts || rawPosts.length === 0) { setPosts([]); setLoading(false); return; }
+    const [postsRes, scoutPostsRes] = await Promise.all([
+      (supabase as any).from("posts").select("*").in("user_id", allIds).is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }).limit(50),
+      (supabase as any).from("scout_posts").select("*").in("user_id", allIds).is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }).limit(50),
+    ]);
+    // Favourites' posts surface first (per "Postările noi de la favoriții
+    // tăi vor apărea mai sus în feed"), each group still newest-first.
+    const rawPosts = [
+      ...(postsRes.data || []),
+      ...(scoutPostsRes.data || []).map((p: any) => ({ ...p, post_type: "scout", video_url: null })),
+    ].sort((a, b) => {
+      const aFav = favouriteIds.has(a.user_id);
+      const bFav = favouriteIds.has(b.user_id);
+      if (aFav !== bFav) return aFav ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }).slice(0, 50);
+    if (rawPosts.length === 0) { setPosts([]); setLoading(false); return; }
 
     const userIds = Array.from(new Set<string>(rawPosts.map((p: any) => p.user_id)));
     const [playerRes, scoutRes, roleRes] = await Promise.all([
@@ -109,37 +123,49 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
   feedTabRef.current = feedTab;
 
   useEffect(() => {
+    const handleInsert = (payload: any) => {
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+
+      const newUserId = payload.new?.user_id;
+
+      // If the change was made by the current user, refresh immediately
+      if (newUserId === uid) {
+        fetchPosts(uid);
+        return;
+      }
+
+      // For others' posts, show refresh hint instantly on Following tab
+      if (feedTabRef.current === "following") {
+        setNewPostsAvailable(true);
+      }
+    };
+    const handleDeleteEvent = (payload: any) => {
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+      if (payload.old?.user_id === uid) fetchPosts(uid);
+    };
     const channel = supabase.channel("posts-feed-" + Date.now())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, (payload: any) => {
-        const uid = currentUserIdRef.current;
-        if (!uid) return;
-
-        const newUserId = payload.new?.user_id;
-
-        // If the change was made by the current user, refresh immediately
-        if (newUserId === uid) {
-          fetchPosts(uid);
-          return;
-        }
-
-        // For others' posts, show refresh hint instantly on Following tab
-        if (feedTabRef.current === "following") {
-          setNewPostsAvailable(true);
-        }
-      })
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts" }, (payload: any) => {
-        const uid = currentUserIdRef.current;
-        if (!uid) return;
-        if (payload.old?.user_id === uid) fetchPosts(uid);
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, handleInsert)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "scout_posts" }, handleInsert)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts" }, handleDeleteEvent)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "scout_posts" }, handleDeleteEvent)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const handleDelete = async (postId: string) => {
-    const { error } = await (supabase as any).from("posts").update({ deleted_at: new Date().toISOString() }).eq("id", postId);
-    if (error) toast.error(lang === "ro" ? "Eroare la ștergere" : "Failed to delete");
-    else if (currentUserId) fetchPosts(currentUserId);
+    const deletedAt = new Date().toISOString();
+    const [postsRes, scoutPostsRes] = await Promise.all([
+      (supabase as any).from("posts").update({ deleted_at: deletedAt }).eq("id", postId).select("id"),
+      (supabase as any).from("scout_posts").update({ deleted_at: deletedAt }).eq("id", postId).select("id"),
+    ]);
+    // The post lives in exactly one of the two tables, so one call always
+    // affects 0 rows — only treat this as a failure if neither call
+    // actually updated a row.
+    const succeeded = (postsRes.data?.length ?? 0) > 0 || (scoutPostsRes.data?.length ?? 0) > 0;
+    if (!succeeded) { toast.error(lang === "ro" ? "Eroare la ștergere" : "Failed to delete"); return; }
+    if (currentUserId) fetchPosts(currentUserId);
   };
 
   const handleUnfollow = async (userId: string) => {
@@ -154,7 +180,11 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
   const handleViewSinglePost = async (postId: string) => {
     setLoadingSinglePost(true);
     setViewingSinglePostId(postId);
-    const { data: rawPost } = await supabase.from("posts").select("*").eq("id", postId).maybeSingle();
+    const [postRes, scoutPostRes] = await Promise.all([
+      supabase.from("posts").select("*").eq("id", postId).maybeSingle(),
+      (supabase as any).from("scout_posts").select("*").eq("id", postId).maybeSingle(),
+    ]);
+    const rawPost = postRes.data || (scoutPostRes.data ? { ...scoutPostRes.data, post_type: "scout", video_url: null } : null);
     if (!rawPost) { setLoadingSinglePost(false); return; }
     const uid = rawPost.user_id;
     const [playerRes, scoutRes, roleRes] = await Promise.all([

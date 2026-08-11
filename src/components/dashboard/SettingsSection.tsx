@@ -72,7 +72,7 @@ const groups: SettingsGroup[] = [
     titleEn: "What you see",
     items: [
       { icon: Star,       labelRo: "Favorite",                 labelEn: "Favourites",           navigateTo: "favourites" },
-      { icon: Heart,      labelRo: "Aprecieri și distribuiri", labelEn: "Like and share counts", navigateTo: "like-share-counts" },
+      { icon: Heart,      labelRo: "Aprecieri", labelEn: "Like counts", navigateTo: "like-share-counts" },
     ],
   },
   {
@@ -164,7 +164,7 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== "STERGE") return;
-    const { error } = await supabase.functions.invoke("delete-account", { body: { userId } });
+    const { error } = await (supabase as any).rpc("delete_my_account");
     if (error) {
       toast({ title: lang === "ro" ? "Eroare la ștergerea contului." : "Error deleting account.", variant: "destructive" });
     } else {

@@ -52,19 +52,41 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
   useEffect(() => {
     const fetchSaved = async () => {
       setLoadingPosts(true);
-      const { data } = await (supabase as any)
+      const { data: savedRows } = await (supabase as any)
         .from("saved_posts")
-        .select("id, posts(id, user_id, content, image_url, video_url, post_type, created_at, comments_disabled)")
+        .select("id, post_id, post_source")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (data) {
-        setSavedPosts(
-          data
-            .map((row: any) => ({ savedId: row.id, post: row.posts }))
-            .filter((r: SavedPost) => !!r.post)
-        );
+      if (!savedRows || savedRows.length === 0) {
+        setSavedPosts([]);
+        setLoadingPosts(false);
+        return;
       }
+
+      const postIds = savedRows.filter((r: any) => r.post_source !== "scout_posts").map((r: any) => r.post_id);
+      const scoutPostIds = savedRows.filter((r: any) => r.post_source === "scout_posts").map((r: any) => r.post_id);
+
+      const [postsRes, scoutPostsRes] = await Promise.all([
+        postIds.length > 0
+          ? (supabase as any).from("posts").select("id, user_id, content, image_url, video_url, post_type, created_at, comments_disabled").in("id", postIds)
+          : Promise.resolve({ data: [] }),
+        scoutPostIds.length > 0
+          ? (supabase as any).from("scout_posts").select("id, user_id, content, image_url, created_at, comments_disabled").in("id", scoutPostIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const postMap = new Map((postsRes.data || []).map((p: any) => [p.id, p]));
+      const scoutPostMap = new Map((scoutPostsRes.data || []).map((p: any) => [p.id, { ...p, post_type: "scout", video_url: null }]));
+
+      setSavedPosts(
+        savedRows
+          .map((row: any) => ({
+            savedId: row.id,
+            post: row.post_source === "scout_posts" ? scoutPostMap.get(row.post_id) : postMap.get(row.post_id),
+          }))
+          .filter((r: SavedPost) => !!r.post)
+      );
       setLoadingPosts(false);
     };
     fetchSaved();
@@ -78,8 +100,8 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
 
     const [roleRes, playerRes, scoutRes] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", postUserId).maybeSingle(),
-      supabase.from("player_profiles").select("first_name, last_name, photo_url, position, current_club").eq("user_id", postUserId).maybeSingle(),
-      supabase.from("scout_profiles").select("first_name, last_name, photo_url, club").eq("user_id", postUserId).maybeSingle(),
+      supabase.from("player_profiles").select("first_name, last_name, photo_url, position, current_team").eq("user_id", postUserId).maybeSingle(),
+      supabase.from("scout_profiles").select("first_name, last_name, photo_url, organization").eq("user_id", postUserId).maybeSingle(),
     ]);
 
     const role = (roleRes.data?.role as string) || "player";
@@ -89,8 +111,8 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
     const name = profile ? `${(profile as any).first_name} ${(profile as any).last_name}`.trim() : (lang === "ro" ? "Utilizator" : "User");
     const photo = (profile as any)?.photo_url || null;
     const title = isScout
-      ? ((profile as any)?.club || "")
-      : [(playerRes.data as any)?.position, (playerRes.data as any)?.current_club].filter(Boolean).join(" · ");
+      ? ((profile as any)?.organization || "")
+      : [(playerRes.data as any)?.position, (playerRes.data as any)?.current_team].filter(Boolean).join(" · ");
 
     setSelectedPost({
       post: savedPost.post,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, ArrowLeft, ChevronDown, Upload, FileCheck, Star } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, ChevronDown, Upload, FileCheck, Star, Info } from "lucide-react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -433,9 +433,38 @@ const Auth = () => {
 
                    {tab === "register" && REQUIRES_VERIFICATION.includes(role) && (
                      <div className="space-y-2">
-                       <Label className="font-body text-sm">
-                         Document de verificare <span className="text-destructive">*</span>
-                       </Label>
+                       <div className="flex items-center gap-1.5">
+                         <Label className="font-body text-sm">
+                           Document de verificare <span className="text-destructive">*</span>
+                         </Label>
+                         <Popover>
+                           <PopoverTrigger asChild>
+                             <button
+                               type="button"
+                               onClick={(e) => e.stopPropagation()}
+                               className="p-1 -m-1 text-muted-foreground hover:text-primary transition-colors rounded-full"
+                             >
+                               <Info className="h-3.5 w-3.5" />
+                             </button>
+                           </PopoverTrigger>
+                           <PopoverContent side="top" align="start" className="w-72 text-sm">
+                             <p className="font-semibold mb-2">Ce documente sunt acceptate?</p>
+                             <p className="text-muted-foreground mb-2">
+                               Orice document care dovedește implicarea ta reală în scouting sau recrutarea de jucători, de exemplu:
+                             </p>
+                             <ul className="text-muted-foreground list-disc list-inside space-y-1">
+                               <li>Legitimație sau card de scouter/impresar</li>
+                               <li>Licență de agent de jucători (FIFA/FRF sau federație locală)</li>
+                               <li>Contract sau adeverință de colaborare cu un club/academie</li>
+                               <li>Certificat de la un curs de scouting</li>
+                               <li>Extras Registrul Comerțului, dacă activezi printr-o firmă de scouting</li>
+                             </ul>
+                             <p className="text-muted-foreground mt-2">
+                               Un administrator revizuiește manual documentul înainte de aprobare.
+                             </p>
+                           </PopoverContent>
+                         </Popover>
+                       </div>
                        <input
                          ref={fileInputRef}
                          type="file"

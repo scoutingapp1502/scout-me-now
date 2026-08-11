@@ -581,7 +581,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     const next = !commentsDisabled;
     setTogglingComments(true);
     setCommentsDisabled(next);
-    const { error } = await (supabase as any).from("posts").update({ comments_disabled: next }).eq("id", post.id);
+    const table = post.post_type === "scout" ? "scout_posts" : "posts";
+    const { error } = await (supabase as any).from(table).update({ comments_disabled: next }).eq("id", post.id);
     setTogglingComments(false);
     if (error) {
       setCommentsDisabled(!next);
@@ -612,7 +613,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
   const handleArchive = async () => {
     if (!currentUserId || currentUserId !== post.user_id) return;
-    const { error } = await (supabase as any).from("posts").update({ is_archived: true }).eq("id", post.id);
+    const table = post.post_type === "scout" ? "scout_posts" : "posts";
+    const { error } = await (supabase as any).from(table).update({ is_archived: true }).eq("id", post.id);
     if (error) {
       toast.error(lang === "ro" ? "Nu s-a putut arhiva postarea." : "Failed to archive post.");
       return;
@@ -648,7 +650,11 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         setSaved(false);
         toast.info(lang === "ro" ? "Postare eliminată din salvate." : "Post removed from saved.");
       } else {
-        const { error } = await supabase.from("saved_posts" as any).insert({ post_id: post.id, user_id: currentUserId });
+        const { error } = await supabase.from("saved_posts" as any).insert({
+          post_id: post.id,
+          user_id: currentUserId,
+          post_source: post.post_type === "scout" ? "scout_posts" : "posts",
+        });
         // A unique-violation means an almost-simultaneous click already
         // saved it — treat as success instead of surfacing a spurious error.
         if (error && error.code !== "23505") {

@@ -63,7 +63,7 @@ export default function FeedActivitySection({ userId, onBack }: FeedActivitySect
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
-          {lang === "ro" ? "Activitate în feed" : "Activity in Friends feed"}
+          {lang === "ro" ? "Activitate în feed" : "Feed activity"}
         </h2>
         {saving && (
           <div className="ml-auto w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -74,8 +74,8 @@ export default function FeedActivitySection({ userId, onBack }: FeedActivitySect
         {/* Description */}
         <p className="text-sm text-muted-foreground font-body pt-5 pb-4 leading-relaxed">
           {lang === "ro"
-            ? "Cine poate vedea aprecierile și comentariile tale la postări în feed"
-            : "Who can see your likes and comments on reels in the Friends feed"}
+            ? "Cine poate vedea aprecierile tale la postări în feed"
+            : "Who can see your likes on posts in the feed"}
         </p>
 
         {/* Options */}
@@ -99,8 +99,8 @@ export default function FeedActivitySection({ userId, onBack }: FeedActivitySect
         {/* Footer note */}
         <p className="text-xs text-muted-foreground font-body pt-4 leading-relaxed">
           {lang === "ro"
-            ? "Alege cine poate vedea aprecierile și comentariile tale la postări în feed."
-            : "Choose who can see your likes and comments on reels in the Friends feed."}
+            ? "Alege cine poate vedea aprecierile tale la postări în feed."
+            : "Choose who can see your likes on posts in the feed."}
         </p>
       </div>
     </div>

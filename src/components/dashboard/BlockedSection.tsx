@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Plus, X, MoreHorizontal, ChevronRight, Grid3X3, UserSquare } from "lucide-react";
+import { ArrowLeft, Search, MoreHorizontal, Grid3X3, UserSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
@@ -22,109 +22,6 @@ interface ProfileStats {
 interface BlockedSectionProps {
   currentUserId: string;
   onBack: () => void;
-}
-
-// ── Add-block search sheet ─────────────────────────────────────────────────────
-function AddBlockSheet({
-  currentUserId,
-  lang,
-  onClose,
-  onBlocked,
-}: {
-  currentUserId: string;
-  lang: string;
-  onClose: () => void;
-  onBlocked: () => void;
-}) {
-  const { toast } = useToast();
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!query.trim()) { setResults([]); return; }
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(async () => {
-      setSearching(true);
-      const q = query.trim();
-      const orFilter = `first_name.ilike.%${q}%,last_name.ilike.%${q}%`;
-      const [{ data: players }, { data: scouts }] = await Promise.all([
-        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", currentUserId).limit(10),
-        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", currentUserId).limit(10),
-      ]);
-      const seen = new Set<string>();
-      const combined = [...(players ?? []), ...(scouts ?? [])]
-        .filter(p => { if (seen.has(p.user_id)) return false; seen.add(p.user_id); return true; })
-        .map(p => ({ user_id: p.user_id, full_name: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), avatar_url: p.photo_url }));
-      setResults(combined);
-      setSearching(false);
-    }, 300);
-  }, [query, currentUserId]);
-
-  const handleBlock = async (userId: string, fullName: string) => {
-    const { error } = await (supabase as any).from("blocks").insert({ blocker_id: currentUserId, blocked_id: userId });
-    if (error && error.code !== "23505") {
-      toast({ title: lang === "ro" ? "Eroare la blocare." : "Error blocking.", variant: "destructive" });
-    } else {
-      toast({ title: lang === "ro" ? `${fullName} a fost blocat.` : `${fullName} blocked.` });
-      onBlocked();
-    }
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-[61] bg-background rounded-t-2xl max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-          <h3 className="font-heading text-sm text-foreground">
-            {lang === "ro" ? "Blochează un profil" : "Block a profile"}
-          </h3>
-          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="px-4 py-3 border-b border-border shrink-0">
-          <input
-            autoFocus
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder={lang === "ro" ? "Caută după nume..." : "Search by name..."}
-            className="w-full bg-muted rounded-xl px-3 py-2 text-sm font-body outline-none text-foreground placeholder:text-muted-foreground"
-          />
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {searching && (
-            <div className="flex justify-center py-8">
-              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            </div>
-          )}
-          {results.map(u => (
-            <div key={u.user_id} className="flex items-center gap-3 px-4 py-3 border-b border-border/40">
-              <Avatar className="h-10 w-10 shrink-0">
-                <AvatarImage src={u.avatar_url ?? undefined} />
-                <AvatarFallback className="bg-muted text-sm">{(u.full_name || "?")[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold font-body text-foreground truncate">{u.full_name}</p>
-              </div>
-              <button
-                onClick={() => handleBlock(u.user_id, u.full_name)}
-                className="shrink-0 px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-semibold font-body hover:bg-destructive/90 transition-colors"
-              >
-                {lang === "ro" ? "Blochează" : "Block"}
-              </button>
-            </div>
-          ))}
-          {!searching && query.trim() && results.length === 0 && (
-            <p className="text-sm text-muted-foreground font-body text-center py-10">
-              {lang === "ro" ? "Niciun utilizator găsit." : "No users found."}
-            </p>
-          )}
-        </div>
-      </div>
-    </>
-  );
 }
 
 // ── Blocked profile view ───────────────────────────────────────────────────────
@@ -298,8 +195,10 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
   const { toast } = useToast();
   const [blocked, setBlocked] = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSearch, setShowSearch] = useState(false);
   const [selectedUser, setSelectedUser] = useState<BlockedUser | null>(null);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchBlocked = async () => {
     setLoading(true);
@@ -330,6 +229,20 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
 
   useEffect(() => { fetchBlocked(); }, [currentUserId]);
 
+  useEffect(() => {
+    if (!query.trim()) { setResults([]); return; }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      const orFilter = `first_name.ilike.%${query.trim()}%,last_name.ilike.%${query.trim()}%`;
+      const [{ data: p }, { data: s }] = await Promise.all([
+        (supabase as any).from("player_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", currentUserId).limit(10),
+        (supabase as any).from("scout_profiles").select("user_id, first_name, last_name, photo_url").or(orFilter).neq("user_id", currentUserId).limit(10),
+      ]);
+      const seen = new Set<string>();
+      setResults([...(p ?? []), ...(s ?? [])].filter(x => { if (seen.has(x.user_id)) return false; seen.add(x.user_id); return true; }));
+    }, 300);
+  }, [query, currentUserId]);
+
   const handleUnblock = async (blockId: string, fullName: string) => {
     const { error } = await (supabase as any).from("blocks").delete().eq("id", blockId);
     if (error) {
@@ -339,6 +252,19 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
       toast({ title: lang === "ro" ? `${fullName} a fost deblocat.` : `${fullName} unblocked.` });
     }
   };
+
+  const handleBlock = async (uid: string, fullName: string) => {
+    const { error } = await (supabase as any).from("blocks").insert({ blocker_id: currentUserId, blocked_id: uid });
+    if (!error || error.code === "23505") {
+      toast({ title: lang === "ro" ? `${fullName} a fost blocat.` : `${fullName} blocked.` });
+      setQuery("");
+      fetchBlocked();
+    } else {
+      toast({ title: lang === "ro" ? "Eroare la blocare." : "Error blocking.", variant: "destructive" });
+    }
+  };
+
+  const isBlocked = (uid: string) => blocked.some(b => b.userId === uid);
 
   // Show blocked profile sub-view
   if (selectedUser) {
@@ -364,22 +290,78 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
         <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
           {lang === "ro" ? "Profile blocate" : "Blocked profiles"}
         </h2>
-        <button onClick={() => setShowSearch(true)} className="ml-auto p-1 text-foreground hover:text-foreground/70">
-          <Plus className="h-5 w-5" />
-        </button>
+      </div>
+
+      {/* Description */}
+      <div className="px-5 py-4 border-b border-border shrink-0 text-center">
+        <p className="text-sm text-muted-foreground font-body leading-relaxed">
+          {lang === "ro"
+            ? "Persoanele blocate nu îți mai pot vedea profilul, postările sau trimite mesaje."
+            : "Blocked people can no longer see your profile, posts, or send you messages."}
+        </p>
+      </div>
+
+      {/* Search */}
+      <div className="px-4 py-3 border-b border-border shrink-0">
+        <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2.5">
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={lang === "ro" ? "Caută" : "Search"}
+            className="flex-1 bg-transparent text-sm font-body outline-none text-foreground placeholder:text-muted-foreground"
+          />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        {/* Search results */}
+        {query.trim() && results.length > 0 && (
+          <div className="border-b border-border">
+            {results.map(u => (
+              <div key={u.user_id} className="flex items-center gap-3 px-4 py-3 border-b border-border/40 last:border-0">
+                <Avatar className="h-10 w-10 shrink-0">
+                  <AvatarImage src={u.photo_url ?? undefined} />
+                  <AvatarFallback>{(u.first_name || "?")[0]?.toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold font-body text-foreground truncate">{`${u.first_name ?? ""} ${u.last_name ?? ""}`.trim()}</p>
+                </div>
+                {isBlocked(u.user_id) ? (
+                  <span className="px-3 py-1.5 text-xs font-semibold font-body text-muted-foreground border border-border rounded-lg">
+                    {lang === "ro" ? "Blocat" : "Blocked"}
+                  </span>
+                ) : (
+                  <button onClick={() => handleBlock(u.user_id, `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim())}
+                    className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shrink-0">
+                    {lang === "ro" ? "Blochează" : "Block"}
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-        ) : (
-          <>
-            {blocked.map(user => (
+        )}
+        {query.trim() && results.length === 0 && (
+          <p className="text-sm text-muted-foreground font-body text-center py-8">
+            {lang === "ro" ? "Niciun utilizator găsit." : "No users found."}
+          </p>
+        )}
+
+        {/* Blocked list */}
+        {!query.trim() && (
+          loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </div>
+          ) : blocked.length === 0 ? (
+            <p className="text-sm text-muted-foreground font-body text-center py-12 px-6">
+              {lang === "ro" ? "Nu ai blocat niciun profil." : "You haven't blocked any profiles."}
+            </p>
+          ) : (
+            blocked.map(user => (
               <button
                 key={user.blockId}
                 onClick={() => setSelectedUser(user)}
@@ -396,43 +378,15 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); handleUnblock(user.blockId, user.fullName); }}
-                  className="shrink-0 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold font-body hover:bg-primary/90 transition-colors"
+                  className="shrink-0 px-4 py-1.5 rounded-lg border border-border text-sm font-semibold font-body text-foreground"
                 >
                   {lang === "ro" ? "Deblochează" : "Unblock"}
                 </button>
               </button>
-            ))}
-
-            {/* You may want to block */}
-            <button className="w-full flex items-center justify-between px-4 py-4 hover:bg-muted/30 transition-colors border-b border-border/50">
-              <div className="text-left">
-                <p className="text-sm font-body text-foreground">
-                  {lang === "ro" ? "Poate vrei să blochezi" : "You May Want to Block"}
-                </p>
-                <p className="text-xs text-muted-foreground font-body mt-0.5">
-                  {lang === "ro" ? "Pe baza activității tale" : "Based on your Accounts Centre"}
-                </p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            </button>
-
-            {blocked.length === 0 && (
-              <p className="text-sm text-muted-foreground font-body text-center py-12 px-6">
-                {lang === "ro" ? "Nu ai blocat niciun profil." : "You haven't blocked any profiles."}
-              </p>
-            )}
-          </>
+            ))
+          )
         )}
       </div>
-
-      {showSearch && (
-        <AddBlockSheet
-          currentUserId={currentUserId}
-          lang={lang}
-          onClose={() => setShowSearch(false)}
-          onBlocked={() => { setShowSearch(false); fetchBlocked(); }}
-        />
-      )}
     </div>
   );
 }

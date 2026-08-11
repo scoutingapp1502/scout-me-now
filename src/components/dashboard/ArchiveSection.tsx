@@ -157,13 +157,27 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
   /* fetch archived posts */
   useEffect(() => {
     if (mode !== "posts") return;
-    (supabase as any)
-      .from("posts")
-      .select("id, content, image_url, video_url, post_type, created_at")
-      .eq("user_id", userId)
-      .eq("is_archived", true)
-      .order("created_at", { ascending: false })
-      .then(({ data }: any) => setPosts(data || []))
+    Promise.all([
+      (supabase as any)
+        .from("posts")
+        .select("id, content, image_url, video_url, post_type, created_at")
+        .eq("user_id", userId)
+        .eq("is_archived", true)
+        .order("created_at", { ascending: false }),
+      (supabase as any)
+        .from("scout_posts")
+        .select("id, content, image_url, created_at")
+        .eq("user_id", userId)
+        .eq("is_archived", true)
+        .order("created_at", { ascending: false }),
+    ])
+      .then(([postsRes, scoutPostsRes]: any) => {
+        const combined = [
+          ...(postsRes.data || []),
+          ...(scoutPostsRes.data || []).map((p: any) => ({ ...p, video_url: null, post_type: "scout" })),
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setPosts(combined);
+      })
       .catch((err: unknown) => console.error("Failed to load archived posts:", err));
   }, [mode, userId]);
 

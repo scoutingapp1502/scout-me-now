@@ -6,6 +6,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
+import { getOrCreateInviteCode } from "@/lib/inviteCode";
 
 interface FollowInviteSectionProps {
   userId: string;
@@ -69,11 +70,6 @@ function InstagramIcon() {
   );
 }
 
-function generateCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
-
 export default function FollowInviteSection({ userId, onBack }: FollowInviteSectionProps) {
   const { lang } = useLanguage();
   const { toast } = useToast();
@@ -83,21 +79,14 @@ export default function FollowInviteSection({ userId, onBack }: FollowInviteSect
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await (supabase as any)
-        .from("user_privacy_settings")
-        .select("auto_confirm_followers, invitation_code")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      let code = data?.invitation_code;
-      if (!code) {
-        code = generateCode();
-        await (supabase as any).from("user_privacy_settings").upsert({
-          user_id: userId,
-          invitation_code: code,
-          updated_at: new Date().toISOString(),
-        });
-      }
+      const [{ data }, code] = await Promise.all([
+        (supabase as any)
+          .from("user_privacy_settings")
+          .select("auto_confirm_followers")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        getOrCreateInviteCode(userId),
+      ]);
 
       setConfig({
         autoConfirm: data?.auto_confirm_followers ?? false,

@@ -298,7 +298,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
 
         playerRequests.forEach(r => {
           const initiatedBy = (r as any).initiated_by || "player";
-          const agentName = aMap[r.agent_user_id]?.name || (lang === "ro" ? "Agent necunoscut" : "Unknown agent");
+          const agentName = aMap[r.agent_user_id]?.name || (lang === "ro" ? "Descoperitor necunoscut" : "Unknown discoverer");
           const agentPhoto = aMap[r.agent_user_id]?.photo || null;
 
           if (initiatedBy === "agent") {
@@ -796,8 +796,8 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
               };
 
               const roleText = cn.perspective === "agent"
-                ? (lang === "ro" ? "Jucător" : "Player")
-                : "Agent";
+                ? roleLabel("player")
+                : roleLabel("cauta_jucator");
 
               return (
                 <div

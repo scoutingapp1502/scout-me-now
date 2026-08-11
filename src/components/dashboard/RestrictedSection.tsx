@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Search, AtSign, EyeOff, MessageCircle, BellOff } from "lucide-react";
+import { ArrowLeft, Search, EyeOff, MessageCircle, BellOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
@@ -20,11 +20,6 @@ interface RestrictedUser {
 // ── "How restrict works" bottom sheet ────────────────────────────────────────
 function HowRestrictWorksSheet({ lang, onClose }: { lang: string; onClose: () => void }) {
   const items = [
-    {
-      icon: AtSign,
-      ro: "Nu te vor putea eticheta, menționa sau nu vor mai putea interacționa cu tine în moduri nedorite.",
-      en: "They won't be able to tag you, mention you or otherwise interact with you in unwanted ways.",
-    },
     {
       icon: EyeOff,
       ro: "Nu vor vedea când ești online sau când le-ai citit mesajele. Mesajele lor vor fi mutate în solicitări.",

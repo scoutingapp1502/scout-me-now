@@ -121,6 +121,27 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
         <h2 className="font-display text-2xl text-foreground">
           {ro ? "Rapoarte jucători" : "Player reports"}
         </h2>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              onClick={(e) => e.stopPropagation()}
+              className="p-1.5 -m-1.5 text-muted-foreground hover:text-primary transition-colors rounded-full"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="start" className="w-72 text-sm">
+            <p className="font-semibold mb-2">
+              {ro ? "Ce este această secțiune?" : "What is this section?"}
+            </p>
+            <p className="text-muted-foreground">
+              {ro
+                ? "Încarcă rapoarte scrise (PDF/Word) despre jucătorii pe care i-ai evaluat sau urmărit — analize, observații de la meciuri, recomandări. Rapoartele sunt vizibile pe profilul tău public, ca dovadă a activității tale."
+                : "Upload written reports (PDF/Word) about players you've evaluated or scouted — analyses, match observations, recommendations. Reports are visible on your public profile as proof of your activity."}
+            </p>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Upload form – only for owner */}
@@ -308,7 +329,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
     const [profileRes, expRes, postsRes] = await Promise.all([
       supabase.from("scout_profiles").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("scout_experiences").select("*").eq("user_id", userId).order("sort_order", { ascending: true }),
-      supabase.from("scout_posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+      (supabase as any).from("scout_posts").select("*").eq("user_id", userId).eq("is_archived", false).order("created_at", { ascending: false }).limit(10),
     ]);
 
     let data = profileRes.data;
@@ -348,7 +369,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       setNewPostContent("");
       setNewPostImage(null);
       setNewPostImagePreview(null);
-      const { data: refreshed } = await supabase.from("scout_posts").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+      const { data: refreshed } = await (supabase as any).from("scout_posts").select("*").eq("user_id", userId).eq("is_archived", false).order("created_at", { ascending: false }).limit(10);
       if (refreshed) setPosts(refreshed);
       notifyProfileUpdated();
       toast({ title: "Postare publicată!" });
