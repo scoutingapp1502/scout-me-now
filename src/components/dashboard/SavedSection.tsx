@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import PostCard from "@/components/dashboard/PostCard";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SavedSectionProps {
   userId: string;
@@ -22,6 +23,8 @@ interface SavedPost {
     created_at: string;
     comments_disabled: boolean;
   };
+  authorName: string;
+  authorPhoto: string | null;
 }
 
 interface PostAuthor {
@@ -79,18 +82,40 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
       const postMap = new Map((postsRes.data || []).map((p: any) => [p.id, p]));
       const scoutPostMap = new Map((scoutPostsRes.data || []).map((p: any) => [p.id, { ...p, post_type: "scout", video_url: null }]));
 
+      const resolved = savedRows
+        .map((row: any) => ({
+          savedId: row.id,
+          post: row.post_source === "scout_posts" ? scoutPostMap.get(row.post_id) : postMap.get(row.post_id),
+        }))
+        .filter((r: any) => !!r.post);
+
+      const authorIds: string[] = [...new Set<string>(resolved.map((r: any) => r.post.user_id as string))];
+      const [authorPlayerRes, authorScoutRes] = authorIds.length > 0
+        ? await Promise.all([
+            supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", authorIds),
+            supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", authorIds),
+          ])
+        : [{ data: [] }, { data: [] }];
+
+      const authorMap = new Map<string, { name: string; photo: string | null }>();
+      (authorPlayerRes.data || []).forEach((p: any) => {
+        authorMap.set(p.user_id, { name: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), photo: p.photo_url });
+      });
+      (authorScoutRes.data || []).forEach((s: any) => {
+        if (!authorMap.has(s.user_id)) authorMap.set(s.user_id, { name: `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim(), photo: s.photo_url });
+      });
+
       setSavedPosts(
-        savedRows
-          .map((row: any) => ({
-            savedId: row.id,
-            post: row.post_source === "scout_posts" ? scoutPostMap.get(row.post_id) : postMap.get(row.post_id),
-          }))
-          .filter((r: SavedPost) => !!r.post)
+        resolved.map((r: any) => ({
+          ...r,
+          authorName: authorMap.get(r.post.user_id)?.name || (lang === "ro" ? "Utilizator" : "User"),
+          authorPhoto: authorMap.get(r.post.user_id)?.photo || null,
+        }))
       );
       setLoadingPosts(false);
     };
     fetchSaved();
-  }, [userId]);
+  }, [userId, lang]);
 
   const handlePostClick = async (savedPost: SavedPost) => {
     setLoadingDetail(true);
@@ -163,8 +188,19 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
               {savedPost.post.image_url ? (
                 <img src={savedPost.post.image_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center p-2 bg-card border border-border/30">
-                  <p className="text-[10px] text-muted-foreground text-center line-clamp-4 font-body leading-tight">
+                <div className="w-full h-full flex flex-col p-2.5 bg-card border border-border/30">
+                  <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
+                    <Avatar className="h-5 w-5 shrink-0">
+                      {savedPost.authorPhoto ? <AvatarImage src={savedPost.authorPhoto} /> : null}
+                      <AvatarFallback className="bg-primary/20 text-primary text-[8px]">
+                        {(savedPost.authorName || "?").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-[10px] font-semibold text-foreground truncate font-body">
+                      {savedPost.authorName}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-left line-clamp-5 font-body leading-tight">
                     {savedPost.post.content}
                   </p>
                 </div>
