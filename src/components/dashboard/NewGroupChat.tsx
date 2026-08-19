@@ -44,6 +44,19 @@ export default function NewGroupChat({ currentUserId, lang, onBack, onCreated }:
   const [creating, setCreating] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // "Solicitări de grup" ("Doar cei pe care îi urmăresc") is enforced
+  // server-side by can_add_to_group() when actually inserting a member —
+  // but per user request, someone who wouldn't pass that check shouldn't
+  // even be discoverable here in the first place. Batch-checks each
+  // candidate and drops the ones the creator couldn't add anyway.
+  const filterAddable = async (list: Suggested[]): Promise<Suggested[]> => {
+    if (list.length === 0) return list;
+    const checks = await Promise.all(
+      list.map(u => (supabase as any).rpc("can_add_to_group", { _target_user_id: u.userId }))
+    );
+    return list.filter((_, i) => checks[i]?.data === true);
+  };
+
   // Fetch followed users as suggestions
   useEffect(() => {
     const fetchSuggested = async () => {
@@ -73,7 +86,7 @@ export default function NewGroupChat({ currentUserId, lang, onBack, onCreated }:
           result.push({ userId: p.user_id, name: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), photo: p.photo_url ?? null, role: roleMap.get(p.user_id) ?? null });
         }
       }
-      setSuggested(result);
+      setSuggested(await filterAddable(result));
     };
     fetchSuggested();
   }, [currentUserId]);
@@ -108,7 +121,7 @@ export default function NewGroupChat({ currentUserId, lang, onBack, onCreated }:
         photo: p.photo_url ?? null,
         role: roleMap.get(p.user_id) ?? null,
       }));
-      setSearchResults(result);
+      setSearchResults(await filterAddable(result));
     }, 300);
   }, [searchQuery, currentUserId]);
 

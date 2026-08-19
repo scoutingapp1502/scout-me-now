@@ -4,18 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 
-type MsgRequestsValue = "everyone" | "followers" | "no_one";
 type GroupChatValue   = "everyone" | "following_or_messaged";
 type StoryRepliesValue = "everyone" | "followers" | "no_one";
 
 interface Config {
-  messageRequests: MsgRequestsValue;
   groupChat: GroupChatValue;
   storyReplies: StoryRepliesValue;
 }
 
 const DEFAULT_CONFIG: Config = {
-  messageRequests: "everyone",
   groupChat: "everyone",
   storyReplies: "everyone",
 };
@@ -61,59 +58,6 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
     >
       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-6" : "translate-x-0.5"}`} />
     </button>
-  );
-}
-
-// ── Message Requests sub-page ─────────────────────────────────────────────────
-function MessageRequestsPage({
-  config,
-  saving,
-  onSave,
-  onBack,
-}: {
-  config: Config;
-  saving: boolean;
-  onSave: (patch: Partial<Config>) => void;
-  onBack: () => void;
-}) {
-  const { lang } = useLanguage();
-
-  return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
-          {lang === "ro" ? "Solicitări de mesaje" : "Message requests"}
-        </h2>
-        {saving && <div className="ml-auto w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5">
-        {/* Intro */}
-        <p className="text-sm text-muted-foreground font-body pt-5 pb-1 leading-relaxed">
-          {lang === "ro"
-            ? "Când cineva pe care nu îl urmărești sau cu care nu ai mai vorbit îți trimite un mesaj, îl primești ca solicitare de mesaj."
-            : "When someone who you don't follow or haven't chatted with before sends you a message, you receive it as a message request."}
-        </p>
-
-        {/* Who can send message requests */}
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1">
-          {lang === "ro" ? "Cine îți poate trimite solicitări de mesaje" : "Who can send you message requests"}
-        </p>
-        <div className="divide-y divide-border/60">
-          <RadioRow value="everyone"   current={config.messageRequests} labelRo="Toată lumea"      labelEn="Everyone"        lang={lang} onSelect={v => onSave({ messageRequests: v })} />
-          <RadioRow value="followers"  current={config.messageRequests} labelRo="Urmăritorii tăi"  labelEn="Your followers"  lang={lang} onSelect={v => onSave({ messageRequests: v })} />
-          <RadioRow value="no_one"     current={config.messageRequests} labelRo="Nimeni"            labelEn="No one"          lang={lang} onSelect={v => onSave({ messageRequests: v })} />
-        </div>
-        <p className="text-xs text-muted-foreground font-body py-3 leading-relaxed border-b border-border">
-          {lang === "ro"
-            ? "Persoanele pe care le urmărești sau cu care ai vorbit pot întotdeauna să îți trimită mesaje, dacă nu le-ai blocat."
-            : "People that you follow or have chatted with before can always send you messages unless you block them."}
-        </p>
-      </div>
-    </div>
   );
 }
 
@@ -212,7 +156,7 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
   const { lang } = useLanguage();
   const { toast } = useToast();
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
-  const [subPage, setSubPage] = useState<"message-requests" | "group-requests" | "story-replies" | null>(null);
+  const [subPage, setSubPage] = useState<"group-requests" | "story-replies" | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -224,7 +168,6 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
         .maybeSingle();
       if (data) {
         setConfig({
-          messageRequests: data.message_requests_visibility ?? "everyone",
           groupChat: data.group_chat_visibility ?? "everyone",
           storyReplies: data.story_replies_visibility ?? "everyone",
         });
@@ -241,22 +184,12 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
       .from("user_privacy_settings")
       .upsert({
         user_id: userId,
-        message_requests_visibility: next.messageRequests,
         group_chat_visibility: next.groupChat,
         story_replies_visibility: next.storyReplies,
         updated_at: new Date().toISOString(),
       });
     setSaving(false);
     if (error) toast({ title: lang === "ro" ? "Eroare la salvare." : "Save error.", variant: "destructive" });
-  };
-
-  const labelMsgReq = () => {
-    const map: Record<MsgRequestsValue, { ro: string; en: string }> = {
-      everyone:  { ro: "Toată lumea", en: "Everyone" },
-      followers: { ro: "Urmăritori",  en: "Followers" },
-      no_one:    { ro: "Nimeni",      en: "No one" },
-    };
-    return lang === "ro" ? map[config.messageRequests].ro : map[config.messageRequests].en;
   };
 
   const labelStory = () => {
@@ -275,10 +208,6 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
     };
     return lang === "ro" ? map[config.groupChat].ro : map[config.groupChat].en;
   };
-
-  if (subPage === "message-requests") {
-    return <MessageRequestsPage config={config} saving={saving} onSave={save} onBack={() => setSubPage(null)} />;
-  }
 
   if (subPage === "group-requests") {
     return <GroupRequestsPage config={config} saving={saving} onSave={save} onBack={() => setSubPage(null)} />;
@@ -305,13 +234,6 @@ export default function MessagesRepliesSection({ userId, onBack }: MessagesRepli
           {lang === "ro" ? "Cum te pot contacta" : "How people can reach you"}
         </p>
         <div className="bg-card border-y border-border divide-y divide-border">
-          <button onClick={() => setSubPage("message-requests")} className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors">
-            <span className="text-sm font-body text-foreground">{lang === "ro" ? "Solicitări de mesaje" : "Message requests"}</span>
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-muted-foreground font-body">{labelMsgReq()}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </button>
           <button onClick={() => setSubPage("group-requests")} className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors">
             <span className="text-sm font-body text-foreground">{lang === "ro" ? "Solicitări de grup" : "Group requests"}</span>
             <div className="flex items-center gap-1">
