@@ -63,7 +63,6 @@ const groups: SettingsGroup[] = [
       { icon: MessageCircle, labelRo: "Mesaje și răspunsuri",     labelEn: "Messages and replies",   navigateTo: "messages-replies" },
       { icon: MessageSquare, labelRo: "Comentarii",               labelEn: "Comments",               navigateTo: "comments" },
       { icon: Share2,        labelRo: "Distribuire și reutilizare", labelEn: "Sharing and reuse",   navigateTo: "sharing-reuse" },
-      { icon: Ban,           labelRo: "Restricționat",            labelEn: "Restricted",               navigateTo: "restricted" },
       { icon: UserPlus,      labelRo: "Urmărire și invitare",     labelEn: "Follow and invite",      navigateTo: "follow-invite" },
     ],
   },

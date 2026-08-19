@@ -25,7 +25,6 @@ import AccountPrivacySection from "@/components/dashboard/AccountPrivacySection"
 import MessagesRepliesSection from "@/components/dashboard/MessagesRepliesSection";
 import CommentsSection from "@/components/dashboard/CommentsSection";
 import SharingReuseSection from "@/components/dashboard/SharingReuseSection";
-import RestrictedSection from "@/components/dashboard/RestrictedSection";
 import FollowInviteSection from "@/components/dashboard/FollowInviteSection";
 import FavouritesSection from "@/components/dashboard/FavouritesSection";
 import LikeShareCountsSection from "@/components/dashboard/LikeShareCountsSection";
@@ -343,7 +342,6 @@ const Dashboard = () => {
       case "messages-replies": return <MessagesRepliesSection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "comments": return <CommentsSection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "sharing-reuse": return <SharingReuseSection userId={user.id} onBack={() => setActiveSection("settings")} />;
-      case "restricted": return <RestrictedSection currentUserId={user.id} onBack={() => setActiveSection("settings")} />;
       case "follow-invite": return <FollowInviteSection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "favourites": return <FavouritesSection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "like-share-counts": return <LikeShareCountsSection userId={user.id} onBack={() => setActiveSection("settings")} />;
