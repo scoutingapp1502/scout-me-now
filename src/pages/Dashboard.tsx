@@ -20,7 +20,6 @@ import TimeManagementSection from "@/components/dashboard/TimeManagementSection"
 import NotificationSettingsSection from "@/components/dashboard/NotificationSettingsSection";
 import SleepModeSection from "@/components/dashboard/SleepModeSection";
 import BlockedSection from "@/components/dashboard/BlockedSection";
-import FeedActivitySection from "@/components/dashboard/FeedActivitySection";
 import AccountPrivacySection from "@/components/dashboard/AccountPrivacySection";
 import MessagesRepliesSection from "@/components/dashboard/MessagesRepliesSection";
 import CommentsSection from "@/components/dashboard/CommentsSection";
@@ -337,7 +336,6 @@ const Dashboard = () => {
       case "recently-deleted": return <RecentlyDeletedSection userId={user.id} onBack={() => setActiveSection("your-activity")} onViewProfile={() => setActiveSection("profile")} />;
       case "time-management": return <TimeManagementSection userId={user.id} onBack={() => setActiveSection(prevSection)} />;
       case "blocked": return <BlockedSection currentUserId={user.id} onBack={() => setActiveSection("settings")} />;
-      case "feed-activity": return <FeedActivitySection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "account-privacy": return <AccountPrivacySection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "messages-replies": return <MessagesRepliesSection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "comments": return <CommentsSection userId={user.id} onBack={() => setActiveSection("settings")} />;

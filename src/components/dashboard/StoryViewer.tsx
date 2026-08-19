@@ -120,34 +120,13 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
     const text = message.trim();
     setSendingReply(true);
     try {
-      // Respect the story owner's "who can reply to my stories" setting —
-      // enforced server-side (SECURITY DEFINER RPC), not just client-side.
-      const { data: canReply } = await (supabase as any).rpc("can_reply_to_story", { _story_owner_id: userId });
-      if (!canReply) {
-        toast({ title: lang === "ro" ? "Nu poți răspunde la acest story." : "You can't reply to this story.", variant: "destructive" });
-        return;
-      }
-
-      const { data: convId, error: convError } = await supabase.rpc("get_or_create_conversation", { other_user_id: userId });
-      if (convError || !convId) {
-        if (convError?.message?.includes("FOLLOW_REQUIRED")) {
-          toast({
-            title: lang === "ro" ? "Mesaj indisponibil" : "Messaging unavailable",
-            description: lang === "ro" ? "Poți răspunde la story doar dacă urmărești acest utilizator." : "You can reply to a story only if you follow this user.",
-            variant: "destructive",
-          });
-        } else {
-          toast({ title: lang === "ro" ? "Nu s-a putut trimite mesajul." : "Could not send message.", variant: "destructive" });
-        }
-        return;
-      }
-
       const tag = lang === "ro" ? "Răspuns la story" : "Reply to story";
-      const { error: msgError } = await supabase
-        .from("messages")
-        .insert({ conversation_id: convId, sender_id: viewerId, content: `📖 ${tag}:\n${text}` } as any);
+      const { error } = await (supabase as any).rpc("reply_to_story", {
+        _story_owner_id: userId,
+        _content: `📖 ${tag}:\n${text}`,
+      });
 
-      if (msgError) {
+      if (error) {
         toast({ title: lang === "ro" ? "Nu s-a putut trimite mesajul." : "Could not send message.", variant: "destructive" });
         return;
       }

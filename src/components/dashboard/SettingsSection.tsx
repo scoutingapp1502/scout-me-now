@@ -53,7 +53,6 @@ const groups: SettingsGroup[] = [
     items: [
       { icon: Lock,      labelRo: "Confidențialitate cont",   labelEn: "Account privacy",      navigateTo: "account-privacy" },
       { icon: Ban,       labelRo: "Blocat",                   labelEn: "Blocked",              navigateTo: "blocked" },
-      { icon: Activity,  labelRo: "Activitate în feed",       labelEn: "Activity in feed",     navigateTo: "feed-activity" },
     ],
   },
   {
