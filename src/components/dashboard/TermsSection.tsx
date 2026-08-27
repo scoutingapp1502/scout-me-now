@@ -96,24 +96,24 @@ export default function TermsSection({ onBack }: TermsSectionProps) {
   const sections = lang === "ro" ? SECTIONS_RO : SECTIONS_EN;
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+    <div className="flex flex-col h-full bg-white">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900 whitespace-nowrap">
           {lang === "ro" ? "Termeni de utilizare" : "Terms of Use"}
         </h2>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-        <p className="text-xs text-muted-foreground font-body">
+        <p className="text-xs text-gray-500 font-body">
           {lang === "ro" ? "Ultima actualizare: 24 iulie 2026" : "Last updated: July 24, 2026"}
         </p>
         {sections.map((s) => (
           <div key={s.title}>
-            <p className="text-sm font-semibold font-body text-foreground mb-1">{s.title}</p>
-            <p className="text-sm text-muted-foreground font-body leading-relaxed">{s.body}</p>
+            <p className="text-sm font-semibold font-body text-gray-900 mb-1">{s.title}</p>
+            <p className="text-sm text-gray-500 font-body leading-relaxed">{s.body}</p>
           </div>
         ))}
       </div>

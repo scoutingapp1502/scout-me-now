@@ -70,10 +70,10 @@ export default function AdminTestVideos({ embedded }: { embedded?: boolean } = {
     const refKey = getTestRefKey(test);
     const videoUrl = videos[refKey];
     return (
-      <div key={refKey} className="border border-border rounded-lg p-4 bg-card space-y-3">
+      <div key={refKey} className="border border-gray-200 rounded-lg p-4 bg-white space-y-3">
         <div>
           <p className="font-semibold text-sm">{test.icon} {test.label}</p>
-          <p className="text-xs text-muted-foreground whitespace-pre-line mt-1">{test.description}</p>
+          <p className="text-xs text-gray-500 whitespace-pre-line mt-1">{test.description}</p>
         </div>
 
         {videoUrl && (
@@ -106,15 +106,15 @@ export default function AdminTestVideos({ embedded }: { embedded?: boolean } = {
 
         <div>
           <div
-            className="border-2 border-dashed border-border rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
+            className="border-2 border-dashed border-gray-200 rounded-lg p-3 text-center cursor-pointer hover:border-orange-300 transition-colors"
             onClick={() => document.getElementById(`admin-test-video-${refKey}`)?.click()}
           >
             {uploadingKey === refKey ? (
-              <Loader2 className="h-5 w-5 text-muted-foreground mx-auto animate-spin" />
+              <Loader2 className="h-5 w-5 text-gray-500 mx-auto animate-spin" />
             ) : (
-              <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
+              <Upload className="h-5 w-5 text-gray-500 mx-auto" />
             )}
-            <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+            <span className="text-xs text-gray-500 font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
           </div>
           <input
             id={`admin-test-video-${refKey}`}
@@ -135,7 +135,7 @@ export default function AdminTestVideos({ embedded }: { embedded?: boolean } = {
   const technicalTests = getTechnicalTestsBySport(sport);
 
   return (
-    <div className={embedded ? "text-foreground" : "min-h-screen bg-background text-foreground"}>
+    <div className={embedded ? "text-gray-900" : "min-h-screen bg-gray-200 text-gray-900"}>
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
         {!embedded && (
           <div className="flex items-center gap-3 mb-6">
@@ -150,7 +150,7 @@ export default function AdminTestVideos({ embedded }: { embedded?: boolean } = {
             <Film className="h-6 w-6" /> Video-uri Exemplu Teste
           </h1>
         )}
-        <p className="text-sm text-muted-foreground mb-6">
+        <p className="text-sm text-gray-500 mb-6">
           Videoclipurile încărcate aici vor apărea în secțiunea de informații a fiecărui test, pe profilele jucătorilor.
         </p>
 
@@ -170,12 +170,12 @@ export default function AdminTestVideos({ embedded }: { embedded?: boolean } = {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
           </div>
         ) : (
           <div className="space-y-8">
             <div>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
                 Teste Atletice (comune tuturor sporturilor)
               </h2>
               <div className="space-y-4">
@@ -184,7 +184,7 @@ export default function AdminTestVideos({ embedded }: { embedded?: boolean } = {
             </div>
 
             <div>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
                 Teste Specifice — {SPORTS.find((s) => s.key === sport)?.label}
               </h2>
               <div className="space-y-4">

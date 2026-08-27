@@ -46,16 +46,16 @@ function HowFavouritesWorksSheet({ lang, onClose }: { lang: string; onClose: () 
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm max-h-[85vh] overflow-y-auto bg-background rounded-2xl shadow-2xl"
+        className="w-full max-w-sm max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative py-4 border-b border-border">
-          <p className="text-center text-base font-semibold font-heading text-foreground">
+        <div className="relative py-4 border-b border-gray-200">
+          <p className="text-center text-base font-semibold font-heading text-gray-900">
             {lang === "ro" ? "Cum funcționează Favorite" : "How Favourites works"}
           </p>
           <button
             onClick={onClose}
-            className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-500 hover:text-gray-900 transition-colors"
             aria-label={lang === "ro" ? "Închide" : "Close"}
           >
             <X className="h-5 w-5" />
@@ -66,12 +66,12 @@ function HowFavouritesWorksSheet({ lang, onClose }: { lang: string; onClose: () 
             const Icon = item.icon;
             return (
               <div key={i} className="flex items-start gap-4 pt-3">
-                <Icon className="h-6 w-6 text-foreground shrink-0 mt-0.5" />
+                <Icon className="h-6 w-6 text-gray-900 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold font-body text-foreground leading-snug">
+                  <p className="text-sm font-semibold font-body text-gray-900 leading-snug">
                     {lang === "ro" ? item.titleRo : item.titleEn}
                   </p>
-                  <p className="text-sm text-muted-foreground font-body leading-relaxed mt-0.5">
+                  <p className="text-sm text-gray-500 font-body leading-relaxed mt-0.5">
                     {lang === "ro" ? item.descRo : item.descEn}
                   </p>
                 </div>
@@ -196,19 +196,19 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
         <AvatarFallback>{(u.name || "?")[0]?.toUpperCase()}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold font-body text-foreground truncate">{u.name}</p>
+        <p className="text-sm font-semibold font-body text-gray-900 truncate">{u.name}</p>
       </div>
       {isFav ? (
         <button
           onClick={() => handleRemove(u)}
-          className="px-4 py-1.5 rounded-lg border border-border text-sm font-semibold font-body text-foreground shrink-0"
+          className="px-4 py-1.5 rounded-lg border border-gray-200 text-sm font-semibold font-body text-gray-900 shrink-0"
         >
           {lang === "ro" ? "Elimină" : "Remove"}
         </button>
       ) : (
         <button
           onClick={() => handleAdd(u)}
-          className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold font-body shrink-0"
+          className="px-4 py-1.5 rounded-lg bg-orange-500 text-white text-sm font-semibold font-body shrink-0"
         >
           {lang === "ro" ? "Adaugă" : "Add Account"}
         </button>
@@ -217,53 +217,53 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
   );
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <X className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900">
           {lang === "ro" ? "Favorite" : "Favourites"}
         </h2>
-        <button onClick={() => searchRef.current?.focus()} className="ml-auto p-1 text-foreground hover:text-muted-foreground">
+        <button onClick={() => searchRef.current?.focus()} className="ml-auto p-1 text-gray-900 hover:text-gray-500">
           <Plus className="h-5 w-5" />
         </button>
       </div>
 
       {/* Description */}
-      <div className="px-5 py-4 border-b border-border shrink-0 text-center">
-        <p className="text-sm text-muted-foreground font-body leading-relaxed">
+      <div className="px-5 py-4 border-b border-gray-200 shrink-0 text-center">
+        <p className="text-sm text-gray-500 font-body leading-relaxed">
           {lang === "ro"
             ? "Postările noi de la favoriții tăi vor apărea mai sus în feed. Doar tu poți vedea cine adaugi sau elimini."
             : "New posts from your favourites will appear higher in feed. Only you can see who you add or remove."}
           {" "}
-          <button onClick={() => setShowSheet(true)} className="text-primary font-body font-medium">{lang === "ro" ? "Cum funcționează." : "How it works."}</button>
+          <button onClick={() => setShowSheet(true)} className="text-orange-500 font-body font-medium">{lang === "ro" ? "Cum funcționează." : "How it works."}</button>
         </p>
       </div>
 
       {/* Search */}
-      <div className="px-4 py-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2.5">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+      <div className="px-4 py-3 border-b border-gray-200 shrink-0">
+        <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
+          <Search className="h-4 w-4 text-gray-500 shrink-0" />
           <input
             ref={searchRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={lang === "ro" ? "Caută" : "Search"}
-            className="flex-1 bg-transparent text-sm font-body outline-none text-foreground placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent text-sm font-body outline-none text-gray-900 placeholder:text-gray-500"
           />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4">
         {loading ? (
-          <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" /></div>
         ) : query.trim() ? (
           /* Search results */
           <>
             {searchResults.length === 0 ? (
-              <p className="text-sm text-muted-foreground font-body text-center py-10">
+              <p className="text-sm text-gray-500 font-body text-center py-10">
                 {lang === "ro" ? "Niciun utilizator găsit." : "No users found."}
               </p>
             ) : (
@@ -276,10 +276,10 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
             {favourites.length > 0 && (
               <>
                 <div className="flex items-center justify-between py-3">
-                  <p className="text-sm font-semibold font-body text-foreground">
+                  <p className="text-sm font-semibold font-body text-gray-900">
                     {lang === "ro" ? "Favorite" : "Favourites"}
                   </p>
-                  <button onClick={handleRemoveAll} className="text-sm text-primary font-body font-semibold">
+                  <button onClick={handleRemoveAll} className="text-sm text-orange-500 font-body font-semibold">
                     {lang === "ro" ? "Elimină toate" : "Remove All"}
                   </button>
                 </div>
@@ -290,7 +290,7 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
             {/* Suggested list */}
             {suggested.length > 0 && (
               <>
-                <p className="text-sm font-semibold font-body text-foreground pt-4 pb-2">
+                <p className="text-sm font-semibold font-body text-gray-900 pt-4 pb-2">
                   {lang === "ro" ? "Sugerate" : "Suggested"}
                 </p>
                 {suggested.map(u => <UserRow key={u.userId} u={u} isFav={false} />)}
@@ -298,7 +298,7 @@ export default function FavouritesSection({ userId, onBack }: FavouritesSectionP
             )}
 
             {favourites.length === 0 && suggested.length === 0 && (
-              <p className="text-sm text-muted-foreground font-body text-center py-16">
+              <p className="text-sm text-gray-500 font-body text-center py-16">
                 {lang === "ro" ? "Niciun favorit sau sugestie." : "No favourites or suggestions yet."}
               </p>
             )}

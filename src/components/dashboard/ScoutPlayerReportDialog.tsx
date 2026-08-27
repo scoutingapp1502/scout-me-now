@@ -200,9 +200,9 @@ function ImageBlockContent({
   if (block.url) {
     return (
       <div className="space-y-2">
-        <img src={block.url} alt={block.name} className="max-w-full rounded-lg border border-border object-cover" style={{ maxHeight: 300 }} />
+        <img src={block.url} alt={block.name} className="max-w-full rounded-lg border border-gray-200 object-cover" style={{ maxHeight: 300 }} />
         <button type="button" onClick={() => onUpdate({ ...block, url: "", name: "" })}
-          className="text-xs text-muted-foreground hover:text-foreground underline">
+          className="text-xs text-gray-500 hover:text-gray-900 underline">
           {ro ? "Schimbă imaginea" : "Change image"}
         </button>
       </div>
@@ -210,11 +210,11 @@ function ImageBlockContent({
   }
 
   return (
-    <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-6 cursor-pointer hover:border-primary transition-colors">
+    <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-orange-300 transition-colors">
       {uploading
-        ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        : <Plus className="h-6 w-6 text-muted-foreground" />}
-      <span className="text-sm text-muted-foreground mt-2">
+        ? <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+        : <Plus className="h-6 w-6 text-gray-500" />}
+      <span className="text-sm text-gray-500 mt-2">
         {uploading ? (ro ? "Se încarcă..." : "Uploading...") : (ro ? "Alege o imagine" : "Choose an image")}
       </span>
       <input type="file" accept="image/*" onChange={handleFile} className="hidden" disabled={uploading} />
@@ -232,7 +232,7 @@ function AddBlockBar({ onAdd, ro }: { onAdd: (type: Block['type']) => void; ro: 
         { type: 'image'  as const, label: ro ? '+ Imagine' : '+ Image'  },
       ]).map(({ type, label }) => (
         <button key={type} type="button" onClick={() => onAdd(type)}
-          className="text-xs px-2 py-1 rounded border border-border text-muted-foreground hover:border-primary hover:text-foreground transition-colors">
+          className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-500 hover:border-orange-300 hover:text-gray-900 transition-colors">
           {label}
         </button>
       ))}
@@ -250,10 +250,10 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
           onMouseEnter={() => setHover(n)}
           onMouseLeave={() => setHover(0)}
           className="focus:outline-none">
-          <Star className={`h-5 w-5 transition-colors ${n <= (hover || value) ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground"}`} />
+          <Star className={`h-5 w-5 transition-colors ${n <= (hover || value) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
         </button>
       ))}
-      {value > 0 && <span className="ml-2 text-sm text-muted-foreground self-center">{value}/10</span>}
+      {value > 0 && <span className="ml-2 text-sm text-gray-500 self-center">{value}/10</span>}
     </div>
   );
 }
@@ -262,12 +262,12 @@ function SectionTitle({ label, onRemove }: { label: string; onRemove?: () => voi
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <div className="w-2 h-2 bg-primary rotate-45 shrink-0" />
-        <h3 className="font-display text-sm font-bold uppercase tracking-wider">{label}</h3>
+        <div className="w-2 h-2 bg-orange-500 rotate-45 shrink-0" />
+        <h3 className="font-display text-sm font-bold uppercase tracking-wider text-gray-900">{label}</h3>
       </div>
       {onRemove && (
         <button type="button" onClick={onRemove}
-          className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded"
+          className="text-gray-500 hover:text-destructive transition-colors p-1 rounded"
           title="Șterge secțiunea">
           <Minus className="h-3.5 w-3.5" />
         </button>
@@ -296,7 +296,7 @@ function ListEditor({ items, onChange, placeholder, color }: {
           placeholder={placeholder}
           onKeyDown={e => e.key === "Enter" && (e.preventDefault(), add())}
           className="flex-1 text-sm" />
-        <Button type="button" size="sm" variant="outline" onClick={add} className="shrink-0">
+        <Button type="button" size="sm" variant="outline" onClick={add} className="shrink-0 bg-purple-600 hover:bg-purple-700 text-white hover:text-white border-purple-600">
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -304,11 +304,11 @@ function ListEditor({ items, onChange, placeholder, color }: {
         <ul className="space-y-1 pl-1">
           {items.map((item, i) => (
             <li key={i} className="flex items-start gap-2 text-sm group">
-              <span className={`mt-0.5 shrink-0 ${color ?? "text-primary"}`}>•</span>
+              <span className={`mt-0.5 shrink-0 ${color ?? "text-orange-500"}`}>•</span>
               <span className="flex-1">{item}</span>
               <button type="button" onClick={() => remove(i)}
                 className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                <X className="h-3.5 w-3.5 text-gray-500 hover:text-destructive" />
               </button>
             </li>
           ))}
@@ -507,14 +507,14 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display text-lg">
+            <DialogTitle className="font-display text-lg text-gray-900">
               {ro ? "Raport jucător" : "Player report"} — {playerName}
             </DialogTitle>
           </DialogHeader>
 
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
             </div>
           ) : (
             <div className="space-y-5 mt-2">
@@ -524,9 +524,9 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                 <SectionTitle label={ro ? "Informații jucător" : "Player info"} onRemove={() => requestDeleteBuiltin("playerInfo")} />
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Label className="text-xs text-gray-500 flex items-center gap-1.5">
                       {ro ? "Poziție" : "Position"}
-                      {position && <span className="text-primary text-[10px] font-normal">{ro ? "· din profil" : "· from profile"}</span>}
+                      {position && <span className="text-orange-500 text-[10px] font-normal">{ro ? "· din profil" : "· from profile"}</span>}
                     </Label>
                     <div className="relative">
                       <Input value={position} onChange={e => setPosition(e.target.value)}
@@ -534,16 +534,16 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                         className={position ? "pr-7" : ""} />
                       {position && (
                         <button type="button" onClick={() => setPosition("")}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 transition-colors">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Label className="text-xs text-gray-500 flex items-center gap-1.5">
                       {ro ? "Club actual" : "Current club"}
-                      {currentClub && <span className="text-primary text-[10px] font-normal">{ro ? "· din profil" : "· from profile"}</span>}
+                      {currentClub && <span className="text-orange-500 text-[10px] font-normal">{ro ? "· din profil" : "· from profile"}</span>}
                     </Label>
                     <div className="relative">
                       <Input value={currentClub} onChange={e => setCurrentClub(e.target.value)}
@@ -551,36 +551,36 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                         className={currentClub ? "pr-7" : ""} />
                       {currentClub && (
                         <button type="button" onClick={() => setCurrentClub("")}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 transition-colors">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{ro ? "Ligă" : "League"}</Label>
+                    <Label className="text-xs text-gray-500">{ro ? "Ligă" : "League"}</Label>
                     <Input value={league} onChange={e => setLeague(e.target.value)}
                       placeholder="Eredivisie (NED1)" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{ro ? "Contract până în" : "Contract until"}</Label>
+                    <Label className="text-xs text-gray-500">{ro ? "Contract până în" : "Contract until"}</Label>
                     <Input value={contractUntil} onChange={e => setContractUntil(e.target.value)}
                       placeholder="2025" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{ro ? "Salariu (lunar)" : "Salary (monthly)"}</Label>
+                    <Label className="text-xs text-gray-500">{ro ? "Salariu (lunar)" : "Salary (monthly)"}</Label>
                     <Input value={salaryRange} onChange={e => setSalaryRange(e.target.value)}
                       placeholder="20.000 – 30.000 €" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{ro ? "Valoare transfer" : "Transfer value"}</Label>
+                    <Label className="text-xs text-gray-500">{ro ? "Valoare transfer" : "Transfer value"}</Label>
                     <Input value={transferValue} onChange={e => setTransferValue(e.target.value)}
                       placeholder="0.4 – 0.8M €" />
                   </div>
                   <div className="col-span-2 space-y-1">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Label className="text-xs text-gray-500 flex items-center gap-1.5">
                       {ro ? "Agent" : "Agent"}
-                      {agentName && <span className="text-primary text-[10px] font-normal">{ro ? "· din profil" : "· from profile"}</span>}
+                      {agentName && <span className="text-orange-500 text-[10px] font-normal">{ro ? "· din profil" : "· from profile"}</span>}
                     </Label>
                     <div className="relative">
                       <Input value={agentName} onChange={e => setAgentName(e.target.value)}
@@ -588,7 +588,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                         className={agentName ? "pr-7" : ""} />
                       {agentName && (
                         <button type="button" onClick={() => setAgentName("")}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 transition-colors">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -604,13 +604,13 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                   <SectionTitle label={ro ? "Evaluare" : "Rating"} onRemove={() => requestDeleteBuiltin("evaluare")} />
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
+                      <Label className="text-xs text-gray-500">
                         {ro ? "Notă generală (calitate jucător)" : "Overall rating (player quality)"}
                       </Label>
                       <StarRating value={overallRating} onChange={setOverallRating} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
+                      <Label className="text-xs text-gray-500">
                         {ro ? "Potrivire cu cerințele echipei" : "Fit for team requirements"}
                       </Label>
                       <StarRating value={fitRating} onChange={setFitRating} />
@@ -626,7 +626,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                   <SectionTitle label={ro ? "Tehnic + Tactic" : "Technical + Tactical"} onRemove={() => requestDeleteBuiltin("tehnic")} />
                   <div className="space-y-2">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{ro ? "Notă tehnică" : "Technical rating"}</Label>
+                      <Label className="text-xs text-gray-500">{ro ? "Notă tehnică" : "Technical rating"}</Label>
                       <StarRating value={technicalRating} onChange={setTechnicalRating} />
                     </div>
                     <Textarea value={technicalNotes} onChange={e => setTechnicalNotes(e.target.value)}
@@ -645,7 +645,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                   <SectionTitle label={ro ? "Fizic" : "Physical"} onRemove={() => requestDeleteBuiltin("fizic")} />
                   <div className="space-y-2">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{ro ? "Notă fizică" : "Physical rating"}</Label>
+                      <Label className="text-xs text-gray-500">{ro ? "Notă fizică" : "Physical rating"}</Label>
                       <StarRating value={physicalRating} onChange={setPhysicalRating} />
                     </div>
                     <Textarea value={physicalNotes} onChange={e => setPhysicalNotes(e.target.value)}
@@ -664,7 +664,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                   <SectionTitle label="Mental & Socio-cultural" onRemove={() => requestDeleteBuiltin("mental")} />
                   <div className="space-y-2">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{ro ? "Notă mentală" : "Mental rating"}</Label>
+                      <Label className="text-xs text-gray-500">{ro ? "Notă mentală" : "Mental rating"}</Label>
                       <StarRating value={mentalRating} onChange={setMentalRating} />
                     </div>
                     <Textarea value={mentalNotes} onChange={e => setMentalNotes(e.target.value)}
@@ -713,7 +713,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">
+                    <Label className="text-xs text-gray-500">
                       {ro ? "Text concluzie" : "Conclusion text"}
                     </Label>
                     <Textarea value={conclusionText} onChange={e => setConclusionText(e.target.value)}
@@ -723,7 +723,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                       rows={3} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                    <Label className="text-xs text-gray-500 uppercase tracking-wider">
                       {ro ? "Recomandare finală" : "Final recommendation"}
                     </Label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -733,7 +733,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                           className={`py-2 px-3 rounded-lg border text-sm font-semibold transition-all ${
                             recommendation === r.key
                               ? REC_COLORS[r.key]
-                              : "border-border text-muted-foreground hover:border-primary hover:text-foreground"
+                              : "border-gray-200 text-gray-500 hover:border-orange-300 hover:text-gray-900"
                           }`}>
                           {ro ? r.ro : r.en}
                         </button>
@@ -750,26 +750,26 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                   <div className="space-y-3 mt-5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-2 h-2 bg-primary rotate-45 shrink-0" />
+                        <div className="w-2 h-2 bg-orange-500 rotate-45 shrink-0" />
                         <input
                           value={section.title}
                           onChange={e => setCustomSections(prev => prev.map(s => s.id === section.id ? { ...s, title: e.target.value } : s))}
                           placeholder={ro ? "Titlu secțiune..." : "Section title..."}
-                          className="font-display text-sm font-bold uppercase tracking-wider bg-transparent border-none outline-none w-full placeholder:normal-case placeholder:font-normal placeholder:tracking-normal"
+                          className="font-display text-sm font-bold uppercase tracking-wider text-gray-900 bg-transparent border-none outline-none w-full placeholder:normal-case placeholder:font-normal placeholder:tracking-normal"
                         />
                       </div>
                       <button type="button"
                         onClick={() => requestDeleteCustom(section.id)}
-                        className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded ml-2 shrink-0"
+                        className="text-gray-500 hover:text-destructive transition-colors p-1 rounded ml-2 shrink-0"
                         title={ro ? "Șterge secțiunea" : "Remove section"}>
                         <Minus className="h-3.5 w-3.5" />
                       </button>
                     </div>
                     {section.blocks.map((block) => (
-                      <div key={block.id} className="relative group/block pl-2 border-l-2 border-border">
+                      <div key={block.id} className="relative group/block pl-2 border-l-2 border-gray-200">
                         <button type="button"
                           onClick={() => removeBlock(section.id, block.id)}
-                          className="absolute -right-1 top-0 opacity-0 group-hover/block:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-0.5 z-10"
+                          className="absolute -right-1 top-0 opacity-0 group-hover/block:opacity-100 transition-opacity text-gray-500 hover:text-destructive p-0.5 z-10"
                           title={ro ? "Șterge blocul" : "Remove block"}>
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -780,7 +780,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                         )}
                         {block.type === 'list' && (
                           <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">{ro ? "Listă" : "List"}</Label>
+                            <Label className="text-xs text-gray-500">{ro ? "Listă" : "List"}</Label>
                             <ListEditor items={block.items}
                               onChange={items => updateBlock(section.id, { ...block, items })}
                               placeholder={ro ? "Adaugă element..." : "Add item..."} />
@@ -791,7 +791,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                             <input value={block.label}
                               onChange={e => updateBlock(section.id, { ...block, label: e.target.value })}
                               placeholder={ro ? "Etichetă rating..." : "Rating label..."}
-                              className="text-xs text-muted-foreground bg-transparent border-none outline-none w-full mb-1" />
+                              className="text-xs text-gray-500 bg-transparent border-none outline-none w-full mb-1" />
                             <StarRating value={block.value}
                               onChange={v => updateBlock(section.id, { ...block, value: v })} />
                           </div>
@@ -812,7 +812,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
               <div className="flex justify-center pt-1">
                 <Button type="button" variant="outline" size="sm"
                   onClick={() => setCustomSections(prev => [...prev, { id: crypto.randomUUID(), title: "", blocks: [] }])}
-                  className="gap-2 text-muted-foreground hover:text-foreground">
+                  className="gap-2 bg-purple-600 hover:bg-purple-700 text-white hover:text-white border-purple-600">
                   <Plus className="h-4 w-4" />
                   {ro ? "Adaugă secțiune" : "Add section"}
                 </Button>
@@ -822,7 +822,7 @@ export default function ScoutPlayerReportDialog({ open, onOpenChange, scoutUserI
                 <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
                   {ro ? "Anulează" : "Cancel"}
                 </Button>
-                <Button onClick={handleSave} disabled={saving}>
+                <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
                   {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {ro ? "Salvează raportul" : "Save report"}
                 </Button>

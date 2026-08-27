@@ -33,16 +33,16 @@ interface ScoutPersonalProfileProps {
   onNavigateToChat?: (userId: string) => void;
 }
 
-function formatExpDate(val: string | null | undefined): string {
+function formatExpDate(val: string | null | undefined, locale: string, presentWord: string): string {
   if (!val) return "";
-  if (val === "Prezent") return "Prezent";
+  if (val === "Prezent") return presentWord;
   if (val.match(/^\d{4}-\d{2}-\d{2}$/)) {
     const [y, mo] = val.split("-");
-    return new Date(parseInt(y), parseInt(mo) - 1).toLocaleDateString("ro-RO", { month: "short", year: "numeric" });
+    return new Date(parseInt(y), parseInt(mo) - 1).toLocaleDateString(locale, { month: "short", year: "numeric" });
   }
   if (val.match(/^\d{4}-\d{2}$/)) {
     const [y, mo] = val.split("-");
-    return new Date(parseInt(y), parseInt(mo) - 1).toLocaleDateString("ro-RO", { month: "short", year: "numeric" });
+    return new Date(parseInt(y), parseInt(mo) - 1).toLocaleDateString(locale, { month: "short", year: "numeric" });
   }
   return val;
 }
@@ -115,10 +115,10 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center gap-2 mb-4">
-        <FileText className="h-5 w-5 text-primary" />
-        <h2 className="font-display text-2xl text-foreground">
+        <FileText className="h-5 w-5 text-orange-500" />
+        <h2 className="font-display text-2xl text-gray-900">
           {ro ? "Rapoarte jucători" : "Player reports"}
         </h2>
         <Popover>
@@ -126,7 +126,7 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
             <button
               type="button"
               onClick={(e) => e.stopPropagation()}
-              className="p-1.5 -m-1.5 text-muted-foreground hover:text-primary transition-colors rounded-full"
+              className="p-1.5 -m-1.5 text-gray-500 hover:text-orange-500 transition-colors rounded-full"
             >
               <Info className="h-4 w-4" />
             </button>
@@ -135,7 +135,7 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
             <p className="font-semibold mb-2">
               {ro ? "Ce este această secțiune?" : "What is this section?"}
             </p>
-            <p className="text-muted-foreground">
+            <p className="text-gray-500">
               {ro
                 ? "Încarcă rapoarte scrise (PDF/Word) despre jucătorii pe care i-ai evaluat sau urmărit — analize, observații de la meciuri, recomandări. Rapoartele sunt vizibile pe profilul tău public, ca dovadă a activității tale."
                 : "Upload written reports (PDF/Word) about players you've evaluated or scouted — analyses, match observations, recommendations. Reports are visible on your public profile as proof of your activity."}
@@ -146,8 +146,8 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
 
       {/* Upload form – only for owner */}
       {isOwner && (
-        <div className="mb-5 p-4 bg-muted/30 rounded-lg border border-border space-y-3">
-          <p className="text-xs text-muted-foreground font-body uppercase tracking-wider">
+        <div className="mb-5 p-4 bg-gray-100 rounded-lg border border-gray-200 space-y-3">
+          <p className="text-xs text-gray-500 font-body uppercase tracking-wider">
             {ro ? "Adaugă raport nou" : "Add new report"}
           </p>
           <Input
@@ -165,8 +165,8 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
           <div className="flex items-center gap-3">
             <label className={`inline-flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border text-sm font-body transition-colors ${
               uploading || !title.trim()
-                ? "opacity-50 cursor-not-allowed border-border text-muted-foreground"
-                : "border-primary text-primary hover:bg-primary/10"
+                ? "opacity-50 cursor-not-allowed border-gray-200 text-gray-500"
+                : "border-orange-500 text-orange-500 hover:bg-orange-50"
             }`}>
               {uploading
                 ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -181,7 +181,7 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
               />
             </label>
             {!title.trim() && (
-              <span className="text-xs text-muted-foreground font-body">
+              <span className="text-xs text-gray-500 font-body">
                 {ro ? "Completează titlul mai întâi" : "Fill in the title first"}
               </span>
             )}
@@ -192,10 +192,10 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
       {/* Reports list */}
       {loading ? (
         <div className="flex justify-center py-6">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
         </div>
       ) : reports.length === 0 ? (
-        <p className="text-muted-foreground italic text-sm font-body text-center py-4">
+        <p className="text-gray-500 italic text-sm font-body text-center py-4">
           {isOwner
             ? (ro ? "Niciun raport încărcat încă." : "No reports uploaded yet.")
             : (ro ? "Niciun raport disponibil." : "No reports available.")}
@@ -203,17 +203,17 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
       ) : (
         <div className="space-y-3">
           {reports.map(report => (
-            <div key={report.id} className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/40 transition-colors bg-muted/10">
-              <div className="shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <FileText className="h-5 w-5 text-primary" />
+            <div key={report.id} className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-orange-300 transition-colors bg-gray-50">
+              <div className="shrink-0 w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <FileText className="h-5 w-5 text-orange-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-foreground text-sm font-body">{report.title}</p>
+                <p className="font-semibold text-gray-900 text-sm font-body">{report.title}</p>
                 {report.description && (
-                  <p className="text-muted-foreground text-xs font-body mt-0.5 line-clamp-2">{report.description}</p>
+                  <p className="text-gray-500 text-xs font-body mt-0.5 line-clamp-2">{report.description}</p>
                 )}
-                <p className="text-muted-foreground text-xs font-body mt-1">
-                  {new Date(report.created_at).toLocaleDateString(ro ? "ro-RO" : "en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                <p className="text-gray-500 text-xs font-body mt-1">
+                  {new Date(report.created_at).toLocaleDateString(LOCALE_BY_LANG[lang] || "en-US", { day: "numeric", month: "short", year: "numeric" })}
                   {report.file_name && (
                     <span className="ml-1.5 opacity-60">· {report.file_name}</span>
                   )}
@@ -224,7 +224,7 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
                   href={report.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors font-body"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:text-orange-500 hover:border-orange-300 transition-colors font-body"
                 >
                   <Download className="h-3.5 w-3.5" />
                   {ro ? "Deschide" : "Open"}
@@ -232,7 +232,7 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
                 {isOwner && (
                   <button
                     onClick={() => handleDelete(report.id)}
-                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+                    className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-destructive hover:border-destructive/40 transition-colors"
                     title={ro ? "Șterge" : "Delete"}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -249,9 +249,14 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
 
 /* ─────────────────────────────────────────────────────────────────── */
 
+const LOCALE_BY_LANG: Record<string, string> = {
+  ro: "ro-RO", en: "en-US", de: "de-DE", fr: "fr-FR", es: "es-ES", it: "it-IT",
+};
+
 const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: ScoutPersonalProfileProps) => {
   const { toast } = useToast();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
+  const ts = t.dashboard.scoutProfile;
   const [profile, setProfile] = useState<ScoutProfile | null>(null);
   const [experiences, setExperiences] = useState<ScoutExperience[]>([]);
   const [posts, setPosts] = useState<ScoutPost[]>([]);
@@ -372,9 +377,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       const { data: refreshed } = await (supabase as any).from("scout_posts").select("*").eq("user_id", userId).eq("is_archived", false).order("created_at", { ascending: false }).limit(10);
       if (refreshed) setPosts(refreshed);
       notifyProfileUpdated();
-      toast({ title: "Postare publicată!" });
+      toast({ title: ts.postPublished });
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
     } finally {
       setPostingActivity(false);
     }
@@ -451,14 +456,14 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       }).eq("user_id", userId);
       if (error) throw error;
 
-      toast({ title: "Profil actualizat cu succes!" });
+      toast({ title: t.dashboard.profile.profileUpdated });
       setEditingSection(null);
       setAvatarFile(null);
       setCoverFile(null);
       notifyProfileUpdated();
       fetchData();
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -473,12 +478,12 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       }).eq("user_id", userId);
       if (error) throw error;
 
-      toast({ title: "Secțiunea Despre actualizată!" });
+      toast({ title: ts.aboutUpdated });
       setEditingSection(null);
       notifyProfileUpdated();
       fetchData();
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -517,19 +522,19 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         }
       }
 
-      toast({ title: "Experiența actualizată!" });
+      toast({ title: ts.experienceUpdated });
       setEditingSection(null);
       notifyProfileUpdated();
       fetchData();
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+    return <div className="flex items-center justify-center h-full text-gray-500"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
 
   const photoSrc = avatarPreview || profile?.photo_url;
@@ -551,34 +556,32 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-3 sm:p-6">
       {!readOnly && viewerLocked && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-          <Lock className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <Lock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-500">
-              {lang === "ro" ? "Cont în curs de verificare" : "Account pending verification"}
+            <p className="text-sm font-semibold text-amber-700">
+              {ts.accountPendingTitle}
             </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {lang === "ro"
-                ? "Poți edita liber propriul profil, dar restul funcționalităților (mesaje, urmărire, acțiuni) rămân dezactivate până când documentul tău este aprobat de echipa SportRise."
-                : "You can freely edit your own profile, but the rest of the features (messages, follow, actions) stay disabled until your document is approved by the SportRise team."}
+            <p className="text-sm text-gray-500 mt-0.5">
+              {ts.accountPendingDesc}
             </p>
           </div>
         </div>
       )}
       {/* ===== HEADER CARD (LinkedIn-style) ===== */}
-      <div className="bg-card rounded-xl overflow-hidden border border-border">
+      <div className="bg-white rounded-xl overflow-hidden border border-gray-200">
         {/* Cover Photo */}
-        <div className="relative h-40 sm:h-52 bg-gradient-to-r from-primary/30 via-primary/10 to-sidebar overflow-hidden">
+        <div className="relative h-40 sm:h-52 bg-gradient-to-r from-orange-200 via-orange-100 to-gray-100 overflow-hidden">
           {coverSrc && <img src={coverSrc} alt="Cover" className="w-full h-full object-cover" />}
           {!coverSrc && (
             <div className="absolute inset-0 opacity-10" style={{
-              backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
+              backgroundImage: `radial-gradient(circle at 2px 2px, #f97316 1px, transparent 0)`,
               backgroundSize: '30px 30px'
             }} />
           )}
           {editingSection === "header" && (
-            <label className="absolute top-3 right-3 bg-background/80 rounded-lg p-2 cursor-pointer hover:bg-background transition-colors">
-              <Camera className="h-5 w-5 text-foreground" />
+            <label className="absolute top-3 right-3 bg-white/80 rounded-lg p-2 cursor-pointer hover:bg-white transition-colors">
+              <Camera className="h-5 w-5 text-gray-900" />
               <input type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
             </label>
           )}
@@ -588,18 +591,18 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         <div className="relative px-6 pb-6">
           {/* Avatar - overlapping cover */}
           <div className="relative -mt-16 sm:-mt-20 mb-4">
-            <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-card overflow-hidden bg-muted shadow-lg">
+            <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white overflow-hidden bg-gray-100 shadow-lg">
               {photoSrc ? (
                 <img src={photoSrc} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                <div className="w-full h-full flex items-center justify-center text-gray-500">
                   <Camera className="h-10 w-10" />
                 </div>
               )}
             </div>
             {editingSection === "header" && (
-              <label className="absolute bottom-1 left-20 sm:left-24 bg-primary rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors shadow-md">
-                <Camera className="h-4 w-4 text-primary-foreground" />
+              <label className="absolute bottom-1 left-20 sm:left-24 bg-orange-500 rounded-full p-2 cursor-pointer hover:bg-orange-600 transition-colors shadow-md">
+                <Camera className="h-4 w-4 text-white" />
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </label>
             )}
@@ -613,18 +616,18 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                 <div className="mb-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru antet">
+                      <button className="text-gray-500 hover:text-orange-500 transition-colors" aria-label={ts.headerTipsAria}>
                         <Info className="h-4 w-4" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-                      <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru antetul profilului:</p>
-                      <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                        <li>Folosește o fotografie profesională, clară, pe fundal neutru</li>
-                        <li>Adaugă o copertă relevantă (stadion, eveniment sportiv)</li>
-                        <li>Scrie titlul complet al rolului tău (ex: „First team scout")</li>
-                        <li>Menționează organizația/clubul la care activezi</li>
-                        <li>Adaugă locația ta pentru a fi găsit mai ușor</li>
+                    <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+                      <p className="font-semibold text-gray-900 mb-2">{ts.headerTipsTitle}</p>
+                      <ul className="list-disc pl-4 space-y-1 text-gray-500">
+                        <li>{ts.headerTip1}</li>
+                        <li>{ts.headerTip2}</li>
+                        <li>{ts.headerTip3}</li>
+                        <li>{ts.headerTip4}</li>
+                        <li>{ts.headerTip5}</li>
                       </ul>
                     </PopoverContent>
                   </Popover>
@@ -633,31 +636,31 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
               {editingSection === "header" ? (
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <Input value={form.first_name || ""} onChange={e => updateForm("first_name", e.target.value)} placeholder="Prenume" className="bg-muted border-border text-white font-display text-xl h-auto py-1" />
-                    <Input value={form.last_name || ""} onChange={e => updateForm("last_name", e.target.value)} placeholder="Nume" className="bg-muted border-border text-white font-display text-xl h-auto py-1" />
+                    <Input value={form.first_name || ""} onChange={e => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-xl h-auto py-1" />
+                    <Input value={form.last_name || ""} onChange={e => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-xl h-auto py-1" />
                   </div>
-                  <Input value={form.title || ""} onChange={e => updateForm("title", e.target.value)} placeholder="Titlu (ex: First team scout)" className="bg-muted border-border text-white text-sm" />
-                  <Input value={form.organization || ""} onChange={e => updateForm("organization", e.target.value)} placeholder="Organizație" className="bg-muted border-border text-white text-sm" />
+                  <Input value={form.title || ""} onChange={e => updateForm("title", e.target.value)} placeholder={ts.titlePlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm" />
+                  <Input value={form.organization || ""} onChange={e => updateForm("organization", e.target.value)} placeholder={ts.organizationPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm" />
                   <div className="flex gap-2">
-                    <Input value={(form as any).city || ""} onChange={e => updateForm("city" as any, e.target.value)} placeholder="Oraș (ex: București)" className="bg-muted border-border text-white text-sm flex-1" />
-                    <Input value={form.country || ""} onChange={e => updateForm("country", e.target.value)} placeholder="Țară (ex: România)" className="bg-muted border-border text-white text-sm flex-1" />
+                    <Input value={(form as any).city || ""} onChange={e => updateForm("city" as any, e.target.value)} placeholder={ts.cityPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm flex-1" />
+                    <Input value={form.country || ""} onChange={e => updateForm("country", e.target.value)} placeholder={ts.countryPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm flex-1" />
                   </div>
                 </div>
               ) : (
                 <>
-                  <h1 className="font-display text-3xl sm:text-4xl text-foreground tracking-wide">
+                  <h1 className="font-display text-3xl sm:text-4xl text-gray-900 tracking-wide">
                     {profile?.first_name || profile?.last_name
                       ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
-                      : "Completează profilul"}
+                      : t.dashboard.profile.completeProfile}
                   </h1>
                   {profile?.title && (
-                    <p className="text-foreground/80 font-body text-base mt-1">
+                    <p className="text-gray-700 font-body text-base mt-1">
                       {profile.title}
                       {profile.organization && <span> @{profile.organization}</span>}
                     </p>
                   )}
                   {((profile as any)?.city || profile?.country) && (
-                    <p className="flex items-center gap-1 text-muted-foreground text-sm font-body mt-1">
+                    <p className="flex items-center gap-1 text-gray-500 text-sm font-body mt-1">
                       <MapPin className="h-4 w-4" />
                       {[(profile as any)?.city, profile?.country].filter(Boolean).join(", ")}
                     </p>
@@ -669,11 +672,11 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                 <div className="mt-2">
                   <button
                     onClick={() => !readOnly && setShowFollowersList(!showFollowersList)}
-                    className={`flex items-center gap-1.5 text-sm font-body ${!readOnly ? "hover:text-primary cursor-pointer" : "cursor-default"} transition-colors`}
+                    className={`flex items-center gap-1.5 text-sm font-body ${!readOnly ? "hover:text-orange-500 cursor-pointer" : "cursor-default"} transition-colors`}
                   >
-                    <Users className="h-4 w-4 text-primary" />
-                    <span className="font-semibold text-foreground">{followerCount}</span>
-                    <span className="text-muted-foreground">{lang === "ro" ? "urmăritori" : "followers"}</span>
+                    <Users className="h-4 w-4 text-green-500" />
+                    <span className="font-semibold text-gray-900">{followerCount}</span>
+                    <span className="text-gray-500">{ts.followersWord}</span>
                   </button>
                 </div>
               )}
@@ -684,16 +687,16 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
               {!readOnly && editingSection !== "header" && (
                 <button
                   onClick={() => setEditingSection("header")}
-                  className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50"
-                  title="Editează"
+                  className="group text-gray-900 hover:text-gray-400 transition-colors p-1"
+                  aria-label={ts.editAria}
                 >
-                  <Edit2 className="h-4 w-4" />
+                  <Edit2 className="h-4 w-4 stroke-[2.5] group-hover:stroke-[1.5]" />
                 </button>
               )}
               {editingSection !== "header" && profile?.organization && (
-                <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-body text-foreground">{profile.organization}</span>
+                <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
+                  <Building2 className="h-5 w-5 text-orange-500" />
+                  <span className="text-sm font-body text-gray-900">{profile.organization}</span>
                 </div>
               )}
             </div>
@@ -708,18 +711,16 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                           onClick={(e) => { e.stopPropagation(); onNavigateToChat ? onNavigateToChat(userId) : setShowMessageDialog(true); }}
                           size="sm"
                           disabled={followStatus !== "accepted" || viewerLocked}
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 disabled:opacity-50"
+                          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-body gap-2 disabled:opacity-50"
                         >
                           {followStatus !== "accepted" ? <Lock className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
-                          Mesaj
+                          {ts.messageBtn}
                         </Button>
                       </span>
                     </TooltipTrigger>
                     {followStatus !== "accepted" && (
                       <TooltipContent>
-                        {lang === "ro"
-                          ? "Este nevoie să fii conectată cu această persoană pentru a trimite mesaj."
-                          : "You need to be connected with this person to send a message."}
+                        {ts.messageDisabledTooltip}
                       </TooltipContent>
                     )}
                   </Tooltip>
@@ -727,12 +728,17 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                 <Button
                   onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
                   size="sm"
-                  variant={followStatus === "accepted" ? "secondary" : "outline"}
                   disabled={followLoading || viewerLocked}
-                  className="font-body gap-2"
+                  className={`font-body gap-2 ${
+                    followStatus === "accepted"
+                      ? "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50"
+                      : followStatus === "pending"
+                        ? "bg-white border border-purple-600 text-purple-600 hover:bg-purple-50"
+                        : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                  }`}
                 >
                   {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : followStatus === "accepted" ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                  {followStatus === "accepted" ? "Urmărești" : followStatus === "pending" ? "Cerere trimisă" : "Urmărește"}
+                  {followStatus === "accepted" ? ts.followingBtn : followStatus === "pending" ? ts.requestSentBtn : ts.followBtn}
                 </Button>
               </div>
             )}
@@ -741,9 +747,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
           {/* Save button for header */}
           {!readOnly && editingSection === "header" && (
             <div className="flex gap-3 mt-4">
-              <Button onClick={handleSaveHeader} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+              <Button onClick={handleSaveHeader} disabled={saving} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-body">
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                {saving ? "..." : "Salvează"}
+                {saving ? "..." : t.dashboard.profile.save}
               </Button>
             </div>
           )}
@@ -754,37 +760,37 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
 
 
       {/* ===== DESPRE / BIO ===== */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="font-display text-2xl text-foreground">Despre</h2>
+            <h2 className="font-display text-2xl text-gray-900">{ts.aboutTitle}</h2>
             {!readOnly && <Popover>
               <PopoverTrigger asChild>
-                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru secțiunea Despre">
+                <button className="text-gray-500 hover:text-orange-500 transition-colors" aria-label={ts.aboutTipsAria}>
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-                <p className="font-semibold text-foreground mb-2">💡 Cum să scrii o secțiune „Despre" profesională:</p>
-                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>Începe cu rolul tău actual și experiența în scouting</li>
-                  <li>Menționează sporturile și ligile pe care le urmărești</li>
-                  <li>Descrie filosofia ta de scouting și ce calități cauți la jucători</li>
-                  <li>Adaugă realizări notabile (jucători descoperiți, transferuri reușite)</li>
-                  <li>Păstrează un ton profesional dar autentic, 3-5 propoziții sunt ideale</li>
+              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{ts.aboutTipsTitle}</p>
+                <ul className="list-disc pl-4 space-y-1 text-gray-500">
+                  <li>{ts.aboutTip1}</li>
+                  <li>{ts.aboutTip2}</li>
+                  <li>{ts.aboutTip3}</li>
+                  <li>{ts.aboutTip4}</li>
+                  <li>{ts.aboutTip5}</li>
                 </ul>
               </PopoverContent>
             </Popover>}
           </div>
           {!readOnly && editingSection !== "about" && (
-            <button onClick={() => setEditingSection("about")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
-              <Edit2 className="h-4 w-4" />
+            <button onClick={() => setEditingSection("about")} className="group text-gray-900 hover:text-gray-400 transition-colors p-1" aria-label={ts.editAria}>
+              <Edit2 className="h-4 w-4 stroke-[2.5] group-hover:stroke-[1.5]" />
             </button>
           )}
           {!readOnly && editingSection === "about" && (
-            <Button size="sm" onClick={handleSaveAbout} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+            <Button size="sm" onClick={handleSaveAbout} disabled={saving} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-body">
               {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-              {saving ? "..." : "Salvează"}
+              {saving ? "..." : t.dashboard.profile.save}
             </Button>
           )}
         </div>
@@ -792,33 +798,33 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
           <Textarea
             value={form.bio || ""}
             onChange={e => updateForm("bio", e.target.value)}
-            placeholder="Descrie-te pe scurt... Ce te motivează? Care este filosofia ta de scouting?"
-            className="bg-muted border-border text-white min-h-[120px]"
+            placeholder={ts.aboutPlaceholder}
+            className="bg-gray-100 border-gray-300 text-gray-900 min-h-[120px]"
           />
         ) : (
-          <p className="text-foreground/80 font-body text-sm leading-relaxed whitespace-pre-line">
-            {profile?.bio || <span className="italic text-muted-foreground">Nicio descriere adăugată.</span>}
+          <p className="text-gray-700 font-body text-sm leading-relaxed whitespace-pre-line">
+            {profile?.bio || <span className="italic text-gray-500">{t.dashboard.profile.noDescription}</span>}
           </p>
         )}
 
         {/* Skills */}
-        <div className="mt-4 pt-4 border-t border-border">
+        <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="flex items-center gap-2 mb-2">
-            <Award className="h-5 w-5 text-primary" />
-            <h3 className="font-display text-lg text-foreground">Aptitudini de top</h3>
+            <Award className="h-5 w-5 text-orange-500" />
+            <h3 className="font-display text-lg text-gray-900">{ts.topSkillsTitle}</h3>
             {!readOnly && <Popover>
               <PopoverTrigger asChild>
-                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru aptitudini">
+                <button className="text-gray-500 hover:text-orange-500 transition-colors" aria-label={ts.skillsTipsAria}>
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru aptitudini:</p>
-                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>Adaugă competențele tale cheie (ex: „Analiză video", „Recruitment")</li>
-                  <li>Include aptitudini tehnice și soft skills relevante</li>
-                  <li>Menționează specializări (ex: „Scouting tineret", „Analiză tactică")</li>
-                  <li>3-6 aptitudini sunt suficiente pentru un profil echilibrat</li>
+              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{ts.skillsTipsTitle}</p>
+                <ul className="list-disc pl-4 space-y-1 text-gray-500">
+                  <li>{ts.skillTip1}</li>
+                  <li>{ts.skillTip2}</li>
+                  <li>{ts.skillTip3}</li>
+                  <li>{ts.skillTip4}</li>
                 </ul>
               </PopoverContent>
             </Popover>}
@@ -828,11 +834,11 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
           ) : (
             <div className="flex flex-wrap gap-2">
               {skillsArray.length > 0 ? skillsArray.map((skill, i) => (
-                <span key={i} className="px-3 py-1 bg-muted text-foreground/80 rounded-full text-sm font-body">
+                <span key={i} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-body">
                   {skill}
                 </span>
               )) : (
-                <span className="text-muted-foreground italic text-sm">Nicio aptitudine adăugată.</span>
+                <span className="text-gray-500 italic text-sm">{ts.noSkillsAdded}</span>
               )}
             </div>
           )}
@@ -846,45 +852,45 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       <RepresentedPlayersSection userId={userId} readOnly={readOnly} />
 
       {/* ===== ACTIVITATE ===== */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <h2 className="font-display text-2xl text-foreground">Activitate</h2>
+            <h2 className="font-display text-2xl text-gray-900">{ts.activityTitle}</h2>
             {!readOnly && <Popover>
               <PopoverTrigger asChild>
-                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru activitate">
+                <button className="text-gray-500 hover:text-orange-500 transition-colors" aria-label={ts.activityTipsAria}>
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru secțiunea Activitate:</p>
-                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>Publică observații de la meciuri sau turnee la care participi</li>
-                  <li>Împărtășește analize scurte despre tendințe în fotbal</li>
-                  <li>Adaugă fotografii de la evenimente sportive</li>
-                  <li>Postează regulat pentru a-ți crește vizibilitatea</li>
-                  <li>Un ton profesional și informatv atrage atenția cluburilor</li>
+              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{ts.activityTipsTitle}</p>
+                <ul className="list-disc pl-4 space-y-1 text-gray-500">
+                  <li>{ts.activityTip1}</li>
+                  <li>{ts.activityTip2}</li>
+                  <li>{ts.activityTip3}</li>
+                  <li>{ts.activityTip4}</li>
+                  <li>{ts.activityTip5}</li>
                 </ul>
               </PopoverContent>
             </Popover>}
           </div>
         </div>
-        <p className="text-muted-foreground text-sm font-body mb-4">{posts.length} postări</p>
+        <p className="text-gray-500 text-sm font-body mb-4">{posts.length} {ts.postsCountSuffix}</p>
 
         {/* Filter tabs */}
         <div className="flex gap-2 mb-5">
           {([
-            { key: "all" as const, label: "Toate" },
-            { key: "posts" as const, label: "Postări" },
-            { key: "images" as const, label: "Imagini" },
+            { key: "all" as const, label: ts.filterAll },
+            { key: "posts" as const, label: ts.filterPosts },
+            { key: "images" as const, label: ts.filterImages },
           ]).map(tab => (
             <button
               key={tab.key}
               onClick={() => setActivityFilter(tab.key)}
               className={`px-4 py-1.5 rounded-full text-sm font-body transition-colors border ${
                 activityFilter === tab.key
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                  ? "bg-orange-500 text-white border-orange-500"
+                  : "border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300"
               }`}
             >
               {tab.label}
@@ -894,13 +900,13 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
 
         {/* New post form (only for own profile) */}
         {!readOnly && (
-          <div className="mb-6 border border-border rounded-xl p-4">
+          <div className="mb-6 border border-gray-200 rounded-xl p-4">
             <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                 {photoSrc ? (
                   <img src={photoSrc} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  <div className="w-full h-full flex items-center justify-center text-gray-500">
                     <Camera className="h-4 w-4" />
                   </div>
                 )}
@@ -909,8 +915,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                 <Textarea
                   value={newPostContent}
                   onChange={e => setNewPostContent(e.target.value)}
-                  placeholder="Scrie o postare..."
-                  className="bg-transparent border-none text-white text-sm min-h-[60px] p-0 resize-none focus-visible:ring-0"
+                  placeholder={ts.writePostPlaceholder}
+                  className="bg-transparent border-none text-gray-900 text-sm min-h-[60px] p-0 resize-none focus-visible:ring-0"
                 />
                 {newPostImagePreview && (
                   <div className="relative mt-2 inline-block">
@@ -918,8 +924,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                     <button onClick={() => { setNewPostImage(null); setNewPostImagePreview(null); }} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">×</button>
                   </div>
                 )}
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                  <label className="cursor-pointer text-muted-foreground hover:text-primary transition-colors">
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
+                  <label className="cursor-pointer text-gray-500 hover:text-orange-500 transition-colors">
                     <Image className="h-5 w-5" />
                     <input type="file" accept="image/*" className="hidden" onChange={handlePostImageChange} />
                   </label>
@@ -927,9 +933,9 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                     size="sm"
                     onClick={handlePostSubmit}
                     disabled={postingActivity || !newPostContent.trim()}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-body"
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-body"
                   >
-                    {postingActivity ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-1" />Publică</>}
+                    {postingActivity ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-1" />{ts.publishBtn}</>}
                   </Button>
                 </div>
               </div>
@@ -940,29 +946,29 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         {/* Posts grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {(activityFilter === "all" ? posts : activityFilter === "images" ? posts.filter(p => p.image_url) : posts.filter(p => !p.image_url)).map(post => (
-            <div key={post.id} className="border border-border rounded-xl overflow-hidden">
+            <div key={post.id} className="border border-gray-200 rounded-xl overflow-hidden">
               {/* Post header */}
               <div className="flex items-start gap-3 p-4 pb-2">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                   {photoSrc ? (
                     <img src={photoSrc} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    <div className="w-full h-full flex items-center justify-center text-gray-500">
                       <Camera className="h-4 w-4" />
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-body font-semibold text-foreground text-sm">
+                  <p className="font-body font-semibold text-gray-900 text-sm">
                     {profile?.first_name} {profile?.last_name}
                   </p>
-                  <p className="text-muted-foreground text-xs font-body truncate">{profile?.title}</p>
-                  <p className="text-muted-foreground text-xs font-body">
-                    {new Date(post.created_at).toLocaleDateString("ro-RO", { day: "numeric", month: "short", year: "numeric" })}
+                  <p className="text-gray-500 text-xs font-body truncate">{profile?.title}</p>
+                  <p className="text-gray-500 text-xs font-body">
+                    {new Date(post.created_at).toLocaleDateString(LOCALE_BY_LANG[lang], { day: "numeric", month: "short", year: "numeric" })}
                   </p>
                 </div>
                 {!readOnly && (
-                  <button onClick={() => handleDeletePost(post.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1">
+                  <button onClick={() => handleDeletePost(post.id)} className="text-gray-500 hover:text-destructive transition-colors p-1">
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
                 )}
@@ -970,7 +976,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
 
               {/* Post content */}
               <div className="px-4 pb-3">
-                <p className="text-foreground/80 font-body text-sm whitespace-pre-line line-clamp-4">{post.content}</p>
+                <p className="text-gray-700 font-body text-sm whitespace-pre-line line-clamp-4">{post.content}</p>
               </div>
 
               {/* Post image */}
@@ -981,15 +987,15 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
               )}
 
               {/* Post actions */}
-              <div className="flex items-center justify-around border-t border-border px-4 py-2">
-                <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary text-sm font-body transition-colors py-1.5">
-                  <ThumbsUp className="h-4 w-4" /> Apreciază
+              <div className="flex items-center justify-around border-t border-gray-200 px-4 py-2">
+                <button className="flex items-center gap-1.5 text-gray-500 hover:text-orange-500 text-sm font-body transition-colors py-1.5">
+                  <ThumbsUp className="h-4 w-4" /> {ts.likeBtn}
                 </button>
-                <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary text-sm font-body transition-colors py-1.5">
-                  <MessageSquare className="h-4 w-4" /> Comentează
+                <button className="flex items-center gap-1.5 text-gray-500 hover:text-orange-500 text-sm font-body transition-colors py-1.5">
+                  <MessageSquare className="h-4 w-4" /> {ts.commentBtn}
                 </button>
-                <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary text-sm font-body transition-colors py-1.5">
-                  <Share2 className="h-4 w-4" /> Distribuie
+                <button className="flex items-center gap-1.5 text-gray-500 hover:text-orange-500 text-sm font-body transition-colors py-1.5">
+                  <Share2 className="h-4 w-4" /> {ts.shareBtn}
                 </button>
               </div>
             </div>
@@ -997,29 +1003,29 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         </div>
 
         {posts.length === 0 && (
-          <p className="text-muted-foreground italic text-sm font-body text-center py-4">Nicio postare încă.</p>
+          <p className="text-gray-500 italic text-sm font-body text-center py-4">{ts.noPostsYet}</p>
         )}
       </div>
 
       {/* ===== EXPERIENȚĂ ===== */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="font-display text-2xl text-foreground">Experiență</h2>
+            <h2 className="font-display text-2xl text-gray-900">{ts.experienceTitle}</h2>
             {!readOnly && <Popover>
               <PopoverTrigger asChild>
-                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru experiență">
+                <button className="text-gray-500 hover:text-orange-500 transition-colors" aria-label={ts.experienceTipsAria}>
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru secțiunea Experiență:</p>
-                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>Adaugă toate pozițiile relevante din cariera ta de scouting</li>
-                  <li>Menționează cluburile, academiile sau agențiile pentru care ai lucrat</li>
-                  <li>Descrie responsabilitățile principale pentru fiecare rol</li>
-                  <li>Include perioada exactă (lună și an) pentru credibilitate</li>
-                  <li>Adaugă competențele dobândite la fiecare experiență</li>
+              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{ts.experienceTipsTitle}</p>
+                <ul className="list-disc pl-4 space-y-1 text-gray-500">
+                  <li>{ts.expTip1}</li>
+                  <li>{ts.expTip2}</li>
+                  <li>{ts.expTip3}</li>
+                  <li>{ts.expTip4}</li>
+                  <li>{ts.expTip5}</li>
                 </ul>
               </PopoverContent>
             </Popover>}
@@ -1027,18 +1033,18 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
           <div className="flex items-center gap-2">
             {editingSection === "experience" && (
               <>
-                <Button variant="outline" size="sm" onClick={addExperience} className="text-primary border-primary/30 hover:bg-primary/10">
-                  <Plus className="h-4 w-4 mr-1" /> Adaugă
+                <Button variant="outline" size="sm" onClick={addExperience} className="text-purple-600 border-purple-300 hover:bg-purple-50">
+                  <Plus className="h-4 w-4 mr-1" /> {t.dashboard.profile.addBtn}
                 </Button>
-                <Button size="sm" onClick={handleSaveExperience} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+                <Button size="sm" onClick={handleSaveExperience} disabled={saving} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-body">
                   {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  {saving ? "..." : "Salvează"}
+                  {saving ? "..." : t.dashboard.profile.save}
                 </Button>
               </>
             )}
             {!readOnly && editingSection !== "experience" && (
-              <button onClick={() => setEditingSection("experience")} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
-                <Edit2 className="h-4 w-4" />
+              <button onClick={() => setEditingSection("experience")} className="group text-gray-900 hover:text-gray-400 transition-colors p-1" aria-label={ts.editAria}>
+                <Edit2 className="h-4 w-4 stroke-[2.5] group-hover:stroke-[1.5]" />
               </button>
             )}
           </div>
@@ -1046,14 +1052,14 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
 
         <div className="space-y-6">
           {expForms.length === 0 && editingSection !== "experience" && (
-            <p className="text-muted-foreground italic text-sm font-body">Nicio experiență adăugată.</p>
+            <p className="text-gray-500 italic text-sm font-body">{ts.noExperienceYet}</p>
           )}
           {expForms.map((exp, index) => (
             <div key={exp.id || `new-${index}`} className="flex gap-4">
               {/* Icon */}
               <div className="flex-shrink-0 mt-1">
-                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                  <Briefcase className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <Briefcase className="h-6 w-6 text-orange-500" />
                 </div>
               </div>
 
@@ -1062,32 +1068,32 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                 {editingSection === "experience" ? (
                   <div className="space-y-2">
                     <div className="flex gap-2">
-                      <Input value={exp.role || ""} onChange={e => updateExp(index, "role", e.target.value)} placeholder="Rol (ex: First team scout)" className="bg-muted border-border text-white text-sm flex-1" />
+                      <Input value={exp.role || ""} onChange={e => updateExp(index, "role", e.target.value)} placeholder={ts.rolePlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm flex-1" />
                       <Button variant="ghost" size="icon" onClick={() => removeExperience(index)} className="text-destructive hover:text-destructive/80 flex-shrink-0">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Input value={exp.organization || ""} onChange={e => updateExp(index, "organization", e.target.value)} placeholder="Organizație" className="bg-muted border-border text-white text-sm" />
-                    <Input value={exp.location || ""} onChange={e => updateExp(index, "location", e.target.value)} placeholder="Locație" className="bg-muted border-border text-white text-sm" />
+                    <Input value={exp.organization || ""} onChange={e => updateExp(index, "organization", e.target.value)} placeholder={ts.organizationPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm" />
+                    <Input value={exp.location || ""} onChange={e => updateExp(index, "location", e.target.value)} placeholder={ts.locationPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm" />
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label className="text-xs text-foreground font-medium">Data început</Label>
+                        <Label className="text-xs text-gray-900 font-medium">{ts.startDateLabel}</Label>
                         <Input
                           type="date"
                           value={exp.start_date?.match(/^\d{4}-\d{2}-\d{2}$/) ? exp.start_date : ""}
                           onChange={e => updateExp(index, "start_date", e.target.value)}
-                          className="bg-muted border-border text-white [color-scheme:dark]"
+                          className="bg-gray-100 border-gray-300 text-gray-900"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs text-foreground font-medium">Data sfârșit</Label>
+                        <Label className="text-xs text-gray-900 font-medium">{ts.endDateLabel}</Label>
                         <Input
                           type="date"
                           value={exp.end_date?.match(/^\d{4}-\d{2}-\d{2}$/) ? exp.end_date : ""}
                           min={exp.start_date?.match(/^\d{4}-\d{2}-\d{2}$/) ? exp.start_date : undefined}
                           onChange={e => updateExp(index, "end_date", e.target.value)}
                           disabled={exp.end_date === "Prezent"}
-                          className="bg-muted border-border text-white [color-scheme:dark]"
+                          className="bg-gray-100 border-gray-300 text-gray-900"
                         />
                       </div>
                     </div>
@@ -1097,35 +1103,35 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                         checked={exp.end_date === "Prezent"}
                         onCheckedChange={(checked) => updateExp(index, "end_date", checked ? "Prezent" : "")}
                       />
-                      <Label htmlFor={`exp-active-${index}`} className="text-xs text-foreground cursor-pointer">
-                        Activez în acest moment
+                      <Label htmlFor={`exp-active-${index}`} className="text-xs text-gray-900 cursor-pointer">
+                        {ts.currentlyActiveLabel}
                       </Label>
                     </div>
-                    <Textarea value={exp.description || ""} onChange={e => updateExp(index, "description", e.target.value)} placeholder="Descriere activitate..." className="bg-muted border-border text-white text-sm min-h-[60px]" />
+                    <Textarea value={exp.description || ""} onChange={e => updateExp(index, "description", e.target.value)} placeholder={ts.descriptionPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm min-h-[60px]" />
                     <Input
                       value={(exp.skills || []).join(", ")}
                       onChange={e => updateExp(index, "skills", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-                      placeholder="Competențe (separate cu virgulă)"
-                      className="bg-muted border-border text-white text-sm"
+                      placeholder={ts.skillsPlaceholder}
+                      className="bg-gray-100 border-gray-300 text-gray-900 text-sm"
                     />
                   </div>
                 ) : (
                   <>
-                    <h3 className="font-body font-semibold text-foreground">{exp.role || "Rol nespecificat"}</h3>
-                    <p className="text-foreground/70 font-body text-sm">{exp.organization}</p>
-                    <p className="text-muted-foreground font-body text-xs mt-0.5">
-                      {exp.start_date && <span>{formatExpDate(exp.start_date)}</span>}
+                    <h3 className="font-body font-semibold text-gray-900">{exp.role || ts.roleUnspecified}</h3>
+                    <p className="text-gray-600 font-body text-sm">{exp.organization}</p>
+                    <p className="text-gray-500 font-body text-xs mt-0.5">
+                      {exp.start_date && <span>{formatExpDate(exp.start_date, LOCALE_BY_LANG[lang], ts.presentWord)}</span>}
                       {exp.start_date && exp.end_date && <span> – </span>}
-                      {exp.end_date && <span>{formatExpDate(exp.end_date)}</span>}
+                      {exp.end_date && <span>{formatExpDate(exp.end_date, LOCALE_BY_LANG[lang], ts.presentWord)}</span>}
                       {exp.location && <span> · {exp.location}</span>}
                     </p>
                     {exp.description && (
-                      <p className="text-foreground/70 font-body text-sm mt-2 whitespace-pre-line">{exp.description}</p>
+                      <p className="text-gray-600 font-body text-sm mt-2 whitespace-pre-line">{exp.description}</p>
                     )}
                     {exp.skills && exp.skills.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {exp.skills.map((skill, si) => (
-                          <span key={si} className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-body">{skill}</span>
+                          <span key={si} className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded text-xs font-body">{skill}</span>
                         ))}
                       </div>
                     )}
@@ -1163,7 +1169,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       <Dialog open={!!recAuthorView} onOpenChange={(open) => !open && setRecAuthorView(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
           {recAuthorView && (
-            <Suspense fallback={<div className="flex items-center justify-center py-16"><span className="text-muted-foreground text-sm">Se încarcă...</span></div>}>
+            <Suspense fallback={<div className="flex items-center justify-center py-16"><span className="text-gray-500 text-sm">{t.dashboard.profile.loading}</span></div>}>
               {recAuthorView.role === "player"
                 ? <LazyPersonalProfile userId={recAuthorView.userId} readOnly />
                 : <LazyScoutPersonalProfile userId={recAuthorView.userId} readOnly />}

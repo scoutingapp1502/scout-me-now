@@ -39,6 +39,12 @@ import {
   Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { Language } from "@/i18n/translations";
+
+const LOCALE_BY_LANG: Record<Language, string> = {
+  ro: "ro-RO", en: "en-US", de: "de-DE", fr: "fr-FR", es: "es-ES", it: "it-IT",
+};
 
 type RecStatus = "pending" | "submitted" | "accepted" | "rejected";
 type Initiated = "request" | "offer";
@@ -88,6 +94,8 @@ interface Props {
 
 const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileRole, onViewProfile }: Props) => {
   const { toast } = useToast();
+  const { lang, t } = useLanguage();
+  const rt = t.dashboard.recommendations;
 
   const [enabled, setEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -179,7 +187,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
         (profilesRows.data || []).forEach((p: any) => {
           map[p.user_id] = {
             user_id: p.user_id,
-            full_name: p.full_name || "Utilizator",
+            full_name: p.full_name || rt.defaultUserName,
             avatar_url: photoMap[p.user_id] ?? null,
             role: roleMap[p.user_id],
           };
@@ -204,7 +212,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
       }
     } catch (err: any) {
       console.error(err);
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: rt.errorTitle, description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -266,10 +274,10 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
       initiated_by: "request",
     });
     if (error) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      toast({ title: rt.errorTitle, description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Cerere trimisă", description: "Persoana va putea răspunde cu o recomandare." });
+    toast({ title: rt.requestSentTitle, description: rt.requestSentDesc });
     setAskOpen(false);
     fetchAll();
   };
@@ -277,7 +285,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
   const offerRecommendation = async (recipientId: string, content: string) => {
     if (!viewerUserId) return;
     if (!content.trim()) {
-      toast({ title: "Scrie mai întâi recomandarea", variant: "destructive" });
+      toast({ title: rt.writeFirst, variant: "destructive" });
       return;
     }
     const { error } = await supabase.from("recommendations").insert({
@@ -288,12 +296,12 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
       initiated_by: "offer",
     });
     if (error) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      toast({ title: rt.errorTitle, description: error.message, variant: "destructive" });
       return;
     }
     toast({
-      title: "Recomandare trimisă",
-      description: "Va apărea pe profil după ce este aprobată.",
+      title: rt.offerSentTitle,
+      description: rt.offerSentDesc,
     });
     setGiveOpen(false);
     fetchAll();
@@ -302,7 +310,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
   const updateStatus = async (id: string, status: RecStatus) => {
     const { error } = await supabase.from("recommendations").update({ status }).eq("id", id);
     if (error) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      toast({ title: rt.errorTitle, description: error.message, variant: "destructive" });
       return;
     }
     fetchAll();
@@ -311,7 +319,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
   const removeRec = async (id: string) => {
     const { error } = await supabase.from("recommendations").delete().eq("id", id);
     if (error) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      toast({ title: rt.errorTitle, description: error.message, variant: "destructive" });
       return;
     }
     fetchAll();
@@ -320,7 +328,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
   const updateExtStatus = async (id: string, status: ExternalRecommendation["status"]) => {
     const { error } = await supabase.from("external_recommendations").update({ status }).eq("id", id);
     if (error) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      toast({ title: rt.errorTitle, description: error.message, variant: "destructive" });
       return;
     }
     fetchAll();
@@ -329,7 +337,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
   const removeExtRec = async (id: string) => {
     const { error } = await supabase.from("external_recommendations").delete().eq("id", id);
     if (error) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      toast({ title: rt.errorTitle, description: error.message, variant: "destructive" });
       return;
     }
     fetchAll();
@@ -337,7 +345,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
 
   const respondToRequest = async (id: string, content: string) => {
     if (!content.trim()) {
-      toast({ title: "Scrie mai întâi recomandarea", variant: "destructive" });
+      toast({ title: rt.writeFirst, variant: "destructive" });
       return;
     }
     const { error } = await supabase
@@ -346,10 +354,10 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
       .eq("id", id)
       .eq("author_user_id", profileUserId);
     if (error) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      toast({ title: rt.errorTitle, description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Recomandare trimisă", description: "Va apărea pe profil după ce este aprobată." });
+    toast({ title: rt.offerSentTitle, description: rt.offerSentDesc });
     setRespondOpen(false);
     setRespondRecId(null);
     fetchAll();
@@ -362,7 +370,7 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
       .from("recommendations_settings")
       .upsert({ user_id: profileUserId, enabled: next }, { onConflict: "user_id" });
     if (error) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      toast({ title: rt.errorTitle, description: error.message, variant: "destructive" });
       setEnabled(!next);
     }
   };
@@ -370,27 +378,27 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
   // Dacă secțiunea e dezactivată și nu suntem proprietari -> ascunde complet
   if (!isOwner && !enabled) return null;
 
-  const PersonRow = ({ userId, date }: { userId: string; date?: string }) => {
+  const PersonRow = ({ userId, date, light }: { userId: string; date?: string; light?: boolean }) => {
     const p = people[userId];
     const canClick = !!onViewProfile && !!p?.role;
     const inner = (
       <>
-        <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
+        <div className={cn("h-10 w-10 rounded-full overflow-hidden flex-shrink-0", light ? "bg-gray-100" : "bg-gray-100")}>
           {p?.avatar_url ? (
             <img src={p.avatar_url} alt={p.full_name} className="h-full w-full object-cover" />
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+            <div className={cn("h-full w-full flex items-center justify-center text-xs", light ? "text-gray-500" : "text-gray-500")}>
               {(p?.full_name?.[0] || "?").toUpperCase()}
             </div>
           )}
         </div>
         <div className="min-w-0">
-          <p className={cn("font-body font-semibold text-foreground text-sm truncate", canClick && "hover:underline")}>
-            {p?.full_name || "Utilizator"}
+          <p className={cn("font-body font-semibold text-sm truncate", light ? "text-gray-900" : "text-gray-900", canClick && "hover:underline")}>
+            {p?.full_name || rt.defaultUserName}
           </p>
           {date && (
-            <p className="text-xs text-muted-foreground font-body">
-              {new Date(date).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric" })}
+            <p className={cn("text-xs font-body", light ? "text-gray-500" : "text-gray-500")}>
+              {new Date(date).toLocaleDateString(LOCALE_BY_LANG[lang], { day: "numeric", month: "long", year: "numeric" })}
             </p>
           )}
         </div>
@@ -410,9 +418,9 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-        <h2 className="font-display text-2xl text-foreground">Recomandări</h2>
+        <h2 className="font-display text-2xl text-gray-900 tracking-wide">{rt.title}</h2>
 
         <div className="flex items-center gap-2">
           {/* + buton pentru vizitatori conectați sau owner */}
@@ -420,26 +428,26 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50"
-                  aria-label="Recomandare"
+                  className="group text-gray-900 hover:text-gray-400 transition-colors p-1"
+                  aria-label={rt.addLabel}
                 >
-                  <Plus className="h-5 w-5" />
+                  <Plus className="h-5 w-5 stroke-[2.5] group-hover:stroke-[1.5]" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-64 p-2 bg-card">
+              <PopoverContent align="end" className="w-64 p-2 bg-white border-gray-200">
                 <button
-                  className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-accent/50 text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-gray-100 text-left"
                   onClick={() => setAskOpen(true)}
                 >
-                  <Quote className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-body text-foreground">Solicitați o recomandare</span>
+                  <Quote className="h-5 w-5 text-orange-500" />
+                  <span className="text-sm font-body text-gray-900">{rt.requestAction}</span>
                 </button>
                 <button
-                  className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-accent/50 text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-gray-100 text-left"
                   onClick={() => setGiveOpen(true)}
                 >
-                  <PenSquare className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-body text-foreground">Oferiți o recomandare</span>
+                  <PenSquare className="h-5 w-5 text-orange-500" />
+                  <span className="text-sm font-body text-gray-900">{rt.offerAction}</span>
                 </button>
               </PopoverContent>
             </Popover>
@@ -449,33 +457,33 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
           {isOwner && (
             <button
               onClick={() => setEditOpen(true)}
-              className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50"
-              aria-label="Gestionează recomandările"
+              className="group text-gray-900 hover:text-gray-400 transition-colors p-1"
+              aria-label={rt.manageAriaLabel}
             >
-              <Edit2 className="h-4 w-4" />
+              <Edit2 className="h-4 w-4 stroke-[2.5] group-hover:stroke-[1.5]" />
             </button>
           )}
         </div>
       </div>
 
       {isOwner && !enabled && (
-        <div className="flex items-center gap-2 mb-4 p-3 rounded-md bg-muted text-muted-foreground text-sm">
+        <div className="flex items-center gap-2 mb-4 p-3 rounded-md bg-gray-100 text-gray-500 text-sm">
           <EyeOff className="h-4 w-4" />
           <span className="font-body">
-            Secțiunea „Recomandări” este ascunsă vizitatorilor. Doar tu o vezi aici.
+            {rt.hiddenBanner}
           </span>
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
         </div>
       ) : allAccepted.length === 0 ? (
-        <p className="text-muted-foreground italic text-sm font-body">
+        <p className="text-gray-500 italic text-sm font-body">
           {isOwner
-            ? "Nu ai încă recomandări publicate. Cere sau primește una de la o conexiune."
-            : "Nicio recomandare încă."}
+            ? rt.emptyOwner
+            : rt.emptyVisitor}
         </p>
       ) : (
         <div className="space-y-5">
@@ -484,19 +492,19 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
             if (isExt) {
               const ext = r as ExternalRecommendation;
               return (
-                <div key={ext.id} className="border-b border-border last:border-b-0 pb-4 last:pb-0">
+                <div key={ext.id} className="border-b border-gray-200 last:border-b-0 pb-4 last:pb-0">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-xs text-gray-500 flex-shrink-0">
                       {ext.author_name[0].toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-body font-semibold text-foreground text-sm">{ext.author_name}</p>
-                      <p className="text-xs text-muted-foreground font-body">
-                        {new Date(ext.created_at).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric" })}
+                      <p className="font-body font-semibold text-gray-900 text-sm">{ext.author_name}</p>
+                      <p className="text-xs text-gray-500 font-body">
+                        {new Date(ext.created_at).toLocaleDateString(LOCALE_BY_LANG[lang], { day: "numeric", month: "long", year: "numeric" })}
                       </p>
                     </div>
                   </div>
-                  <p className="text-foreground/80 font-body text-sm whitespace-pre-line mt-3">
+                  <p className="text-gray-700 font-body text-sm whitespace-pre-line mt-3">
                     {ext.content}
                   </p>
                 </div>
@@ -504,9 +512,9 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
             }
             const rec = r as Recommendation;
             return (
-              <div key={rec.id} className="border-b border-border last:border-b-0 pb-4 last:pb-0">
-                <PersonRow userId={rec.author_user_id} date={rec.updated_at} />
-                <p className="text-foreground/80 font-body text-sm whitespace-pre-line mt-3">
+              <div key={rec.id} className="border-b border-gray-200 last:border-b-0 pb-4 last:pb-0">
+                <PersonRow userId={rec.author_user_id} date={rec.updated_at} light />
+                <p className="text-gray-700 font-body text-sm whitespace-pre-line mt-3">
                   {rec.content}
                 </p>
               </div>
@@ -547,32 +555,32 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
 
       {/* ========= DIALOG: GESTIONEAZĂ (owner) ========= */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white text-gray-900 border-gray-200">
           <DialogHeader>
-            <DialogTitle>Recomandări</DialogTitle>
-            <DialogDescription>
-              Gestionează recomandările tale și vizibilitatea secțiunii.
+            <DialogTitle className="text-gray-900 font-display tracking-wide">{rt.title}</DialogTitle>
+            <DialogDescription className="text-gray-500 font-bold">
+              {rt.manageDesc}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center justify-between p-3 rounded-md border border-border">
+          <div className="flex items-center justify-between p-3 rounded-md border border-gray-200">
             <div>
-              <p className="text-sm font-semibold text-foreground font-body">
-                Afișează secțiunea pe profil
+              <p className="text-sm font-semibold text-gray-900 font-body">
+                {rt.showSection}
               </p>
-              <p className="text-xs text-muted-foreground font-body">
-                Dacă o dezactivezi, secțiunea nu va mai fi vizibilă vizitatorilor.
+              <p className="text-xs text-gray-500 font-body">
+                {rt.showSectionDesc}
               </p>
             </div>
-            <Switch checked={enabled} onCheckedChange={toggleEnabled} />
+            <Switch checked={enabled} onCheckedChange={toggleEnabled} className="data-[state=checked]:bg-gray-900 data-[state=unchecked]:bg-gray-300" />
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 border-b border-border">
+          <div className="flex gap-2 border-b border-gray-200">
             {([
-              ["primite", `Primite (${ownerPrimite.length + ownerPrimiteExt.length})`],
-              ["oferite", `Oferite (${ownerOferite.length})`],
-              ["asteptare", `În așteptare (${ownerAsteptare.length})`],
+              ["primite", `${rt.receivedTab} (${ownerPrimite.length + ownerPrimiteExt.length})`],
+              ["oferite", `${rt.offeredTab} (${ownerOferite.length})`],
+              ["asteptare", `${rt.pendingTab} (${ownerAsteptare.length})`],
             ] as const).map(([key, label]) => (
               <button
                 key={key}
@@ -580,8 +588,8 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
                 className={cn(
                   "px-3 py-2 text-sm font-body transition-colors border-b-2",
                   tab === key
-                    ? "border-primary text-foreground font-semibold"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    ? "border-orange-500 text-gray-900 font-semibold"
+                    : "border-transparent text-gray-500 hover:text-gray-900"
                 )}
               >
                 {label}
@@ -593,46 +601,46 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
           <div className="space-y-3 mt-2">
             {tab === "primite" &&
               (ownerPrimite.length === 0 && ownerPrimiteExt.length === 0 ? (
-                <p className="text-muted-foreground italic text-sm font-body py-4 text-center">
-                  Nicio recomandare primită.
+                <p className="text-gray-500 italic text-sm font-body py-4 text-center">
+                  {rt.noReceived}
                 </p>
               ) : (
                 <>
                   {ownerPrimite.map((r) => (
-                    <div key={r.id} className="border border-border rounded-md p-3">
+                    <div key={r.id} className="border border-gray-200 rounded-md p-3">
                       <div className="flex items-start justify-between gap-2">
-                        <PersonRow userId={r.author_user_id} date={r.updated_at} />
+                        <PersonRow userId={r.author_user_id} date={r.updated_at} light />
                         <span
                           className={cn(
-                            "text-xs px-2 py-0.5 rounded font-body",
+                            "text-xs px-2.5 py-1 rounded-full font-body font-semibold",
                             r.status === "accepted"
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-muted-foreground"
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-gray-100 text-gray-500"
                           )}
                         >
-                          {r.status === "accepted" ? "Publică" : "În așteptare"}
+                          {r.status === "accepted" ? rt.statusPublic : rt.statusPending}
                         </span>
                       </div>
-                      <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line font-body">
+                      <p className="text-sm text-gray-700 mt-2 whitespace-pre-line font-body">
                         {r.content}
                       </p>
                       <div className="flex gap-2 mt-3 justify-end">
                         {r.status === "submitted" && (
                           <>
-                            <Button size="sm" variant="outline" onClick={() => updateStatus(r.id, "rejected")}>
-                              <XIcon className="h-4 w-4 mr-1" /> Refuză
+                            <Button size="sm" variant="outline" className="bg-white border-gray-300 text-gray-900 hover:bg-gray-100" onClick={() => updateStatus(r.id, "rejected")}>
+                              <XIcon className="h-4 w-4 mr-1" /> {rt.reject}
                             </Button>
                             <Button size="sm" onClick={() => updateStatus(r.id, "accepted")}>
-                              <Check className="h-4 w-4 mr-1" /> Aprobă
+                              <Check className="h-4 w-4 mr-1" /> {rt.approve}
                             </Button>
                           </>
                         )}
                         {r.status === "accepted" && (
-                          <Button size="sm" variant="ghost" onClick={() => updateStatus(r.id, "submitted")}>
-                            <EyeOff className="h-4 w-4 mr-1" /> Ascunde
+                          <Button size="sm" variant="ghost" className="text-gray-500 hover:text-gray-900 hover:bg-gray-100" onClick={() => updateStatus(r.id, "submitted")}>
+                            <EyeOff className="h-4 w-4 mr-1" /> {rt.hide}
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => removeRec(r.id)}>
+                        <Button size="sm" variant="ghost" className="text-gray-500 hover:text-destructive hover:bg-gray-100" onClick={() => removeRec(r.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -640,48 +648,48 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
                   ))}
 
                   {ownerPrimiteExt.map((r) => (
-                    <div key={r.id} className="border border-border rounded-md p-3">
+                    <div key={r.id} className="border border-gray-200 rounded-md p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                          <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-xs text-gray-500 flex-shrink-0">
                             {r.author_name[0].toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-body font-semibold text-foreground text-sm">{r.author_name}</p>
-                            <p className="text-xs text-muted-foreground font-body">{r.author_email}</p>
+                            <p className="font-body font-semibold text-gray-900 text-sm">{r.author_name}</p>
+                            <p className="text-xs text-gray-500 font-body">{r.author_email}</p>
                           </div>
                         </div>
                         <span
                           className={cn(
-                            "text-xs px-2 py-0.5 rounded font-body shrink-0",
+                            "text-xs px-2.5 py-1 rounded-full font-body font-semibold shrink-0",
                             r.status === "accepted"
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-muted-foreground"
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-gray-100 text-gray-500"
                           )}
                         >
-                          {r.status === "accepted" ? "Publică" : "În așteptare"}
+                          {r.status === "accepted" ? rt.statusPublic : rt.statusPending}
                         </span>
                       </div>
-                      <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line font-body">
+                      <p className="text-sm text-gray-700 mt-2 whitespace-pre-line font-body">
                         {r.content}
                       </p>
                       <div className="flex gap-2 mt-3 justify-end">
                         {r.status === "submitted" && (
                           <>
-                            <Button size="sm" variant="outline" onClick={() => updateExtStatus(r.id, "rejected")}>
-                              <XIcon className="h-4 w-4 mr-1" /> Refuză
+                            <Button size="sm" variant="outline" className="bg-white border-gray-300 text-gray-900 hover:bg-gray-100" onClick={() => updateExtStatus(r.id, "rejected")}>
+                              <XIcon className="h-4 w-4 mr-1" /> {rt.reject}
                             </Button>
                             <Button size="sm" onClick={() => updateExtStatus(r.id, "accepted")}>
-                              <Check className="h-4 w-4 mr-1" /> Aprobă
+                              <Check className="h-4 w-4 mr-1" /> {rt.approve}
                             </Button>
                           </>
                         )}
                         {r.status === "accepted" && (
-                          <Button size="sm" variant="ghost" onClick={() => updateExtStatus(r.id, "submitted")}>
-                            <EyeOff className="h-4 w-4 mr-1" /> Ascunde
+                          <Button size="sm" variant="ghost" className="text-gray-500 hover:text-gray-900 hover:bg-gray-100" onClick={() => updateExtStatus(r.id, "submitted")}>
+                            <EyeOff className="h-4 w-4 mr-1" /> {rt.hide}
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => removeExtRec(r.id)}>
+                        <Button size="sm" variant="ghost" className="text-gray-500 hover:text-destructive hover:bg-gray-100" onClick={() => removeExtRec(r.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -692,35 +700,35 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
 
             {tab === "oferite" &&
               (ownerOferite.length === 0 ? (
-                <p className="text-muted-foreground italic text-sm font-body py-4 text-center">
-                  Nu ai oferit încă nicio recomandare.
+                <p className="text-gray-500 italic text-sm font-body py-4 text-center">
+                  {rt.noOffered}
                 </p>
               ) : (
                 ownerOferite.map((r) => (
-                  <div key={r.id} className="border border-border rounded-md p-3">
+                  <div key={r.id} className="border border-gray-200 rounded-md p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-xs text-muted-foreground font-body">Pentru</p>
-                        <PersonRow userId={r.recipient_user_id} date={r.updated_at} />
+                        <p className="text-xs text-gray-500 font-body">{rt.forLabel}</p>
+                        <PersonRow userId={r.recipient_user_id} date={r.updated_at} light />
                       </div>
-                      <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground font-body capitalize">
+                      <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500 font-body capitalize">
                         {r.status === "accepted"
-                          ? "Aprobată"
+                          ? rt.statusApproved
                           : r.status === "rejected"
-                          ? "Refuzată"
+                          ? rt.statusRejected
                           : r.status === "pending"
-                          ? "De scris"
-                          : "În așteptare"}
+                          ? rt.statusToWrite
+                          : rt.statusPending}
                       </span>
                     </div>
                     {r.content && (
-                      <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line font-body">
+                      <p className="text-sm text-gray-700 mt-2 whitespace-pre-line font-body">
                         {r.content}
                       </p>
                     )}
                     <div className="flex justify-end mt-2">
-                      <Button size="sm" variant="ghost" onClick={() => removeRec(r.id)}>
-                        <Trash2 className="h-4 w-4 mr-1" /> Retrage
+                      <Button size="sm" variant="ghost" className="text-gray-500 hover:text-destructive hover:bg-gray-100" onClick={() => removeRec(r.id)}>
+                        <Trash2 className="h-4 w-4 mr-1" /> {rt.withdraw}
                       </Button>
                     </div>
                   </div>
@@ -729,37 +737,38 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
 
             {tab === "asteptare" &&
               (ownerAsteptare.length === 0 ? (
-                <p className="text-muted-foreground italic text-sm font-body py-4 text-center">
-                  Nicio cerere în așteptare.
+                <p className="text-gray-500 italic text-sm font-body py-4 text-center">
+                  {rt.noPending}
                 </p>
               ) : (
                 ownerAsteptare.map((r) => {
                   const isPendingRequest = r.author_user_id === profileUserId && r.status === "pending" && r.initiated_by === "request";
                   const iAmRecipient = r.recipient_user_id === profileUserId;
                   return (
-                    <div key={r.id} className="border border-border rounded-md p-3">
+                    <div key={r.id} className="border border-gray-200 rounded-md p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-xs text-muted-foreground font-body">
+                          <p className="text-xs text-gray-500 font-body">
                             {isPendingRequest
-                              ? "Cerere primită de la"
+                              ? rt.requestReceivedFrom
                               : iAmRecipient
-                              ? "Aștepți răspunsul de la"
-                              : "Așteaptă aprobarea ta de la"}
+                              ? rt.awaitingResponseFrom
+                              : rt.awaitingYourApprovalFrom}
                           </p>
                           <PersonRow
                             userId={isPendingRequest ? r.recipient_user_id : iAmRecipient ? r.author_user_id : r.recipient_user_id}
                             date={r.updated_at}
+                            light
                           />
                         </div>
                         {isPendingRequest && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 font-body shrink-0">
-                            De scris
+                          <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-body shrink-0">
+                            {rt.statusToWrite}
                           </span>
                         )}
                       </div>
                       {r.content && (
-                        <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line font-body italic">
+                        <p className="text-sm text-gray-700 mt-2 whitespace-pre-line font-body italic">
                           „{r.content}"
                         </p>
                       )}
@@ -772,11 +781,11 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
                               setRespondOpen(true);
                             }}
                           >
-                            <PenSquare className="h-4 w-4 mr-1" /> Recomandați
+                            <PenSquare className="h-4 w-4 mr-1" /> {rt.recommendBtn}
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => removeRec(r.id)}>
-                          <Trash2 className="h-4 w-4 mr-1" /> Anulează
+                        <Button size="sm" variant="ghost" className="text-gray-500 hover:text-destructive hover:bg-gray-100" onClick={() => removeRec(r.id)}>
+                          <Trash2 className="h-4 w-4 mr-1" /> {rt.cancelRequest}
                         </Button>
                       </div>
                     </div>
@@ -786,8 +795,8 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
-              Închide
+            <Button variant="outline" className="bg-white border-gray-300 text-gray-900 hover:bg-gray-100" onClick={() => setEditOpen(false)}>
+              {rt.close}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -795,27 +804,6 @@ const RecommendationsSection = ({ profileUserId, viewerUserId, isOwner, profileR
     </div>
   );
 };
-
-const PLAYER_RELATIONSHIP_OPTIONS = [
-  { value: "antrenor_principal", template: "{name} mi-a fost antrenor principal", label: "Mi-a fost antrenor principal" },
-  { value: "antrenor_secund", template: "{name} mi-a fost antrenor secund", label: "Mi-a fost antrenor secund" },
-  { value: "agent_oficial", template: "{name} m-a reprezentat oficial ca agent", label: "M-a reprezentat oficial ca agent" },
-  { value: "intermediar", template: "{name} m-a reprezentat ca intermediar", label: "M-a reprezentat ca intermediar" },
-  { value: "gestionare_cariera", template: "Împreună cu {name}, am colaborat pentru gestionarea carierei", label: "Am colaborat pentru gestionarea carierei" },
-  { value: "orientare_sportiva", template: "Împreună cu {name}, am colaborat pentru orientare sportivă", label: "Am colaborat pentru orientare sportivă" },
-  { value: "pregatire_fizica", template: "{name} s-a ocupat de pregătirea mea fizică", label: "S-a ocupat de pregătirea mea fizică" },
-  { value: "recuperare", template: "{name} s-a ocupat de recuperarea mea", label: "S-a ocupat de recuperarea mea" },
-];
-
-const SCOUT_RELATIONSHIP_OPTIONS = [
-  { value: "scout_evaluat", template: "L-am evaluat pe {name} în calitate de scouter", label: "L-am evaluat în calitate de scouter" },
-  { value: "scout_monitorizat", template: "Am monitorizat evoluția lui {name} pe parcursul sezonului", label: "Am monitorizat evoluția pe parcursul sezonului" },
-  { value: "scout_transfer", template: "Am colaborat cu {name} în cadrul unui proces de transfer", label: "Am colaborat în cadrul unui transfer" },
-  { value: "scout_cantonament", template: "L-am observat pe {name} în cadrul unui cantonament", label: "L-am observat la cantonament" },
-  { value: "scout_meci", template: "L-am urmărit pe {name} la meciuri oficiale în calitate de scouter", label: "L-am urmărit la meciuri oficiale" },
-  { value: "scout_colaborare", template: "Am colaborat cu {name} la un proiect de dezvoltare sportivă", label: "Am colaborat la un proiect sportiv" },
-  { value: "scout_colega", template: "Îl cunosc pe {name} din activitatea comună în fotbal", label: "Colegi în industria fotbalului" },
-];
 
 const RequestDialog = ({
   open,
@@ -835,6 +823,8 @@ const RequestDialog = ({
   profileRole?: string;
 }) => {
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const rt = t.dashboard.recommendations;
   const [sending, setSending] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -850,7 +840,7 @@ const RequestDialog = ({
   const [seasonTo, setSeasonTo] = useState("");
   const [msg, setMsg] = useState("");
 
-  const relationshipOptions = profileRole === "scout" ? SCOUT_RELATIONSHIP_OPTIONS : PLAYER_RELATIONSHIP_OPTIONS;
+  const relationshipOptions = profileRole === "scout" ? rt.scoutRelationshipOptions : rt.playerRelationshipOptions;
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 15 }, (_, i) => String(currentYear - i));
@@ -908,10 +898,10 @@ const RequestDialog = ({
 
   // Auto-fill message template when moving to step 3
   const generateTemplate = useCallback(() => {
-    const name = selectedPerson?.full_name || "persoana selectată";
+    const name = selectedPerson?.full_name || rt.selectedPersonFallback;
     const clubText = effectiveClub ? effectiveClub : "[Club]";
-    return `Salut, ${name}! Te rog să îmi scrii o scurtă recomandare despre perioada în care am colaborat la ${clubText}. Mi-ar fi de mare folos pentru profilul meu de scouting.`;
-  }, [selectedPerson, effectiveClub]);
+    return rt.greetingTemplate.replace("{name}", name).replace("{club}", clubText);
+  }, [selectedPerson, effectiveClub, rt]);
 
   const searchPeople = useCallback(async (term: string) => {
     if (term.trim().length < 2) {
@@ -949,11 +939,11 @@ const RequestDialog = ({
     const scoutMap = new Map<string, { org?: string; country?: string }>();
     (scoutRes.data || []).forEach((s: any) => scoutMap.set(s.user_id, { org: s.organization, country: s.country }));
 
-    const roleLabels: Record<string, string> = { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Reprezentant Club", cauta_jucator: "Descoperitor" };
+    const roleLabels = rt.roleLabels;
 
     const enriched = data.map((p) => {
       const role = rolesMap.get(p.user_id);
-      const roleLabel = role ? roleLabels[role] || role : undefined;
+      const roleLabel = role ? (roleLabels as Record<string, string>)[role] || role : undefined;
       const org = role === "player" ? playerMap.get(p.user_id)?.team : scoutMap.get(p.user_id)?.org;
       const loc = role === "player" ? playerMap.get(p.user_id)?.nationality : scoutMap.get(p.user_id)?.country;
       return { ...p, roleLabel, org, loc, _needsLoc: false };
@@ -972,7 +962,7 @@ const RequestDialog = ({
 
     setResults(enriched);
     setSearching(false);
-  }, [viewerUserId]);
+  }, [viewerUserId, rt]);
 
   useEffect(() => {
     const timer = setTimeout(() => searchPeople(searchTerm), 300);
@@ -981,26 +971,26 @@ const RequestDialog = ({
 
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
-  const stepLabel = step === 1 ? "1 din 3" : step === 2 ? "2 din 3" : "3 din 3";
+  const stepLabel = `${step} ${rt.ofWord} 3`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white text-gray-900 border-gray-200">
         <DialogHeader>
-          <DialogTitle>Solicitați o recomandare</DialogTitle>
+          <DialogTitle className="text-gray-900 font-display tracking-wide">{rt.requestDialogTitle}</DialogTitle>
           {step === 1 && (
-            <DialogDescription>
-              Ajutați-ne să vă personalizăm solicitarea
+            <DialogDescription className="text-gray-500">
+              {rt.personalizeHelp}
             </DialogDescription>
           )}
           {step === 2 && selectedPerson && (
-            <DialogDescription>
-              Ajutați-ne să vă personalizăm solicitarea
+            <DialogDescription className="text-gray-500">
+              {rt.personalizeHelp}
             </DialogDescription>
           )}
           {step === 3 && (
-            <DialogDescription>
-              Includeți un mesaj personalizat
+            <DialogDescription className="text-gray-500">
+              {rt.includeMsgHelp}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -1008,27 +998,27 @@ const RequestDialog = ({
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-foreground font-body mb-1">
-                Pe cine doriți să întrebați?
+              <p className="text-sm font-medium text-gray-900 font-body mb-1">
+                {rt.whoToAsk}
               </p>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setSelectedPerson(null);
                   }}
-                  placeholder="Căutați persoane..."
-                  className="pl-9"
+                  placeholder={rt.searchPeoplePlaceholder}
+                  className="pl-9 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                 />
               </div>
 
               {searchTerm.trim().length >= 2 && (
-                <div className="mt-2 border border-border rounded-md max-h-48 overflow-y-auto">
+                <div className="mt-2 border border-gray-200 rounded-md max-h-48 overflow-y-auto">
                   {searching ? (
                     <div className="flex items-center justify-center py-3">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
                     </div>
                   ) : results.length > 0 ? (
                     results.map((p) => (
@@ -1040,23 +1030,23 @@ const RequestDialog = ({
                           setResults([]);
                         }}
                         className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/50 text-left transition-colors",
-                          selectedPerson?.user_id === p.user_id && "bg-accent/30"
+                          "w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-100 text-left transition-colors",
+                          selectedPerson?.user_id === p.user_id && "bg-gray-100"
                         )}
                       >
-                        <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-gray-100 overflow-hidden flex-shrink-0">
                           {p.avatar_url ? (
                             <img src={p.avatar_url} alt={p.full_name} className="h-full w-full object-cover" />
                           ) : (
-                            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                            <div className="h-full w-full flex items-center justify-center text-xs text-gray-500">
                               {(p.full_name?.[0] || "?").toUpperCase()}
                             </div>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <span className="text-sm font-body text-foreground block truncate">{p.full_name}</span>
+                          <span className="text-sm font-body text-gray-900 block truncate">{p.full_name}</span>
                           {(p.roleLabel || p.org) && (
-                            <span className="text-xs text-muted-foreground font-body block truncate">
+                            <span className="text-xs text-gray-500 font-body block truncate">
                               {[p.roleLabel, p.org, p._needsLoc ? p.loc : null].filter(Boolean).join(" · ")}
                             </span>
                           )}
@@ -1064,8 +1054,8 @@ const RequestDialog = ({
                       </button>
                     ))
                   ) : (
-                    <p className="text-xs text-muted-foreground py-3 px-3 font-body">
-                      Niciun rezultat găsit
+                    <p className="text-xs text-gray-500 py-3 px-3 font-body">
+                      {rt.noResultsFound}
                     </p>
                   )}
                 </div>
@@ -1074,18 +1064,18 @@ const RequestDialog = ({
 
             {!selectedPerson && (
               <div className="space-y-2 pt-1">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="text-xs font-body">sau introduceți adresa de email</span>
-                  <div className="h-px flex-1 bg-border" />
+                <div className="flex items-center gap-2 text-gray-500">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-xs font-body">{rt.orEnterEmail}</span>
+                  <div className="h-px flex-1 bg-gray-200" />
                 </div>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@exemplu.com"
-                    className="pl-9"
+                    placeholder={rt.emailPlaceholder}
+                    className="pl-9 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                     type="email"
                   />
                 </div>
@@ -1093,14 +1083,15 @@ const RequestDialog = ({
             )}
 
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground font-body">
+              <span className="text-xs text-gray-500 font-body">
                 {stepLabel}
               </span>
               <Button
+                className="bg-orange-500 hover:bg-orange-600 text-white"
                 disabled={!selectedPerson && !isValidEmail(email)}
                 onClick={() => setStep(2)}
               >
-                Continuați
+                {rt.continueBtn}
               </Button>
             </div>
           </div>
@@ -1109,39 +1100,39 @@ const RequestDialog = ({
         {step === 2 && (
           <div className="space-y-4">
             {selectedPerson && (
-              <div className="flex items-center gap-3 p-3 rounded-md bg-accent/20 border border-border">
-                <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+              <div className="flex items-center gap-3 p-3 rounded-md bg-gray-100 border border-gray-200">
+                <div className="h-8 w-8 rounded-full bg-white overflow-hidden flex-shrink-0">
                   {selectedPerson.avatar_url ? (
                     <img src={selectedPerson.avatar_url} alt={selectedPerson.full_name} className="h-full w-full object-cover" />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                    <div className="h-full w-full flex items-center justify-center text-xs text-gray-500">
                       {(selectedPerson.full_name?.[0] || "?").toUpperCase()}
                     </div>
                   )}
                 </div>
-                <span className="text-sm font-body text-foreground font-medium">{selectedPerson.full_name}</span>
+                <span className="text-sm font-body text-gray-900 font-medium">{selectedPerson.full_name}</span>
                 <button
                   onClick={() => { setSelectedPerson(null); setStep(1); setSearchTerm(""); }}
-                  className="ml-auto text-muted-foreground hover:text-foreground"
+                  className="ml-auto text-gray-500 hover:text-gray-900"
                 >
                   <XIcon className="h-4 w-4" />
                 </button>
               </div>
             )}
 
-            <p className="text-xs text-muted-foreground font-body">* Indică un câmp obligatoriu</p>
+            <p className="text-xs text-gray-500 font-body">{rt.requiredFieldNote}</p>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground font-body">
-                De unde cunoașteți pe {selectedPerson?.full_name?.split(" ")[0] || "persoana selectată"}? *
+              <label className="text-sm font-medium text-gray-900 font-body">
+                {rt.howDoYouKnowPrefix} {selectedPerson?.full_name?.split(" ")[0] || rt.selectedPersonFallback}? *
               </label>
               <Select value={relationship} onValueChange={setRelationship}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Vă rugăm să selectați" />
+                <SelectTrigger className="bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900">
+                  <SelectValue placeholder={rt.pleaseSelect} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border-gray-200 text-gray-900">
                   {relationshipOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.value} value={opt.value} className="focus:bg-gray-100 focus:text-gray-900">
                       {opt.template.replace("{name}", selectedPerson?.full_name?.split(" ")[0] || "X")}
                     </SelectItem>
                   ))}
@@ -1150,8 +1141,8 @@ const RequestDialog = ({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground font-body">
-                La ce club? *
+              <label className="text-sm font-medium text-gray-900 font-body">
+                {rt.whichClub}
               </label>
               <Select
                 value={club}
@@ -1160,48 +1151,49 @@ const RequestDialog = ({
                   if (v !== "__altele__") setClubCustom("");
                 }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={myClubs.length > 0 ? "Selectați un club" : "Niciun club în cariera ta — alegeți Altele"} />
+                <SelectTrigger className="bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900">
+                  <SelectValue placeholder={myClubs.length > 0 ? rt.selectClub : rt.noClubChooseOther} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border-gray-200 text-gray-900">
                   {myClubs.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                    <SelectItem key={c} value={c} className="focus:bg-gray-100 focus:text-gray-900">{c}</SelectItem>
                   ))}
-                  <SelectItem value="__altele__">Altele (introduceți manual)</SelectItem>
+                  <SelectItem value="__altele__" className="focus:bg-gray-100 focus:text-gray-900">{rt.otherManual}</SelectItem>
                 </SelectContent>
               </Select>
               {club === "__altele__" && (
                 <Input
                   value={clubCustom}
                   onChange={(e) => setClubCustom(e.target.value)}
-                  placeholder='Ex: "FCSB Academy", "FC Brașov"'
+                  placeholder={rt.clubCustomPlaceholder}
+                  className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                 />
               )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground font-body">
-                În ce perioadă / sezon? *
+              <label className="text-sm font-medium text-gray-900 font-body">
+                {rt.whichPeriod}
               </label>
               <div className="flex items-center gap-2">
                 <Select value={seasonFrom} onValueChange={(v) => { setSeasonFrom(v); if (seasonTo && v > seasonTo) setSeasonTo(v); }}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Din" />
+                  <SelectTrigger className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900">
+                    <SelectValue placeholder={rt.fromWord} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white border-gray-200 text-gray-900">
                     {years.map((y) => (
-                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                      <SelectItem key={y} value={y} className="focus:bg-gray-100 focus:text-gray-900">{y}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <span className="text-sm text-muted-foreground shrink-0">—</span>
+                <span className="text-sm text-gray-500 shrink-0">—</span>
                 <Select value={seasonTo} onValueChange={setSeasonTo} disabled={!seasonFrom}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Până în" />
+                  <SelectTrigger className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900">
+                    <SelectValue placeholder={rt.toWord} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white border-gray-200 text-gray-900">
                     {years.filter((y) => y >= (seasonFrom || "")).map((y) => (
-                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                      <SelectItem key={y} value={y} className="focus:bg-gray-100 focus:text-gray-900">{y}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1209,12 +1201,12 @@ const RequestDialog = ({
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground font-body">
+              <span className="text-xs text-gray-500 font-body">
                 {stepLabel}
               </span>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  Înapoi
+                <Button variant="outline" className="bg-white border-gray-300 text-gray-900 hover:bg-gray-100" onClick={() => setStep(1)}>
+                  {rt.backBtn}
                 </Button>
                 <Button
                   disabled={!relationship || !effectiveClub || !seasonFrom || !seasonTo}
@@ -1222,8 +1214,9 @@ const RequestDialog = ({
                     if (!msg.trim()) setMsg(generateTemplate());
                     setStep(3);
                   }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
                 >
-                  Continuați
+                  {rt.continueBtn}
                 </Button>
               </div>
             </div>
@@ -1233,43 +1226,43 @@ const RequestDialog = ({
         {step === 3 && (
           <div className="space-y-4">
             {selectedPerson && (
-              <div className="flex items-center gap-3 p-3 rounded-md bg-accent/20 border border-border">
-                <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+              <div className="flex items-center gap-3 p-3 rounded-md bg-gray-100 border border-gray-200">
+                <div className="h-8 w-8 rounded-full bg-white overflow-hidden flex-shrink-0">
                   {selectedPerson.avatar_url ? (
                     <img src={selectedPerson.avatar_url} alt={selectedPerson.full_name} className="h-full w-full object-cover" />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                    <div className="h-full w-full flex items-center justify-center text-xs text-gray-500">
                       {(selectedPerson.full_name?.[0] || "?").toUpperCase()}
                     </div>
                   )}
                 </div>
                 <div className="min-w-0">
-                  <span className="text-sm font-body text-foreground font-medium block">{selectedPerson.full_name}</span>
-                  <span className="text-xs text-muted-foreground font-body block">{relationshipOptions.find((o) => o.value === relationship)?.label}</span>
-                  <span className="text-xs text-muted-foreground font-body block">{effectiveClub} · {seasonFrom === seasonTo ? seasonFrom : `Din ${seasonFrom} până în ${seasonTo}`}</span>
+                  <span className="text-sm font-body text-gray-900 font-medium block">{selectedPerson.full_name}</span>
+                  <span className="text-xs text-gray-500 font-body block">{relationshipOptions.find((o) => o.value === relationship)?.label}</span>
+                  <span className="text-xs text-gray-500 font-body block">{effectiveClub} · {seasonFrom === seasonTo ? seasonFrom : `${rt.fromWord} ${seasonFrom} ${rt.toWord} ${seasonTo}`}</span>
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground font-body">
-                Includeți un mesaj personalizat *
+              <label className="text-sm font-medium text-gray-900 font-body">
+                {rt.includeCustomMsgLabel}
               </label>
               <Textarea
                 value={msg}
                 onChange={(e) => setMsg(e.target.value)}
-                placeholder={`Bună ziua, ${selectedPerson?.full_name || ""}, îmi puteți scrie o recomandare?`}
-                className="min-h-[120px]"
+                placeholder={rt.writeRecForPlaceholder.replace("{name}", selectedPerson?.full_name || "")}
+                className="min-h-[120px] bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
               />
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground font-body">
+              <span className="text-xs text-gray-500 font-body">
                 {stepLabel}
               </span>
               <DialogFooter className="flex-row gap-2 sm:justify-end">
-                <Button variant="outline" onClick={() => setStep(2)} disabled={sending}>
-                  Înapoi
+                <Button variant="outline" className="bg-white border-gray-300 text-gray-900 hover:bg-gray-100" onClick={() => setStep(2)} disabled={sending}>
+                  {rt.backBtn}
                 </Button>
                 <Button
                   disabled={sending || !msg.trim()}
@@ -1298,22 +1291,22 @@ const RequestDialog = ({
                       const result = res.data as { ok: boolean; method: string };
                       toast({
                         title: result.method === "email_invite"
-                          ? "Invitație trimisă!"
-                          : "Cerere trimisă!",
+                          ? rt.invitationSentTitle
+                          : rt.requestSentInAppTitle,
                         description: result.method === "email_invite"
-                          ? `${email} va primi un email cu invitația de a scrie recomandarea.`
-                          : "Persoana a primit cererea ta în aplicație.",
+                          ? `${email} ${rt.invitationSentDescSuffix}`
+                          : rt.requestSentInAppDesc,
                       });
                       onOpenChange(false);
                     } catch (err: any) {
-                      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+                      toast({ title: rt.errorTitle, description: err.message, variant: "destructive" });
                     } finally {
                       setSending(false);
                     }
                   }}
                 >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                  Trimiteți
+                  {rt.sendBtn}
                 </Button>
               </DialogFooter>
             </div>
@@ -1339,6 +1332,8 @@ const OfferDialog = ({
   defaultRecipientId?: string;
   defaultRecipientName?: string;
 }) => {
+  const { t } = useLanguage();
+  const rt = t.dashboard.recommendations;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<{ user_id: string; full_name: string; avatar_url: string | null; roleLabel?: string; org?: string; loc?: string; _needsLoc?: boolean }[]>([]);
@@ -1350,22 +1345,8 @@ const OfferDialog = ({
   const [bazaEvaluarii, setBazaEvaluarii] = useState("");
   const [bazaEvaluariiCustom, setBazaEvaluariiCustom] = useState("");
 
-  const calitateOptions = [
-    { value: "head_scout", label: "Head Scout" },
-    { value: "senior_scouter", label: "Senior Scouter" },
-    { value: "head_coach", label: "Head Coach" },
-    { value: "director_tehnic", label: "Director Tehnic" },
-    { value: "agent", label: "Agent" },
-    { value: "altele", label: "Altele" },
-  ];
-
-  const bazaEvaluariiOptions = [
-    { value: "monitorizare_termen_lung", label: "Monitorizare pe termen lung", description: "Peste 10 meciuri vizionate" },
-    { value: "evaluare_punctuala", label: "Evaluare punctuală (Tournament/Trial)", description: "L-am văzut la un eveniment specific" },
-    { value: "analiza_date", label: "Analiză de date (Data Scouting)", description: "Evaluare bazată pe metrice și KPI" },
-    { value: "recomandare_dupa_transfer", label: "Recomandare după transfer", description: "L-am transferat și confirm că s-a adaptat" },
-    { value: "altele", label: "Altele", description: "Specificați manual" },
-  ];
+  const calitateOptions = rt.qualityOptions;
+  const bazaEvaluariiOptions = rt.evaluationBasisOptions;
 
   useEffect(() => {
     if (!open) {
@@ -1415,7 +1396,7 @@ const OfferDialog = ({
     const scoutMap = new Map<string, { org?: string; country?: string }>();
     (scoutRes.data || []).forEach((s: any) => scoutMap.set(s.user_id, { org: s.organization, country: s.country }));
 
-    const roleLabels: Record<string, string> = { player: "Jucător", scout: "Scouter", agent: "Agent", club_rep: "Reprezentant Club", cauta_jucator: "Descoperitor" };
+    const roleLabels = rt.roleLabels as Record<string, string>;
     const enriched = data.map((p) => {
       const role = rolesMap.get(p.user_id);
       const roleLabel = role ? roleLabels[role] || role : undefined;
@@ -1430,7 +1411,7 @@ const OfferDialog = ({
 
     setResults(enriched);
     setSearching(false);
-  }, [viewerUserId]);
+  }, [viewerUserId, rt]);
 
   useEffect(() => {
     const timer = setTimeout(() => searchPeople(searchTerm), 300);
@@ -1439,20 +1420,20 @@ const OfferDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white text-gray-900 border-gray-200">
         <DialogHeader>
-          <DialogTitle>Oferiți o recomandare</DialogTitle>
+          <DialogTitle className="text-gray-900 font-display tracking-wide">{rt.offerDialogTitle}</DialogTitle>
         {step === 1 && (
-          <DialogDescription>Căutați persoana pe care doriți să o recomandați</DialogDescription>
+          <DialogDescription className="text-gray-500">{rt.searchPersonToRecommend}</DialogDescription>
           )}
           {step === 2 && selectedPerson && (
-            <DialogDescription>
-              Selectați calitatea în care oferiți recomandarea pentru {selectedPerson.full_name}
+            <DialogDescription className="text-gray-500">
+              {rt.selectQualityForPrefix} {selectedPerson.full_name}
             </DialogDescription>
           )}
           {step === 3 && selectedPerson && (
-            <DialogDescription>
-              Scrie o recomandare pentru {selectedPerson.full_name}. Va apărea pe profil după ce este aprobată.
+            <DialogDescription className="text-gray-500">
+              {rt.writeRecForPrefix} {selectedPerson.full_name}. {rt.willAppearAfterApproval}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -1460,24 +1441,24 @@ const OfferDialog = ({
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-foreground font-body mb-1">
-                Pe cine doriți să recomandați?
+              <p className="text-sm font-medium text-gray-900 font-body mb-1">
+                {rt.whoToRecommend}
               </p>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setSelectedPerson(null); }}
-                  placeholder="Căutați persoane..."
-                  className="pl-9"
+                  placeholder={rt.searchPeoplePlaceholder}
+                  className="pl-9 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                 />
               </div>
 
               {searchTerm.trim().length >= 2 && (
-                <div className="mt-2 border border-border rounded-md max-h-48 overflow-y-auto">
+                <div className="mt-2 border border-gray-200 rounded-md max-h-48 overflow-y-auto">
                   {searching ? (
                     <div className="flex items-center justify-center py-3">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
                     </div>
                   ) : results.length > 0 ? (
                     results.map((p) => (
@@ -1485,23 +1466,23 @@ const OfferDialog = ({
                         key={p.user_id}
                         onClick={() => { setSelectedPerson(p); setSearchTerm(p.full_name); setResults([]); }}
                         className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/50 text-left transition-colors",
-                          selectedPerson?.user_id === p.user_id && "bg-accent/30"
+                          "w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-100 text-left transition-colors",
+                          selectedPerson?.user_id === p.user_id && "bg-gray-100"
                         )}
                       >
-                        <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-gray-100 overflow-hidden flex-shrink-0">
                           {p.avatar_url ? (
                             <img src={p.avatar_url} alt={p.full_name} className="h-full w-full object-cover" />
                           ) : (
-                            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                            <div className="h-full w-full flex items-center justify-center text-xs text-gray-500">
                               {(p.full_name?.[0] || "?").toUpperCase()}
                             </div>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <span className="text-sm font-body text-foreground block truncate">{p.full_name}</span>
+                          <span className="text-sm font-body text-gray-900 block truncate">{p.full_name}</span>
                           {(p.roleLabel || p.org) && (
-                            <span className="text-xs text-muted-foreground font-body block truncate">
+                            <span className="text-xs text-gray-500 font-body block truncate">
                               {[p.roleLabel, p.org, p._needsLoc ? p.loc : null].filter(Boolean).join(" · ")}
                             </span>
                           )}
@@ -1509,18 +1490,18 @@ const OfferDialog = ({
                       </button>
                     ))
                   ) : (
-                    <p className="text-xs text-muted-foreground py-3 px-3 font-body">Niciun rezultat găsit</p>
+                    <p className="text-xs text-gray-500 py-3 px-3 font-body">{rt.noResultsFound}</p>
                   )}
                 </div>
               )}
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground font-body">
-                {selectedPerson ? "1 persoană selectată" : ""}
+              <span className="text-xs text-gray-500 font-body">
+                {selectedPerson ? rt.personSelectedCount : ""}
               </span>
-              <Button disabled={!selectedPerson} onClick={() => setStep(2)}>
-                Continuați
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white" disabled={!selectedPerson} onClick={() => setStep(2)}>
+                {rt.continueBtn}
               </Button>
             </div>
           </div>
@@ -1529,20 +1510,20 @@ const OfferDialog = ({
         {step === 2 && (
           <div className="space-y-4">
             {selectedPerson && (
-              <div className="flex items-center gap-3 p-3 rounded-md bg-accent/20 border border-border">
-                <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+              <div className="flex items-center gap-3 p-3 rounded-md bg-gray-100 border border-gray-200">
+                <div className="h-8 w-8 rounded-full bg-white overflow-hidden flex-shrink-0">
                   {selectedPerson.avatar_url ? (
                     <img src={selectedPerson.avatar_url} alt={selectedPerson.full_name} className="h-full w-full object-cover" />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                    <div className="h-full w-full flex items-center justify-center text-xs text-gray-500">
                       {(selectedPerson.full_name?.[0] || "?").toUpperCase()}
                     </div>
                   )}
                 </div>
-                <span className="text-sm font-body text-foreground font-medium">{selectedPerson.full_name}</span>
+                <span className="text-sm font-body text-gray-900 font-medium">{selectedPerson.full_name}</span>
                 <button
                   onClick={() => { setSelectedPerson(null); setStep(1); setSearchTerm(""); }}
-                  className="ml-auto text-muted-foreground hover:text-foreground"
+                  className="ml-auto text-gray-500 hover:text-gray-900"
                 >
                   <XIcon className="h-4 w-4" />
                 </button>
@@ -1550,16 +1531,16 @@ const OfferDialog = ({
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground font-body">
-                Ofer această recomandare în calitate de: *
+              <label className="text-sm font-medium text-gray-900 font-body">
+                {rt.offerAsQuality}
               </label>
               <Select value={calitate} onValueChange={(v) => { setCalitate(v); if (v !== "altele") setCalitateCustom(""); }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selectați calitatea" />
+                <SelectTrigger className="bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900">
+                  <SelectValue placeholder={rt.selectQuality} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border-gray-200 text-gray-900">
                   {calitateOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    <SelectItem key={opt.value} value={opt.value} className="focus:bg-gray-100 focus:text-gray-900">{opt.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1567,26 +1548,26 @@ const OfferDialog = ({
                 <Input
                   value={calitateCustom}
                   onChange={(e) => setCalitateCustom(e.target.value)}
-                  placeholder="Specificați calitatea..."
-                  className="mt-2"
+                  placeholder={rt.qualityCustomPlaceholder}
+                  className="mt-2 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                 />
               )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground font-body">
-                Baza evaluării mele: *
+              <label className="text-sm font-medium text-gray-900 font-body">
+                {rt.evaluationBasis}
               </label>
               <Select value={bazaEvaluarii} onValueChange={(v) => { setBazaEvaluarii(v); if (v !== "altele") setBazaEvaluariiCustom(""); }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selectați baza evaluării" />
+                <SelectTrigger className="bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900">
+                  <SelectValue placeholder={rt.selectEvaluationBasis} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border-gray-200 text-gray-900">
                   {bazaEvaluariiOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.value} value={opt.value} className="focus:bg-gray-100 focus:text-gray-900">
                       <div className="flex flex-col">
                         <span>{opt.label}</span>
-                        <span className="text-xs text-muted-foreground">{opt.description}</span>
+                        <span className="text-xs text-gray-500">{opt.description}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -1596,21 +1577,22 @@ const OfferDialog = ({
                 <Input
                   value={bazaEvaluariiCustom}
                   onChange={(e) => setBazaEvaluariiCustom(e.target.value)}
-                  placeholder="Specificați baza evaluării..."
-                  className="mt-2"
+                  placeholder={rt.evaluationBasisCustomPlaceholder}
+                  className="mt-2 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                 />
               )}
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground font-body">Pasul 2 din 3</span>
+              <span className="text-xs text-gray-500 font-body">{rt.stepWord} 2 {rt.ofWord} 3</span>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(1)}>Înapoi</Button>
+                <Button variant="outline" className="bg-white border-gray-300 text-gray-900 hover:bg-gray-100" onClick={() => setStep(1)}>{rt.backBtn}</Button>
                 <Button
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
                   disabled={!calitate || (calitate === "altele" && !calitateCustom.trim()) || !bazaEvaluarii || (bazaEvaluarii === "altele" && !bazaEvaluariiCustom.trim())}
                   onClick={() => setStep(3)}
                 >
-                  Continuați
+                  {rt.continueBtn}
                 </Button>
               </div>
             </div>
@@ -1620,19 +1602,19 @@ const OfferDialog = ({
         {step === 3 && (
           <div className="space-y-4">
             {selectedPerson && (
-              <div className="flex items-center gap-3 p-3 rounded-md bg-accent/20 border border-border">
-                <div className="h-8 w-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+              <div className="flex items-center gap-3 p-3 rounded-md bg-gray-100 border border-gray-200">
+                <div className="h-8 w-8 rounded-full bg-white overflow-hidden flex-shrink-0">
                   {selectedPerson.avatar_url ? (
                     <img src={selectedPerson.avatar_url} alt={selectedPerson.full_name} className="h-full w-full object-cover" />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                    <div className="h-full w-full flex items-center justify-center text-xs text-gray-500">
                       {(selectedPerson.full_name?.[0] || "?").toUpperCase()}
                     </div>
                   )}
                 </div>
                 <div className="min-w-0">
-                  <span className="text-sm font-body text-foreground font-medium block">{selectedPerson.full_name}</span>
-                  <span className="text-xs text-muted-foreground font-body block truncate">
+                  <span className="text-sm font-body text-gray-900 font-medium block">{selectedPerson.full_name}</span>
+                  <span className="text-xs text-gray-500 font-body block truncate">
                     {calitate === "altele" ? calitateCustom : calitateOptions.find((o) => o.value === calitate)?.label}
                   </span>
                 </div>
@@ -1641,17 +1623,17 @@ const OfferDialog = ({
             <Textarea
               value={msg}
               onChange={(e) => setMsg(e.target.value)}
-              placeholder="Scrie aici recomandarea ta..."
-              className="min-h-[160px]"
+              placeholder={rt.recWritePlaceholder}
+              className="min-h-[160px] bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
             />
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground font-body">Pasul 3 din 3</span>
+              <span className="text-xs text-gray-500 font-body">{rt.stepWord} 3 {rt.ofWord} 3</span>
               <DialogFooter className="flex-row gap-2 sm:justify-end">
-                <Button variant="outline" onClick={() => setStep(2)}>Înapoi</Button>
-                <Button onClick={() => {
+                <Button variant="outline" className="bg-white border-gray-300 text-gray-900 hover:bg-gray-100" onClick={() => setStep(2)}>{rt.backBtn}</Button>
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => {
                   if (selectedPerson) onSubmit(selectedPerson.user_id, msg);
                 }}>
-                  Trimite recomandarea
+                  {rt.sendRecommendation}
                 </Button>
               </DialogFooter>
             </div>
@@ -1675,6 +1657,8 @@ const RespondDialog = ({
   requestMsg: string;
   onSubmit: (content: string) => void;
 }) => {
+  const { t } = useLanguage();
+  const rt = t.dashboard.recommendations;
   const [content, setContent] = useState("");
 
   useEffect(() => {
@@ -1683,40 +1667,40 @@ const RespondDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white text-gray-900 border-gray-200">
         <DialogHeader>
-          <DialogTitle>Scrieți o recomandare</DialogTitle>
+          <DialogTitle className="text-gray-900 font-display tracking-wide">{rt.respondDialogTitle}</DialogTitle>
           {requesterName && (
-            <DialogDescription>
-              {requesterName} v-a solicitat o recomandare.
+            <DialogDescription className="text-gray-500">
+              {requesterName} {rt.requestedYouRecSuffix}
             </DialogDescription>
           )}
         </DialogHeader>
 
         {requestMsg && (
-          <div className="p-3 rounded-md bg-accent/20 border border-border text-sm font-body text-foreground/80 italic">
+          <div className="p-3 rounded-md bg-gray-100 border border-gray-200 text-sm font-body text-gray-700 italic">
             „{requestMsg}"
           </div>
         )}
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground font-body">
-            Recomandarea dvs. *
+          <label className="text-sm font-medium text-gray-900 font-body">
+            {rt.yourRecommendationLabel}
           </label>
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder={`Scrieți recomandarea pentru ${requesterName || "această persoană"}...`}
-            className="min-h-[160px]"
+            placeholder={`${rt.respondPlaceholderPrefix} ${requesterName || rt.thisPersonFallback}...`}
+            className="min-h-[160px] bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
           />
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Anulează
+          <Button variant="outline" className="bg-white border-gray-300 text-gray-900 hover:bg-gray-100" onClick={() => onOpenChange(false)}>
+            {rt.cancelRequest}
           </Button>
-          <Button disabled={!content.trim()} onClick={() => onSubmit(content)}>
-            <Check className="h-4 w-4 mr-1" /> Trimite recomandarea
+          <Button className="bg-orange-500 hover:bg-orange-600 text-white" disabled={!content.trim()} onClick={() => onSubmit(content)}>
+            <Check className="h-4 w-4 mr-1" /> {rt.sendRecommendation}
           </Button>
         </DialogFooter>
       </DialogContent>

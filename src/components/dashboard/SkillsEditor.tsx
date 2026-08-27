@@ -1,19 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Plus, X } from "lucide-react";
-
-const SUGGESTED_SKILLS = [
-  "Analiză video",
-  "Scouting tineret",
-  "Recruitment",
-  "Analiză tactică",
-  "Evaluare jucători",
-  "Rapoarte de scouting",
-  "Negociere transferuri",
-  "Dezvoltare talent",
-  "Analiză date sportive",
-  "Networking",
-];
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface SkillsEditorProps {
   skills: string[];
@@ -22,6 +10,8 @@ interface SkillsEditorProps {
 }
 
 const SkillsEditor = ({ skills, onChange, maxSkills = 5 }: SkillsEditorProps) => {
+  const { t } = useLanguage();
+  const te = t.dashboard.skillsEditor;
   const [inputValue, setInputValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
 
@@ -43,12 +33,12 @@ const SkillsEditor = ({ skills, onChange, maxSkills = 5 }: SkillsEditorProps) =>
     }
   };
 
-  const availableSuggestions = SUGGESTED_SKILLS.filter(s => !skills.includes(s));
+  const availableSuggestions = te.suggestions.filter(s => !skills.includes(s));
 
   return (
     <div className="space-y-3">
-      <p className="text-muted-foreground text-sm">
-        Prezentați-vă aptitudinile de top – adăugați cel mult {maxSkills} aptitudini pentru care doriți să fiți cunoscut(ă). Acestea vor apărea și în secțiunea dvs. Aptitudini.
+      <p className="text-gray-500 text-sm">
+        {te.helperTextTemplate.replace("{n}", String(maxSkills))}
       </p>
 
       {/* Current skills as removable chips */}
@@ -57,7 +47,7 @@ const SkillsEditor = ({ skills, onChange, maxSkills = 5 }: SkillsEditorProps) =>
           {skills.map((skill, i) => (
             <span
               key={i}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-body"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-600 border border-orange-200 rounded-full text-sm font-body"
             >
               {skill}
               <button
@@ -78,31 +68,31 @@ const SkillsEditor = ({ skills, onChange, maxSkills = 5 }: SkillsEditorProps) =>
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Aptitudine (ex.: management de proiect)"
-          className="bg-muted border-border text-foreground text-sm"
+          placeholder={te.inputPlaceholder}
+          className="bg-gray-100 border-gray-300 text-gray-900 text-sm"
           disabled={skills.length >= maxSkills}
         />
         <button
           type="button"
           onClick={() => addSkill(inputValue)}
           disabled={!inputValue.trim() || skills.length >= maxSkills}
-          className="px-3 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Plus className="h-4 w-4" />
         </button>
       </div>
 
-      <p className="text-xs text-muted-foreground">{skills.length}/{maxSkills}</p>
+      <p className="text-xs text-gray-500">{skills.length}/{maxSkills}</p>
 
       {/* Suggestions */}
       {showSuggestions && availableSuggestions.length > 0 && skills.length < maxSkills && (
-        <div className="border border-border rounded-lg p-4">
+        <div className="border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-foreground">Sugestie bazată pe profilul dvs.</p>
+            <p className="text-sm font-semibold text-gray-900">{te.suggestionTitle}</p>
             <button
               type="button"
               onClick={() => setShowSuggestions(false)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-gray-500 hover:text-gray-900 transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
@@ -113,10 +103,10 @@ const SkillsEditor = ({ skills, onChange, maxSkills = 5 }: SkillsEditorProps) =>
                 key={suggestion}
                 type="button"
                 onClick={() => addSkill(suggestion)}
-                className="flex items-center gap-1 px-3 py-1.5 border border-border rounded-full text-sm text-foreground hover:bg-accent/50 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-full text-sm text-gray-900 hover:bg-gray-100 transition-colors"
               >
                 {suggestion}
-                <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                <Plus className="h-3.5 w-3.5 text-gray-500" />
               </button>
             ))}
           </div>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import SportInput, { SPORTS_LIST } from "@/components/ui/sport-input";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const POSITIONS_BY_SPORT: Record<string, string[]> = {
   Fotbal: ["Portar", "Fundaș central", "Fundaș stânga", "Fundaș dreapta", "Mijlocaș central", "Mijlocaș ofensiv", "Mijlocaș defensiv", "Extremă stânga", "Extremă dreapta", "Atacant", "Vârf"],
@@ -43,6 +44,8 @@ interface RepresentedPlayersSectionProps {
 
 const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlayersSectionProps) => {
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const tr = t.dashboard.representedPlayers;
   const [players, setPlayers] = useState<RepresentedPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -54,6 +57,7 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
   const [manualForm, setManualForm] = useState({
     first_name: "", last_name: "", position: "", birth_year: "", current_team: "", sport: "",
   });
+  const [manualPositionEntry, setManualPositionEntry] = useState(false);
 
   const availablePositions = manualForm.sport && POSITIONS_BY_SPORT[manualForm.sport]
     ? POSITIONS_BY_SPORT[manualForm.sport]
@@ -166,23 +170,23 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       if (cooldownMatch) {
         const days = cooldownMatch[1];
         toast({
-          title: "Așteaptă perioada de pauză",
-          description: `Acest jucător a refuzat o cerere recentă. Mai poți trimite o cerere nouă în ${days} zile.`,
+          title: tr.cooldownTitle,
+          description: tr.cooldownDescTemplate.replace("{n}", days),
           variant: "destructive",
         });
       } else {
-        toast({ title: "Eroare", description: "Cererea nu a putut fi trimisă. Poate există deja una.", variant: "destructive" });
+        toast({ title: t.dashboard.tests.uploadErrorTitle, description: tr.requestFailedDesc, variant: "destructive" });
       }
       setAdding(false);
       return;
     }
     closeDialog();
-    toast({ title: "Cerere trimisă!", description: "Jucătorul va primi o notificare pentru a accepta colaborarea." });
+    toast({ title: tr.requestSentTitle, description: tr.requestSentDesc });
   };
 
   const handleAddManualPlayer = async () => {
     if (!manualForm.first_name.trim() || !manualForm.last_name.trim()) {
-      toast({ title: "Eroare", description: "Numele și prenumele sunt obligatorii.", variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: tr.nameRequiredDesc, variant: "destructive" });
       return;
     }
     setAdding(true);
@@ -196,13 +200,13 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       sport: manualForm.sport || null,
     });
     if (error) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: error.message, variant: "destructive" });
       setAdding(false);
       return;
     }
     await fetchRepresentedPlayers();
     closeDialog();
-    toast({ title: "Jucător adăugat manual!" });
+    toast({ title: tr.playerAddedManually });
   };
 
   const handleRemovePlayer = async (player: RepresentedPlayer) => {
@@ -210,11 +214,11 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       ? await supabase.from("agent_collaboration_requests").delete().eq("agent_user_id", userId).eq("player_user_id", player.user_id)
       : await supabase.from("agent_manual_players").delete().eq("id", player.id);
     if (error) {
-      toast({ title: "Eroare", description: "Jucătorul nu a putut fi eliminat.", variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: tr.playerRemoveFailedDesc, variant: "destructive" });
       return;
     }
     setPlayers((prev) => prev.filter((p) => p.id !== player.id));
-    toast({ title: "Jucător eliminat." });
+    toast({ title: tr.playerRemoved });
   };
 
   const closeDialog = () => {
@@ -227,25 +231,25 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
-          <h2 className="font-display text-2xl text-foreground">Jucători reprezentați</h2>
+          <Users className="h-5 w-5 text-orange-500" />
+          <h2 className="font-display text-2xl text-gray-900">{tr.title}</h2>
           <Popover>
             <PopoverTrigger asChild>
               <button
                 type="button"
                 onClick={(e) => e.stopPropagation()}
-                className="p-1.5 -m-1.5 text-muted-foreground hover:text-primary transition-colors rounded-full"
+                className="p-1.5 -m-1.5 text-gray-500 hover:text-orange-500 transition-colors rounded-full"
               >
                 <Info className="h-4 w-4" />
               </button>
             </PopoverTrigger>
             <PopoverContent side="bottom" align="start" className="w-72 text-sm">
-              <p className="font-semibold mb-2">Ce este această secțiune?</p>
-              <p className="text-muted-foreground">
-                Aici adaugi jucătorii pe care îi reprezinți sau pe care i-ai descoperit — fie legând contul lor din aplicație (dacă au deja profil SportRise), fie adăugându-i manual, cu datele lor de bază. Lista e vizibilă pe profilul tău public, ca dovadă a activității tale.
+              <p className="font-semibold mb-2">{tr.whatIsThisTitle}</p>
+              <p className="text-gray-500">
+                {tr.whatIsThisDesc}
               </p>
             </PopoverContent>
           </Popover>
@@ -253,8 +257,8 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
         {!readOnly && (
           <button
             onClick={() => setShowAddDialog(true)}
-            className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50"
-            title="Adaugă jucător"
+            className="text-gray-500 hover:text-orange-500 transition-colors p-1.5 rounded-lg hover:bg-gray-100"
+            title={tr.addPlayerAria}
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -263,43 +267,43 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
 
       {loading ? (
         <div className="flex justify-center py-6">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
         </div>
       ) : players.length === 0 ? (
-        <p className="text-muted-foreground italic text-sm font-body">Niciun jucător reprezentat.</p>
+        <p className="text-gray-500 italic text-sm font-body">{tr.noPlayersYet}</p>
       ) : (
         <div className="space-y-3">
           {players.map((player) => (
             <div key={player.id} className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {player.photo_url ? (
                   <img src={player.photo_url} alt={`${player.first_name} ${player.last_name}`} className="w-full h-full object-cover" />
                 ) : (
-                  <User className="h-5 w-5 text-muted-foreground" />
+                  <User className="h-5 w-5 text-gray-500" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-body font-semibold text-foreground text-sm truncate flex items-center gap-1.5">
+                <p className="font-body font-semibold text-gray-900 text-sm truncate flex items-center gap-1.5">
                   <span className="truncate">{player.first_name} {player.last_name}</span>
                   {player.type === "linked" && (
                     <button
                       type="button"
-                      onClick={() => toast({ title: "Cont verificat", description: "Acest jucător are cont în aplicație." })}
-                      className="text-primary hover:scale-110 transition-transform flex-shrink-0"
-                      title="Are cont în aplicație"
+                      onClick={() => toast({ title: tr.hasAccountToastTitle, description: tr.hasAccountToastDesc })}
+                      className="text-orange-500 hover:scale-110 transition-transform flex-shrink-0"
+                      title={tr.hasAccountTooltip}
                     >
-                      <Star className="h-3.5 w-3.5 fill-primary" />
+                      <Star className="h-3.5 w-3.5 fill-orange-500" />
                     </button>
                   )}
                 </p>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-xs text-gray-500 truncate">
                   {[player.sport, player.position, player.current_team, player.birth_year ? `${player.birth_year}` : null].filter(Boolean).join(" • ")}
                 </p>
               </div>
               {!readOnly && (
                 <button
                   onClick={() => handleRemovePlayer(player)}
-                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1"
+                  className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-destructive transition-all p-1"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -310,48 +314,48 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
       )}
 
       <Dialog open={showAddDialog} onOpenChange={(open) => !open && closeDialog()}>
-        <DialogContent className="bg-card border-border max-w-md">
+        <DialogContent className="bg-white border-gray-200 max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display text-foreground">Adaugă jucător</DialogTitle>
+            <DialogTitle className="font-display text-gray-900">{tr.addPlayerDialogTitle}</DialogTitle>
           </DialogHeader>
 
           {!showManualForm ? (
             <div className="space-y-4">
                <div className="relative">
                   <Input
-                    placeholder="Caută un jucător existent..."
+                    placeholder={tr.searchPlaceholder}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-muted border-border text-foreground"
+                    className="bg-gray-100 border-gray-300 text-gray-900"
                   />
-                  {searching && <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />}
+                  {searching && <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" />}
                 </div>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {searchResults.map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
                     onClick={() => !adding && p.user_id && handleAddLinkedPlayer(p.user_id)}
                   >
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {p.photo_url ? <img src={p.photo_url} alt="" className="w-full h-full object-cover" /> : <User className="h-4 w-4 text-muted-foreground" />}
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {p.photo_url ? <img src={p.photo_url} alt="" className="w-full h-full object-cover" /> : <User className="h-4 w-4 text-gray-500" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-body text-foreground truncate">{p.first_name} {p.last_name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="text-sm font-body text-gray-900 truncate">{p.first_name} {p.last_name}</p>
+                      <p className="text-xs text-gray-500 truncate">
                         {[p.sport, p.position, p.current_team].filter(Boolean).join(" • ")}
                       </p>
                     </div>
                   </div>
                 ))}
                 {searchResults.length === 0 && searchTerm && !searching && (
-                  <p className="text-sm text-muted-foreground text-center py-4">Niciun rezultat.</p>
+                  <p className="text-sm text-gray-500 text-center py-4">{tr.noResults}</p>
                 )}
               </div>
-              <div className="border-t border-border pt-3">
+              <div className="border-t border-gray-200 pt-3">
                 <Button variant="outline" className="w-full" onClick={() => setShowManualForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Adaugă manual un jucător
+                  {tr.addManuallyBtn}
                 </Button>
               </div>
             </div>
@@ -359,90 +363,109 @@ const RepresentedPlayersSection = ({ userId, readOnly = false }: RepresentedPlay
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Prenume *</label>
+                  <label className="text-xs text-gray-500 mb-1 block">{tr.firstNameLabel}</label>
                   <Input
-                    placeholder="Prenume"
+                    placeholder={t.dashboard.profile.firstName}
                     value={manualForm.first_name}
                     onChange={(e) => setManualForm((f) => ({ ...f, first_name: e.target.value }))}
-                    className="bg-muted border-border text-foreground"
+                    className="bg-gray-100 border-gray-300 text-gray-900"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Nume *</label>
+                  <label className="text-xs text-gray-500 mb-1 block">{tr.lastNameLabel}</label>
                   <Input
-                    placeholder="Nume"
+                    placeholder={t.dashboard.profile.lastName}
                     value={manualForm.last_name}
                     onChange={(e) => setManualForm((f) => ({ ...f, last_name: e.target.value }))}
-                    className="bg-muted border-border text-foreground"
+                    className="bg-gray-100 border-gray-300 text-gray-900"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Sport</label>
+                <label className="text-xs text-gray-500 mb-1 block">{tr.sportLabel}</label>
                 <SportInput
                   value={manualForm.sport}
-                  onChange={(val) => setManualForm((f) => ({ ...f, sport: val, position: "" }))}
-                  placeholder="Caută sportul..."
-                  className="bg-muted border-border text-foreground"
+                  onChange={(val) => { setManualForm((f) => ({ ...f, sport: val, position: "" })); setManualPositionEntry(false); }}
+                  placeholder={tr.searchSportPlaceholder}
+                  className="bg-gray-100 border-gray-300 text-gray-900"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Poziție</label>
-                {availablePositions.length > 0 ? (
+                <label className="text-xs text-gray-500 mb-1 block">{tr.positionLabel}</label>
+                {availablePositions.length > 0 && !manualPositionEntry ? (
                   <Select
                     value={manualForm.position}
-                    onValueChange={(val) => setManualForm((f) => ({ ...f, position: val }))}
+                    onValueChange={(val) => {
+                      if (val === "__manual__") {
+                        setManualPositionEntry(true);
+                        setManualForm((f) => ({ ...f, position: "" }));
+                      } else {
+                        setManualForm((f) => ({ ...f, position: val }));
+                      }
+                    }}
                   >
-                    <SelectTrigger className="bg-muted border-border text-foreground">
-                      <SelectValue placeholder="Selectează poziția" />
+                    <SelectTrigger className="bg-gray-100 border-gray-300 text-gray-900">
+                      <SelectValue placeholder={tr.selectPositionPlaceholder} />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
                       {availablePositions.map((p) => (
                         <SelectItem key={p} value={p}>{p}</SelectItem>
                       ))}
+                      <SelectItem value="__manual__">{tr.otherManualEntry}</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Input
-                    placeholder="Ex: Atacant, Fundaș..."
-                    value={manualForm.position}
-                    onChange={(e) => setManualForm((f) => ({ ...f, position: e.target.value }))}
-                    className="bg-muted border-border text-foreground"
-                  />
+                  <div className="space-y-1.5">
+                    <Input
+                      placeholder={tr.positionManualPlaceholder}
+                      value={manualForm.position}
+                      onChange={(e) => setManualForm((f) => ({ ...f, position: e.target.value }))}
+                      className="bg-gray-100 border-gray-300 text-gray-900"
+                    />
+                    {availablePositions.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => { setManualPositionEntry(false); setManualForm((f) => ({ ...f, position: "" })); }}
+                        className="text-xs text-orange-500 hover:underline"
+                      >
+                        {tr.chooseFromListBtn}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Anul nașterii</label>
+                  <label className="text-xs text-gray-500 mb-1 block">{tr.birthYearLabel}</label>
                   <Input
-                    placeholder="Ex: 2001"
+                    placeholder={tr.birthYearPlaceholder}
                     type="number"
                     value={manualForm.birth_year}
                     onChange={(e) => setManualForm((f) => ({ ...f, birth_year: e.target.value }))}
-                    className="bg-muted border-border text-foreground"
+                    className="bg-gray-100 border-gray-300 text-gray-900"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Echipă</label>
+                  <label className="text-xs text-gray-500 mb-1 block">{tr.teamLabel}</label>
                   <Input
-                    placeholder="Ex: FC Steaua"
+                    placeholder={tr.teamPlaceholder}
                     value={manualForm.current_team}
                     onChange={(e) => setManualForm((f) => ({ ...f, current_team: e.target.value }))}
-                    className="bg-muted border-border text-foreground"
+                    className="bg-gray-100 border-gray-300 text-gray-900"
                   />
                 </div>
               </div>
 
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="flex-1" onClick={() => setShowManualForm(false)} disabled={adding}>
-                  Înapoi
+                  {t.dashboard.recommendations.backBtn}
                 </Button>
                 <Button className="flex-1" onClick={handleAddManualPlayer} disabled={adding}>
                   {adding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Adaugă
+                  {t.dashboard.profile.addBtn}
                 </Button>
               </div>
             </div>

@@ -1,5 +1,7 @@
 import { Flame, Medal, Trophy } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKeys } from "@/i18n/translations";
 
 interface StreakBadgesProps {
   bestStreak: number;
@@ -18,11 +20,11 @@ interface BadgeDef {
   iconColor: string;
 }
 
-const BADGES: BadgeDef[] = [
+const getBadges = (tt: TranslationKeys["dashboard"]["tests"]): BadgeDef[] => [
   {
     threshold: 7,
-    label: "Săptămâna perfectă",
-    description: "7 zile consecutive în aplicație",
+    label: tt.badgeWeekLabel,
+    description: tt.badgeWeekDesc,
     icon: Flame,
     gradient: "from-amber-500/20 to-orange-600/10",
     ring: "ring-amber-500/40",
@@ -30,8 +32,8 @@ const BADGES: BadgeDef[] = [
   },
   {
     threshold: 30,
-    label: "Jucător dedicat",
-    description: "30 de zile consecutive — disciplină dovedită",
+    label: tt.badgeDedicatedLabel,
+    description: tt.badgeDedicatedDesc,
     icon: Medal,
     gradient: "from-sky-500/20 to-indigo-600/10",
     ring: "ring-sky-400/40",
@@ -39,8 +41,8 @@ const BADGES: BadgeDef[] = [
   },
   {
     threshold: 100,
-    label: "Profesionist",
-    description: "100 de zile consecutive — mentalitate de profesionist",
+    label: tt.badgeProLabel,
+    description: tt.badgeProDesc,
     icon: Trophy,
     gradient: "from-yellow-400/25 to-amber-600/15",
     ring: "ring-yellow-400/50",
@@ -49,6 +51,9 @@ const BADGES: BadgeDef[] = [
 ];
 
 export default function StreakBadges({ bestStreak, currentStreak = 0, compact = false }: StreakBadgesProps) {
+  const { t } = useLanguage();
+  const tt = t.dashboard.tests;
+  const BADGES = getBadges(tt);
   const reached = BADGES.filter((b) => bestStreak >= b.threshold);
   if (reached.length === 0) return null;
 
@@ -75,7 +80,7 @@ export default function StreakBadges({ bestStreak, currentStreak = 0, compact = 
                 <p className="text-[11px] text-muted-foreground mt-0.5">{badge.description}</p>
                 {currentStreak > 0 && (
                   <p className="text-[10px] text-muted-foreground/80 mt-1">
-                    Streak curent: {currentStreak} {currentStreak === 1 ? "zi" : "zile"}
+                    {tt.currentStreakLabel} {currentStreak} {currentStreak === 1 ? tt.dayWord : tt.daysWord}
                   </p>
                 )}
               </TooltipContent>
@@ -87,7 +92,7 @@ export default function StreakBadges({ bestStreak, currentStreak = 0, compact = 
   );
 }
 
-export function getNextBadgeMilestone(bestStreak: number): { threshold: number; label: string } | null {
-  const next = BADGES.find((b) => bestStreak < b.threshold);
+export function getNextBadgeMilestone(bestStreak: number, tt: TranslationKeys["dashboard"]["tests"]): { threshold: number; label: string } | null {
+  const next = getBadges(tt).find((b) => bestStreak < b.threshold);
   return next ? { threshold: next.threshold, label: next.label } : null;
 }

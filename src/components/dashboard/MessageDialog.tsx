@@ -164,7 +164,7 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md w-[95vw] max-h-[80vh] flex flex-col p-0 gap-0">
-        <DialogTitle className="px-4 py-3 border-b border-border font-display text-lg">
+        <DialogTitle className="px-4 py-3 border-b border-gray-200 font-display text-lg">
           {recipientName}
         </DialogTitle>
 
@@ -172,14 +172,14 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
         <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[300px] max-h-[50vh]">
           {loading ? (
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
             </div>
           ) : !canMessage ? (
-            <p className="text-center text-muted-foreground text-sm py-8">
+            <p className="text-center text-gray-500 text-sm py-8">
               {lang === "ro" ? "Poți trimite mesaje doar persoanelor care ți-au acceptat cererea de urmărire." : "You can message only people who accepted your follow request."}
             </p>
           ) : messages.length === 0 ? (
-            <p className="text-center text-muted-foreground text-sm py-8">
+            <p className="text-center text-gray-500 text-sm py-8">
               {lang === "ro" ? "Niciun mesaj încă. Trimite primul mesaj!" : "No messages yet. Send the first message!"}
             </p>
           ) : (
@@ -193,12 +193,12 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
                   <div
                     className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
                       isMine
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-muted text-foreground rounded-bl-md"
+                        ? "bg-orange-500 text-white rounded-br-md"
+                        : "bg-gray-100 text-gray-900 rounded-bl-md"
                     }`}
                   >
                     <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                    <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                    <p className={`text-[10px] mt-1 ${isMine ? "text-white/60" : "text-gray-500"}`}>
                       {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -213,7 +213,7 @@ const MessageDialog = ({ open, onOpenChange, recipientUserId, recipientName }: M
         </div>
 
         {/* Input area */}
-        <div className="border-t border-border p-3 flex gap-2">
+        <div className="border-t border-gray-200 p-3 flex gap-2">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}

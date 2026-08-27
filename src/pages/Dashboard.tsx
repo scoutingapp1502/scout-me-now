@@ -41,8 +41,10 @@ import StreakNotificationModal from "@/components/dashboard/StreakNotificationMo
 import { useTestUnlocks } from "@/hooks/useTestUnlocks";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
 import { getTechnicalTestsBySport, getTestLabelByKey } from "@/components/dashboard/PersonalProfile";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const Dashboard = () => {
+  const { lang } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState<any>(null);
@@ -275,7 +277,7 @@ const Dashboard = () => {
   };
 
   const nextTestLabel = streakState.nextTestPreview
-    ? getTestLabelByKey(playerSport, streakState.nextTestPreview)
+    ? getTestLabelByKey(playerSport, streakState.nextTestPreview, lang)
     : null;
 
   if (!user || roleLoading) {
@@ -327,7 +329,7 @@ const Dashboard = () => {
           ? <ScoutActionsSection scoutUserId={user.id} userRole={userRole} onNavigateToChat={handleNavigateToChat} />
           : null;
       case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
-      case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} />;
+      case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
       case "settings": return <SettingsSection userId={user.id} userRole={userRole} onNavigate={navigateTo} />;
       case "saved": return <SavedSection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "archive": return <ArchiveSection userId={user.id} onBack={() => setActiveSection(prevSection)} />;
@@ -368,6 +370,14 @@ const Dashboard = () => {
   };
 
   const sidebarFirstLabel = (userRole === "cauta_jucator") ? "Personal Area" : undefined;
+  const communitySections = ["players", "scouters", "agents", "clubs", "community"];
+  const settingsSections = [
+    "settings", "saved", "archive", "your-activity", "likes-activity", "recently-deleted",
+    "time-management", "notification-settings", "sleep-mode-settings", "account-privacy",
+    "blocked", "messages-replies", "comments", "sharing-reuse", "follow-invite", "favourites",
+    "like-share-counts", "language", "help", "about",
+  ];
+  const showLightMain = activeSection === "profile" || activeSection === "messages" || activeSection === "notifications" || activeSection === "activity" || activeSection === "player-notes" || communitySections.includes(activeSection) || settingsSections.includes(activeSection);
 
   return (
     <div className="flex h-screen bg-background dark overflow-hidden">
@@ -413,7 +423,7 @@ const Dashboard = () => {
               </button>
               <span className="font-display text-xl text-primary">⚽ SPORTRISE</span>
             </header>
-            <main className="flex-1 p-4 overflow-y-auto bg-background">
+            <main className={`flex-1 p-4 overflow-y-auto ${showLightMain ? "bg-gray-200" : "bg-background"}`}>
               {renderSection()}
             </main>
           </div>
@@ -429,7 +439,7 @@ const Dashboard = () => {
             userRole={userRole}
             userId={user?.id}
           />
-          <main className="flex-1 p-8 overflow-y-auto bg-background">
+          <main className={`flex-1 p-8 overflow-y-auto ${showLightMain ? "bg-gray-200" : "bg-background"}`}>
             {renderSection()}
           </main>
         </>

@@ -108,18 +108,18 @@ export default function RecentlyDeletedSection({ userId, onBack, onViewProfile }
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+    <div className="flex flex-col h-full bg-white">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900 whitespace-nowrap">
           {lang === "ro" ? "Șters recent" : "Recently deleted"}
         </h2>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <p className="text-xs text-muted-foreground font-body px-5 pt-4 pb-2 leading-relaxed">
+        <p className="text-xs text-gray-500 font-body px-5 pt-4 pb-2 leading-relaxed">
           {lang === "ro"
             ? `Postările sunt păstrate aici ${RETENTION_DAYS} de zile, apoi sunt șterse definitiv.`
             : `Posts stay here for ${RETENTION_DAYS} days, then they're permanently deleted.`}
@@ -127,15 +127,15 @@ export default function RecentlyDeletedSection({ userId, onBack, onViewProfile }
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 px-8 text-center">
-            <Trash2 className="h-12 w-12 text-muted-foreground/40" />
-            <p className="text-sm font-semibold text-foreground font-body">
+            <Trash2 className="h-12 w-12 text-gray-500/40" />
+            <p className="text-sm font-semibold text-gray-900 font-body">
               {lang === "ro" ? "Nimic șters recent" : "Nothing recently deleted"}
             </p>
-            <p className="text-xs text-muted-foreground font-body">
+            <p className="text-xs text-gray-500 font-body">
               {lang === "ro" ? "Postările șterse vor apărea aici." : "Deleted posts will appear here."}
             </p>
           </div>
@@ -145,15 +145,15 @@ export default function RecentlyDeletedSection({ userId, onBack, onViewProfile }
               <button
                 key={`${item.table}-${item.id}`}
                 onClick={() => setSelectedItem(item)}
-                className="aspect-square overflow-hidden bg-muted relative"
+                className="aspect-square overflow-hidden bg-gray-100 relative"
               >
                 {item.image_url ? (
                   <img src={item.image_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
                 ) : item.video_url ? (
-                  <div className="w-full h-full bg-muted/60 flex items-center justify-center"><Video className="h-6 w-6 text-white/80" /></div>
+                  <div className="w-full h-full bg-gray-100/60 flex items-center justify-center"><Video className="h-6 w-6 text-white/80" /></div>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center p-2 bg-muted/40">
-                    <p className="text-[10px] text-muted-foreground font-body text-center line-clamp-4">{item.content}</p>
+                  <div className="w-full h-full flex items-center justify-center p-2 bg-gray-100/40">
+                    <p className="text-[10px] text-gray-500 font-body text-center line-clamp-4">{item.content}</p>
                   </div>
                 )}
                 {item.authorPhoto && (
@@ -174,11 +174,11 @@ export default function RecentlyDeletedSection({ userId, onBack, onViewProfile }
         <Dialog open={!!selectedItem} onOpenChange={(open) => { if (!open) setSelectedItem(null); }}>
           <DialogContent className="max-w-sm p-0 overflow-hidden">
             <DialogTitle className="sr-only">{lang === "ro" ? "Postare ștearsă" : "Deleted post"}</DialogTitle>
-            <div className="flex items-center justify-center gap-8 px-4 py-3 border-b border-border shrink-0">
+            <div className="flex items-center justify-center gap-8 px-4 py-3 border-b border-gray-200 shrink-0">
               <button
                 disabled={busyId === selectedItem.id}
                 onClick={() => handleRestore(selectedItem)}
-                className="p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
                 aria-label={lang === "ro" ? "Restaurează" : "Restore"}
               >
                 <RotateCcw className="h-5 w-5" />
@@ -186,7 +186,7 @@ export default function RecentlyDeletedSection({ userId, onBack, onViewProfile }
               <button
                 disabled={busyId === selectedItem.id}
                 onClick={() => handleDeleteForever(selectedItem)}
-                className="p-2 rounded-full hover:bg-muted text-destructive transition-colors disabled:opacity-50"
+                className="p-2 rounded-full hover:bg-gray-100 text-destructive transition-colors disabled:opacity-50"
                 aria-label={lang === "ro" ? "Șterge definitiv" : "Delete forever"}
               >
                 <Trash2 className="h-5 w-5" />

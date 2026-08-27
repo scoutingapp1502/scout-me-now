@@ -63,7 +63,7 @@ const SportInput = ({ value, onChange, placeholder, className }: SportInputProps
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
           {filtered.map((sport) => (
             <button
               key={sport}
@@ -73,7 +73,7 @@ const SportInput = ({ value, onChange, placeholder, className }: SportInputProps
                 setInputText(sport);
                 setOpen(false);
               }}
-              className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent/50 transition-colors"
+              className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
             >
               {sport}
             </button>

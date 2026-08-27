@@ -19,7 +19,7 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={onToggle}
-      className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${on ? "bg-primary" : "bg-muted-foreground/30"}`}
+      className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${on ? "bg-orange-500" : "bg-gray-300"}`}
     >
       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-6" : "translate-x-0.5"}`} />
     </button>
@@ -62,31 +62,31 @@ export default function SharingReuseSection({ userId, onBack }: SharingReuseSect
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900 whitespace-nowrap">
           {lang === "ro" ? "Distribuire și reutilizare" : "Sharing and reuse"}
         </h2>
-        {saving && <div className="ml-auto w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
+        {saving && <div className="ml-auto w-4 h-4 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />}
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-5 pt-5 pb-2 font-body">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 pt-5 pb-2 font-body">
           {lang === "ro" ? "Permite distribuirea story-urilor tale" : "Allow people to share your stories"}
         </p>
-        <div className="bg-card border-y border-border divide-y divide-border">
+        <div className="bg-white border-y border-gray-200 divide-y divide-gray-200">
           <div className="flex items-center justify-between px-5 py-4">
-            <span className="text-sm font-body text-foreground">
+            <span className="text-sm font-body text-gray-900">
               {lang === "ro" ? "Distribuiri story" : "Story shares"}
             </span>
             <Toggle on={config.storyShares} onToggle={() => save({ storyShares: !config.storyShares })} />
           </div>
         </div>
-        <p className="text-xs text-muted-foreground font-body px-5 py-3 leading-relaxed">
+        <p className="text-xs text-gray-500 font-body px-5 py-3 leading-relaxed">
           {lang === "ro"
             ? "Când este activat, persoanele pot trimite story-urile tale în mesaje."
             : "When this is on, people can send your stories in messages."}

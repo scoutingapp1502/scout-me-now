@@ -50,19 +50,19 @@ function ReportProblemPage({ userId, lang, onBack }: { userId: string; lang: str
 
   if (submitted) {
     return (
-      <div className="flex flex-col h-full bg-background">
-        <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-          <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground"><ArrowLeft className="h-5 w-5" /></button>
-          <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+      <div className="flex flex-col h-full bg-white">
+        <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+          <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900"><ArrowLeft className="h-5 w-5" /></button>
+          <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900 whitespace-nowrap">
             {lang === "ro" ? "Raportează o problemă" : "Report a problem"}
           </h2>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center">
-          <CheckCircle2 className="h-14 w-14 text-primary" />
-          <p className="text-sm font-semibold font-body text-foreground">
+          <CheckCircle2 className="h-14 w-14 text-orange-500" />
+          <p className="text-sm font-semibold font-body text-gray-900">
             {lang === "ro" ? "Raportul a fost trimis." : "Your report was sent."}
           </p>
-          <p className="text-xs text-muted-foreground font-body">
+          <p className="text-xs text-gray-500 font-body">
             {lang === "ro" ? "Îl vom analiza cât mai curând posibil." : "We'll review it as soon as possible."}
           </p>
           <Button variant="outline" size="sm" className="mt-2" onClick={onBack}>
@@ -74,17 +74,17 @@ function ReportProblemPage({ userId, lang, onBack }: { userId: string; lang: str
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground"><ArrowLeft className="h-5 w-5" /></button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+    <div className="flex flex-col h-full bg-white">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900"><ArrowLeft className="h-5 w-5" /></button>
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900 whitespace-nowrap">
           {lang === "ro" ? "Raportează o problemă" : "Report a problem"}
         </h2>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
         <div>
-          <p className="text-sm font-semibold font-body text-foreground mb-2">
+          <p className="text-sm font-semibold font-body text-gray-900 mb-2">
             {lang === "ro" ? "Ce categorie descrie cel mai bine problema?" : "Which category best describes the issue?"}
           </p>
           <div className="space-y-2">
@@ -93,12 +93,12 @@ function ReportProblemPage({ userId, lang, onBack }: { userId: string; lang: str
                 key={c.value}
                 onClick={() => setCategory(c.value)}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border text-left transition-colors ${
-                  category === c.value ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-muted/30"
+                  category === c.value ? "border-orange-500 bg-orange-50" : "border-gray-200 bg-white hover:bg-gray-50"
                 }`}
               >
-                <span className="text-sm font-body text-foreground">{lang === "ro" ? c.labelRo : c.labelEn}</span>
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${category === c.value ? "border-primary" : "border-muted-foreground/40"}`}>
-                  {category === c.value && <div className="w-2 h-2 rounded-full bg-primary" />}
+                <span className="text-sm font-body text-gray-900">{lang === "ro" ? c.labelRo : c.labelEn}</span>
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${category === c.value ? "border-orange-500" : "border-gray-300"}`}>
+                  {category === c.value && <div className="w-2 h-2 rounded-full bg-orange-500" />}
                 </div>
               </button>
             ))}
@@ -106,18 +106,18 @@ function ReportProblemPage({ userId, lang, onBack }: { userId: string; lang: str
         </div>
 
         <div>
-          <p className="text-sm font-semibold font-body text-foreground mb-2">
+          <p className="text-sm font-semibold font-body text-gray-900 mb-2">
             {lang === "ro" ? "Descrie problema" : "Describe the issue"}
           </p>
           <Textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={lang === "ro" ? "Spune-ne ce s-a întâmplat..." : "Tell us what happened..."}
-            className="min-h-32 text-white"
+            className="min-h-32"
           />
         </div>
 
-        <Button onClick={handleSubmit} disabled={submitting} className="w-full gap-2">
+        <Button onClick={handleSubmit} disabled={submitting} className="w-full gap-2 bg-orange-500 hover:bg-orange-600 text-white">
           <Send className="h-4 w-4" />
           {submitting ? (lang === "ro" ? "Se trimite..." : "Sending...") : (lang === "ro" ? "Trimite raportul" : "Send report")}
         </Button>
@@ -136,13 +136,13 @@ export default function HelpSection({ userId, onBack }: HelpSectionProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900 whitespace-nowrap">
           {lang === "ro" ? "Ajutor și asistență" : "Help and support"}
         </h2>
       </div>
@@ -150,21 +150,21 @@ export default function HelpSection({ userId, onBack }: HelpSectionProps) {
       <div className="flex-1 overflow-y-auto">
         {/* Icon + title */}
         <div className="flex flex-col items-center px-8 py-8 text-center">
-          <LifeBuoy className="h-20 w-20 text-primary mb-4" strokeWidth={1.2} />
-          <p className="text-lg font-semibold font-heading text-foreground">
+          <LifeBuoy className="h-20 w-20 text-orange-500 mb-4" strokeWidth={1.2} />
+          <p className="text-lg font-semibold font-heading text-gray-900">
             {lang === "ro" ? "Ajutor și asistență" : "Help and support"}
           </p>
         </div>
 
-        <div className="bg-card border-y border-border">
+        <div className="bg-white border-y border-gray-200">
           <button
             onClick={() => setSubPage("report")}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
           >
-            <span className="text-sm font-body text-foreground">
+            <span className="text-sm font-body text-gray-900">
               {lang === "ro" ? "Raportează o problemă" : "Report a problem"}
             </span>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+            <ChevronRight className="h-4 w-4 text-gray-500/50 shrink-0" />
           </button>
         </div>
       </div>

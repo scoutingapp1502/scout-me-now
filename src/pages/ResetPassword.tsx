@@ -80,27 +80,27 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pitch via-pitch/95 to-primary/20 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 opacity-5" style={{
-        backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
+        backgroundImage: `radial-gradient(circle at 2px 2px, #f97316 1px, transparent 0)`,
         backgroundSize: '40px 40px'
       }} />
 
       <div className="absolute top-4 right-4 z-10">
-        <LanguageToggle />
+        <LanguageToggle light />
       </div>
 
       <div className="relative w-full max-w-md">
-        <Link to="/auth?tab=login" className="inline-flex items-center gap-1 text-primary-foreground/70 hover:text-primary mb-6 font-body text-sm">
+        <Link to="/auth?tab=login" className="inline-flex items-center gap-1 text-gray-500 hover:text-orange-500 mb-6 font-body text-sm">
           <ArrowLeft className="h-4 w-4" /> {t.auth.backToLogin}
         </Link>
 
-        <Card className="bg-card/95 backdrop-blur border-primary/20 shadow-2xl">
+        <Card className="bg-white/95 backdrop-blur border-gray-200 shadow-2xl">
           <CardHeader className="text-center pb-2">
-            <div className="mx-auto mb-2 w-12 h-12 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-2xl">🔒</span>
+            <div className="mx-auto mb-2 w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center">
+              <span className="text-white text-2xl">🔒</span>
             </div>
-            <CardTitle className="font-display text-3xl text-foreground">
+            <CardTitle className="font-body text-2xl font-bold tracking-tight text-gray-900">
               {t.auth.resetPasswordTitle}
             </CardTitle>
             <CardDescription className="font-body">
@@ -119,8 +119,8 @@ const ResetPassword = () => {
               </div>
             ) : !ready ? (
               <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground font-body">Se verifică linkul...</p>
+                <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
+                <p className="text-sm text-gray-500 font-body">Se verifică linkul...</p>
               </div>
             ) : (
               <form onSubmit={handleReset} className="space-y-4">
@@ -132,7 +132,7 @@ const ResetPassword = () => {
                   <Label htmlFor="confirmPassword" className="font-body">{t.auth.confirmPassword}</Label>
                   <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
                 </div>
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-5" disabled={loading}>
+                <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-5" disabled={loading}>
                   {loading ? t.auth.processing : t.auth.resetPassword}
                 </Button>
               </form>

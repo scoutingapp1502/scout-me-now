@@ -7,6 +7,14 @@ import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
 import { useNotificationCount } from "@/hooks/useNotificationCount";
 
+const SPORT_LABELS: Record<string, { ro: string; en: string }> = {
+  football: { ro: "Fotbal", en: "Football" },
+  basketball: { ro: "Baschet", en: "Basketball" },
+};
+
+const getSportLabel = (sport: string, lang: string) =>
+  SPORT_LABELS[sport]?.[lang === "ro" ? "ro" : "en"] || sport.charAt(0).toUpperCase() + sport.slice(1);
+
 interface DashboardSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
@@ -126,16 +134,16 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   };
 
   return (
-    <aside className="w-64 min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col">
-      <div className="p-6 border-b border-sidebar-border">
-        <span className="font-display text-2xl text-primary">{userRole === "cauta_jucator" ? "" : "⚽ "}SPORTRISE</span>
+    <aside className="w-64 min-h-screen bg-white border-r border-gray-200 flex flex-col">
+      <div className="p-6 border-b border-gray-200">
+        <span className="font-display text-2xl text-gray-900">{userRole === "cauta_jucator" ? "" : "⚽ "}SPORTRISE</span>
         {playerName && (
-          <p className="text-sm text-sidebar-foreground/60 font-body mt-1 truncate">
-            {playerName}{userRole === "player" && playerSport ? ` · ${playerSport.charAt(0).toUpperCase() + playerSport.slice(1)}` : ""}
+          <p className="text-sm text-gray-500 font-body mt-1 truncate">
+            {playerName}{userRole === "player" && playerSport ? ` · ${getSportLabel(playerSport, lang)}` : ""}
           </p>
         )}
         {userRole === "cauta_jucator" && (
-          <p className="text-xs text-primary/80 font-semibold font-body mt-0.5 tracking-wider">DESCOPERITOR</p>
+          <p className="text-xs text-purple-600 font-semibold font-body mt-0.5 tracking-wider uppercase">{t.dashboard.recommendations.roleLabels.cauta_jucator}</p>
         )}
       </div>
 
@@ -145,7 +153,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
           { label: (t as any).dashboard?.sidebar?.discover ?? "DISCOVER", items: discoverSections },
         ].map((group) => (
           <div key={group.label} className="space-y-1">
-            <p className="px-4 text-[10px] font-body font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
+            <p className="px-4 text-[10px] font-body font-semibold text-gray-400 uppercase tracking-wider">
               {group.label}
             </p>
             {group.items.map((section) => {
@@ -161,14 +169,14 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
                   onClick={() => onSectionChange(section.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all relative ${
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-lg"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      ? "bg-orange-500 text-white shadow-lg"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   }`}
                 >
                   <Icon className="h-5 w-5" />
                   {section.label}
                   {showBadge && (
-                    <span className="ml-auto w-5 h-5 rounded-full bg-destructive flex items-center justify-center shrink-0">
+                    <span className="ml-auto w-5 h-5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center shrink-0">
                       <span className="text-[10px] text-white font-bold">{badgeCount > 99 ? "99+" : badgeCount}</span>
                     </span>
                   )}
@@ -179,16 +187,16 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         ))}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border space-y-2">
+      <div className="p-4 border-t border-gray-200 space-y-2">
         <div className="flex justify-center">
-          <LanguageToggle />
+          <LanguageToggle light />
         </div>
         <button
           onClick={() => onSectionChange("settings")}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all ${
             activeSection === "settings"
-              ? "bg-primary text-primary-foreground shadow-lg"
-              : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              ? "bg-orange-500 text-white shadow-lg"
+              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
           }`}
         >
           <Settings className="h-5 w-5" />
@@ -196,7 +204,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
         </button>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/60 hover:text-destructive hover:bg-sidebar-accent font-body text-sm transition-all"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:text-destructive hover:bg-gray-100 font-body text-sm transition-all"
         >
           <LogOut className="h-5 w-5" />
           {t.dashboard.sidebar.logout}

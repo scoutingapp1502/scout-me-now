@@ -54,15 +54,15 @@ function RadioSheet<T extends string>({
   return (
     <>
       <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} />
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[61] w-full max-w-sm bg-background rounded-t-2xl shadow-2xl pb-6">
-        <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-border" /></div>
-        <p className="text-center text-sm font-semibold text-foreground font-body py-3 border-b border-border">{title}</p>
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[61] w-full max-w-sm bg-white rounded-t-2xl shadow-2xl pb-6">
+        <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-gray-200" /></div>
+        <p className="text-center text-sm font-semibold text-gray-900 font-body py-3 border-b border-gray-200">{title}</p>
         {options.map(opt => (
           <button key={opt.value} onClick={() => { onChange(opt.value); onClose(); }}
-            className="w-full flex items-center justify-between px-5 py-4 text-sm font-body text-foreground hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0">
+            className="w-full flex items-center justify-between px-5 py-4 text-sm font-body text-gray-900 hover:bg-gray-100/30 transition-colors border-b border-gray-200/40 last:border-0">
             <span>{lang === "ro" ? opt.labelRo : opt.labelEn}</span>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${value === opt.value ? "border-foreground" : "border-muted-foreground/40"}`}>
-              {value === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${value === opt.value ? "border-gray-900" : "border-gray-300/40"}`}>
+              {value === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-gray-900" />}
             </div>
           </button>
         ))}
@@ -89,28 +89,28 @@ function AuthorSheet({
   return (
     <>
       <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} />
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[61] w-full max-w-sm bg-background rounded-t-2xl shadow-2xl flex flex-col max-h-[75vh]">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[61] w-full max-w-sm bg-white rounded-t-2xl shadow-2xl flex flex-col max-h-[75vh]">
         {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0"><div className="w-10 h-1 rounded-full bg-border" /></div>
+        <div className="flex justify-center pt-3 pb-1 shrink-0"><div className="w-10 h-1 rounded-full bg-gray-200" /></div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
-          <p className="text-sm font-semibold text-foreground font-body">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 shrink-0">
+          <p className="text-sm font-semibold text-gray-900 font-body">
             {lang === "ro" ? "Filtrează după autor" : "Filter by Author"}
           </p>
-          <button onClick={() => { setPicked(null); }} className="text-sm font-body text-primary hover:opacity-80">
+          <button onClick={() => { setPicked(null); }} className="text-sm font-body text-orange-500 hover:opacity-80">
             {lang === "ro" ? "Resetează" : "Clear"}
           </button>
         </div>
 
         {/* Search */}
         <div className="px-4 py-2 shrink-0">
-          <div className="flex items-center gap-2 bg-muted rounded-full px-3 py-2">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-2">
+            <Search className="h-4 w-4 text-gray-500 shrink-0" />
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder={lang === "ro" ? "Caută" : "Search"}
-              className="flex-1 bg-transparent text-sm outline-none border-none font-body text-foreground placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent text-sm outline-none border-none font-body text-gray-900 placeholder:text-gray-500"
               autoFocus
             />
           </div>
@@ -120,30 +120,30 @@ function AuthorSheet({
         <div className="flex-1 overflow-y-auto">
           {filtered.map(a => (
             <button key={a.user_id} onClick={() => setPicked(p => p === a.user_id ? null : a.user_id)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/30 last:border-0">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0">
-                {a.photo ? <img src={a.photo} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-muted-foreground" />}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100/30 transition-colors border-b border-gray-200/30 last:border-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
+                {a.photo ? <img src={a.photo} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-gray-500" />}
               </div>
               <div className="flex-1 text-left">
-                <p className="text-sm font-body text-foreground">{a.name}</p>
+                <p className="text-sm font-body text-gray-900">{a.name}</p>
               </div>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${picked === a.user_id ? "border-foreground" : "border-muted-foreground/40"}`}>
-                {picked === a.user_id && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${picked === a.user_id ? "border-gray-900" : "border-gray-300/40"}`}>
+                {picked === a.user_id && <div className="w-2.5 h-2.5 rounded-full bg-gray-900" />}
               </div>
             </button>
           ))}
           {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8 font-body">
+            <p className="text-sm text-gray-500 text-center py-8 font-body">
               {lang === "ro" ? "Niciun rezultat." : "No results."}
             </p>
           )}
         </div>
 
         {/* Apply button */}
-        <div className="shrink-0 px-4 py-4 border-t border-border">
+        <div className="shrink-0 px-4 py-4 border-t border-gray-200">
           <button
             onClick={() => { onApply(picked); onClose(); }}
-            className="w-full py-3 rounded-full bg-primary text-primary-foreground text-sm font-semibold font-body hover:bg-primary/90 transition-colors"
+            className="w-full py-3 rounded-full bg-orange-500 text-white text-sm font-semibold font-body hover:bg-orange-600 transition-colors"
           >
             {lang === "ro" ? "Aplică" : "Apply"}
           </button>
@@ -157,7 +157,7 @@ function AuthorSheet({
 function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-body border transition-colors shrink-0 ${active ? "border-primary text-primary" : "border-border text-foreground hover:bg-muted/40"}`}>
+      className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-body border transition-colors shrink-0 ${active ? "border-orange-500 text-orange-500" : "border-gray-200 text-gray-900 hover:bg-gray-100/40"}`}>
       {label}<ChevronDown className="h-3 w-3" />
     </button>
   );
@@ -281,26 +281,26 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
   const authorPillLabel = authorName || (lang === "ro" ? "Toți autorii" : "All authors");
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
         {selectMode ? (
           <div className="w-6" />
         ) : (
-          <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+          <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900">
           {lang === "ro" ? "Aprecieri" : "Likes"}
         </h2>
         <div className="ml-auto">
           {selectMode ? (
-            <button onClick={exitSelectMode} className="text-sm font-body text-primary hover:opacity-80">
+            <button onClick={exitSelectMode} className="text-sm font-body text-orange-500 hover:opacity-80">
               {lang === "ro" ? "Anulează" : "Cancel"}
             </button>
           ) : (
-            <button onClick={() => setSelectMode(true)} className="text-sm font-body text-primary hover:opacity-80">
+            <button onClick={() => setSelectMode(true)} className="text-sm font-body text-orange-500 hover:opacity-80">
               {lang === "ro" ? "Selectează" : "Select"}
             </button>
           )}
@@ -308,7 +308,7 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 px-3 py-2.5 border-b border-border overflow-x-auto scrollbar-none shrink-0">
+      <div className="flex gap-2 px-3 py-2.5 border-b border-gray-200 overflow-x-auto scrollbar-none shrink-0">
         <Pill label={lang === "ro" ? sortLabel.labelRo : sortLabel.labelEn} active={sort !== "newest"} onClick={() => setSheet("sort")} />
         <Pill label={lang === "ro" ? dateLabel.labelRo : dateLabel.labelEn} active={dateFilter !== "all"} onClick={() => setSheet("date")} />
         <Pill label={lang === "ro" ? typeLabel.labelRo : typeLabel.labelEn} active={typeFilter !== "all"} onClick={() => setSheet("type")} />
@@ -319,11 +319,11 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center py-16">
-            <p className="text-sm text-muted-foreground font-body">{lang === "ro" ? "Nicio postare găsită." : "No posts found."}</p>
+            <p className="text-sm text-gray-500 font-body">{lang === "ro" ? "Nicio postare găsită." : "No posts found."}</p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-0.5">
@@ -333,15 +333,15 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
                 <button
                   key={lp.likeId}
                   onClick={() => selectMode ? toggleSelectItem(lp.likeId) : setSelectedPost(lp)}
-                  className={`aspect-square overflow-hidden bg-muted relative ${isSelected ? "opacity-80" : ""}`}
+                  className={`aspect-square overflow-hidden bg-gray-100 relative ${isSelected ? "opacity-80" : ""}`}
                 >
                   {lp.post.image_url ? (
                     <img src={lp.post.image_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
                   ) : lp.post.video_url ? (
-                    <div className="w-full h-full bg-muted/60 flex items-center justify-center"><Video className="h-6 w-6 text-white/80" /></div>
+                    <div className="w-full h-full bg-gray-100/60 flex items-center justify-center"><Video className="h-6 w-6 text-white/80" /></div>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center p-2 bg-muted/40">
-                      <p className="text-[10px] text-muted-foreground font-body text-center line-clamp-4">{lp.post.content}</p>
+                    <div className="w-full h-full flex items-center justify-center p-2 bg-gray-100/40">
+                      <p className="text-[10px] text-gray-500 font-body text-center line-clamp-4">{lp.post.content}</p>
                     </div>
                   )}
                   {lp.author?.photo && !selectMode && (
@@ -351,7 +351,7 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
                   )}
                   {/* Select circle */}
                   {selectMode && (
-                    <div className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "bg-primary border-primary" : "bg-black/30 border-white/70"}`}>
+                    <div className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "bg-orange-500 border-orange-500" : "bg-black/30 border-white/70"}`}>
                       {isSelected && (
                         <svg viewBox="0 0 12 12" className="w-3.5 h-3.5 fill-none stroke-white stroke-2">
                           <polyline points="2,6 5,9 10,3" strokeLinecap="round" strokeLinejoin="round" />
@@ -368,7 +368,7 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
 
       {/* Unlike bottom bar */}
       {selectMode && (
-        <div className="shrink-0 border-t border-border px-4 py-3 bg-background">
+        <div className="shrink-0 border-t border-gray-200 px-4 py-3 bg-white">
           <button
             onClick={handleUnlikeSelected}
             disabled={selectedIds.size === 0 || unliking}

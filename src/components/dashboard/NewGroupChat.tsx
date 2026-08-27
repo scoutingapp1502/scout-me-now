@@ -209,17 +209,17 @@ export default function NewGroupChat({ currentUserId, lang, onBack, onCreated }:
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
       {/* Header */}
-      <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-2 text-muted-foreground hover:text-foreground shrink-0">
+      <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-2 text-gray-500 hover:text-gray-900 shrink-0">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="flex-1 font-display text-base text-foreground">
+        <h2 className="flex-1 font-display text-base text-gray-900">
           {lang === "ro" ? "Grup nou" : "New group chat"}
         </h2>
         <button
           onClick={handleCreate}
           disabled={selected.size === 0 || creating}
-          className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-40 transition-opacity"
+          className="px-4 py-1.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
         >
           {creating ? "..." : (lang === "ro" ? "Creează" : "Create")}
         </button>
@@ -227,33 +227,33 @@ export default function NewGroupChat({ currentUserId, lang, onBack, onCreated }:
 
       <div className="flex-1 overflow-y-auto">
         {/* Group name input */}
-        <div className="px-4 pt-4 pb-3 border-b border-border">
+        <div className="px-4 pt-4 pb-3 border-b border-gray-200">
           <input
             value={groupName}
             onChange={e => setGroupName(e.target.value)}
             placeholder={lang === "ro" ? "Nume grup (opțional)" : "Group name (optional)"}
-            className="w-full bg-muted rounded-xl px-4 py-3 text-sm font-body outline-none text-foreground placeholder:text-muted-foreground"
+            className="w-full bg-gray-100 rounded-xl px-4 py-3 text-sm font-body outline-none text-gray-900 placeholder:text-gray-500"
           />
         </div>
 
         {/* Search */}
-        <div className="px-4 py-3 border-b border-border">
+        <div className="px-4 py-3 border-b border-gray-200">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={lang === "ro" ? "Caută..." : "Search"}
-              className="w-full bg-muted rounded-xl pl-9 pr-4 py-2.5 text-sm font-body outline-none text-foreground placeholder:text-muted-foreground"
+              className="w-full bg-gray-100 rounded-xl pl-9 pr-4 py-2.5 text-sm font-body outline-none text-gray-900 placeholder:text-gray-500"
             />
           </div>
         </div>
 
         {/* Selected chips */}
         {selectedUsers.length > 0 && (
-          <div className="flex gap-2 flex-wrap px-4 py-3 border-b border-border">
+          <div className="flex gap-2 flex-wrap px-4 py-3 border-b border-gray-200">
             {selectedUsers.map(u => (
-              <button key={u.userId} onClick={() => toggle(u.userId)} className="flex items-center gap-1.5 bg-primary/15 text-primary rounded-full px-3 py-1 text-xs font-semibold">
+              <button key={u.userId} onClick={() => toggle(u.userId)} className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full px-3 py-1 text-xs font-semibold">
                 {u.name}
                 <X className="h-3 w-3" />
               </button>
@@ -265,7 +265,7 @@ export default function NewGroupChat({ currentUserId, lang, onBack, onCreated }:
         {displayList.length > 0 && (
           <>
             {!searchQuery.trim() && (
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-4 pb-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 pt-4 pb-2">
                 {lang === "ro" ? "Sugerat" : "Suggested"}
               </p>
             )}
@@ -275,23 +275,23 @@ export default function NewGroupChat({ currentUserId, lang, onBack, onCreated }:
                 <button
                   key={u.userId}
                   onClick={() => toggle(u.userId)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition-colors text-left"
                 >
                   <Avatar className="h-12 w-12 shrink-0">
                     <AvatarImage src={u.photo ?? undefined} />
-                    <AvatarFallback className="bg-muted">{(u.name || "?")[0]?.toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="bg-gray-100">{(u.name || "?")[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold font-body text-foreground truncate">{u.name}</p>
+                      <p className="text-sm font-semibold font-body text-gray-900 truncate">{u.name}</p>
                       {u.role && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium shrink-0">
                           {getRoleLabel(u.role, lang)}
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"}`}>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-primary border-primary" : "border-gray-300"}`}>
                     {isSelected && (
                       <svg viewBox="0 0 10 8" className="w-3 h-3 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth={2}>
                         <path d="M1 4l3 3 5-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -305,7 +305,7 @@ export default function NewGroupChat({ currentUserId, lang, onBack, onCreated }:
         )}
 
         {searchQuery.trim() && searchResults.length === 0 && (
-          <p className="text-sm text-muted-foreground font-body text-center py-10">
+          <p className="text-sm text-gray-500 font-body text-center py-10">
             {lang === "ro" ? "Niciun utilizator găsit." : "No users found."}
           </p>
         )}

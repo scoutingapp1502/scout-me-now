@@ -107,16 +107,16 @@ export default function TimeManagementSection({ userId, onBack }: TimeManagement
   const selectedDay = selectedDate ? days.find(d => d.date === selectedDate) ?? null : null;
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900">
           {lang === "ro" ? "Gestionarea timpului" : "Time management"}
         </h2>
-        <button className="ml-auto p-1 text-muted-foreground hover:text-foreground">
+        <button className="ml-auto p-1 text-gray-500 hover:text-gray-900">
           <Info className="h-5 w-5" />
         </button>
       </div>
@@ -124,7 +124,7 @@ export default function TimeManagementSection({ userId, onBack }: TimeManagement
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
           </div>
         ) : (
           <>
@@ -132,26 +132,26 @@ export default function TimeManagementSection({ userId, onBack }: TimeManagement
             <div className="px-5 pt-6 pb-4">
               {selectedDay ? (
                 <>
-                  <p className="text-4xl font-bold text-foreground font-heading">{formatDuration(selectedDay.seconds, lang)}</p>
-                  <p className="text-sm font-semibold text-foreground font-body mt-1">
+                  <p className="text-4xl font-bold text-gray-900 font-heading">{formatDuration(selectedDay.seconds, lang)}</p>
+                  <p className="text-sm font-semibold text-gray-900 font-body mt-1">
                     {selectedDay.isToday
                       ? (lang === "ro" ? "Azi" : "Today")
                       : new Date(selectedDay.date).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", { weekday: "long", day: "numeric", month: "long" })}
                   </p>
                   <button
                     onClick={() => setSelectedDate(null)}
-                    className="text-xs text-primary font-body font-medium mt-1"
+                    className="text-xs text-orange-500 font-body font-medium mt-1"
                   >
                     {lang === "ro" ? "Înapoi la medie" : "Back to average"}
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="text-4xl font-bold text-foreground font-heading">{formatDuration(avgSeconds, lang)}</p>
-                  <p className="text-sm font-semibold text-foreground font-body mt-1">
+                  <p className="text-4xl font-bold text-gray-900 font-heading">{formatDuration(avgSeconds, lang)}</p>
+                  <p className="text-sm font-semibold text-gray-900 font-body mt-1">
                     {lang === "ro" ? "Medie zilnică" : "Daily average"}
                   </p>
-                  <p className="text-xs text-muted-foreground font-body mt-1 leading-relaxed">
+                  <p className="text-xs text-gray-500 font-body mt-1 leading-relaxed">
                     {lang === "ro"
                       ? "Timpul mediu petrecut pe zi în SportRise în ultima săptămână. Apasă pe o zi pentru detalii."
                       : "Average time spent per day using SportRise in the last week. Tap a day for details."}
@@ -176,12 +176,12 @@ export default function TimeManagementSection({ userId, onBack }: TimeManagement
                       <div className="w-full flex items-end justify-center" style={{ height: "112px" }}>
                         <div
                           className={`w-full rounded-t-md transition-all ${
-                            isSelected ? "bg-foreground" : day.isToday ? "bg-primary" : "bg-primary/50"
+                            isSelected ? "bg-gray-900" : day.isToday ? "bg-orange-500" : "bg-orange-200"
                           }`}
                           style={{ height: `${heightPct}%`, minHeight: day.seconds > 0 ? "6px" : "2px" }}
                         />
                       </div>
-                      <span className={`text-[10px] font-body ${isSelected || day.isToday ? "font-bold text-foreground" : "text-muted-foreground"}`}>
+                      <span className={`text-[10px] font-body ${isSelected || day.isToday ? "font-bold text-gray-900" : "text-gray-500"}`}>
                         {day.label}
                       </span>
                     </button>
@@ -190,11 +190,11 @@ export default function TimeManagementSection({ userId, onBack }: TimeManagement
               </div>
             </div>
 
-            <div className="border-t border-border" />
+            <div className="border-t border-gray-200" />
 
             {/* This week summary */}
             <div className="px-5 py-4">
-              <p className="text-xs text-muted-foreground font-body">
+              <p className="text-xs text-gray-500 font-body">
                 {lang === "ro"
                   ? `Total săptămâna aceasta: ${formatDuration(totalSeconds, lang)}`
                   : `This week's total: ${formatDuration(totalSeconds, lang)}`}

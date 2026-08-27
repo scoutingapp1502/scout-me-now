@@ -68,48 +68,48 @@ export default function SleepModeSection({ onBack }: SleepModeSectionProps) {
     : (lang === "ro" ? "Modul somn este dezactivat." : "Sleep mode is off.");
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900">
           {lang === "ro" ? "Mod somn" : "Sleep mode"}
         </h2>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5">
         {/* Toggle row */}
-        <div className="flex items-center justify-between py-5 border-b border-border">
-          <span className="text-sm font-body text-foreground font-medium">
+        <div className="flex items-center justify-between py-5 border-b border-gray-200">
+          <span className="text-sm font-body text-gray-900 font-medium">
             {lang === "ro" ? "Mod somn" : "Sleep mode"}
           </span>
           <button
             onClick={() => update({ enabled: !config.enabled })}
-            className={`relative w-12 h-6 rounded-full transition-colors ${config.enabled ? "bg-primary" : "bg-muted-foreground/30"}`}
+            className={`relative w-12 h-6 rounded-full transition-colors ${config.enabled ? "bg-orange-500" : "bg-gray-300"}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${config.enabled ? "translate-x-6" : "translate-x-0.5"}`} />
           </button>
         </div>
 
         {/* Description */}
-        <p className="text-xs text-muted-foreground font-body py-3 leading-relaxed border-b border-border">
+        <p className="text-xs text-gray-500 font-body py-3 leading-relaxed border-b border-gray-200">
           {lang === "ro"
             ? "Setează un interval orar de liniște, doar ca reamintire personală. Aplicația nu trimite notificări push în acest moment, iar statusul nu este afișat public."
             : "Set a quiet-hours reminder for yourself. The app doesn't send push notifications right now, and this status isn't shown to other people."}
         </p>
 
         {/* Start time */}
-        <div className={`border-b border-border transition-opacity ${!config.enabled ? "opacity-40 pointer-events-none" : ""}`}>
+        <div className={`border-b border-gray-200 transition-opacity ${!config.enabled ? "opacity-40 pointer-events-none" : ""}`}>
           <button
             className="w-full flex items-center justify-between py-4"
             onClick={() => setOpenPicker(openPicker === "start" ? null : "start")}
           >
-            <span className="text-sm font-body text-foreground">
+            <span className="text-sm font-body text-gray-900">
               {lang === "ro" ? "Oră de început" : "Start time"}
             </span>
-            <span className="text-sm font-body text-primary font-medium">{config.startTime}</span>
+            <span className="text-sm font-body text-orange-500 font-medium">{config.startTime}</span>
           </button>
           {openPicker === "start" && (
             <div className="pb-3">
@@ -119,15 +119,15 @@ export default function SleepModeSection({ onBack }: SleepModeSectionProps) {
         </div>
 
         {/* End time */}
-        <div className={`border-b border-border transition-opacity ${!config.enabled ? "opacity-40 pointer-events-none" : ""}`}>
+        <div className={`border-b border-gray-200 transition-opacity ${!config.enabled ? "opacity-40 pointer-events-none" : ""}`}>
           <button
             className="w-full flex items-center justify-between py-4"
             onClick={() => setOpenPicker(openPicker === "end" ? null : "end")}
           >
-            <span className="text-sm font-body text-foreground">
+            <span className="text-sm font-body text-gray-900">
               {lang === "ro" ? "Oră de sfârșit" : "End time"}
             </span>
-            <span className="text-sm font-body text-primary font-medium">{config.endTime}</span>
+            <span className="text-sm font-body text-orange-500 font-medium">{config.endTime}</span>
           </button>
           {openPicker === "end" && (
             <div className="pb-3">
@@ -137,8 +137,8 @@ export default function SleepModeSection({ onBack }: SleepModeSectionProps) {
         </div>
 
         {/* Choose days */}
-        <div className={`py-4 border-b border-border transition-opacity ${!config.enabled ? "opacity-40 pointer-events-none" : ""}`}>
-          <p className="text-sm font-body text-foreground mb-3">
+        <div className={`py-4 border-b border-gray-200 transition-opacity ${!config.enabled ? "opacity-40 pointer-events-none" : ""}`}>
+          <p className="text-sm font-body text-gray-900 mb-3">
             {lang === "ro" ? "Alege zilele" : "Choose days"}
           </p>
           <div className="flex items-center gap-2">
@@ -146,7 +146,7 @@ export default function SleepModeSection({ onBack }: SleepModeSectionProps) {
               <button
                 key={i}
                 onClick={() => toggleDay(i)}
-                className={`w-9 h-9 rounded-full text-xs font-body font-medium transition-colors ${config.days[i] ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                className={`w-9 h-9 rounded-full text-xs font-body font-medium transition-colors ${config.days[i] ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-100/70"}`}
               >
                 {label}
               </button>
@@ -155,16 +155,16 @@ export default function SleepModeSection({ onBack }: SleepModeSectionProps) {
         </div>
 
         {/* Status */}
-        <p className="text-xs text-muted-foreground font-body py-4">
+        <p className="text-xs text-gray-500 font-body py-4">
           {statusText}
         </p>
       </div>
 
       {/* Save button */}
-      <div className="shrink-0 px-5 py-4 border-t border-border">
+      <div className="shrink-0 px-5 py-4 border-t border-gray-200">
         <button
           onClick={handleSave}
-          className={`w-full py-3.5 rounded-full text-sm font-semibold font-body transition-colors ${config.enabled ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground"}`}
+          className={`w-full py-3.5 rounded-full text-sm font-semibold font-body transition-colors ${config.enabled ? "bg-orange-500 text-white hover:bg-orange-500/90" : "bg-gray-100 text-gray-500"}`}
         >
           {lang === "ro" ? "Salvează" : "Save"}
         </button>

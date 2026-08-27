@@ -37,8 +37,8 @@ const FollowersList = ({ followers, onRemove, onViewProfile, onClose, isLocked =
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-display text-foreground flex items-center gap-2">
-          <Users className="h-6 w-6 text-primary" />
+        <h2 className="text-2xl font-display text-gray-900 flex items-center gap-2">
+          <Users className="h-6 w-6 text-orange-500" />
           {lang === "ro" ? "Urmăritori" : "Followers"} ({followers.length})
         </h2>
         <Button variant="ghost" size="sm" onClick={onClose}>
@@ -48,7 +48,7 @@ const FollowersList = ({ followers, onRemove, onViewProfile, onClose, isLocked =
       </div>
 
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
         <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -58,7 +58,7 @@ const FollowersList = ({ followers, onRemove, onViewProfile, onClose, isLocked =
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-muted-foreground text-sm text-center py-12">
+        <p className="text-gray-500 text-sm text-center py-12">
           {search
             ? (lang === "ro" ? "Niciun rezultat găsit." : "No results found.")
             : (lang === "ro" ? "Nu ai urmăritori încă." : "No followers yet.")}
@@ -66,17 +66,17 @@ const FollowersList = ({ followers, onRemove, onViewProfile, onClose, isLocked =
       ) : (
         <div className="space-y-2">
           {filtered.map(f => (
-            <div key={f.id} className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border hover:bg-accent/50 transition-colors">
+            <div key={f.id} className="flex items-center gap-3 p-4 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors">
               <button onClick={() => onViewProfile(f.follower_id, f.role)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                 <Avatar className="h-10 w-10">
                   {f.photo ? <AvatarImage src={f.photo} /> : null}
-                  <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                  <AvatarFallback className="bg-orange-100 text-orange-600 text-sm">
                     {f.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{f.name}</p>
-                  <p className="text-xs text-muted-foreground">{roleLabel(f.role)}</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{f.name}</p>
+                  <p className="text-xs text-gray-500">{roleLabel(f.role)}</p>
                 </div>
               </button>
               <Button

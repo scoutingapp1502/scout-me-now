@@ -9,22 +9,26 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useLanguage } from "@/i18n/LanguageContext";
 
-const ALL_LANGUAGES = [
-  "Română", "Engleză", "Franceză", "Spaniolă", "Germană", "Italiană", "Portugheză",
-  "Olandeză", "Rusă", "Ucraineană", "Poloneză", "Cehă", "Slovacă", "Bulgară",
-  "Sârbă", "Croată", "Maghiară", "Turcă", "Arabă", "Chineză (Mandarină)",
-  "Japoneză", "Coreeană", "Hindi", "Greacă", "Suedeză", "Norvegiană", "Daneză",
-  "Finlandeză", "Catalană", "Bască", "Galiciană", "Ebraică", "Persană",
+const LOCALE_BY_LANG: Record<string, string> = {
+  ro: "ro-RO", en: "en-US", de: "de-DE", fr: "fr-FR", es: "es-ES", it: "it-IT",
+};
+
+const LANGUAGE_CODES = [
+  "ro", "en", "fr", "es", "de", "it", "pt", "nl", "ru", "uk", "pl", "cs", "sk",
+  "bg", "sr", "hr", "hu", "tr", "ar", "zh", "ja", "ko", "hi", "el", "sv", "no",
+  "da", "fi", "ca", "eu", "gl", "he", "fa",
 ];
 
-const PROFICIENCY_LEVELS = [
-  { value: "Nativ", label: "Nativ sau bilingv" },
-  { value: "Avansat", label: "Competență profesională completă" },
-  { value: "Intermediar-Avansat", label: "Competență profesională limitată" },
-  { value: "Intermediar", label: "Competență elementară profesională" },
-  { value: "Începător", label: "Competență elementară" },
-];
+function getLanguageNames(locale: string): string[] {
+  try {
+    const dn = new Intl.DisplayNames([locale], { type: "language" });
+    return LANGUAGE_CODES.map((code) => dn.of(code) || code);
+  } catch {
+    return LANGUAGE_CODES;
+  }
+}
 
 interface ScoutExtraSectionsProps {
   userId: string;
@@ -45,6 +49,10 @@ type Certification = {
 
 const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProps) => {
   const { toast } = useToast();
+  const { lang, t } = useLanguage();
+  const te = t.dashboard.scoutExtra;
+  const ALL_LANGUAGES = getLanguageNames(LOCALE_BY_LANG[lang] || "en-US");
+  const PROFICIENCY_LEVELS = te.proficiencyLevels;
   const [saving, setSaving] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
@@ -105,9 +113,9 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       if (data) setCertifications(data as Certification[]);
       setShowCertDialog(false);
       notifyProfileUpdated();
-      toast({ title: "Licență/atestat adăugat!" });
+      toast({ title: te.certAddedToast });
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
   };
 
@@ -117,9 +125,9 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       if (error) throw error;
       setCertifications(prev => prev.filter(c => c.id !== id));
       notifyProfileUpdated();
-      toast({ title: "Licență/atestat eliminat!" });
+      toast({ title: te.certRemovedToast });
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
     }
   };
 
@@ -133,9 +141,9 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       const { data: urlData } = supabase.storage.from("scout-documents").getPublicUrl(path);
       const currentDocs = certForm.documents || [];
       setCertForm(prev => ({ ...prev, documents: [...currentDocs, urlData.publicUrl] }));
-      toast({ title: "Document încărcat!" });
+      toast({ title: te.docUploadedToast });
     } catch (err: any) {
-      toast({ title: "Eroare la încărcare", description: err.message, variant: "destructive" });
+      toast({ title: te.docUploadErrorTitle, description: err.message, variant: "destructive" });
     } finally { setUploadingDoc(false); }
   };
 
@@ -157,7 +165,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
 
   // === Languages ===
   const handleAddLanguage = async () => {
-    if (!langInput.trim()) { setLangError("Acest câmp este obligatoriu"); return; }
+    if (!langInput.trim()) { setLangError(te.langRequiredError); return; }
     const entry = langLevel ? `${langInput.trim()} - ${langLevel}` : langInput.trim();
     const updated = [...languages, entry];
     setSaving(true);
@@ -168,9 +176,9 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       setShowLangDialog(false);
       setLangInput(""); setLangLevel(""); setLangError(""); setLangSuggestions([]);
       notifyProfileUpdated();
-      toast({ title: "Limbă adăugată!" });
+      toast({ title: te.langAddedToast });
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
   };
 
@@ -181,9 +189,9 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       if (error) throw error;
       setLanguages(updated);
       notifyProfileUpdated();
-      toast({ title: "Limbă eliminată!" });
+      toast({ title: te.langRemovedToast });
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
     }
   };
 
@@ -204,62 +212,62 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   return (
     <>
       {/* ===== LICENȚE ȘI ATESTATE ===== */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="font-display text-2xl text-foreground">Licențe și Atestate</h2>
+            <h2 className="font-display text-2xl text-gray-900">{te.certTitle}</h2>
             {!readOnly && <Popover>
               <PopoverTrigger asChild>
-                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru licențe">
+                <button className="text-gray-500 hover:text-orange-500 transition-colors" aria-label={te.certTipsAria}>
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru licențe și atestate:</p>
-                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>Adaugă licențele de antrenor/scouter (ex: UEFA A, B, Pro)</li>
-                  <li>Include atestatele de scouting sau analiză sportivă</li>
-                  <li>Menționează organizația care a emis certificarea</li>
-                  <li>Adaugă link-ul de verificare dacă este disponibil</li>
-                  <li>Include data obținerii și data expirării (dacă e cazul)</li>
+              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{te.certTipsTitle}</p>
+                <ul className="list-disc pl-4 space-y-1 text-gray-500">
+                  <li>{te.certTip1}</li>
+                  <li>{te.certTip2}</li>
+                  <li>{te.certTip3}</li>
+                  <li>{te.certTip4}</li>
+                  <li>{te.certTip5}</li>
                 </ul>
               </PopoverContent>
             </Popover>}
           </div>
           {!readOnly && (
-            <button onClick={openCertDialog} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Adaugă licență">
-              <Edit2 className="h-4 w-4" />
+            <button onClick={openCertDialog} className="group text-gray-900 hover:text-gray-400 transition-colors p-1" aria-label={te.addCertAria}>
+              <Edit2 className="h-4 w-4 stroke-[2.5] group-hover:stroke-[1.5]" />
             </button>
           )}
         </div>
 
         <div className="space-y-4">
           {certifications.length === 0 && (
-            <p className="text-muted-foreground italic text-sm font-body">Nicio licență sau atestat adăugat.</p>
+            <p className="text-gray-500 italic text-sm font-body">{te.noCertsYet}</p>
           )}
           {certifications.map((cert) => (
             <div key={cert.id} className="flex gap-4 group">
               <div className="flex-shrink-0 mt-1">
-                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                  <BadgeCheck className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <BadgeCheck className="h-6 w-6 text-orange-500" />
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-body font-semibold text-foreground">{cert.name || "Certificare nespecificată"}</h3>
-                <p className="text-foreground/70 font-body text-sm">{cert.issuing_organization}</p>
-                <p className="text-muted-foreground font-body text-xs mt-0.5">
-                  {cert.issue_date && <span>Obținut: {cert.issue_date}</span>}
-                  {cert.expiry_date && <span> · Expiră: {cert.expiry_date}</span>}
+                <h3 className="font-body font-semibold text-gray-900">{cert.name || te.certUnspecified}</h3>
+                <p className="text-gray-600 font-body text-sm">{cert.issuing_organization}</p>
+                <p className="text-gray-500 font-body text-xs mt-0.5">
+                  {cert.issue_date && <span>{te.obtainedLabel} {cert.issue_date}</span>}
+                  {cert.expiry_date && <span> · {te.expiresLabel} {cert.expiry_date}</span>}
                 </p>
                 {cert.credential_url && (
-                  <a href={cert.credential_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline mt-1 inline-block">
-                    Verifică acreditarea →
+                  <a href={cert.credential_url} target="_blank" rel="noopener noreferrer" className="text-orange-500 text-xs hover:underline mt-1 inline-block">
+                    {te.verifyCredentialLink}
                   </a>
                 )}
                 {cert.documents && cert.documents.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {cert.documents.map((doc, di) => (
-                      <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md text-xs text-foreground/70 hover:text-primary transition-colors font-body">
+                      <button key={di} onClick={() => openDocSafely(doc)} className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-md text-xs text-gray-600 hover:text-orange-500 transition-colors font-body">
                         <FileText className="h-3.5 w-3.5" />
                         {decodeURIComponent(doc.split("/").pop() || "Document")}
                       </button>
@@ -268,7 +276,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                 )}
               </div>
               {!readOnly && cert.id && (
-                <button onClick={() => handleDeleteCertification(cert.id!)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 self-start">
+                <button onClick={() => handleDeleteCertification(cert.id!)} className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-destructive transition-all p-1 self-start">
                   <Trash2 className="h-4 w-4" />
                 </button>
               )}
@@ -278,38 +286,38 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
       </div>
 
       {/* ===== LIMBI CUNOSCUTE ===== */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="font-display text-2xl text-foreground">Limbi cunoscute</h2>
+            <h2 className="font-display text-2xl text-gray-900">{te.langTitle}</h2>
             {!readOnly && <Popover>
               <PopoverTrigger asChild>
-                <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi pentru limbi">
+                <button className="text-gray-500 hover:text-orange-500 transition-colors" aria-label={te.langTipsAria}>
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-card border-border">
-                <p className="font-semibold text-foreground mb-2">💡 Sfaturi pentru limbi cunoscute:</p>
-                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>Adaugă toate limbile pe care le vorbești</li>
-                  <li>Limbile străine sunt un avantaj major în scouting internațional</li>
-                  <li>Specifică nivelul de competență pentru fiecare limbă</li>
+              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{te.langTipsTitle}</p>
+                <ul className="list-disc pl-4 space-y-1 text-gray-500">
+                  <li>{te.langTip1}</li>
+                  <li>{te.langTip2}</li>
+                  <li>{te.langTip3}</li>
                 </ul>
               </PopoverContent>
             </Popover>}
           </div>
           {!readOnly && (
-            <button onClick={() => { setLangInput(""); setLangLevel(""); setLangError(""); setLangSuggestions([]); setShowLangDialog(true); }} className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-accent/50" title="Editează">
-              <Edit2 className="h-4 w-4" />
+            <button onClick={() => { setLangInput(""); setLangLevel(""); setLangError(""); setLangSuggestions([]); setShowLangDialog(true); }} className="group text-gray-900 hover:text-gray-400 transition-colors p-1" aria-label={t.dashboard.scoutProfile.editAria}>
+              <Edit2 className="h-4 w-4 stroke-[2.5] group-hover:stroke-[1.5]" />
             </button>
           )}
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {languages.length > 0 ? languages.map((lang, i) => (
-            <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground/80 rounded-full text-sm font-body">
-              <Languages className="h-3.5 w-3.5 text-primary" />
-              {lang}
+          {languages.length > 0 ? languages.map((langEntry, i) => (
+            <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-body">
+              <Languages className="h-3.5 w-3.5 text-orange-500" />
+              {langEntry}
               {!readOnly && (
                 <button onClick={() => handleRemoveLanguage(i)} className="ml-1 hover:text-destructive transition-colors">
                   <X className="h-3.5 w-3.5" />
@@ -317,55 +325,55 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
               )}
             </span>
           )) : (
-            <p className="text-muted-foreground italic text-sm font-body">Nicio limbă adăugată.</p>
+            <p className="text-gray-500 italic text-sm font-body">{te.noLangsYet}</p>
           )}
         </div>
       </div>
 
       {/* === Certification Dialog === */}
       <Dialog open={showCertDialog} onOpenChange={setShowCertDialog}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-white border-gray-200">
           <DialogHeader>
-            <DialogTitle className="text-foreground font-display text-xl">Adaugă licență / atestat</DialogTitle>
+            <DialogTitle className="text-gray-900 font-display text-xl">{te.addCertDialogTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">Denumire*</Label>
-              <Input value={certForm.name || ""} onChange={e => setCertForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: UEFA B License" className="bg-background border-border text-foreground text-sm" />
+              <Label className="text-gray-900 text-sm">{te.nameLabel}</Label>
+              <Input value={certForm.name || ""} onChange={e => setCertForm(p => ({ ...p, name: e.target.value }))} placeholder={te.namePlaceholder} className="bg-white border-gray-200 text-gray-900 text-sm" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">Organizație emitentă*</Label>
-              <Input value={certForm.issuing_organization || ""} onChange={e => setCertForm(p => ({ ...p, issuing_organization: e.target.value }))} placeholder="Ex: UEFA" className="bg-background border-border text-foreground text-sm" />
+              <Label className="text-gray-900 text-sm">{te.issuingOrgLabel}</Label>
+              <Input value={certForm.issuing_organization || ""} onChange={e => setCertForm(p => ({ ...p, issuing_organization: e.target.value }))} placeholder={te.issuingOrgPlaceholder} className="bg-white border-gray-200 text-gray-900 text-sm" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
-                <Label className="text-foreground text-sm">Data obținerii</Label>
-                <Input value={certForm.issue_date || ""} onChange={e => setCertForm(p => ({ ...p, issue_date: e.target.value }))} placeholder="Ex: 2023" className="bg-background border-border text-foreground text-sm" />
+                <Label className="text-gray-900 text-sm">{te.issueDateLabel}</Label>
+                <Input value={certForm.issue_date || ""} onChange={e => setCertForm(p => ({ ...p, issue_date: e.target.value }))} placeholder={te.issueDatePlaceholder} className="bg-white border-gray-200 text-gray-900 text-sm" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-foreground text-sm">Data expirării</Label>
-                <Input value={certForm.expiry_date || ""} onChange={e => setCertForm(p => ({ ...p, expiry_date: e.target.value }))} placeholder="Opțional" className="bg-background border-border text-foreground text-sm" />
+                <Label className="text-gray-900 text-sm">{te.expiryDateLabel}</Label>
+                <Input value={certForm.expiry_date || ""} onChange={e => setCertForm(p => ({ ...p, expiry_date: e.target.value }))} placeholder={te.expiryDatePlaceholder} className="bg-white border-gray-200 text-gray-900 text-sm" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">URL verificare</Label>
-              <Input value={certForm.credential_url || ""} onChange={e => setCertForm(p => ({ ...p, credential_url: e.target.value }))} placeholder="https://..." className="bg-background border-border text-foreground text-sm" />
+              <Label className="text-gray-900 text-sm">{te.verificationUrlLabel}</Label>
+              <Input value={certForm.credential_url || ""} onChange={e => setCertForm(p => ({ ...p, credential_url: e.target.value }))} placeholder="https://..." className="bg-white border-gray-200 text-gray-900 text-sm" />
             </div>
 
             {/* Documents */}
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <Label className="text-foreground text-sm">Documente</Label>
-                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border rounded-md text-sm text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
+                <Label className="text-gray-900 text-sm">{te.documentsLabel}</Label>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:text-orange-500 hover:border-orange-300 cursor-pointer transition-colors">
                   {uploadingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  {uploadingDoc ? "Se încarcă..." : "Încarcă document"}
+                  {uploadingDoc ? te.uploadingDocText : te.uploadDocBtn}
                   <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => { if (e.target.files?.[0]) handleCertDocUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploadingDoc} />
                 </label>
               </div>
               {(certForm.documents || []).map((doc, di) => (
                 <div key={di} className="flex items-center gap-2 text-sm">
-                  <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span className="text-foreground/70 truncate flex-1 font-body">{decodeURIComponent(doc.split("/").pop() || "Document")}</span>
+                  <FileText className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                  <span className="text-gray-600 truncate flex-1 font-body">{decodeURIComponent(doc.split("/").pop() || "Document")}</span>
                   <button type="button" onClick={() => removeCertDoc(di)} className="text-destructive hover:text-destructive/80">
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -374,10 +382,10 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setShowCertDialog(false)} className="border-border text-foreground">Anulează</Button>
-              <Button onClick={handleSaveCertification} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button variant="outline" onClick={() => setShowCertDialog(false)} className="border-gray-200 text-gray-900">{t.dashboard.settings.cancelBtn}</Button>
+              <Button onClick={handleSaveCertification} disabled={saving} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
                 {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                Salvează
+                {t.dashboard.profile.save}
               </Button>
             </div>
           </div>
@@ -386,21 +394,21 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
 
       {/* === Language Dialog === */}
       <Dialog open={showLangDialog} onOpenChange={setShowLangDialog}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-white border-gray-200">
           <DialogHeader>
-            <DialogTitle className="text-foreground font-display text-xl">Adăugați o limbă cunoscută</DialogTitle>
+            <DialogTitle className="text-gray-900 font-display text-xl">{te.addLangDialogTitle}</DialogTitle>
           </DialogHeader>
-          <p className="text-muted-foreground text-sm">Identificați-vă singur limba și competențele.</p>
+          <p className="text-gray-500 text-sm">{te.addLangDialogDesc}</p>
 
           <div className="space-y-4 mt-2">
             <div className="space-y-1.5 relative">
-              <Label className="text-foreground text-sm">Limbă*</Label>
+              <Label className="text-gray-900 text-sm">{te.languageLabel}</Label>
               <Input
                 ref={langInputRef}
                 value={langInput}
                 onChange={e => handleLangInputChange(e.target.value)}
-                placeholder="Căutați o limbă..."
-                className="bg-background border-border text-foreground text-sm"
+                placeholder={te.searchLanguagePlaceholder}
+                className="bg-white border-gray-200 text-gray-900 text-sm"
               />
               {langError && (
                 <p className="text-destructive text-xs flex items-center gap-1">
@@ -409,13 +417,13 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                 </p>
               )}
               {langSuggestions.length > 0 && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg overflow-hidden">
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
                   {langSuggestions.map(s => (
                     <button
                       key={s}
                       type="button"
                       onClick={() => { setLangInput(s); setLangSuggestions([]); }}
-                      className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent/50 transition-colors"
+                      className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
                     >
                       {s}
                     </button>
@@ -425,17 +433,17 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">Nivel de competență</Label>
+              <Label className="text-gray-900 text-sm">{te.proficiencyLabel}</Label>
               <Select value={langLevel} onValueChange={setLangLevel}>
-                <SelectTrigger className="bg-background border-border text-foreground text-sm">
-                  <SelectValue placeholder="Selectați competența" />
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900 text-sm">
+                  <SelectValue placeholder={te.selectProficiencyPlaceholder} />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-white border-gray-200">
                   {PROFICIENCY_LEVELS.map(l => (
-                    <SelectItem key={l.value} value={l.value} className="text-foreground">
+                    <SelectItem key={l.value} value={l.value} className="text-gray-900">
                       <div>
                         <span className="font-medium">{l.value}</span>
-                        <span className="text-muted-foreground text-xs ml-2">— {l.label}</span>
+                        <span className="text-gray-500 text-xs ml-2">— {l.label}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -444,10 +452,10 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setShowLangDialog(false)} className="border-border text-foreground">Anulează</Button>
-              <Button onClick={handleAddLanguage} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button variant="outline" onClick={() => setShowLangDialog(false)} className="border-gray-200 text-gray-900">{t.dashboard.settings.cancelBtn}</Button>
+              <Button onClick={handleAddLanguage} disabled={saving} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
                 {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                Salvează
+                {t.dashboard.profile.save}
               </Button>
             </div>
           </div>

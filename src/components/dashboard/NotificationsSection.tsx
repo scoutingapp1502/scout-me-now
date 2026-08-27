@@ -671,7 +671,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
         <Button
           variant="ghost"
           size="sm"
-          className="mb-4 gap-2"
+          className="mb-4 gap-2 text-gray-900 hover:bg-gray-100"
           onClick={() => { setViewProfileUserId(null); setViewProfileRole(null); }}
         >
           <ArrowLeft className="h-4 w-4" />
@@ -685,25 +685,41 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto relative isolate">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-display text-foreground">
+        <h2 className="text-2xl font-display text-gray-900">
           {lang === "ro" ? "Notificări" : "Notifications"}
         </h2>
         {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={handleMarkAllRead} className="gap-2 font-body">
+          <Button variant="outline" size="sm" onClick={handleMarkAllRead} className="gap-2 font-body bg-orange-500 border-orange-500 text-white hover:bg-orange-600 hover:text-white">
             <CheckCheck className="h-4 w-4" />
             {lang === "ro" ? "Marchează toate ca citite" : "Mark all as read"}
           </Button>
         )}
       </div>
 
+      {/* Decorative geometric shape above the list */}
+      <div className="relative h-0 overflow-visible">
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "-24px",
+            right: "-28px",
+            width: "170px",
+            height: "170px",
+            background: "linear-gradient(135deg, #f97316, #fb923c)",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+      </div>
+
       {loading ? (
-        <div className="text-muted-foreground text-center py-12">
+        <div className="text-gray-500 text-center py-12">
           {lang === "ro" ? "Se încarcă..." : "Loading..."}
         </div>
       ) : notifications.length === 0 ? (
-        <div className="text-muted-foreground text-center py-12">
+        <div className="text-gray-500 text-center py-12">
           {lang === "ro" ? "Nu ai notificări încă." : "No notifications yet."}
         </div>
       ) : (
@@ -715,11 +731,11 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
               const followMessage = () => {
                 if (fn.direction === "incoming") {
                   if (fn.status === "pending") return lang === "ro" ? "vrea să te urmărească" : "wants to follow you";
-                  if (fn.status === "accepted") return lang === "ro" ? "ai acceptat cererea de urmărire ✅" : "you accepted the follow request ✅";
+                  if (fn.status === "accepted") return lang === "ro" ? "ai acceptat cererea de urmărire" : "you accepted the follow request";
                   return lang === "ro" ? "ai refuzat cererea de urmărire" : "you rejected the follow request";
                 }
 
-                if (fn.status === "accepted") return lang === "ro" ? "ți-a acceptat cererea de urmărire ✅" : "accepted your follow request ✅";
+                if (fn.status === "accepted") return lang === "ro" ? "ți-a acceptat cererea de urmărire" : "accepted your follow request";
                 return lang === "ro" ? "ți-a refuzat cererea de urmărire" : "rejected your follow request";
               };
 
@@ -729,29 +745,29 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                   onClick={() => handleClickFollowNotification(fn)}
                   className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
                     fn.isRead
-                      ? "bg-card border-border hover:bg-accent/50"
-                      : "bg-primary/5 border-primary/30 hover:bg-primary/10"
+                      ? "bg-white border-gray-200 hover:bg-gray-50"
+                      : "bg-white border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   <div className="shrink-0 w-2.5 flex items-center justify-center">
                     {!fn.isRead && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 animate-pulse" />
                     )}
                   </div>
                   <Avatar className="h-10 w-10">
                     {fn.follower_photo ? <AvatarImage src={fn.follower_photo} /> : null}
-                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                    <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm">
                       {fn.follower_name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${fn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                    <p className={`text-sm ${fn.isRead ? "text-gray-900" : "text-gray-900 font-semibold"}`}>
                       <span className="font-semibold">{fn.follower_name}</span>{" "}
-                      <span className={fn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
+                      <span className={fn.isRead ? "text-gray-500" : "text-gray-900/80"}>
                         {followMessage()}
                       </span>
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-xs text-gray-500 mt-0.5">
                       {roleLabel(fn.follower_role)} · {timeAgo(fn.created_at)}
                     </p>
                   </div>
@@ -776,7 +792,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                         </Button>
                       </>
                     ) : null}
-                    <UserPlus className={`h-4 w-4 shrink-0 ${fn.status === "accepted" ? "text-green-500" : fn.isRead ? "text-primary/50" : "text-primary"}`} />
+                    <UserPlus className={`h-4 w-4 shrink-0 ${fn.status === "accepted" ? "text-green-500" : fn.isRead ? "text-orange-300" : "text-orange-500"}`} />
                   </div>
                 </button>
               );
@@ -791,7 +807,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                 if (cn.status === "sent") return lang === "ro" ? "– cerere de colaborare trimisă" : "– collaboration request sent";
                 if (cn.status === "pending" && isReceiver) return lang === "ro" ? "vrea să colaboreze cu tine" : "wants to collaborate with you";
                 if (cn.status === "pending") return lang === "ro" ? "– cerere în așteptare" : "– request pending";
-                if (cn.status === "accepted") return lang === "ro" ? "– colaborare acceptată ✅" : "– collaboration accepted ✅";
+                if (cn.status === "accepted") return lang === "ro" ? "– colaborare acceptată" : "– collaboration accepted";
                 return lang === "ro" ? "– cerere respinsă" : "– request rejected";
               };
 
@@ -804,29 +820,29 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                   key={cn.id}
                   className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all ${
                     cn.isRead
-                      ? "bg-card border-border"
-                      : "bg-primary/5 border-primary/30"
+                      ? "bg-white border-gray-200"
+                      : "bg-white border-gray-200"
                   }`}
                 >
                   <div className="shrink-0 w-2.5 flex items-center justify-center">
                     {!cn.isRead && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 animate-pulse" />
                     )}
                   </div>
                   <Avatar className="h-10 w-10 cursor-pointer" onClick={() => handleClickCollabNotification(cn)}>
                     {cn.other_photo ? <AvatarImage src={cn.other_photo} /> : null}
-                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                    <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm">
                       {cn.other_name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleClickCollabNotification(cn)}>
-                    <p className={`text-sm ${cn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                    <p className={`text-sm ${cn.isRead ? "text-gray-900" : "text-gray-900 font-semibold"}`}>
                       <span className="font-semibold">{cn.other_name}</span>{" "}
-                      <span className={cn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
+                      <span className={cn.isRead ? "text-gray-500" : "text-gray-900/80"}>
                         {collabMessage()}
                       </span>
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-xs text-gray-500 mt-0.5">
                       {roleText} · {timeAgo(cn.created_at)}
                     </p>
                   </div>
@@ -850,7 +866,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                       </Button>
                     </div>
                   ) : (
-                    <Handshake className={`h-4 w-4 shrink-0 ${cn.status === "accepted" ? "text-green-500" : cn.status === "pending" ? "text-yellow-500" : "text-muted-foreground"}`} />
+                    <Handshake className={`h-4 w-4 shrink-0 ${cn.status === "accepted" ? "text-green-500" : cn.status === "pending" ? "text-yellow-500" : "text-gray-500"}`} />
                   )}
                 </div>
               );
@@ -860,7 +876,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
               const rn = n as RecommendationNotification;
               const recMessage = rn.perspective === "author"
                 ? (lang === "ro" ? "te-a rugat să scrii o recomandare" : "asked you to write a recommendation")
-                : (lang === "ro" ? "a scris o recomandare pentru tine ✅" : "wrote a recommendation for you ✅");
+                : (lang === "ro" ? "a scris o recomandare pentru tine" : "wrote a recommendation for you");
 
               const handleRecClick = () => {
                 handleMarkOneRead(rn.id);
@@ -879,28 +895,28 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                   key={rn.id}
                   onClick={handleRecClick}
                   className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
-                    rn.isRead ? "bg-card border-border hover:bg-accent/50" : "bg-primary/5 border-primary/30 hover:bg-primary/10"
+                    rn.isRead ? "bg-white border-gray-200 hover:bg-gray-50" : "bg-white border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   <div className="shrink-0 w-2.5 flex items-center justify-center">
-                    {!rn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
+                    {!rn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 animate-pulse" />}
                   </div>
                   <Avatar className="h-10 w-10">
                     {rn.other_photo ? <AvatarImage src={rn.other_photo} /> : null}
-                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                    <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm">
                       {rn.other_name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${rn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                    <p className={`text-sm ${rn.isRead ? "text-gray-900" : "text-gray-900 font-semibold"}`}>
                       <span className="font-semibold">{rn.other_name}</span>{" "}
-                      <span className={rn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
+                      <span className={rn.isRead ? "text-gray-500" : "text-gray-900/80"}>
                         {recMessage}
                       </span>
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{timeAgo(rn.created_at)}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{timeAgo(rn.created_at)}</p>
                   </div>
-                  <Star className={`h-4 w-4 shrink-0 ${rn.perspective === "recipient" ? "text-green-500" : rn.isRead ? "text-primary/50" : "text-primary"}`} />
+                  <Star className={`h-4 w-4 shrink-0 ${rn.perspective === "recipient" ? "text-green-500" : rn.isRead ? "text-orange-300" : "text-orange-500"}`} />
                 </button>
               );
             }
@@ -908,7 +924,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
             if (n.type === "video") {
               const vn = n as VideoNotification;
               const testLabel = vn.test_key && vn.player_sport
-                ? getTestLabelByKey(vn.player_sport, vn.test_key)
+                ? getTestLabelByKey(vn.player_sport, vn.test_key, lang)
                 : null;
               const msg = vn.videoType === "highlight"
                 ? (lang === "ro" ? "a adăugat un nou video highlight" : "added a new highlight video")
@@ -926,28 +942,28 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                     setViewProfileRole("player");
                   }}
                   className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
-                    vn.isRead ? "bg-card border-border hover:bg-accent/50" : "bg-primary/5 border-primary/30 hover:bg-primary/10"
+                    vn.isRead ? "bg-white border-gray-200 hover:bg-gray-50" : "bg-white border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   <div className="shrink-0 w-2.5 flex items-center justify-center">
-                    {!vn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
+                    {!vn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 animate-pulse" />}
                   </div>
                   <Avatar className="h-10 w-10">
                     {vn.player_photo ? <AvatarImage src={vn.player_photo} /> : null}
-                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                    <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm">
                       {vn.player_name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${vn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                    <p className={`text-sm ${vn.isRead ? "text-gray-900" : "text-gray-900 font-semibold"}`}>
                       <span className="font-semibold">{vn.player_name}</span>{" "}
-                      <span className={vn.isRead ? "text-muted-foreground" : "text-foreground/80"}>{msg}</span>
+                      <span className={vn.isRead ? "text-gray-500" : "text-gray-900/80"}>{msg}</span>
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-xs text-gray-500 mt-0.5">
                       {typeLabel} · {timeAgo(vn.created_at)}
                     </p>
                   </div>
-                  <Video className={`h-4 w-4 shrink-0 ${vn.isRead ? "text-primary/50" : "text-primary"}`} />
+                  <Video className={`h-4 w-4 shrink-0 ${vn.isRead ? "text-orange-300" : "text-orange-500"}`} />
                 </button>
               );
             }
@@ -963,28 +979,28 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                     setViewProfileRole(sn.other_role === "player" ? "player" : "cauta_jucator");
                   }}
                   className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
-                    sn.isRead ? "bg-card border-border hover:bg-accent/50" : "bg-primary/5 border-primary/30 hover:bg-primary/10"
+                    sn.isRead ? "bg-white border-gray-200 hover:bg-gray-50" : "bg-white border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   <div className="shrink-0 w-2.5 flex items-center justify-center">
-                    {!sn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
+                    {!sn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 animate-pulse" />}
                   </div>
                   <Avatar className="h-10 w-10">
                     {sn.other_photo ? <AvatarImage src={sn.other_photo} /> : null}
-                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                    <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm">
                       {sn.other_name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${sn.isRead ? "text-foreground" : "text-foreground font-semibold"}`}>
+                    <p className={`text-sm ${sn.isRead ? "text-gray-900" : "text-gray-900 font-semibold"}`}>
                       <span className="font-semibold">{sn.other_name}</span>{" "}
-                      <span className={sn.isRead ? "text-muted-foreground" : "text-foreground/80"}>
+                      <span className={sn.isRead ? "text-gray-500" : "text-gray-900/80"}>
                         {lang === "ro" ? "ți-a apreciat story-ul" : "liked your story"}
                       </span>
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{timeAgo(sn.created_at)}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{timeAgo(sn.created_at)}</p>
                   </div>
-                  <Heart className={`h-4 w-4 shrink-0 ${sn.isRead ? "text-primary/50" : "text-primary"} fill-current`} />
+                  <Heart className={`h-4 w-4 shrink-0 ${sn.isRead ? "text-orange-300" : "text-orange-500"} fill-current`} />
                 </button>
               );
             }
@@ -993,6 +1009,118 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
           })}
         </div>
       )}
+
+      {/* Decorative geometric shapes below the list */}
+      <div className="relative h-0 overflow-visible">
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "120px",
+            right: "0px",
+            width: "150px",
+            height: "150px",
+            background: "#a3e635",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "160px",
+            left: "-20px",
+            width: "120px",
+            height: "120px",
+            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "380px",
+            left: "40px",
+            width: "130px",
+            height: "130px",
+            background: "linear-gradient(135deg, #f97316, #fb923c)",
+            clipPath: "polygon(0 100%, 100% 100%, 0 0)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "340px",
+            right: "60px",
+            width: "110px",
+            height: "110px",
+            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "480px",
+            left: "260px",
+            width: "140px",
+            height: "140px",
+            background: "#a3e635",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "140px",
+            left: "-420px",
+            width: "130px",
+            height: "130px",
+            background: "linear-gradient(135deg, #f97316, #fb923c)",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "60px",
+            right: "-480px",
+            width: "150px",
+            height: "150px",
+            background: "#a3e635",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "500px",
+            left: "-380px",
+            width: "120px",
+            height: "120px",
+            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            clipPath: "polygon(0 100%, 100% 100%, 0 0)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "560px",
+            right: "-420px",
+            width: "140px",
+            height: "140px",
+            background: "linear-gradient(135deg, #f97316, #fb923c)",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+      </div>
     </div>
   );
 };

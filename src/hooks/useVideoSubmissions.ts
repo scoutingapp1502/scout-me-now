@@ -110,6 +110,11 @@ export function useAdminVideoSubmissions() {
 
   useEffect(() => {
     fetchAll();
+    const channel = supabase
+      .channel("admin-video-submissions")
+      .on("postgres_changes", { event: "*", schema: "public", table: "video_submissions" }, fetchAll)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [fetchAll]);
 
   const reviewVideo = async (

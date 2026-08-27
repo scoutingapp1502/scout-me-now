@@ -150,10 +150,10 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 px-1">
-        <button onClick={onBack} className="p-1 text-foreground hover:text-primary transition-colors">
+        <button onClick={onBack} className="p-1 text-gray-900 hover:text-orange-500 transition-colors">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="font-heading text-xl text-foreground">
+        <h2 className="font-heading text-xl text-gray-900">
           {lang === "ro" ? "Salvat" : "Saved"}
         </h2>
         <div className="w-7" />
@@ -161,17 +161,17 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
 
       {loadingPosts ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         </div>
       ) : savedPosts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Bookmark className="h-7 w-7 text-muted-foreground" />
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <Bookmark className="h-7 w-7 text-gray-500" />
           </div>
-          <h3 className="font-heading text-xl text-foreground mb-2">
+          <h3 className="font-heading text-xl text-gray-900 mb-2">
             {lang === "ro" ? "Nimic salvat încă" : "Nothing saved yet"}
           </h3>
-          <p className="text-sm text-muted-foreground font-body max-w-xs">
+          <p className="text-sm text-gray-500 font-body max-w-xs">
             {lang === "ro"
               ? "Salvează postări din feed apăsând iconița bookmark."
               : "Save posts from your feed using the bookmark icon."}
@@ -183,24 +183,24 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
             <button
               key={savedPost.savedId}
               onClick={() => handlePostClick(savedPost)}
-              className="aspect-square bg-muted overflow-hidden relative hover:opacity-80 transition-opacity"
+              className="aspect-square bg-gray-100 overflow-hidden relative hover:opacity-80 transition-opacity"
             >
               {savedPost.post.image_url ? (
                 <img src={savedPost.post.image_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex flex-col p-2.5 bg-card border border-border/30">
+                <div className="w-full h-full flex flex-col p-2.5 bg-white border border-gray-200/30">
                   <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
                     <Avatar className="h-5 w-5 shrink-0">
                       {savedPost.authorPhoto ? <AvatarImage src={savedPost.authorPhoto} /> : null}
-                      <AvatarFallback className="bg-primary/20 text-primary text-[8px]">
+                      <AvatarFallback className="bg-orange-100 text-orange-600 text-[8px]">
                         {(savedPost.authorName || "?").charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-[10px] font-semibold text-foreground truncate font-body">
+                    <span className="text-[10px] font-semibold text-gray-900 truncate font-body">
                       {savedPost.authorName}
                     </span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground text-left line-clamp-5 font-body leading-tight">
+                  <p className="text-[10px] text-gray-500 text-left line-clamp-5 font-body leading-tight">
                     {savedPost.post.content}
                   </p>
                 </div>
@@ -215,7 +215,7 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
         <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
           {loadingDetail ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
             </div>
           ) : selectedPost ? (
             <PostCard

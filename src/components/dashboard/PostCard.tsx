@@ -133,28 +133,28 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
 }) {
   return (
     <div className="flex items-start gap-2 group">
-      <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+      <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
         {c.author_photo ? (
           <img src={c.author_photo} alt="" className="w-full h-full object-cover" />
         ) : (
-          <User className="h-3.5 w-3.5 text-muted-foreground" />
+          <User className="h-3.5 w-3.5 text-gray-500" />
         )}
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-1">
-          <div className="flex-1 bg-muted/50 rounded-lg px-3 py-1.5">
-            <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="text-xs font-medium text-foreground hover:underline cursor-pointer text-left">{c.author_name}</button>
-            <p className="text-xs text-foreground/80">{c.content}</p>
+          <div className="flex-1 bg-gray-100 rounded-lg px-3 py-1.5">
+            <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="text-xs font-medium text-gray-900 hover:underline cursor-pointer text-left">{c.author_name}</button>
+            <p className="text-xs text-gray-700">{c.content}</p>
           </div>
           {c.user_id === currentUserId && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground">
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-gray-500">
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onDelete(c.id)} className="text-destructive">
+              <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
+                <DropdownMenuItem onClick={() => onDelete(c.id)} className="text-destructive focus:bg-gray-100">
                   <Trash2 className="h-3.5 w-3.5 mr-2" />
                   {lang === "ro" ? "Șterge mesajul" : "Delete message"}
                 </DropdownMenuItem>
@@ -163,10 +163,10 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
           )}
         </div>
         <div className="flex items-center gap-2 ml-1 mt-0.5">
-          <span className="text-[10px] text-muted-foreground/60">{timeAgo(c.created_at)}</span>
+          <span className="text-[10px] text-gray-400">{timeAgo(c.created_at)}</span>
           <button
             onClick={() => onToggleLike(c.id)}
-            className={`flex items-center gap-0.5 text-[10px] transition-colors ${c.liked_by_me ? "text-red-500" : "text-muted-foreground/60 hover:text-foreground"}`}
+            className={`flex items-center gap-0.5 text-[10px] transition-colors ${c.liked_by_me ? "text-red-500" : "text-gray-400 hover:text-gray-900"}`}
           >
             <Heart className={`h-3 w-3 ${c.liked_by_me ? "fill-red-500" : ""}`} />
             {c.likes_count > 0 && <span>{c.likes_count}</span>}
@@ -210,20 +210,6 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   const [loadingComments, setLoadingComments] = useState(false);
   const commentsLoadedRef = useRef(false);
   const commentInputRef = useRef<HTMLInputElement>(null);
-  const [isNew, setIsNew] = useState(() => {
-    const diff = Date.now() - new Date(post.created_at).getTime();
-    return diff < 5 * 60 * 1000;
-  });
-
-  useEffect(() => {
-    if (!isNew) return;
-    const diff = Date.now() - new Date(post.created_at).getTime();
-    const remaining = 5 * 60 * 1000 - diff;
-    if (remaining <= 0) { setIsNew(false); return; }
-    const timer = setTimeout(() => setIsNew(false), remaining);
-    return () => clearTimeout(timer);
-  }, [post.created_at, isNew]);
-
   // Load likes count + user like status + comments count in one batched
   // request shared across every PostCard mounted at the same time.
   useEffect(() => {
@@ -558,7 +544,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
       case "transfer": return "bg-blue-500/20 text-blue-400";
       case "challenge": return "bg-orange-500/20 text-orange-400";
       case "event": return "bg-green-500/20 text-green-400";
-      default: return "bg-muted text-muted-foreground";
+      default: return "bg-gray-100 text-gray-500";
     }
   };
 
@@ -769,118 +755,57 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   };
 
   return (
-    <div className={`bg-card border rounded-xl overflow-hidden transition-colors ${isNew ? "border-primary/50 ring-1 ring-primary/20" : "border-border"}`}>
-      {isNew && (
-        <div className="px-4 py-1 bg-primary/10 text-primary text-xs font-medium">
-          {lang === "ro" ? "✨ Postare nouă" : "✨ New post"}
-        </div>
-      )}
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden transition-colors">
       <div className="p-4 pb-3">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => onViewProfile(author.user_id, author.role)}
-              className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
             >
               {author.photo ? (
                 <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
               ) : (
-                <User className="h-5 w-5 text-muted-foreground" />
+                <User className="h-5 w-5 text-gray-500" />
               )}
             </button>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => onViewProfile(author.user_id, author.role)}
-                  className="font-display text-sm text-foreground truncate hover:underline cursor-pointer"
+                  className="font-display text-sm text-gray-900 truncate hover:underline cursor-pointer"
                 >
                   {author.name}
                 </button>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium shrink-0">
                   {getRoleLabel(author.role)}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground truncate">{author.title}</p>
+              <p className="text-xs text-gray-500 truncate">{author.title}</p>
             </div>
           </div>
           {isOwnPost && !hideMenu && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {simplifiedMenu ? (
-                  <>
-                    <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                      <Pencil className="h-4 w-4 mr-2" /> {lang === "ro" ? "Editează" : "Edit"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleToggleComments} disabled={togglingComments}>
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      {commentsDisabled
-                        ? (lang === "ro" ? "Activează comentariile" : "Turn on commenting")
-                        : (lang === "ro" ? "Dezactivează comentariile" : "Turn off commenting")}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onDelete(post.id)} className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" /> {lang === "ro" ? "Șterge" : "Delete"}
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem onClick={toggleSave} disabled={viewerLocked}>
-                      <Bookmark className={`h-4 w-4 mr-2 ${saved ? "fill-current" : ""}`} />
-                      {saved ? (lang === "ro" ? "Elimină din salvate" : "Unsave") : (lang === "ro" ? "Salvează" : "Save")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
-                      <Instagram className="h-4 w-4 mr-2" /> {lang === "ro" ? "Distribuie pe Instagram" : "Share to Instagram"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
-                      <TrendingUp className="h-4 w-4 mr-2" /> {lang === "ro" ? "Statistici" : "Insights"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
-                      <RefreshCw className="h-4 w-4 mr-2" /> {lang === "ro" ? "Permite refolosirea" : "Allow reuse"}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {currentUserId === post.user_id && (
-                      <DropdownMenuItem onClick={handleArchive}>
-                        <Archive className="h-4 w-4 mr-2" /> {lang === "ro" ? "Arhivează" : "Archive"}
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
-                      <Eye className="h-4 w-4 mr-2" /> {lang === "ro" ? "Afișează nr. like-uri" : "Unhide like count"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
-                      <EyeOff className="h-4 w-4 mr-2" /> {lang === "ro" ? "Ascunde nr. distribuiri" : "Hide share count"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleToggleComments} disabled={togglingComments}>
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      {commentsDisabled
-                        ? (lang === "ro" ? "Activează comentariile" : "Turn on commenting")
-                        : (lang === "ro" ? "Dezactivează comentariile" : "Turn off commenting")}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
-                      <Film className="h-4 w-4 mr-2" /> {lang === "ro" ? "Creează reel din postare" : "Create reel from post"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                      <Pencil className="h-4 w-4 mr-2" /> {lang === "ro" ? "Editează" : "Edit"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
-                      <Crop className="h-4 w-4 mr-2" /> {lang === "ro" ? "Ajustează previzualizarea" : "Adjust preview"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.info(lang === "ro" ? "Funcționalitate în curând." : "Coming soon.")}>
-                      <Pin className="h-4 w-4 mr-2" /> {lang === "ro" ? "Fixează în profil" : "Pin to main grid"}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onDelete(post.id)} className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" /> {lang === "ro" ? "Șterge" : "Delete"}
-                    </DropdownMenuItem>
-                  </>
-                )}
+              <DropdownMenuContent align="end" className="w-56 bg-white border-gray-200 text-gray-900">
+                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                  <Pencil className="h-4 w-4 mr-2" /> {lang === "ro" ? "Editează" : "Edit"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleToggleComments} disabled={togglingComments}>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  {commentsDisabled
+                    ? (lang === "ro" ? "Activează comentariile" : "Turn on commenting")
+                    : (lang === "ro" ? "Dezactivează comentariile" : "Turn off commenting")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onDelete(post.id)} className="text-destructive">
+                  <Trash2 className="h-4 w-4 mr-2" /> {lang === "ro" ? "Șterge" : "Delete"}
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -898,17 +823,17 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
       )}
 
       {/* Like & Comment bar */}
-      <div className="px-4 py-2 border-t border-border flex items-center gap-4 flex-wrap">
+      <div className="px-4 py-2 border-t border-gray-200 flex items-center gap-4 flex-wrap">
         <button
           onClick={toggleLike}
           disabled={likingPending || viewerLocked}
-          className={`flex items-center gap-1.5 text-sm transition-colors disabled:opacity-60 ${liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
+          className={`flex items-center gap-1.5 text-sm transition-colors disabled:opacity-60 ${liked ? "text-red-500" : "text-gray-500 hover:text-gray-900"}`}
         >
           <Heart className={`h-4 w-4 ${liked ? "fill-red-500" : ""}`} />
         </button>
         <button
           onClick={handleCommentClick}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
         >
           <MessageCircle className="h-4 w-4" />
           {canSeeComments && commentsCount > 0 && <span className="text-xs">{commentsCount}</span>}
@@ -916,14 +841,14 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         <button
           onClick={() => { setShowShareDialog(true); fetchFollowing(); fetchGroupsForShare(); }}
           disabled={viewerLocked}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-60"
         >
           <Forward className="h-4 w-4" />
         </button>
         <button
           onClick={toggleSave}
           disabled={savingPending || viewerLocked}
-          className={`ml-auto flex items-center transition-colors disabled:opacity-60 ${saved ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          className={`ml-auto flex items-center transition-colors disabled:opacity-60 ${saved ? "text-yellow-500" : "text-gray-500 hover:text-yellow-500"}`}
         >
           <Bookmark className={`h-5 w-5 ${saved ? "fill-current" : ""}`} />
         </button>
@@ -933,7 +858,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
       <div className="px-4 pb-3 space-y-1">
         {(() => {
           const content = likedByContent();
-          return content && <p className="text-sm font-medium text-foreground">{content}</p>;
+          return content && <p className="text-sm font-medium text-gray-900">{content}</p>;
         })()}
 
         {post.post_type !== "general" && (
@@ -947,25 +872,25 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
             <textarea
               value={editContent}
               onChange={e => setEditContent(e.target.value)}
-              className="w-full text-sm bg-muted/50 border border-border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+              className="w-full text-sm bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-gray-900 text-gray-900"
               rows={3}
               autoFocus
             />
             <div className="flex gap-2 justify-end">
-              <button onClick={() => { setIsEditing(false); setEditContent(post.content); }} className="text-xs text-muted-foreground hover:text-foreground font-body px-2 py-1">
+              <button onClick={() => { setIsEditing(false); setEditContent(post.content); }} className="text-xs text-gray-500 hover:text-gray-900 font-body px-2 py-1">
                 {lang === "ro" ? "Anulează" : "Cancel"}
               </button>
-              <button onClick={handleEditSave} disabled={savingEdit || !editContent.trim()} className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-md font-body disabled:opacity-50 flex items-center gap-1">
+              <button onClick={handleEditSave} disabled={savingEdit || !editContent.trim()} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-md font-body disabled:opacity-50 flex items-center gap-1">
                 {savingEdit && <Loader2 className="h-3 w-3 animate-spin" />}
                 {lang === "ro" ? "Salvează" : "Save"}
               </button>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-foreground/90 whitespace-pre-wrap">
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">
             <button
               onClick={() => onViewProfile(author.user_id, author.role)}
-              className="font-semibold text-foreground hover:underline mr-1.5"
+              className="font-semibold text-gray-900 hover:underline mr-1.5"
             >
               {author.name}
             </button>
@@ -973,14 +898,14 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
           </p>
         )}
 
-        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wide pt-0.5">{timeAgoLong(post.created_at)}</p>
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide pt-0.5">{timeAgoLong(post.created_at)}</p>
       </div>
 
       {/* Share dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-base">
+        <DialogContent className="max-w-sm bg-white text-gray-900 border-gray-200">
+          <DialogHeader className="pb-3 border-b border-gray-200 -mx-6 px-6">
+            <DialogTitle className="font-heading text-lg leading-normal text-gray-900 text-left">
               {lang === "ro" ? "Trimite postarea" : "Send post"}
             </DialogTitle>
           </DialogHeader>
@@ -989,7 +914,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : followingList.length === 0 && groupList.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6 font-body">
+            <p className="text-sm text-gray-500 text-center py-6 font-body">
               {lang === "ro" ? "Nu urmărești pe nimeni momentan." : "You're not following anyone yet."}
             </p>
           ) : (
@@ -999,13 +924,13 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                   key={g.groupId}
                   onClick={() => handleShareToGroup(g.groupId)}
                   disabled={!!sendingTo}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left disabled:opacity-50"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-100 transition-colors text-left disabled:opacity-50"
                 >
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                     <Users className="h-4 w-4 text-primary" />
                   </div>
                   <span className="text-sm font-medium font-body flex-1">{g.name}</span>
-                  {sendingTo === g.groupId ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Forward className="h-4 w-4 text-muted-foreground" />}
+                  {sendingTo === g.groupId ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Forward className="h-4 w-4 text-gray-400" />}
                 </button>
               ))}
               {followingList.map(u => (
@@ -1013,13 +938,13 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                   key={u.userId}
                   onClick={() => handleShareTo(u.userId)}
                   disabled={!!sendingTo}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left disabled:opacity-50"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-100 transition-colors text-left disabled:opacity-50"
                 >
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                    {u.photo ? <img src={u.photo} alt="" className="w-full h-full object-cover" /> : <User className="h-4 w-4 text-muted-foreground" />}
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                    {u.photo ? <img src={u.photo} alt="" className="w-full h-full object-cover" /> : <User className="h-4 w-4 text-gray-500" />}
                   </div>
                   <span className="text-sm font-medium font-body flex-1">{u.name}</span>
-                  {sendingTo === u.userId ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Forward className="h-4 w-4 text-muted-foreground" />}
+                  {sendingTo === u.userId ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Forward className="h-4 w-4 text-gray-400" />}
                 </button>
               ))}
             </div>
@@ -1029,20 +954,20 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
       {/* Likes list dialog */}
       <Dialog open={showLikesList} onOpenChange={setShowLikesList}>
-        <DialogContent className="max-w-sm p-0 gap-0 max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-sm p-0 gap-0 max-h-[80vh] flex flex-col bg-white text-gray-900 border-gray-200">
           <DialogHeader className="px-4 pt-4 pb-2">
-            <DialogTitle className="font-heading text-base text-center">
+            <DialogTitle className="font-heading text-base text-center text-gray-900">
               {lang === "ro" ? "Aprecieri" : "Likes"}
             </DialogTitle>
           </DialogHeader>
           <div className="px-4 pb-2 shrink-0">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 value={likersSearch}
                 onChange={(e) => setLikersSearch(e.target.value)}
                 placeholder={lang === "ro" ? "Caută" : "Search"}
-                className="pl-9 rounded-full bg-muted border-0"
+                className="pl-9 rounded-full bg-gray-100 border-0 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
               />
             </div>
           </div>
@@ -1052,7 +977,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
             ) : filteredLikers.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8 font-body">
+              <p className="text-sm text-gray-500 text-center py-8 font-body">
                 {lang === "ro" ? "Niciun rezultat." : "No results."}
               </p>
             ) : (
@@ -1062,12 +987,12 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                     onClick={() => { setShowLikesList(false); onViewProfile(l.userId, l.role); }}
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                   >
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                      {l.photo ? <img src={l.photo} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-muted-foreground" />}
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                      {l.photo ? <img src={l.photo} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-gray-500" />}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{l.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{getRoleLabel(l.role)}</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{l.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{getRoleLabel(l.role)}</p>
                     </div>
                   </button>
                   {l.followStatus !== "self" && (
@@ -1076,7 +1001,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                       variant={l.followStatus === "accepted" || l.followStatus === "pending" ? "secondary" : "default"}
                       disabled={followBusyId === l.userId}
                       onClick={() => toggleLikerFollow(l.userId, l.followStatus)}
-                      className="shrink-0"
+                      className={`shrink-0 ${l.followStatus === "accepted" || l.followStatus === "pending" ? "" : "bg-orange-500 text-white hover:bg-orange-600"}`}
                     >
                       {followBusyId === l.userId ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -1098,16 +1023,16 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
       {/* Comments section */}
       {showComments && !canSeeComments && (
-        <div className="px-4 pb-3 border-t border-border pt-3">
-          <p className="text-xs text-muted-foreground">
+        <div className="px-4 pb-3 border-t border-gray-200 pt-3">
+          <p className="text-xs text-gray-500">
             {lang === "ro" ? "Comentariile au fost dezactivate pentru această postare." : "Comments are turned off for this post."}
           </p>
         </div>
       )}
       {showComments && canSeeComments && (
-        <div className="px-4 pb-3 border-t border-border pt-3 space-y-3">
+        <div className="px-4 pb-3 border-t border-gray-200 pt-3 space-y-3">
           {loadingComments ? (
-            <p className="text-xs text-muted-foreground">{lang === "ro" ? "Se încarcă..." : "Loading..."}</p>
+            <p className="text-xs text-gray-500">{lang === "ro" ? "Se încarcă..." : "Loading..."}</p>
           ) : comments.length > 0 ? (
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {visibleComments.map(c => (
@@ -1126,7 +1051,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 <div className="pt-1">
                   <button
                     onClick={() => setShowHiddenComments(v => !v)}
-                    className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    className="text-[11px] text-gray-500 hover:text-gray-900 underline underline-offset-2"
                   >
                     {showHiddenComments
                       ? (lang === "ro" ? "Ascunde comentariile nedorite" : "Hide unwanted comments")
@@ -1152,12 +1077,12 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
               )}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">{lang === "ro" ? "Niciun comentariu încă" : "No comments yet"}</p>
+            <p className="text-xs text-gray-500">{lang === "ro" ? "Niciun comentariu încă" : "No comments yet"}</p>
           )}
 
           {/* Comment input */}
           {commentsDisabled ? (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-gray-500">
               {lang === "ro" ? "Ai dezactivat comentariile pentru această postare." : "You've turned off commenting for this post."}
             </p>
           ) : (
@@ -1168,10 +1093,10 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 onChange={(e) => setCommentText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submitComment()}
                 placeholder={lang === "ro" ? "Scrie un comentariu..." : "Write a comment..."}
-                className="text-xs h-8 bg-background border-border"
+                className="text-xs h-8 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                 disabled={viewerLocked}
               />
-              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={submitComment} disabled={!commentText.trim() || viewerLocked}>
+              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100" onClick={submitComment} disabled={!commentText.trim() || viewerLocked}>
                 <Send className="h-3.5 w-3.5" />
               </Button>
             </div>

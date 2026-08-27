@@ -83,40 +83,40 @@ export default function AdminSupportTickets() {
   };
 
   const statusBadge = (status: string) => {
-    if (status === "open") return <Badge variant="outline" className="text-yellow-500 border-yellow-500">Deschis</Badge>;
-    if (status === "in_progress") return <Badge variant="outline" className="text-blue-500 border-blue-500">În lucru</Badge>;
-    return <Badge variant="outline" className="text-green-500 border-green-500">Rezolvat</Badge>;
+    if (status === "open") return <Badge variant="outline" className="text-yellow-600 border-yellow-500">Deschis</Badge>;
+    if (status === "in_progress") return <Badge variant="outline" className="text-blue-600 border-blue-500">În lucru</Badge>;
+    return <Badge variant="outline" className="text-green-600 border-green-500">Rezolvat</Badge>;
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
       </div>
     );
   }
 
   if (tickets.length === 0) {
     return (
-      <div className="max-w-3xl mx-auto p-6 text-center text-muted-foreground font-body">
+      <div className="max-w-3xl mx-auto p-6 text-center text-gray-500 font-body">
         Nu există rapoarte trimise de utilizatori.
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
+    <div className="max-w-3xl mx-auto p-6 space-y-4 text-gray-900">
       <h2 className="text-xl font-heading font-bold">Rapoarte utilizatori</h2>
-      <p className="text-sm text-muted-foreground font-body">
+      <p className="text-sm text-gray-500 font-body">
         {tickets.filter(t => t.status !== "resolved").length} rapoarte nerezolvate
       </p>
 
       {tickets.map((ticket) => (
-        <div key={ticket.id} className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <div key={ticket.id} className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
               <p className="font-heading font-semibold">{ticket.reporter_name}</p>
-              <p className="text-xs text-muted-foreground font-body mt-0.5">
+              <p className="text-xs text-gray-500 font-body mt-0.5">
                 {CATEGORY_LABELS[ticket.category] || ticket.category} ·{" "}
                 {new Date(ticket.created_at).toLocaleDateString("ro-RO", {
                   day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
@@ -126,7 +126,7 @@ export default function AdminSupportTickets() {
             {statusBadge(ticket.status)}
           </div>
 
-          <p className="text-sm text-foreground font-body bg-muted/40 rounded-lg px-3 py-2 whitespace-pre-wrap">
+          <p className="text-sm text-gray-900 font-body bg-gray-100 rounded-lg px-3 py-2 whitespace-pre-wrap">
             {ticket.message}
           </p>
 
@@ -166,7 +166,7 @@ export default function AdminSupportTickets() {
           )}
 
           {ticket.status === "resolved" && ticket.admin_notes && (
-            <p className="text-sm text-muted-foreground font-body">
+            <p className="text-sm text-gray-500 font-body">
               Notă: {ticket.admin_notes}
             </p>
           )}

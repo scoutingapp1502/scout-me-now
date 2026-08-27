@@ -72,32 +72,32 @@ function BlockedProfileView({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900">
           {user.fullName}
         </h2>
         <div className="ml-auto relative">
-          <button onClick={() => setShowMenu(v => !v)} className="p-1 text-muted-foreground hover:text-foreground">
+          <button onClick={() => setShowMenu(v => !v)} className="p-1 text-gray-500 hover:text-gray-900">
             <MoreHorizontal className="h-5 w-5" />
           </button>
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-lg min-w-[160px] overflow-hidden">
+              <div className="absolute right-0 top-8 z-20 bg-white border border-gray-200 rounded-xl shadow-lg min-w-[160px] overflow-hidden">
                 <button
                   onClick={() => { setShowMenu(false); handleUnblock(); }}
-                  className="w-full px-4 py-3 text-sm font-body text-left hover:bg-muted/40 transition-colors"
+                  className="w-full px-4 py-3 text-sm font-body text-left hover:bg-gray-100/40 transition-colors"
                 >
                   {lang === "ro" ? "Deblochează" : "Unblock"}
                 </button>
                 <button
                   onClick={() => setShowMenu(false)}
-                  className="w-full px-4 py-3 text-sm font-body text-left text-destructive hover:bg-muted/40 transition-colors border-t border-border"
+                  className="w-full px-4 py-3 text-sm font-body text-left text-destructive hover:bg-gray-100/40 transition-colors border-t border-gray-200"
                 >
                   {lang === "ro" ? "Raportează" : "Report"}
                 </button>
@@ -113,7 +113,7 @@ function BlockedProfileView({
           <div className="flex items-center gap-6">
             <Avatar className="h-20 w-20 shrink-0">
               <AvatarImage src={user.avatarUrl ?? undefined} />
-              <AvatarFallback className="bg-muted text-2xl">
+              <AvatarFallback className="bg-gray-100 text-2xl">
                 {(user.fullName || "?")[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -124,8 +124,8 @@ function BlockedProfileView({
                 { label: lang === "ro" ? "urmăriri" : "following", value: stats.followingCount },
               ].map(s => (
                 <div key={s.label} className="flex flex-col items-center">
-                  <span className="text-base font-bold font-heading text-foreground">{s.value}</span>
-                  <span className="text-xs text-muted-foreground font-body">{s.label}</span>
+                  <span className="text-base font-bold font-heading text-gray-900">{s.value}</span>
+                  <span className="text-xs text-gray-500 font-body">{s.label}</span>
                 </div>
               ))}
             </div>
@@ -134,51 +134,51 @@ function BlockedProfileView({
           {/* Name + bio */}
           <div className="mt-3 space-y-0.5">
             {user.fullName && (
-              <p className="text-sm font-semibold font-body text-foreground">{user.fullName}</p>
+              <p className="text-sm font-semibold font-body text-gray-900">{user.fullName}</p>
             )}
             {stats.bio && (
-              <p className="text-sm font-body text-foreground">{stats.bio}</p>
+              <p className="text-sm font-body text-gray-900">{stats.bio}</p>
             )}
           </div>
 
           {/* Unblock button */}
           <button
             onClick={handleUnblock}
-            className="mt-4 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold font-body hover:bg-primary/90 transition-colors"
+            className="mt-4 w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold font-body hover:bg-orange-500/90 transition-colors"
           >
             {lang === "ro" ? "Deblochează" : "Unblock"}
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="border-t border-border flex">
-          <button className="flex-1 flex items-center justify-center py-3 border-b-2 border-foreground">
-            <Grid3X3 className="h-5 w-5 text-foreground" />
+        <div className="border-t border-gray-200 flex">
+          <button className="flex-1 flex items-center justify-center py-3 border-b-2 border-gray-900">
+            <Grid3X3 className="h-5 w-5 text-gray-900" />
           </button>
           <button className="flex-1 flex items-center justify-center py-3 border-b-2 border-transparent">
-            <UserSquare className="h-5 w-5 text-muted-foreground" />
+            <UserSquare className="h-5 w-5 text-gray-500" />
           </button>
         </div>
 
         {/* Blurred placeholder grid */}
         <div className="grid grid-cols-3 gap-0.5 px-0">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-muted/50 animate-pulse" />
+            <div key={i} className="aspect-square bg-gray-100/50 animate-pulse" />
           ))}
         </div>
 
         {/* Blocked message */}
         <div className="flex flex-col items-center px-8 py-10 text-center gap-3">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-9 h-9 text-foreground" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-9 h-9 text-gray-900" fill="none" stroke="currentColor" strokeWidth={1.5}>
               <circle cx="12" cy="12" r="9" />
               <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
             </svg>
           </div>
-          <p className="text-base font-bold font-heading text-foreground">
+          <p className="text-base font-bold font-heading text-gray-900">
             {lang === "ro" ? "Ai blocat acest profil" : "You've blocked this profile"}
           </p>
-          <p className="text-sm text-muted-foreground font-body leading-relaxed">
+          <p className="text-sm text-gray-500 font-body leading-relaxed">
             {lang === "ro"
               ? "Deblochează acest profil pentru a vedea fotografiile și videoclipurile sale. Când îl deblochezi, va putea să îți găsească profilul și să îți trimită mesaje."
               : "Unblock this profile to see their photos and videos. When you unblock them, they'll also be able to find your profile and message you again."}
@@ -284,20 +284,20 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900 whitespace-nowrap">
           {lang === "ro" ? "Profile blocate" : "Blocked profiles"}
         </h2>
       </div>
 
       {/* Description */}
-      <div className="px-5 py-4 border-b border-border shrink-0 text-center">
-        <p className="text-sm text-muted-foreground font-body leading-relaxed">
+      <div className="px-5 py-4 border-b border-gray-200 shrink-0 text-center">
+        <p className="text-sm text-gray-500 font-body leading-relaxed">
           {lang === "ro"
             ? "Persoanele blocate nu îți mai pot vedea profilul, postările sau trimite mesaje."
             : "Blocked people can no longer see your profile, posts, or send you messages."}
@@ -305,14 +305,14 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
       </div>
 
       {/* Search */}
-      <div className="px-4 py-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2.5">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+      <div className="px-4 py-3 border-b border-gray-200 shrink-0">
+        <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
+          <Search className="h-4 w-4 text-gray-500 shrink-0" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={lang === "ro" ? "Caută" : "Search"}
-            className="flex-1 bg-transparent text-sm font-body outline-none text-foreground placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent text-sm font-body outline-none text-gray-900 placeholder:text-gray-500"
           />
         </div>
       </div>
@@ -320,23 +320,23 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
       <div className="flex-1 overflow-y-auto">
         {/* Search results */}
         {query.trim() && results.length > 0 && (
-          <div className="border-b border-border">
+          <div className="border-b border-gray-200">
             {results.map(u => (
-              <div key={u.user_id} className="flex items-center gap-3 px-4 py-3 border-b border-border/40 last:border-0">
+              <div key={u.user_id} className="flex items-center gap-3 px-4 py-3 border-b border-gray-200/40 last:border-0">
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarImage src={u.photo_url ?? undefined} />
                   <AvatarFallback>{(u.first_name || "?")[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold font-body text-foreground truncate">{`${u.first_name ?? ""} ${u.last_name ?? ""}`.trim()}</p>
+                  <p className="text-sm font-semibold font-body text-gray-900 truncate">{`${u.first_name ?? ""} ${u.last_name ?? ""}`.trim()}</p>
                 </div>
                 {isBlocked(u.user_id) ? (
-                  <span className="px-3 py-1.5 text-xs font-semibold font-body text-muted-foreground border border-border rounded-lg">
+                  <span className="px-3 py-1.5 text-xs font-semibold font-body text-gray-500 border border-gray-200 rounded-lg">
                     {lang === "ro" ? "Blocat" : "Blocked"}
                   </span>
                 ) : (
                   <button onClick={() => handleBlock(u.user_id, `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim())}
-                    className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shrink-0">
+                    className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-semibold shrink-0">
                     {lang === "ro" ? "Blochează" : "Block"}
                   </button>
                 )}
@@ -345,7 +345,7 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
           </div>
         )}
         {query.trim() && results.length === 0 && (
-          <p className="text-sm text-muted-foreground font-body text-center py-8">
+          <p className="text-sm text-gray-500 font-body text-center py-8">
             {lang === "ro" ? "Niciun utilizator găsit." : "No users found."}
           </p>
         )}
@@ -354,10 +354,10 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
         {!query.trim() && (
           loading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
             </div>
           ) : blocked.length === 0 ? (
-            <p className="text-sm text-muted-foreground font-body text-center py-12 px-6">
+            <p className="text-sm text-gray-500 font-body text-center py-12 px-6">
               {lang === "ro" ? "Nu ai blocat niciun profil." : "You haven't blocked any profiles."}
             </p>
           ) : (
@@ -365,20 +365,20 @@ export default function BlockedSection({ currentUserId, onBack }: BlockedSection
               <button
                 key={user.blockId}
                 onClick={() => setSelectedUser(user)}
-                className="w-full flex items-center gap-3 px-4 py-3 border-b border-border/50 hover:bg-muted/20 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-200/50 hover:bg-gray-100/20 transition-colors text-left"
               >
                 <Avatar className="h-12 w-12 shrink-0">
                   <AvatarImage src={user.avatarUrl ?? undefined} />
-                  <AvatarFallback className="bg-muted text-sm">
+                  <AvatarFallback className="bg-gray-100 text-sm">
                     {(user.fullName || "?")[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold font-body text-foreground truncate">{user.fullName}</p>
+                  <p className="text-sm font-semibold font-body text-gray-900 truncate">{user.fullName}</p>
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); handleUnblock(user.blockId, user.fullName); }}
-                  className="shrink-0 px-4 py-1.5 rounded-lg border border-border text-sm font-semibold font-body text-foreground"
+                  className="shrink-0 px-4 py-1.5 rounded-lg border border-gray-200 text-sm font-semibold font-body text-gray-900"
                 >
                   {lang === "ro" ? "Deblochează" : "Unblock"}
                 </button>

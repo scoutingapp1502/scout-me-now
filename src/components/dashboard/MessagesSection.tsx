@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, User, Loader2, ArrowLeft, Send, Search, X, Smile, Users, Check, CheckCheck, Link2, UserPlus, ChevronRight, MoreHorizontal, Lock, Bell, LogOut, Ban, Film } from "lucide-react";
+import { MessageSquare, User, Loader2, ArrowLeft, Send, Search, X, Smile, Users, Check, CheckCheck, Link2, UserPlus, ChevronRight, MoreHorizontal, Lock, Bell, LogOut, Ban, Film, Image as ImageIcon, Paperclip, FileText } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -41,6 +41,38 @@ const getRoleLabel = (role: string | null, lang: string) => {
   return labels[role]?.[lang] || role;
 };
 
+const formatFileSize = (bytes?: number | null): string => {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const fileExtension = (name?: string | null): string => (name?.split(".").pop() || "").toLowerCase();
+
+const FileThumb = ({ name, className }: { name?: string | null; className?: string }) => {
+  const ext = fileExtension(name);
+  if (ext === "doc" || ext === "docx") {
+    return (
+      <div className={`bg-blue-600 flex items-center justify-center shrink-0 ${className}`}>
+        <span className="text-white text-xs font-bold">W</span>
+      </div>
+    );
+  }
+  if (ext === "pdf") {
+    return (
+      <div className={`bg-red-50 flex items-center justify-center shrink-0 ${className}`}>
+        <FileText className="h-5 w-5 text-red-500" />
+      </div>
+    );
+  }
+  return (
+    <div className={`bg-gray-100 flex items-center justify-center shrink-0 ${className}`}>
+      <FileText className="h-5 w-5 text-gray-400" />
+    </div>
+  );
+};
+
 type RoleFilter = "player" | "cauta_jucator";
 
 const ROLE_FILTERS: { key: RoleFilter; labelRo: string; labelEn: string }[] = [
@@ -65,6 +97,10 @@ interface Message {
   read: boolean;
   shared_post_id?: string | null;
   sharedPost?: SharedPost | null;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_size?: number | null;
+  attachment_type?: string | null;
 }
 
 interface GroupMember {
@@ -92,6 +128,10 @@ interface GroupMessage {
   senderPhoto?: string | null;
   shared_post_id?: string | null;
   sharedPost?: SharedPost | null;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_size?: number | null;
+  attachment_type?: string | null;
 }
 
 interface MessagesSectionProps {
@@ -103,13 +143,13 @@ interface MessagesSectionProps {
 const SharedPostCard = ({ post, onClick }: { post: SharedPost; onClick?: () => void }) => (
   <div
     onClick={onClick}
-    className={`w-56 rounded-xl overflow-hidden border border-border bg-card ${onClick ? "cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
+    className={`w-56 rounded-xl overflow-hidden border border-gray-200 bg-white ${onClick ? "cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
   >
     {post.imageUrl ? (
       <img src={post.imageUrl} alt="" className="w-full aspect-square object-cover" />
     ) : post.videoUrl ? (
-      <div className="w-full aspect-square bg-muted flex items-center justify-center">
-        <Film className="h-8 w-8 text-muted-foreground" />
+      <div className="w-full aspect-square bg-gray-100 flex items-center justify-center">
+        <Film className="h-8 w-8 text-gray-500" />
       </div>
     ) : null}
     <div className="p-2.5">
@@ -118,10 +158,10 @@ const SharedPostCard = ({ post, onClick }: { post: SharedPost; onClick?: () => v
           <AvatarImage src={post.authorPhoto ?? undefined} />
           <AvatarFallback className="text-[9px]">{(post.authorName || "?")[0]?.toUpperCase()}</AvatarFallback>
         </Avatar>
-        <span className="text-xs font-semibold text-foreground truncate">{post.authorName}</span>
+        <span className="text-xs font-semibold text-gray-900 truncate">{post.authorName}</span>
       </div>
       {post.content && (
-        <p className="text-xs text-foreground/80 line-clamp-2 whitespace-pre-wrap break-words">{post.content}</p>
+        <p className="text-xs text-gray-700 line-clamp-2 whitespace-pre-wrap break-words">{post.content}</p>
       )}
     </div>
   </div>
@@ -188,6 +228,13 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [canMessageSelected, setCanMessageSelected] = useState(true);
   const [restrictedByOther, setRestrictedByOther] = useState(false);
   const [iRestrictedOther, setIRestrictedOther] = useState(false);
+  const [showConversationInfo, setShowConversationInfo] = useState(false);
+  const [showConversationMedia, setShowConversationMedia] = useState(false);
+  const [conversationMediaTab, setConversationMediaTab] = useState<"media" | "links" | "docs">("media");
+  const [showDmSearch, setShowDmSearch] = useState(false);
+  const [dmSearchQuery, setDmSearchQuery] = useState("");
+  const [highlightedDmMsgId, setHighlightedDmMsgId] = useState<string | null>(null);
+  const [blockingUser, setBlockingUser] = useState(false);
   const { toast } = useToast();
 
   // Viewing a shared post
@@ -205,6 +252,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [showMemberList, setShowMemberList] = useState(false);
+  const [showGroupMedia, setShowGroupMedia] = useState(false);
+  const [groupMediaTab, setGroupMediaTab] = useState<"media" | "links" | "docs">("media");
   const [showRestrictPicker, setShowRestrictPicker] = useState(false);
   const [restrictTarget, setRestrictTarget] = useState<string | null>(null);
   const [restricting, setRestricting] = useState(false);
@@ -218,6 +267,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
   const [groupMsgInput, setGroupMsgInput] = useState("");
   const [groupChatLoading, setGroupChatLoading] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const groupFileInputRef = useRef<HTMLInputElement>(null);
+  const dmFileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchConversations = async () => {
     setLoading(true);
@@ -632,7 +684,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       <DialogContent className="max-w-lg p-0 gap-0 max-h-[90vh] overflow-y-auto border-0 bg-transparent shadow-none">
         <DialogTitle className="sr-only">{lang === "ro" ? "Postare" : "Post"}</DialogTitle>
         {loadingViewingPost ? (
-          <div className="flex justify-center py-12 bg-card border border-border rounded-xl">
+          <div className="flex justify-center py-12 bg-white border border-gray-200 rounded-xl">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : viewingPost ? (
@@ -645,7 +697,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             hideMenu
           />
         ) : (
-          <p className="text-center text-muted-foreground text-sm py-12 bg-card border border-border rounded-xl">
+          <p className="text-center text-gray-500 text-sm py-12 bg-white border border-gray-200 rounded-xl">
             {lang === "ro" ? "Postarea nu a fost găsită." : "Post not found."}
           </p>
         )}
@@ -691,6 +743,38 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     }
   };
 
+  const handleSendAttachment = async (file: File) => {
+    if (!selectedConversation || !currentUserId || !canMessageSelected) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: lang === "ro" ? "Fișierul este prea mare (max 20MB)." : "File is too large (max 20MB).", variant: "destructive" });
+      return;
+    }
+    setUploadingAttachment(true);
+    const path = `${selectedConversation.conversation_id}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from("message-attachments").upload(path, file);
+    if (uploadError) {
+      setUploadingAttachment(false);
+      toast({ title: lang === "ro" ? "Fișierul nu a putut fi încărcat." : "File could not be uploaded.", variant: "destructive" });
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("message-attachments").getPublicUrl(path);
+    const { data, error } = await (supabase as any).from("messages").insert({
+      conversation_id: selectedConversation.conversation_id,
+      sender_id: currentUserId,
+      content: "",
+      attachment_url: urlData.publicUrl,
+      attachment_name: file.name,
+      attachment_size: file.size,
+      attachment_type: file.type || null,
+    }).select().single();
+    setUploadingAttachment(false);
+    if (error) {
+      toast({ title: lang === "ro" ? "Mesajul nu a putut fi trimis" : "Message could not be sent", variant: "destructive" });
+      return;
+    }
+    setMessages((prev) => [...prev, data as Message]);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -708,13 +792,28 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     setSelectedConversation(null);
     setMessages([]);
     setNewMessage("");
+    setShowConversationInfo(false);
+    setShowConversationMedia(false);
     fetchConversations();
+  };
+
+  const handleBlockUser = async () => {
+    if (!currentUserId || !selectedConversation) return;
+    setBlockingUser(true);
+    const { error } = await (supabase as any).from("blocks").insert({ blocker_id: currentUserId, blocked_id: selectedConversation.other_user_id });
+    setBlockingUser(false);
+    if (!error || error.code === "23505") {
+      toast({ title: lang === "ro" ? `${selectedConversation.other_name} a fost blocat.` : `${selectedConversation.other_name} blocked.` });
+      handleBack();
+    } else {
+      toast({ title: lang === "ro" ? "Eroare la blocare." : "Error blocking.", variant: "destructive" });
+    }
   };
 
   const loadGroupMessages = async (group: GroupItem) => {
     setGroupChatLoading(true);
     const [{ data: msgs }, { data: restricted }] = await Promise.all([
-      (supabase as any).from("group_messages").select("id, group_id, sender_id, content, created_at, shared_post_id").eq("group_id", group.id).order("created_at", { ascending: true }),
+      (supabase as any).from("group_messages").select("id, group_id, sender_id, content, created_at, shared_post_id, attachment_url, attachment_name, attachment_size, attachment_type").eq("group_id", group.id).order("created_at", { ascending: true }),
       currentUserId
         ? (supabase as any).from("group_restricted_senders").select("restricted_user_id").eq("group_id", group.id).eq("restrictor_id", currentUserId)
         : Promise.resolve({ data: [] }),
@@ -837,15 +936,49 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     await (supabase as any).from("group_conversations").update({ updated_at: new Date().toISOString() }).eq("id", selectedGroup.id);
   };
 
+  const handleSendGroupAttachment = async (file: File) => {
+    if (!selectedGroup || !currentUserId) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: lang === "ro" ? "Fișierul este prea mare (max 20MB)." : "File is too large (max 20MB).", variant: "destructive" });
+      return;
+    }
+    setUploadingAttachment(true);
+    const path = `${selectedGroup.id}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from("group-attachments").upload(path, file);
+    if (uploadError) {
+      setUploadingAttachment(false);
+      toast({ title: lang === "ro" ? "Fișierul nu a putut fi încărcat." : "File could not be uploaded.", variant: "destructive" });
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("group-attachments").getPublicUrl(path);
+    const me = selectedGroup.members.find(m => m.userId === currentUserId);
+    const { data, error } = await (supabase as any).from("group_messages").insert({
+      group_id: selectedGroup.id,
+      sender_id: currentUserId,
+      content: "",
+      attachment_url: urlData.publicUrl,
+      attachment_name: file.name,
+      attachment_size: file.size,
+      attachment_type: file.type || null,
+    }).select().single();
+    setUploadingAttachment(false);
+    if (error) {
+      toast({ title: lang === "ro" ? "Mesajul nu a putut fi trimis" : "Message could not be sent", variant: "destructive" });
+      return;
+    }
+    setGroupMessages(prev => [...prev, { ...data, senderName: me?.name ?? "", senderPhoto: me?.photo ?? null }]);
+    await (supabase as any).from("group_conversations").update({ updated_at: new Date().toISOString() }).eq("id", selectedGroup.id);
+  };
+
   // ---- LOCKED (unapproved Caută Jucător): no read, no send ----
   if (messagingLocked) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-6 py-16">
-        <MessageSquare className="w-12 h-12 text-muted-foreground/40 mb-4" />
+        <MessageSquare className="w-12 h-12 text-gray-400 mb-4" />
         <h3 className="font-heading font-semibold text-lg mb-2">
           {lang === "ro" ? "Mesageria este indisponibilă" : "Messaging is unavailable"}
         </h3>
-        <p className="text-sm text-muted-foreground max-w-sm">
+        <p className="text-sm text-gray-500 max-w-sm">
           {lang === "ro"
             ? "Contul tău este în curs de verificare. Vei putea trimite și primi mesaje după aprobarea contului."
             : "Your account is pending verification. You'll be able to send and receive messages once your account is approved."}
@@ -880,17 +1013,17 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     const otherMembers = selectedGroup.members.filter(m => m.userId !== currentUserId);
     return (
       <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
-        <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => { setShowRestrictPicker(false); setRestrictTarget(null); }}>
+        <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => { setShowRestrictPicker(false); setRestrictTarget(null); }}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="font-display text-base text-foreground">{lang === "ro" ? "Restricționează" : "Restrict"}</h2>
+          <h2 className="font-display text-base text-gray-900">{lang === "ro" ? "Restricționează" : "Restrict"}</h2>
         </div>
 
-        <p className="text-sm font-semibold font-body text-foreground px-1 pt-4 pb-2">
+        <p className="text-sm font-semibold font-body text-gray-900 px-1 pt-4 pb-2">
           {lang === "ro" ? "Pe cine vrei să restricționezi?" : "Who do you want to restrict?"}
         </p>
-        <p className="text-xs text-muted-foreground font-body px-1 pb-3">
+        <p className="text-xs text-gray-500 font-body px-1 pb-3">
           {lang === "ro"
             ? "Nu vei mai vedea mesajele acestei persoane în acest grup."
             : "You'll no longer see this person's messages in this group."}
@@ -898,7 +1031,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
         <div className="flex-1 overflow-y-auto">
           {otherMembers.length === 0 ? (
-            <p className="text-sm text-muted-foreground font-body text-center py-10">
+            <p className="text-sm text-gray-500 font-body text-center py-10">
               {lang === "ro" ? "Nu sunt alte persoane în acest grup." : "There's no one else in this group."}
             </p>
           ) : (
@@ -908,14 +1041,14 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                 <button
                   key={m.userId}
                   onClick={() => setRestrictTarget(m.userId)}
-                  className="w-full flex items-center gap-3 px-1 py-3 hover:bg-muted/30 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-1 py-3 hover:bg-gray-100 transition-colors text-left"
                 >
                   <Avatar className="h-11 w-11 shrink-0">
                     <AvatarImage src={m.photo ?? undefined} />
-                    <AvatarFallback className="bg-muted">{(m.name || "?")[0]?.toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="bg-gray-100">{(m.name || "?")[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <p className="flex-1 text-sm font-semibold font-body text-foreground truncate">{m.name}</p>
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"}`}>
+                  <p className="flex-1 text-sm font-semibold font-body text-gray-900 truncate">{m.name}</p>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-primary border-primary" : "border-gray-300"}`}>
                     {isSelected && (
                       <svg viewBox="0 0 10 8" className="w-3 h-3 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth={2}>
                         <path d="M1 4l3 3 5-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -945,21 +1078,21 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   if (selectedGroup && showGroupInfo && showMemberList) {
     return (
       <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
-        <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => setShowMemberList(false)}>
+        <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => setShowMemberList(false)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="font-display text-base text-foreground">{lang === "ro" ? "Persoane" : "People"}</h2>
+          <h2 className="font-display text-base text-gray-900">{lang === "ro" ? "Persoane" : "People"}</h2>
         </div>
         <div className="flex-1 overflow-y-auto py-2">
           {selectedGroup.members.map(m => (
             <div key={m.userId} className="flex items-center gap-3 px-1 py-3">
               <Avatar className="h-11 w-11 shrink-0">
                 <AvatarImage src={m.photo ?? undefined} />
-                <AvatarFallback className="bg-muted">{(m.name || "?")[0]?.toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="bg-gray-100">{(m.name || "?")[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex items-center gap-2 min-w-0">
-                <p className="text-sm font-semibold font-body text-foreground truncate">
+                <p className="text-sm font-semibold font-body text-gray-900 truncate">
                   {m.name}{m.userId === currentUserId ? ` (${lang === "ro" ? "tu" : "you"})` : ""}
                 </p>
                 {memberRoles[m.userId] && (
@@ -975,22 +1108,182 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     );
   }
 
+  // ---- GROUP MEDIA / LINKS / DOCS VIEW ----
+  if (selectedGroup && showGroupInfo && showGroupMedia) {
+    const mediaItems = groupMessages.filter(m => m.sharedPost?.imageUrl);
+    const linkItems = groupMessages.flatMap(m =>
+      (m.content.match(/(https?:\/\/[^\s]+)/g) || []).map(url => ({ id: m.id, url, senderName: m.senderName, createdAt: m.created_at }))
+    );
+    const docItems = groupMessages.filter(m => m.attachment_url);
+
+    const goToMessage = (msgId: string) => {
+      setShowGroupMedia(false);
+      setShowGroupInfo(false);
+      setHighlightedGroupMsgId(msgId);
+      setTimeout(() => {
+        document.getElementById(`group-msg-${msgId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+      setTimeout(() => setHighlightedGroupMsgId(null), 2000);
+    };
+
+    return (
+      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+        <div className="flex items-center gap-2 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100 shrink-0" onClick={() => setShowGroupMedia(false)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1 flex items-center justify-center gap-1">
+            {([
+              { key: "media" as const, labelRo: "Media", labelEn: "Media" },
+              { key: "links" as const, labelRo: "Linkuri", labelEn: "Links" },
+              { key: "docs" as const, labelRo: "Documente", labelEn: "Docs" },
+            ]).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setGroupMediaTab(tab.key)}
+                className={`px-3.5 py-1.5 rounded-full text-sm font-body transition-colors ${
+                  groupMediaTab === tab.key ? "bg-orange-500 text-white" : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                {lang === "ro" ? tab.labelRo : tab.labelEn}
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-gray-900 hover:bg-gray-100 shrink-0"
+            onClick={() => toast({ title: lang === "ro" ? "Funcționalitate în curând." : "Coming soon." })}
+          >
+            {lang === "ro" ? "Selectează" : "Select"}
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3">
+          {groupMediaTab === "media" && (
+            mediaItems.length === 0 ? (
+              <p className="text-center text-gray-500 text-sm py-16">
+                {lang === "ro" ? "Nicio fotografie distribuită în acest grup încă." : "No photos shared in this group yet."}
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-1">
+                  {mediaItems.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => m.shared_post_id && handleViewPost(m.shared_post_id)}
+                      className="aspect-square overflow-hidden rounded-md bg-gray-100 hover:opacity-90 transition-opacity"
+                    >
+                      <img src={m.sharedPost!.imageUrl!} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+                <p className="text-center text-gray-500 text-sm mt-4">
+                  {mediaItems.length} {lang === "ro" ? (mediaItems.length === 1 ? "fotografie" : "fotografii") : (mediaItems.length === 1 ? "photo" : "photos")}
+                </p>
+              </>
+            )
+          )}
+
+          {groupMediaTab === "links" && (
+            linkItems.length === 0 ? (
+              <p className="text-center text-gray-500 text-sm py-16">
+                {lang === "ro" ? "Niciun link distribuit în acest grup încă." : "No links shared in this group yet."}
+              </p>
+            ) : (
+              <>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1 mb-2">
+                  {lang === "ro" ? "Luna aceasta" : "This month"}
+                </p>
+                <div className="space-y-3">
+                  {linkItems.map((l, i) => {
+                    let domain = l.url;
+                    try { domain = new URL(l.url).hostname.replace(/^www\./, ""); } catch { /* keep raw url */ }
+                    return (
+                      <div key={`${l.id}-${i}`} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        <a
+                          href={l.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                            <Link2 className="h-6 w-6 text-gray-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{domain}</p>
+                            <p className="text-xs text-gray-500 truncate">{l.url}</p>
+                          </div>
+                        </a>
+                        <button
+                          onClick={() => goToMessage(l.id)}
+                          className="w-full flex items-center justify-between px-3 py-2.5 border-t border-gray-100 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <span>{lang === "ro" ? "Vezi mesajul" : "View message"}</span>
+                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )
+          )}
+
+          {groupMediaTab === "docs" && (
+            docItems.length === 0 ? (
+              <p className="text-center text-gray-500 text-sm py-16">
+                {lang === "ro" ? "Niciun document distribuit în acest grup încă." : "No documents shared in this group yet."}
+              </p>
+            ) : (
+              <>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1 mb-2">
+                  {lang === "ro" ? "Luna aceasta" : "This month"}
+                </p>
+                <div className="divide-y divide-gray-100">
+                  {docItems.map(m => (
+                    <a
+                      key={m.id}
+                      href={m.attachment_url!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 py-3 px-1 -mx-1 hover:bg-gray-50 transition-colors rounded-lg"
+                    >
+                      <FileThumb name={m.attachment_name} className="w-10 h-12 rounded shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">{m.attachment_name}</p>
+                        <p className="text-xs text-gray-500">
+                          {formatFileSize(m.attachment_size)}{m.attachment_size ? " · " : ""}{fileExtension(m.attachment_name)}
+                        </p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </>
+            )
+          )}
+        </div>
+        {viewPostDialog}
+      </div>
+    );
+  }
+
   // ---- MUTE SETTINGS VIEW ----
   if (selectedGroup && showMuteSettings) {
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
-        <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => setShowMuteSettings(false)}>
+      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8 bg-white text-gray-900 px-4 sm:px-6">
+        <div className="flex items-center gap-3 pt-4 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => setShowMuteSettings(false)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="font-display text-base text-foreground">{lang === "ro" ? "Notificări" : "Notifications"}</h2>
+          <h2 className="font-display text-base text-gray-900">{lang === "ro" ? "Notificări" : "Notifications"}</h2>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           <div className="flex items-center justify-between gap-4 px-1 py-4">
             <div className="min-w-0">
-              <p className="text-sm font-body text-foreground">{lang === "ro" ? "Mut mesaje" : "Mute messages"}</p>
-              <p className="text-xs text-muted-foreground font-body mt-0.5">
+              <p className="text-sm font-body text-gray-900">{lang === "ro" ? "Mut mesaje" : "Mute messages"}</p>
+              <p className="text-xs text-gray-500 font-body mt-0.5">
                 {lang === "ro" ? "Nu vei mai primi notificări pentru acest grup." : "You won't receive notifications for this group."}
               </p>
             </div>
@@ -1012,7 +1305,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       return (
         <>
           {text.slice(0, idx)}
-          <span className="font-semibold text-foreground">{text.slice(idx, idx + q.length)}</span>
+          <span className="font-semibold text-gray-900">{text.slice(idx, idx + q.length)}</span>
           {text.slice(idx + q.length)}
         </>
       );
@@ -1030,23 +1323,23 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
     return (
       <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
-        <div className="flex items-center gap-2 pb-3 border-b border-border shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => { setShowGroupSearch(false); setGroupSearchQuery(""); }}>
+        <div className="flex items-center gap-2 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => { setShowGroupSearch(false); setGroupSearchQuery(""); }}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <Input
               value={groupSearchQuery}
               onChange={e => setGroupSearchQuery(e.target.value)}
               placeholder={lang === "ro" ? "Caută în conversație" : "Search in conversation"}
-              className="pl-10 pr-9 rounded-full border-0 bg-muted focus-visible:ring-1"
+              className="pl-10 pr-9 rounded-full border-0 bg-gray-100 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
               autoFocus
             />
             {groupSearchQuery && (
               <button
                 onClick={() => setGroupSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1056,7 +1349,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
         <div className="flex-1 overflow-y-auto">
           {q === "" ? null : results.length === 0 ? (
-            <p className="text-sm text-muted-foreground font-body text-center py-10">
+            <p className="text-sm text-gray-500 font-body text-center py-10">
               {lang === "ro" ? "Niciun rezultat." : "No results."}
             </p>
           ) : (
@@ -1064,17 +1357,17 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               <button
                 key={m.id}
                 onClick={() => goToMessage(m.id)}
-                className="w-full flex items-start gap-3 px-1 py-3 hover:bg-muted/30 transition-colors text-left"
+                className="w-full flex items-start gap-3 px-1 py-3 hover:bg-gray-100 transition-colors text-left"
               >
                 <Avatar className="h-9 w-9 shrink-0 mt-0.5">
                   <AvatarImage src={m.senderPhoto ?? undefined} />
-                  <AvatarFallback className="bg-muted text-xs">{(m.senderName || "?")[0]?.toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="bg-gray-100 text-xs">{(m.senderName || "?")[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold font-body text-foreground truncate">{m.senderName}</p>
-                  <p className="text-xs text-muted-foreground font-body truncate">{highlightMatch(m.content)}</p>
+                  <p className="text-sm font-semibold font-body text-gray-900 truncate">{m.senderName}</p>
+                  <p className="text-xs text-gray-500 font-body truncate">{highlightMatch(m.content)}</p>
                 </div>
-                <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                <span className="text-[10px] text-gray-500 shrink-0 mt-0.5">
                   {new Date(m.created_at).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", { day: "numeric", month: "long" })}
                 </span>
               </button>
@@ -1104,6 +1397,11 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         onClick: handleCopyInviteLink,
       },
       {
+        icon: ImageIcon,
+        labelRo: "Media, linkuri și documente", labelEn: "Media, links and docs",
+        onClick: () => { setGroupMediaTab("media"); setShowGroupMedia(true); },
+      },
+      {
         icon: Users,
         labelRo: "Persoane", labelEn: "People",
         valueRo: peoplePreview + (otherCount > 0 ? ` ${lang === "ro" ? "și încă" : "and"} ${otherCount} ${lang === "ro" ? "alții" : "others"}` : ""),
@@ -1114,8 +1412,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
     return (
       <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
-        <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => setShowGroupInfo(false)}>
+        <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => setShowGroupInfo(false)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </div>
@@ -1131,59 +1429,59 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                     style={{ marginLeft: i === 0 ? 0 : -28, zIndex: stackedMembers.length - i }}
                   >
                     <AvatarImage src={m.photo ?? undefined} />
-                    <AvatarFallback className="bg-muted">{(m.name || "?")[0]?.toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="bg-gray-100">{(m.name || "?")[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
                 ))}
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-3">
-                <Users className="h-7 w-7 text-primary" />
+              <div className="relative w-16 h-16 rounded-full bg-primary/20 mb-3">
+                <Users className="h-7 w-7 text-primary absolute inset-0 m-auto" />
               </div>
             )}
-            <p className="font-display text-xl text-foreground">{selectedGroup.name}</p>
+            <p className="font-display text-xl text-gray-900">{selectedGroup.name}</p>
 
             <div className="flex items-center gap-6 mt-5">
               <button
                 onClick={() => setShowAddMembers(true)}
-                className="flex flex-col items-center gap-1.5 text-foreground"
+                className="flex flex-col items-center gap-1.5 text-gray-900"
               >
-                <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center">
+                <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
                   <UserPlus className="h-5 w-5" />
                 </div>
                 <span className="text-xs font-body">{lang === "ro" ? "Adaugă" : "Add"}</span>
               </button>
               <button
                 onClick={() => { setGroupSearchQuery(""); setShowGroupSearch(true); }}
-                className="flex flex-col items-center gap-1.5 text-foreground"
+                className="flex flex-col items-center gap-1.5 text-gray-900"
               >
-                <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center">
+                <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
                   <Search className="h-5 w-5" />
                 </div>
                 <span className="text-xs font-body">{lang === "ro" ? "Caută" : "Search"}</span>
               </button>
               <button
                 onClick={() => setShowMuteSettings(true)}
-                className="flex flex-col items-center gap-1.5 text-foreground"
+                className="flex flex-col items-center gap-1.5 text-gray-900"
               >
-                <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center">
+                <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
                   <Bell className="h-5 w-5" />
                 </div>
                 <span className="text-xs font-body">{lang === "ro" ? "Mut" : "Mute"}</span>
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex flex-col items-center gap-1.5 text-foreground">
-                    <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center">
+                  <button className="flex flex-col items-center gap-1.5 text-gray-900">
+                    <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
                       <MoreHorizontal className="h-5 w-5" />
                     </div>
                     <span className="text-xs font-body">{lang === "ro" ? "Opțiuni" : "Options"}</span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="center">
-                  <DropdownMenuItem onClick={handleLeaveGroup} className="text-destructive focus:text-destructive">
+                <DropdownMenuContent align="center" className="bg-white border-gray-200 text-gray-900">
+                  <DropdownMenuItem onClick={handleLeaveGroup} className="text-destructive focus:text-destructive focus:bg-gray-100">
                     <LogOut className="h-4 w-4 mr-2" /> {lang === "ro" ? "Ieși din grup" : "Leave"}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setRestrictTarget(null); setShowRestrictPicker(true); }}>
+                  <DropdownMenuItem onClick={() => { setRestrictTarget(null); setShowRestrictPicker(true); }} className="focus:bg-gray-100 focus:text-gray-900">
                     <Ban className="h-4 w-4 mr-2" /> {lang === "ro" ? "Restricționează" : "Restrict"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -1191,45 +1489,45 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             </div>
           </div>
 
-          <div className="bg-card border-y border-border divide-y divide-border">
+          <div className="bg-white border-y border-gray-200 divide-y divide-gray-200">
             {infoRows.map((row) => {
               const Icon = row.icon;
               return (
                 <button
                   key={row.labelEn}
                   onClick={row.onClick}
-                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors text-left"
+                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-100 transition-colors text-left"
                 >
-                  <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <Icon className="h-5 w-5 text-gray-500 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-body text-foreground">{lang === "ro" ? row.labelRo : row.labelEn}</p>
+                    <p className="text-sm font-body text-gray-900">{lang === "ro" ? row.labelRo : row.labelEn}</p>
                     {(row.valueRo || row.valueEn) && (
-                      <p className="text-xs text-muted-foreground font-body truncate">{lang === "ro" ? row.valueRo : row.valueEn}</p>
+                      <p className="text-xs text-gray-500 font-body truncate">{lang === "ro" ? row.valueRo : row.valueEn}</p>
                     )}
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
                 </button>
               );
             })}
             <button
               onClick={() => toast({ title: lang === "ro" ? "Funcționalitate în curând." : "Coming soon." })}
-              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors text-left"
+              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-100 transition-colors text-left"
             >
-              <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
-              <p className="flex-1 text-sm font-body text-foreground">{lang === "ro" ? "Confidențialitate și siguranță" : "Privacy and safety"}</p>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+              <Lock className="h-5 w-5 text-gray-500 shrink-0" />
+              <p className="flex-1 text-sm font-body text-gray-900">{lang === "ro" ? "Confidențialitate și siguranță" : "Privacy and safety"}</p>
+              <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
             </button>
           </div>
         </div>
 
         <Sheet open={showMuteSettings} onOpenChange={setShowMuteSettings}>
-          <SheetContent side="bottom" className="rounded-t-2xl max-w-md mx-auto p-0">
-            <div className="w-9 h-1 rounded-full bg-muted-foreground/30 mx-auto mt-3 mb-1" />
-            <p className="font-display text-base text-foreground text-center py-3 border-b border-border">
+          <SheetContent side="bottom" className="rounded-t-2xl max-w-md mx-auto p-0 bg-white text-gray-900">
+            <div className="w-9 h-1 rounded-full bg-gray-300 mx-auto mt-3 mb-1" />
+            <p className="font-display text-base text-gray-900 text-center py-3 border-b border-gray-200">
               {lang === "ro" ? "Notificări" : "Notifications"}
             </p>
             <div className="flex items-center justify-between px-5 py-4">
-              <p className="text-sm font-body text-foreground">{lang === "ro" ? "Mesaje silențioase" : "Mute messages"}</p>
+              <p className="text-sm font-body text-gray-900">{lang === "ro" ? "Mesaje silențioase" : "Mute messages"}</p>
               <Switch checked={selectedGroup.muted} disabled={mutingGroup} onCheckedChange={handleToggleMute} />
             </div>
           </SheetContent>
@@ -1244,26 +1542,26 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     return (
       <>
       <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
-        <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => { setSelectedGroup(null); setGroupMessages([]); setShowAddMembers(false); setShowGroupInfo(false); setShowMemberList(false); setShowRestrictPicker(false); setRestrictTarget(null); setShowMuteSettings(false); setShowGroupSearch(false); fetchGroups(); }}>
+        <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => { setSelectedGroup(null); setGroupMessages([]); setShowAddMembers(false); setShowGroupInfo(false); setShowMemberList(false); setShowRestrictPicker(false); setRestrictTarget(null); setShowMuteSettings(false); setShowGroupSearch(false); fetchGroups(); }}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <button
             onClick={() => setShowGroupInfo(true)}
             className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
           >
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-              <Users className="h-5 w-5 text-primary" />
+            <div className="relative w-10 h-10 rounded-full bg-primary/20 shrink-0">
+              <Users className="h-5 w-5 text-primary absolute inset-0 m-auto" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-display text-base text-foreground truncate">{selectedGroup.name}</p>
-              <p className="text-xs text-muted-foreground">{selectedGroup.members.length} {lang === "ro" ? "membri" : "members"}</p>
+              <p className="font-display text-base text-gray-900 truncate">{selectedGroup.name}</p>
+              <p className="text-xs text-gray-500">{selectedGroup.members.length} {lang === "ro" ? "membri" : "members"}</p>
             </div>
           </button>
         </div>
         <div className="flex-1 overflow-y-auto py-4 space-y-3 min-h-0">
           {/* Group info card — shown at the start of the conversation */}
-          <div className="flex flex-col items-center text-center pb-6 mb-2 border-b border-border/50">
+          <div className="flex flex-col items-center text-center pb-6 mb-2 border-b border-gray-200">
             {stackedMembers.length > 0 ? (
               <div className="flex items-center justify-center mb-4" style={{ width: `${40 + (stackedMembers.length - 1) * 28}px` }}>
                 {stackedMembers.map((m, i) => (
@@ -1273,18 +1571,18 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                     style={{ marginLeft: i === 0 ? 0 : -28, zIndex: stackedMembers.length - i }}
                   >
                     <AvatarImage src={m.photo ?? undefined} />
-                    <AvatarFallback className="bg-muted">{(m.name || "?")[0]?.toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="bg-gray-100">{(m.name || "?")[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
                 ))}
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
-                <Users className="h-7 w-7 text-primary" />
+              <div className="relative w-16 h-16 rounded-full bg-primary/20 mb-4">
+                <Users className="h-7 w-7 text-primary absolute inset-0 m-auto" />
               </div>
             )}
 
-            <p className="font-display text-xl text-foreground">{selectedGroup.name}</p>
-            <p className="text-xs text-muted-foreground font-body mt-1 mb-6">
+            <p className="font-display text-xl text-gray-900">{selectedGroup.name}</p>
+            <p className="text-xs text-gray-500 font-body mt-1 mb-6">
               {selectedGroup.members.length} {lang === "ro" ? "membri" : "members"}
             </p>
 
@@ -1292,17 +1590,17 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               <button
                 onClick={handleCopyInviteLink}
                 disabled={copyingInviteLink}
-                className="flex flex-col items-center gap-2 py-4 rounded-xl border border-border hover:bg-muted/30 transition-colors disabled:opacity-50"
+                className="flex flex-col items-center gap-2 py-4 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors disabled:opacity-50"
               >
-                {copyingInviteLink ? <Loader2 className="h-5 w-5 animate-spin text-foreground" /> : <Link2 className="h-5 w-5 text-foreground" />}
-                <span className="text-xs font-body text-foreground">{lang === "ro" ? "Link de invitație" : "Invitation link"}</span>
+                {copyingInviteLink ? <Loader2 className="h-5 w-5 animate-spin text-gray-900" /> : <Link2 className="h-5 w-5 text-gray-900" />}
+                <span className="text-xs font-body text-gray-900">{lang === "ro" ? "Link de invitație" : "Invitation link"}</span>
               </button>
               <button
                 onClick={() => setShowAddMembers(true)}
-                className="flex flex-col items-center gap-2 py-4 rounded-xl border border-border hover:bg-muted/30 transition-colors"
+                className="flex flex-col items-center gap-2 py-4 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors"
               >
-                <UserPlus className="h-5 w-5 text-foreground" />
-                <span className="text-xs font-body text-foreground">{lang === "ro" ? "Adaugă persoane" : "Add people"}</span>
+                <UserPlus className="h-5 w-5 text-gray-900" />
+                <span className="text-xs font-body text-gray-900">{lang === "ro" ? "Adaugă persoane" : "Add people"}</span>
               </button>
             </div>
           </div>
@@ -1310,7 +1608,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           {groupChatLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : groupMessages.length === 0 ? (
-            <p className="text-center text-muted-foreground text-sm py-8">{lang === "ro" ? "Niciun mesaj încă." : "No messages yet."}</p>
+            <p className="text-center text-gray-500 text-sm py-8">{lang === "ro" ? "Niciun mesaj încă." : "No messages yet."}</p>
           ) : (
             groupMessages.map(msg => {
               const isMine = msg.sender_id === currentUserId;
@@ -1323,18 +1621,36 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                     </Avatar>
                   )}
                   <div className={`max-w-[70%] ${isMine ? "" : ""}`}>
-                    {!isMine && <p className="text-[10px] text-muted-foreground mb-0.5 ml-1">{msg.senderName}</p>}
-                    {msg.sharedPost ? (
+                    {!isMine && <p className="text-[10px] text-gray-500 mb-0.5 ml-1">{msg.senderName}</p>}
+                    {msg.attachment_url ? (
+                      <div className={`rounded-xl transition-colors duration-500 ${highlightedGroupMsgId === msg.id ? "ring-2 ring-primary" : ""}`}>
+                        <a
+                          href={msg.attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors min-w-[220px]"
+                        >
+                          <FileThumb name={msg.attachment_name} className="w-10 h-12 rounded" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 truncate">{msg.attachment_name}</p>
+                            <p className="text-xs text-gray-500">{formatFileSize(msg.attachment_size)}{msg.attachment_size ? " · " : ""}{fileExtension(msg.attachment_name)}</p>
+                          </div>
+                        </a>
+                        <p className={`text-[10px] mt-1 text-gray-500 ${isMine ? "text-right" : ""}`}>
+                          {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    ) : msg.sharedPost ? (
                       <div className={`rounded-xl transition-colors duration-500 ${highlightedGroupMsgId === msg.id ? "ring-2 ring-primary" : ""}`}>
                         <SharedPostCard post={msg.sharedPost} onClick={() => handleViewPost(msg.sharedPost!.id)} />
-                        <p className={`text-[10px] mt-1 text-muted-foreground ${isMine ? "text-right" : ""}`}>
+                        <p className={`text-[10px] mt-1 text-gray-500 ${isMine ? "text-right" : ""}`}>
                           {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
                     ) : (
-                      <div className={`rounded-2xl px-4 py-2 text-sm transition-colors duration-500 ${highlightedGroupMsgId === msg.id ? "ring-2 ring-primary" : ""} ${isMine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted text-foreground rounded-bl-md"}`}>
+                      <div className={`rounded-2xl px-4 py-2 text-sm transition-colors duration-500 ${highlightedGroupMsgId === msg.id ? "ring-2 ring-primary" : ""} ${isMine ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-md" : "bg-white border border-gray-200 text-gray-900 rounded-bl-md"}`}>
                         <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                        <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                        <p className={`text-[10px] mt-1 ${isMine ? "text-white/70" : "text-gray-500"}`}>
                           {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
@@ -1346,9 +1662,24 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           )}
           <div ref={messagesEndRef} />
         </div>
-        <div className="border-t border-border pt-3 shrink-0 flex gap-2">
-          <Input value={groupMsgInput} onChange={e => setGroupMsgInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendGroupMessage(); } }} placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."} className="flex-1" autoFocus />
-          <Button onClick={handleSendGroupMessage} disabled={!groupMsgInput.trim()} size="icon"><Send className="h-4 w-4" /></Button>
+        <div className="border-t border-gray-200 pt-3 shrink-0 flex gap-2">
+          <input
+            ref={groupFileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => { const file = e.target.files?.[0]; if (file) handleSendGroupAttachment(file); e.target.value = ""; }}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-gray-500 hover:bg-gray-100 shrink-0"
+            disabled={uploadingAttachment}
+            onClick={() => groupFileInputRef.current?.click()}
+          >
+            {uploadingAttachment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+          </Button>
+          <Input value={groupMsgInput} onChange={e => setGroupMsgInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendGroupMessage(); } }} placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."} className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" autoFocus />
+          <Button onClick={handleSendGroupMessage} disabled={!groupMsgInput.trim()} size="icon" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"><Send className="h-4 w-4" /></Button>
         </div>
       </div>
       {viewPostDialog}
@@ -1360,7 +1691,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   if (viewProfileUserId) {
     return (
       <div className="space-y-0">
-        <Button variant="ghost" size="sm" onClick={() => { setViewProfileUserId(null); setViewProfileRole(null); }} className="mb-4 gap-2">
+        <Button variant="ghost" size="sm" onClick={() => { setViewProfileUserId(null); setViewProfileRole(null); }} className="mb-4 gap-2 text-gray-900 hover:bg-gray-100">
           <ArrowLeft className="h-4 w-4" />
           {lang === "ro" ? "Înapoi la conversație" : "Back to conversation"}
         </Button>
@@ -1373,6 +1704,334 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     );
   }
 
+  // ---- CONVERSATION SEARCH VIEW ----
+  if (selectedConversation && showConversationInfo && showDmSearch) {
+    const q = dmSearchQuery.trim().toLowerCase();
+    const results = q ? messages.filter(m => m.content.toLowerCase().includes(q)) : [];
+
+    const highlightMatch = (text: string) => {
+      const idx = text.toLowerCase().indexOf(q);
+      if (idx === -1) return text;
+      return (
+        <>
+          {text.slice(0, idx)}
+          <span className="font-semibold text-gray-900">{text.slice(idx, idx + q.length)}</span>
+          {text.slice(idx + q.length)}
+        </>
+      );
+    };
+
+    const goToDmMessage = (msgId: string) => {
+      setShowDmSearch(false);
+      setShowConversationInfo(false);
+      setHighlightedDmMsgId(msgId);
+      setTimeout(() => {
+        document.getElementById(`dm-msg-${msgId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+      setTimeout(() => setHighlightedDmMsgId(null), 2000);
+    };
+
+    return (
+      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+        <div className="flex items-center gap-2 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => { setShowDmSearch(false); setDmSearchQuery(""); }}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              value={dmSearchQuery}
+              onChange={e => setDmSearchQuery(e.target.value)}
+              placeholder={lang === "ro" ? "Caută în conversație" : "Search in conversation"}
+              className="pl-10 pr-9 rounded-full border-0 bg-gray-100 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+              autoFocus
+            />
+            {dmSearchQuery && (
+              <button
+                onClick={() => setDmSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {q === "" ? null : results.length === 0 ? (
+            <p className="text-sm text-gray-500 font-body text-center py-10">
+              {lang === "ro" ? "Niciun rezultat." : "No results."}
+            </p>
+          ) : (
+            results.map(m => (
+              <button
+                key={m.id}
+                onClick={() => goToDmMessage(m.id)}
+                className="w-full flex items-start gap-3 px-1 py-3 hover:bg-gray-100 transition-colors text-left"
+              >
+                <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+                  {m.sender_id !== currentUserId && <AvatarImage src={selectedConversation.other_photo ?? undefined} />}
+                  <AvatarFallback className="bg-gray-100 text-xs">
+                    {((m.sender_id === currentUserId ? (lang === "ro" ? "Tu" : "You") : selectedConversation.other_name) || "?")[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold font-body text-gray-900 truncate">
+                    {m.sender_id === currentUserId ? (lang === "ro" ? "Tu" : "You") : selectedConversation.other_name}
+                  </p>
+                  <p className="text-xs text-gray-500 font-body truncate">{highlightMatch(m.content)}</p>
+                </div>
+                <span className="text-[10px] text-gray-500 shrink-0 mt-0.5">
+                  {new Date(m.created_at).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", { day: "numeric", month: "long" })}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- CONVERSATION MEDIA / LINKS / DOCS VIEW ----
+  if (selectedConversation && showConversationInfo && showConversationMedia) {
+    const mediaItems = messages.filter(m => m.sharedPost?.imageUrl);
+    const linkItems = messages.flatMap(m =>
+      (m.content.match(/(https?:\/\/[^\s]+)/g) || []).map(url => ({ id: m.id, url, createdAt: m.created_at }))
+    );
+    const docItems = messages.filter(m => m.attachment_url);
+
+    const goToDmMessage = (msgId: string) => {
+      setShowConversationMedia(false);
+      setShowConversationInfo(false);
+      setHighlightedDmMsgId(msgId);
+      setTimeout(() => {
+        document.getElementById(`dm-msg-${msgId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+      setTimeout(() => setHighlightedDmMsgId(null), 2000);
+    };
+
+    return (
+      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+        <div className="flex items-center gap-2 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100 shrink-0" onClick={() => setShowConversationMedia(false)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1 flex items-center justify-center gap-1">
+            {([
+              { key: "media" as const, labelRo: "Media", labelEn: "Media" },
+              { key: "links" as const, labelRo: "Linkuri", labelEn: "Links" },
+              { key: "docs" as const, labelRo: "Documente", labelEn: "Docs" },
+            ]).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setConversationMediaTab(tab.key)}
+                className={`px-3.5 py-1.5 rounded-full text-sm font-body transition-colors ${
+                  conversationMediaTab === tab.key ? "bg-orange-500 text-white" : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                {lang === "ro" ? tab.labelRo : tab.labelEn}
+              </button>
+            ))}
+          </div>
+          <div className="w-9 shrink-0" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3">
+          {conversationMediaTab === "media" && (
+            mediaItems.length === 0 ? (
+              <p className="text-center text-gray-500 text-sm py-16">
+                {lang === "ro" ? "Nicio fotografie distribuită în această conversație încă." : "No photos shared in this conversation yet."}
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-1">
+                  {mediaItems.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => m.shared_post_id && handleViewPost(m.shared_post_id)}
+                      className="aspect-square overflow-hidden rounded-md bg-gray-100 hover:opacity-90 transition-opacity"
+                    >
+                      <img src={m.sharedPost!.imageUrl!} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+                <p className="text-center text-gray-500 text-sm mt-4">
+                  {mediaItems.length} {lang === "ro" ? (mediaItems.length === 1 ? "fotografie" : "fotografii") : (mediaItems.length === 1 ? "photo" : "photos")}
+                </p>
+              </>
+            )
+          )}
+
+          {conversationMediaTab === "links" && (
+            linkItems.length === 0 ? (
+              <p className="text-center text-gray-500 text-sm py-16">
+                {lang === "ro" ? "Niciun link distribuit în această conversație încă." : "No links shared in this conversation yet."}
+              </p>
+            ) : (
+              <>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1 mb-2">
+                  {lang === "ro" ? "Luna aceasta" : "This month"}
+                </p>
+                <div className="space-y-3">
+                  {linkItems.map((l, i) => {
+                    let domain = l.url;
+                    try { domain = new URL(l.url).hostname.replace(/^www\./, ""); } catch { /* keep raw url */ }
+                    return (
+                      <div key={`${l.id}-${i}`} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        <a
+                          href={l.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                            <Link2 className="h-6 w-6 text-gray-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{domain}</p>
+                            <p className="text-xs text-gray-500 truncate">{l.url}</p>
+                          </div>
+                        </a>
+                        <button
+                          onClick={() => goToDmMessage(l.id)}
+                          className="w-full flex items-center justify-between px-3 py-2.5 border-t border-gray-100 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <span>{lang === "ro" ? "Vezi mesajul" : "View message"}</span>
+                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )
+          )}
+
+          {conversationMediaTab === "docs" && (
+            docItems.length === 0 ? (
+              <p className="text-center text-gray-500 text-sm py-16">
+                {lang === "ro" ? "Niciun document distribuit în această conversație încă." : "No documents shared in this conversation yet."}
+              </p>
+            ) : (
+              <>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1 mb-2">
+                  {lang === "ro" ? "Luna aceasta" : "This month"}
+                </p>
+                <div className="divide-y divide-gray-100">
+                  {docItems.map(m => (
+                    <a
+                      key={m.id}
+                      href={m.attachment_url!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 py-3 px-1 -mx-1 hover:bg-gray-50 transition-colors rounded-lg"
+                    >
+                      <FileThumb name={m.attachment_name} className="w-10 h-12 rounded shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">{m.attachment_name}</p>
+                        <p className="text-xs text-gray-500">
+                          {formatFileSize(m.attachment_size)}{m.attachment_size ? " · " : ""}{fileExtension(m.attachment_name)}
+                        </p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </>
+            )
+          )}
+        </div>
+        {viewPostDialog}
+      </div>
+    );
+  }
+
+  // ---- CONVERSATION INFO VIEW ----
+  if (selectedConversation && showConversationInfo) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+        <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => setShowConversationInfo(false)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col items-center text-center py-6 px-6">
+            <div
+              className={`w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden mb-3 ${selectedConversation.other_photo ? "cursor-pointer hover:opacity-90" : ""}`}
+              onClick={() => selectedConversation.other_photo && setPhotoModal({ url: selectedConversation.other_photo!, name: selectedConversation.other_name })}
+            >
+              {selectedConversation.other_photo ? (
+                <img src={selectedConversation.other_photo} alt={selectedConversation.other_name} className="w-full h-full object-cover" />
+              ) : (
+                <User className="h-8 w-8 text-gray-500" />
+              )}
+            </div>
+            <p className="font-display text-xl text-gray-900">{selectedConversation.other_name}</p>
+            {selectedConversation.other_role && (
+              <p className="text-xs text-gray-500 mt-0.5">{getRoleLabel(selectedConversation.other_role, lang)}</p>
+            )}
+
+            <div className="flex items-center gap-6 mt-5">
+              <button
+                onClick={() => { setViewProfileUserId(selectedConversation.other_user_id); setViewProfileRole(selectedConversation.other_role); }}
+                className="flex flex-col items-center gap-1.5 text-gray-900"
+              >
+                <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+                  <User className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-body">{lang === "ro" ? "Profil" : "Profile"}</span>
+              </button>
+              <button
+                onClick={() => { setDmSearchQuery(""); setShowDmSearch(true); }}
+                className="flex flex-col items-center gap-1.5 text-gray-900"
+              >
+                <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Search className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-body">{lang === "ro" ? "Caută" : "Search"}</span>
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex flex-col items-center gap-1.5 text-gray-900">
+                    <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+                      <MoreHorizontal className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-body">{lang === "ro" ? "Opțiuni" : "Options"}</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="bg-white border-gray-200 text-gray-900">
+                  <DropdownMenuItem onClick={handleBlockUser} disabled={blockingUser} className="text-destructive focus:text-destructive focus:bg-gray-100">
+                    <Ban className="h-4 w-4 mr-2" /> {lang === "ro" ? "Blochează" : "Block"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          <div className="bg-white border-y border-gray-200 divide-y divide-gray-200">
+            <button
+              onClick={() => { setConversationMediaTab("media"); setShowConversationMedia(true); }}
+              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-100 transition-colors text-left"
+            >
+              <ImageIcon className="h-5 w-5 text-gray-500 shrink-0" />
+              <p className="flex-1 text-sm font-body text-gray-900">{lang === "ro" ? "Media, linkuri și documente" : "Media, links and docs"}</p>
+              <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+            </button>
+            <button
+              onClick={() => toast({ title: lang === "ro" ? "Funcționalitate în curând." : "Coming soon." })}
+              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-100 transition-colors text-left"
+            >
+              <Lock className="h-5 w-5 text-gray-500 shrink-0" />
+              <p className="flex-1 text-sm font-body text-gray-900">{lang === "ro" ? "Confidențialitate și siguranță" : "Privacy and safety"}</p>
+              <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ---- CHAT VIEW ----
   if (selectedConversation) {
     const openPhotoModal = () => {
@@ -1381,9 +2040,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       }
     };
 
-    const openProfile = () => {
-      setViewProfileUserId(selectedConversation.other_user_id);
-      setViewProfileRole(selectedConversation.other_role);
+    const openConversationInfo = () => {
+      setShowConversationInfo(true);
     };
 
     return (
@@ -1400,36 +2058,36 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           </div>
         )}
 
-        <div className="flex items-center gap-3 pb-3 border-b border-border shrink-0">
-          <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
+        <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
+          <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0 text-gray-900 hover:bg-gray-100">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div
-            className={`w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 ${selectedConversation.other_photo ? "cursor-pointer hover:ring-2 hover:ring-primary" : ""}`}
+            className={`w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 ${selectedConversation.other_photo ? "cursor-pointer hover:ring-2 hover:ring-indigo-600" : ""}`}
             onClick={openPhotoModal}
           >
             {selectedConversation.other_photo ? (
               <img src={selectedConversation.other_photo} alt={selectedConversation.other_name} className="w-full h-full object-cover" />
             ) : (
-              <User className="h-5 w-5 text-muted-foreground" />
+              <User className="h-5 w-5 text-gray-500" />
             )}
           </div>
           <div className="flex flex-col">
             <h2
-              className="font-display text-lg text-foreground truncate cursor-pointer hover:text-primary transition-colors"
-              onClick={openProfile}
+              className="font-display text-lg text-gray-900 truncate cursor-pointer hover:underline transition-colors"
+              onClick={openConversationInfo}
             >
               {selectedConversation.other_name}
             </h2>
             <div className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${!restrictedByOther && isOnline(selectedConversation.other_user_id) ? "bg-green-500" : "bg-muted-foreground/40"}`} />
-              <span className="text-xs text-muted-foreground">
+              <span className={`w-2 h-2 rounded-full ${!restrictedByOther && isOnline(selectedConversation.other_user_id) ? "bg-green-500" : "bg-gray-400"}`} />
+              <span className="text-xs text-gray-500">
                 {!restrictedByOther && isOnline(selectedConversation.other_user_id)
                   ? "Online"
                   : "Offline"}
               </span>
               {selectedConversation.other_role && (
-                <span className="text-xs text-muted-foreground ml-1">· {getRoleLabel(selectedConversation.other_role, lang)}</span>
+                <span className="text-xs text-gray-500 ml-1">· {getRoleLabel(selectedConversation.other_role, lang)}</span>
               )}
             </div>
           </div>
@@ -1441,18 +2099,36 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : messages.length === 0 ? (
-            <p className="text-center text-muted-foreground text-sm py-8">
+            <p className="text-center text-gray-500 text-sm py-8">
               {lang === "ro" ? "Niciun mesaj încă. Trimite primul mesaj!" : "No messages yet. Send the first message!"}
             </p>
           ) : (
             messages.map((msg) => {
               const isMine = msg.sender_id === currentUserId;
               return (
-                <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                  {msg.sharedPost ? (
-                    <div className="max-w-[75%]">
+                <div id={`dm-msg-${msg.id}`} key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                  {msg.attachment_url ? (
+                    <div className={`max-w-[75%] rounded-xl transition-colors duration-500 ${highlightedDmMsgId === msg.id ? "ring-2 ring-primary" : ""}`}>
+                      <a
+                        href={msg.attachment_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors min-w-[220px]"
+                      >
+                        <FileThumb name={msg.attachment_name} className="w-10 h-12 rounded" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 truncate">{msg.attachment_name}</p>
+                          <p className="text-xs text-gray-500">{formatFileSize(msg.attachment_size)}{msg.attachment_size ? " · " : ""}{fileExtension(msg.attachment_name)}</p>
+                        </div>
+                      </a>
+                      <p className={`text-[10px] mt-1 text-gray-500 ${isMine ? "text-right" : ""}`}>
+                        {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  ) : msg.sharedPost ? (
+                    <div className={`max-w-[75%] rounded-xl transition-colors duration-500 ${highlightedDmMsgId === msg.id ? "ring-2 ring-primary" : ""}`}>
                       <SharedPostCard post={msg.sharedPost} onClick={() => handleViewPost(msg.sharedPost!.id)} />
-                      <p className={`text-[10px] mt-1 text-muted-foreground ${isMine ? "text-right" : ""}`}>
+                      <p className={`text-[10px] mt-1 text-gray-500 ${isMine ? "text-right" : ""}`}>
                         {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -1461,14 +2137,14 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                     </div>
                   ) : (
                     <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
+                      className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm transition-colors duration-500 ${highlightedDmMsgId === msg.id ? "ring-2 ring-primary" : ""} ${
                         isMine
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-muted text-foreground rounded-bl-md"
+                          ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-md"
+                          : "bg-white border border-gray-200 text-gray-900 rounded-bl-md"
                       }`}
                     >
                       <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                      <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                      <p className={`text-[10px] mt-1 ${isMine ? "text-white/70" : "text-gray-500"}`}>
                         {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -1483,15 +2159,15 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="border-t border-border pt-3 shrink-0">
+        <div className="border-t border-gray-200 pt-3 shrink-0">
           {/* Emoji picker */}
           {showEmojiPicker && (
-            <div className="mb-2 p-2 bg-card border border-border rounded-lg flex flex-wrap gap-1 max-h-36 overflow-y-auto">
+            <div className="mb-2 p-2 bg-white border border-gray-200 rounded-lg flex flex-wrap gap-1 max-h-36 overflow-y-auto">
               {["😀","😂","😍","🥰","😎","🤩","😢","😡","🔥","❤️","👍","👎","👏","🙌","💪","⚽","🏀","🏆","🥇","🎯","✅","❌","💬","🎉","🤝","👋","🙏","💯","⭐","🚀","😊","🤔","😅","🥺","😏","🤣","😘","😁","🫡","🤗","😤","💀","🫶","👀","🤞","✌️","🫰","💥","💫","🎶"].map((emoji) => (
                 <button
                   key={emoji}
                   type="button"
-                  className="text-xl hover:bg-muted rounded p-1 transition-colors"
+                  className="text-xl hover:bg-gray-100 rounded p-1 transition-colors"
                   onClick={() => {
                     setNewMessage((prev) => prev + emoji);
                     chatInputRef.current?.focus();
@@ -1503,6 +2179,22 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             </div>
           )}
           <div className="flex gap-2">
+            <input
+              ref={dmFileInputRef}
+              type="file"
+              className="hidden"
+              onChange={(e) => { const file = e.target.files?.[0]; if (file) handleSendAttachment(file); e.target.value = ""; }}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              disabled={!canMessageSelected || uploadingAttachment}
+              onClick={() => dmFileInputRef.current?.click()}
+              className="shrink-0"
+            >
+              {uploadingAttachment ? <Loader2 className="h-4 w-4 animate-spin text-gray-500" /> : <Paperclip className="h-5 w-5 text-gray-500" />}
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -1510,7 +2202,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               onClick={() => setShowEmojiPicker((prev) => !prev)}
               className="shrink-0"
             >
-              <Smile className="h-5 w-5 text-muted-foreground" />
+              <Smile className="h-5 w-5 text-gray-500" />
             </Button>
             <Input
               ref={chatInputRef}
@@ -1518,11 +2210,11 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={canMessageSelected ? (lang === "ro" ? "Scrie un mesaj..." : "Type a message...") : (lang === "ro" ? "Trebuie să ai o urmărire acceptată" : "Accepted follow required")}
-              className="flex-1"
+              className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
               autoFocus
               disabled={!canMessageSelected}
             />
-            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessageSelected} size="icon" className="shrink-0">
+            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessageSelected} size="icon" className="shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
               <Send className="h-4 w-4" />
             </Button>
           </div>
@@ -1536,27 +2228,32 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-2xl text-foreground">
+        <h2 className="font-display text-2xl text-gray-900">
           {lang === "ro" ? "Mesaje" : "Messages"}
         </h2>
-        <Button variant="ghost" size="icon" onClick={() => setShowNewGroup(true)} title={lang === "ro" ? "Grup nou" : "New group"}>
-          <Users className="h-5 w-5 text-muted-foreground" />
+        <Button
+          size="icon"
+          onClick={() => setShowNewGroup(true)}
+          title={lang === "ro" ? "Grup nou" : "New group"}
+          className="rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+        >
+          <Users className="h-5 w-5 text-white" />
         </Button>
       </div>
 
       {/* Groups */}
       {groups.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{lang === "ro" ? "Grupuri" : "Groups"}</p>
-          <div className="divide-y divide-border/50">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{lang === "ro" ? "Grupuri" : "Groups"}</p>
+          <div>
             {groups.map(g => (
-              <div key={g.id} onClick={() => { setSelectedGroup(g); loadGroupMessages(g); }} className="flex items-center gap-3 py-3 px-1 hover:bg-muted/50 cursor-pointer transition-colors">
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <Users className="h-6 w-6 text-primary" />
+              <div key={g.id} onClick={() => { setSelectedGroup(g); loadGroupMessages(g); }} className="flex items-center gap-3 pt-3 px-1 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
+                <div className="relative w-12 h-12 rounded-full bg-primary/20 shrink-0 self-center my-auto">
+                  <Users className="h-6 w-6 text-primary absolute inset-0 m-auto" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-display text-foreground truncate">{g.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{g.members.length} {lang === "ro" ? "membri" : "members"} · {g.lastMessage}</p>
+                <div className="flex-1 min-w-0 border-b border-gray-300 pb-3">
+                  <p className="text-sm font-display text-gray-900 truncate">{g.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{g.members.length} {lang === "ro" ? "membri" : "members"} · {g.lastMessage}</p>
                 </div>
               </div>
             ))}
@@ -1566,12 +2263,12 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
       {/* Search bar */}
       <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={lang === "ro" ? "Caută sau începe o conversație nouă" : "Search or start a new chat"}
-          className="pl-10 rounded-full border-0 bg-muted focus-visible:ring-1"
+          className="pl-10 rounded-full border-0 bg-gray-100 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
         />
       </div>
 
@@ -1586,13 +2283,13 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               onClick={() => setActiveFilter(f.key)}
               className={`shrink-0 flex items-center gap-1.5 text-sm font-medium py-1.5 px-4 rounded-full border transition-colors ${
                 isActive
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-transparent text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
+                  ? "bg-orange-500 text-white border-orange-500"
+                  : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-900"
               }`}
             >
               {lang === "ro" ? f.labelRo : f.labelEn}
               {count > 0 && (
-                <span className={`text-xs ${isActive ? "text-primary-foreground/80" : "text-muted-foreground/70"}`}>
+                <span className={`text-xs ${isActive ? "text-primary-foreground/80" : "text-gray-500"}`}>
                   {count}
                 </span>
               )}
@@ -1607,39 +2304,39 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         </div>
       ) : filteredConversations.length === 0 ? (
         <div className="text-center py-16">
-          <MessageSquare className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-muted-foreground font-body">
+          <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 font-body">
             {lang === "ro" ? "Niciun mesaj în această categorie." : "No messages in this category."}
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-border/50">
+        <div>
           {filteredConversations.map((conv) => (
             <div
               key={conv.conversation_id}
               onClick={() => setSelectedConversation(conv)}
-              className="flex items-center gap-3 py-3 px-1 hover:bg-muted/50 cursor-pointer transition-colors"
+              className="flex items-center gap-3 pt-3 px-1 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
             >
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
                 {conv.other_photo ? (
                   <img src={conv.other_photo} alt={conv.other_name} className="w-full h-full object-cover" />
                 ) : (
-                  <User className="h-6 w-6 text-muted-foreground" />
+                  <User className="h-6 w-6 text-gray-500" />
                 )}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 border-b border-gray-300 pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <p className={`text-sm font-display truncate ${conv.unread_count > 0 ? "text-foreground font-bold" : "text-foreground"}`}>
+                    <p className={`text-sm font-display truncate ${conv.unread_count > 0 ? "text-gray-900 font-bold" : "text-gray-900"}`}>
                       {conv.other_name}
                     </p>
                     {conv.other_role && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gradient-to-r from-indigo-600 to-purple-600 text-white shrink-0">
                         {getRoleLabel(conv.other_role, lang)}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                  <span className="text-[10px] text-gray-500 shrink-0 ml-2">
                     {new Date(conv.last_message_at).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", {
                       day: "numeric",
                       month: "short",
@@ -1651,10 +2348,10 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                     conv.last_message_read ? (
                       <CheckCheck className="h-3.5 w-3.5 text-sky-400 shrink-0" />
                     ) : (
-                      <Check className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <Check className="h-3.5 w-3.5 text-gray-500 shrink-0" />
                     )
                   )}
-                  <p className={`text-xs truncate ${conv.unread_count > 0 ? "text-foreground" : "text-muted-foreground"}`}>
+                  <p className={`text-xs truncate ${conv.unread_count > 0 ? "text-gray-900" : "text-gray-500"}`}>
                     {conv.last_message}
                   </p>
                 </div>

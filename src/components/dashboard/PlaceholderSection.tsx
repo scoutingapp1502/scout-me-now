@@ -11,11 +11,11 @@ const PlaceholderSection = ({ title }: PlaceholderSectionProps) => {
 
   return (
     <div className="flex items-center justify-center h-[60vh]">
-      <Card className="bg-card border-border max-w-md w-full">
+      <Card className="bg-white border-gray-200 max-w-md w-full">
         <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-          <Construction className="h-12 w-12 text-primary mb-4" />
-          <h2 className="font-display text-3xl text-foreground mb-2">{title}</h2>
-          <p className="text-muted-foreground font-body text-sm">
+          <Construction className="h-12 w-12 text-orange-500 mb-4" />
+          <h2 className="font-display text-3xl text-gray-900 mb-2">{title}</h2>
+          <p className="text-gray-500 font-body text-sm">
             {t.dashboard.placeholder.comingSoon}
           </p>
         </CardContent>

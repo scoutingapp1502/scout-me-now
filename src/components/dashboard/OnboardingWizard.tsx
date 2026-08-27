@@ -81,37 +81,37 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+      <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary/20 to-primary/5 p-6 pb-4">
+        <div className="bg-white p-6 pb-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-bold text-foreground">
+              <Sparkles className="h-5 w-5 text-orange-500" />
+              <h2 className="text-lg font-bold text-gray-900">
                 {lang === "ro" ? "Construiește-ți profilul" : "Build your profile"}
               </h2>
             </div>
-            <button onClick={onDismiss} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={onDismiss} className="text-gray-500 hover:text-gray-900 transition-colors">
               <X className="h-5 w-5" />
             </button>
           </div>
 
           <div className="flex items-center gap-3">
-            <Progress value={percentage} className="h-2 flex-1" />
-            <span className="text-sm font-bold text-primary">{percentage}%</span>
+            <Progress value={percentage} className="h-2 flex-1" indicatorClassName="bg-green-600" />
+            <span className="text-sm font-bold text-orange-500">{percentage}%</span>
           </div>
         </div>
 
         {/* Body */}
         <div className="p-6">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-1.5 text-sm font-medium text-orange-600 mb-3">
               {lang === "ro" ? `Pas ${currentStep + 1} din ${incompleteSections.length}` : `Step ${currentStep + 1} of ${incompleteSections.length}`}
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
               {lang === "ro" ? current.labelRo : current.labelEn}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               {lang === "ro" ? tip.ro : tip.en}
             </p>
           </div>
@@ -123,10 +123,10 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
                 key={s.key}
                 className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${
                   s.completed
-                    ? "bg-green-500/10 text-green-500"
+                    ? "bg-green-100 text-green-600"
                     : s.key === current.key
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "bg-muted text-muted-foreground"
+                    ? "bg-orange-100 text-orange-600 font-semibold"
+                    : "bg-gray-100 text-gray-500"
                 }`}
               >
                 {s.completed ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
@@ -137,7 +137,7 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border p-4">
+        <div className="flex items-center justify-between border-t border-gray-200 p-4">
           <Button
             variant="ghost"
             size="sm"
@@ -149,7 +149,7 @@ const OnboardingWizard = ({ sections, percentage, role, onGoToSection, onDismiss
           </Button>
 
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onDismiss} className="border-muted-foreground/50 text-muted-foreground hover:text-foreground">
+            <Button variant="outline" size="sm" onClick={onDismiss} className="border-gray-300 text-gray-500 hover:text-gray-900">
               {lang === "ro" ? "Mai târziu" : "Later"}
             </Button>
             <Button

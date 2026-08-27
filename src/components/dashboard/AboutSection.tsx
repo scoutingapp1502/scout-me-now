@@ -58,12 +58,12 @@ function AboutAccountPage({ userId, lang, onBack }: { userId: string; lang: stri
   }, [userId, lang]);
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+    <div className="flex flex-col h-full bg-white">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900 whitespace-nowrap">
           {lang === "ro" ? "Despre profilul tău" : "About your profile"}
         </h2>
       </div>
@@ -76,9 +76,9 @@ function AboutAccountPage({ userId, lang, onBack }: { userId: string; lang: stri
             <AvatarFallback>{(name || "?")[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
           {name && (
-            <p className="text-sm font-semibold font-body text-foreground mb-3">{name}</p>
+            <p className="text-sm font-semibold font-body text-gray-900 mb-3">{name}</p>
           )}
-          <p className="text-sm text-muted-foreground font-body leading-relaxed">
+          <p className="text-sm text-gray-500 font-body leading-relaxed">
             {lang === "ro"
               ? "Pentru a menține comunitatea autentică, afișăm informații despre profiluri pe SportRise. Oamenii pot vedea acest lucru apăsând pe "
               : "To help keep our community authentic, we're showing information about profiles on SportRise. People can see this by tapping on the "}
@@ -90,31 +90,31 @@ function AboutAccountPage({ userId, lang, onBack }: { userId: string; lang: stri
         </div>
 
         {/* Info rows */}
-        <div className="bg-card border-y border-border divide-y divide-border">
+        <div className="bg-white border-y border-gray-200 divide-y divide-gray-200">
           {dateJoined && (
             <div className="flex items-center gap-4 px-5 py-4">
-              <CalendarDays className="h-5 w-5 text-muted-foreground shrink-0" />
+              <CalendarDays className="h-5 w-5 text-gray-500 shrink-0" />
               <div>
-                <p className="text-sm font-semibold font-body text-foreground">
+                <p className="text-sm font-semibold font-body text-gray-900">
                   {lang === "ro" ? "Data înscrierii" : "Date joined"}
                 </p>
-                <p className="text-sm text-muted-foreground font-body">{dateJoined}</p>
+                <p className="text-sm text-gray-500 font-body">{dateJoined}</p>
               </div>
             </div>
           )}
 
           <button
             onClick={() => toast({ title: lang === "ro" ? "Funcționalitate în curând." : "Coming soon." })}
-            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors text-left"
+            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
           >
-            <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
+            <MapPin className="h-5 w-5 text-gray-500 shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-semibold font-body text-foreground">
+              <p className="text-sm font-semibold font-body text-gray-900">
                 {lang === "ro" ? "Contul este bazat în" : "Account based in"}
               </p>
-              <p className="text-sm text-muted-foreground font-body">{country || "—"}</p>
+              <p className="text-sm text-gray-500 font-body">{country || "—"}</p>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+            <ChevronRight className="h-4 w-4 text-gray-500/50 shrink-0" />
           </button>
         </div>
       </div>
@@ -140,28 +140,28 @@ export default function AboutSection({ userId, onBack }: AboutSectionProps) {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+    <div className="flex flex-col h-full bg-white">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900">
           {lang === "ro" ? "Despre" : "About"}
         </h2>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="bg-card border-y border-border divide-y divide-border mt-4">
+        <div className="bg-white border-y border-gray-200 divide-y divide-gray-200 mt-4">
           {rows.map((row) => (
             <button
               key={row.labelEn}
               onClick={row.action}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors text-left"
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-left"
             >
-              <span className="text-sm font-body text-foreground">
+              <span className="text-sm font-body text-gray-900">
                 {lang === "ro" ? row.labelRo : row.labelEn}
               </span>
-              {row.chevron && <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />}
+              {row.chevron && <ChevronRight className="h-4 w-4 text-gray-500/50 shrink-0" />}
             </button>
           ))}
         </div>

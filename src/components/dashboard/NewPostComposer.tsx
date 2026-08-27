@@ -121,16 +121,16 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-          {myPhoto ? <img src={myPhoto} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-muted-foreground" />}
+        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+          {myPhoto ? <img src={myPhoto} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-gray-500" />}
         </div>
         <Textarea
           value={newContent}
           onChange={(e) => setNewContent(e.target.value)}
           placeholder={lang === "ro" ? "Împărtășește o idee, un eveniment, o provocare..." : "Share an idea, event, challenge..."}
-          className="min-h-[60px] resize-none bg-background border-border"
+          className="min-h-[60px] resize-none bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
         />
       </div>
 
@@ -151,19 +151,19 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
         <div className="flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
           <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} />
-          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100">
             <ImagePlus className="h-4 w-4 mr-1" />{lang === "ro" ? "Fotografie" : "Photo"}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => videoInputRef.current?.click()} className="text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={() => videoInputRef.current?.click()} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100">
             <Video className="h-4 w-4 mr-1" />{lang === "ro" ? "Videoclip" : "Video"}
           </Button>
 
           <Select value={newType} onValueChange={setNewType}>
-            <SelectTrigger className="w-auto h-8 text-xs bg-background border-border"><SelectValue /></SelectTrigger>
-            <SelectContent>{POST_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{lang === "ro" ? t.labelRo : t.labelEn}</SelectItem>)}</SelectContent>
+            <SelectTrigger className="w-auto h-8 text-xs bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900"><SelectValue /></SelectTrigger>
+            <SelectContent className="bg-white border-gray-200 text-gray-900">{POST_TYPES.map(t => <SelectItem key={t.value} value={t.value} className="focus:bg-gray-100 focus:text-gray-900">{lang === "ro" ? t.labelRo : t.labelEn}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <Button size="sm" onClick={handlePost} disabled={posting || !newContent.trim()}>
+        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={handlePost} disabled={posting || !newContent.trim()}>
           {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
           {lang === "ro" ? "Publică" : "Post"}
         </Button>

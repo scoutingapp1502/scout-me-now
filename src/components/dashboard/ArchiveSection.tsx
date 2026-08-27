@@ -76,8 +76,8 @@ function CalendarView({ stories }: { stories: ArchivedStory[] }) {
 
   if (!months.length) return (
     <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-8">
-      <Calendar className="h-12 w-12 text-muted-foreground/40" />
-      <p className="text-sm text-muted-foreground font-body">Niciun story arhivat încă.</p>
+      <Calendar className="h-12 w-12 text-gray-500/40" />
+      <p className="text-sm text-gray-500 font-body">Niciun story arhivat încă.</p>
     </div>
   );
 
@@ -95,9 +95,9 @@ function CalendarView({ stories }: { stories: ArchivedStory[] }) {
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         return (
           <div key={`${year}-${month}`} className="mb-8">
-            <h3 className="text-sm font-semibold text-foreground text-center mb-3 font-heading tracking-wider">{MONTH_RO[month]} {year}</h3>
+            <h3 className="text-sm font-semibold text-gray-900 text-center mb-3 font-heading tracking-wider">{MONTH_RO[month]} {year}</h3>
             <div className="grid grid-cols-7 mb-1">
-              {DAY_RO.map(d => <div key={d} className="text-[10px] text-muted-foreground text-center font-body">{d}</div>)}
+              {DAY_RO.map(d => <div key={d} className="text-[10px] text-gray-500 text-center font-body">{d}</div>)}
             </div>
             <div className="grid grid-cols-7 gap-y-1">
               {Array.from({ length: startOffset }).map((_, i) => <div key={`e${i}`} />)}
@@ -110,15 +110,15 @@ function CalendarView({ stories }: { stories: ArchivedStory[] }) {
                 return (
                   <div key={day} className="flex flex-col items-center gap-0.5">
                     {hasStory ? (
-                      <button onClick={() => setPreview(dayStories[0])} className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-primary/60 hover:ring-primary transition-all">
+                      <button onClick={() => setPreview(dayStories[0])} className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-orange-500/60 hover:ring-orange-500 transition-all">
                         <img src={dayStories[0].media_url} alt="" className="w-full h-full object-cover" />
                       </button>
                     ) : (
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isToday ? "bg-primary" : ""}`}>
-                        <span className={`text-xs font-body ${isToday ? "text-white font-bold" : "text-muted-foreground"}`}>{day}</span>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isToday ? "bg-orange-500" : ""}`}>
+                        <span className={`text-xs font-body ${isToday ? "text-white font-bold" : "text-gray-500"}`}>{day}</span>
                       </div>
                     )}
-                    {hasStory && dayStories.length > 1 && <span className="text-[9px] text-primary font-body">+{dayStories.length}</span>}
+                    {hasStory && dayStories.length > 1 && <span className="text-[9px] text-orange-500 font-body">+{dayStories.length}</span>}
                   </div>
                 );
               })}
@@ -198,11 +198,11 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
   const title   = lang === "ro" ? titleRo : titleEn;
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
 
       {/* ── Header ── */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
 
@@ -210,7 +210,7 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
         <div ref={dropdownRef} className="absolute left-1/2 -translate-x-1/2">
           <button
             onClick={() => setShowDropdown(v => !v)}
-            className="flex items-center gap-1 font-heading text-sm text-foreground tracking-wide hover:text-primary transition-colors"
+            className="flex items-center gap-1 font-heading text-sm text-gray-900 tracking-wide hover:text-orange-500 transition-colors"
           >
             {title}
             {showDropdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -218,12 +218,12 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
 
           {/* Dropdown */}
           {showDropdown && (
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50">
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
               {(["stories", "posts"] as ArchiveMode[]).map(m => (
                 <button
                   key={m}
                   onClick={() => { setMode(m); setShowDropdown(false); }}
-                  className={`w-full px-4 py-3 text-sm font-body text-center transition-colors ${mode === m ? "text-foreground font-semibold bg-muted/50" : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"}`}
+                  className={`w-full px-4 py-3 text-sm font-body text-center transition-colors ${mode === m ? "text-gray-900 font-semibold bg-gray-100/50" : "text-gray-500 hover:bg-gray-100/30 hover:text-gray-900"}`}
                 >
                   {m === "stories"
                     ? (lang === "ro" ? "Story-uri arhivate" : "Stories archive")
@@ -235,21 +235,21 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
         </div>
 
         <div className="ml-auto">
-          <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+          <MoreHorizontal className="h-5 w-5 text-gray-500" />
         </div>
       </div>
 
       {/* ── Story tabs (only in stories mode) ── */}
       {mode === "stories" && (
-        <div className="flex items-center justify-around px-6 border-b border-border shrink-0">
+        <div className="flex items-center justify-around px-6 border-b border-gray-200 shrink-0">
           {STORY_TABS.map(({ id, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setStoryTab(id)}
-              className={`flex flex-col items-center gap-1 py-3 px-6 transition-colors ${storyTab === id ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`flex flex-col items-center gap-1 py-3 px-6 transition-colors ${storyTab === id ? "text-gray-900" : "text-gray-500 hover:text-gray-900"}`}
             >
               <Icon className="h-5 w-5" />
-              {storyTab === id && <div className="w-5 h-0.5 rounded-full bg-foreground" />}
+              {storyTab === id && <div className="w-5 h-0.5 rounded-full bg-gray-900" />}
             </button>
           ))}
         </div>
@@ -259,7 +259,7 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
       <div className="flex-1 overflow-y-auto">
         {loading && mode === "stories" ? (
           <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
           </div>
         ) : (
           <>
@@ -269,11 +269,11 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
                 {storyTab === "stories" && (
                   stories.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 gap-3 px-8 text-center">
-                      <RotateCcw className="h-12 w-12 text-muted-foreground/40" />
-                      <p className="text-sm font-semibold text-foreground font-body">
+                      <RotateCcw className="h-12 w-12 text-gray-500/40" />
+                      <p className="text-sm font-semibold text-gray-900 font-body">
                         {lang === "ro" ? "Niciun story arhivat" : "No archived stories"}
                       </p>
-                      <p className="text-xs text-muted-foreground font-body">
+                      <p className="text-xs text-gray-500 font-body">
                         {lang === "ro" ? "Story-urile tale vor apărea aici după ce expiră." : "Your stories will appear here after they expire."}
                       </p>
                     </div>
@@ -281,7 +281,7 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
                     <div className="px-1 py-2">
                       {groups.map(({ label, items }) => (
                         <div key={label} className="mb-3">
-                          <p className="text-xs text-muted-foreground font-body px-3 py-1">{label}</p>
+                          <p className="text-xs text-gray-500 font-body px-3 py-1">{label}</p>
                           <div className="grid grid-cols-3 gap-0.5">
                             {items.map(s => (
                               <button key={s.id} onClick={() => setPreview(s)} className="aspect-[9/16] overflow-hidden relative">
@@ -310,11 +310,11 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
             {mode === "posts" && (
               posts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 px-8 text-center">
-                  <RotateCcw className="h-12 w-12 text-muted-foreground/40" />
-                  <p className="text-sm font-semibold text-foreground font-body">
+                  <RotateCcw className="h-12 w-12 text-gray-500/40" />
+                  <p className="text-sm font-semibold text-gray-900 font-body">
                     {lang === "ro" ? "Nicio postare arhivată" : "No archived posts"}
                   </p>
-                  <p className="text-xs text-muted-foreground font-body">
+                  <p className="text-xs text-gray-500 font-body">
                     {lang === "ro"
                       ? "Postările arhivate nu mai apar pe profilul tău. Doar tu le poți vedea."
                       : "Archived posts no longer appear on your profile. Only you can see them."}
@@ -323,12 +323,12 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
               ) : (
                 <div className="grid grid-cols-3 gap-0.5 p-0.5">
                   {posts.map(p => (
-                    <div key={p.id} className="aspect-square overflow-hidden bg-muted relative">
+                    <div key={p.id} className="aspect-square overflow-hidden bg-gray-100 relative">
                       {p.image_url ? (
                         <img src={p.image_url} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center p-2">
-                          <p className="text-xs text-muted-foreground font-body text-center line-clamp-4">{p.content}</p>
+                          <p className="text-xs text-gray-500 font-body text-center line-clamp-4">{p.content}</p>
                         </div>
                       )}
                     </div>

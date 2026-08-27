@@ -20,16 +20,16 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed,
   if (percentage >= 100 || dismissed) return null;
 
   return (
-    <div className="mb-6 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       <div
         role="button"
         tabIndex={0}
         onClick={() => setExpanded(!expanded)}
         onKeyDown={(e) => e.key === "Enter" && setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-accent/30 transition-colors cursor-pointer"
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-foreground">
+          <h3 className="text-sm font-semibold text-gray-900">
             {lang === "ro" ? "Completează-ți profilul" : "Complete your profile"}
           </h3>
           <Popover>
@@ -37,7 +37,7 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed,
               <button
                 type="button"
                 onClick={(e) => e.stopPropagation()}
-                className="ml-2 p-2 -m-2 text-muted-foreground hover:text-primary transition-colors rounded-full"
+                className="ml-2 p-2 -m-2 text-gray-500 hover:text-orange-500 transition-colors rounded-full"
               >
                 <Info className="h-4 w-4" />
               </button>
@@ -46,7 +46,7 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed,
               <p className="font-semibold mb-2">
                 {lang === "ro" ? "⚠️ De ce contează?" : "⚠️ Why does it matter?"}
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-gray-500">
                 {lang === "ro"
                   ? "Dacă nu completezi cel puțin 55% din informațiile necesare pentru profilul tău, contul tău nu va apărea în listele de jucători sau scouteri. Completează cât mai multe secțiuni pentru a fi vizibil!"
                   : "If you don't complete at least 55% of the required profile information, your account will not appear in the players or scouts listings. Complete as many sections as possible to be visible!"}
@@ -55,11 +55,11 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed,
           </Popover>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-primary">{percentage}%</span>
+          <span className="text-lg font-bold text-orange-500">{percentage}%</span>
           {expanded ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            <ChevronUp className="h-4 w-4 text-gray-500" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 text-gray-500" />
           )}
           {onDismiss && (
             <button
@@ -68,7 +68,7 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed,
                 e.stopPropagation();
                 onDismiss();
               }}
-              className="ml-1 p-1 text-muted-foreground hover:text-foreground transition-colors rounded-full"
+              className="ml-1 p-1 text-gray-500 hover:text-gray-900 transition-colors rounded-full"
               title={lang === "ro" ? "Închide" : "Close"}
             >
               <X className="h-4 w-4" />
@@ -88,21 +88,21 @@ const ProfileCompletionBar = ({ percentage, sections, onSectionClick, dismissed,
                 onClick={() => onSectionClick?.(section.key)}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                   section.completed
-                    ? "text-muted-foreground"
-                    : "text-foreground hover:bg-accent/50 cursor-pointer"
+                    ? "text-gray-500"
+                    : "text-gray-900 hover:bg-gray-100 cursor-pointer"
                 }`}
                 disabled={section.completed}
               >
                 {section.completed ? (
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-orange-500 shrink-0" />
                 ) : (
-                  <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Circle className="h-4 w-4 text-gray-500 shrink-0" />
                 )}
                 <span className={section.completed ? "line-through" : "font-medium"}>
                   {lang === "ro" ? section.labelRo : section.labelEn}
                 </span>
                 {!section.completed && (
-                  <span className="ml-auto text-xs text-muted-foreground">+{section.weight}%</span>
+                  <span className="ml-auto text-xs text-gray-500">+{section.weight}%</span>
                 )}
               </button>
             ))}

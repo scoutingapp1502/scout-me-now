@@ -1,15 +1,20 @@
-import { useEffect, useState, useRef } from "react";
+import { Fragment, useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useActivityNotifications, markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotifications";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { useFollowers } from "@/hooks/useFollowers";
+import { Loader2, ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import PostCard from "./PostCard";
-import PersonalProfile from "./PersonalProfile";
+import NewsAnnouncementsPanel from "./NewsAnnouncementsPanel";
+import PersonalProfile, { FifaPlayerCard } from "./PersonalProfile";
 import ScoutPersonalProfile from "./ScoutPersonalProfile";
 import NewPostComposer from "./NewPostComposer";
+import type { Tables } from "@/integrations/supabase/types";
+
+type PlayerProfileRow = Tables<"player_profiles">;
 
 interface Post {
   id: string;
@@ -24,24 +29,53 @@ interface Post {
   author_title: string;
 }
 
-const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: string) => void }) => {
+// Decorative geometric accents scattered between feed cards, alternating
+// sides and colors so they don't all pile up on the same edge.
+const feedDividerVariants = [
+  { side: "left" as const, background: "linear-gradient(135deg, #7c3aed, #a855f7)", clipPath: "polygon(0 0, 100% 0, 0 100%)" },
+  { side: "right" as const, background: "#a3e635", clipPath: "polygon(100% 0, 100% 100%, 0 100%)" },
+  { side: "left" as const, background: "linear-gradient(135deg, #f97316, #fb923c)", clipPath: "polygon(0 100%, 100% 100%, 0 0)" },
+];
+
+const FeedDivider = ({ index }: { index: number }) => {
+  const variant = feedDividerVariants[index % feedDividerVariants.length];
+  return (
+    <div className="relative h-0 overflow-visible">
+      <div
+        className="absolute -z-10 pointer-events-none"
+        style={{
+          top: "-20px",
+          [variant.side]: "-20px",
+          width: "120px",
+          height: "120px",
+          background: variant.background,
+          clipPath: variant.clipPath,
+          opacity: 0.9,
+        }}
+      />
+    </div>
+  );
+};
+
+const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigateToChat?: (userId: string) => void; onNavigateToProfile?: () => void }) => {
   const { lang } = useLanguage();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [feedTab, setFeedTab] = useState<"following" | "mine">("following");
-  const { followingCount, mineCount, refetch: refetchNotifications } = useActivityNotifications(currentUserId);
   const [viewingSinglePostId, setViewingSinglePostId] = useState<string | null>(null);
   const [singlePost, setSinglePost] = useState<Post | null>(null);
   const [loadingSinglePost, setLoadingSinglePost] = useState(false);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
-  const feedTabRef = useRef<"following" | "mine">("following");
 
   const [myPhoto, setMyPhoto] = useState<string | null>(null);
   const [myName, setMyName] = useState("");
+  const [myRole, setMyRole] = useState<"player" | "cauta_jucator" | null>(null);
+  const [myProfile, setMyProfile] = useState<PlayerProfileRow | null>(null);
+  const [myTitle, setMyTitle] = useState("");
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
   const [viewingProfileRole, setViewingProfileRole] = useState<string>("player");
   const [hideLikeCounts, setHideLikeCounts] = useState(false);
+  const { count: followerCount } = useFollowers(currentUserId);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -57,12 +91,17 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
 
   const loadMyProfile = async (userId: string) => {
     const { data: role } = await supabase.rpc("get_user_role", { _user_id: userId });
+    setMyRole(role === "player" ? "player" : "cauta_jucator");
     if (role === "player") {
-      const { data } = await supabase.from("player_profiles").select("first_name, last_name, photo_url").eq("user_id", userId).maybeSingle();
-      if (data) { setMyName(`${data.first_name} ${data.last_name}`.trim()); setMyPhoto(data.photo_url); }
+      const { data } = await supabase.from("player_profiles").select("*").eq("user_id", userId).maybeSingle();
+      if (data) { setMyName(`${data.first_name} ${data.last_name}`.trim()); setMyPhoto(data.photo_url); setMyProfile(data); }
     } else {
-      const { data } = await supabase.from("scout_profiles").select("first_name, last_name, photo_url").eq("user_id", userId).maybeSingle();
-      if (data) { setMyName(`${data.first_name} ${data.last_name}`.trim()); setMyPhoto(data.photo_url); }
+      const { data } = await supabase.from("scout_profiles").select("first_name, last_name, photo_url, title, organization").eq("user_id", userId).maybeSingle();
+      if (data) {
+        setMyName(`${data.first_name} ${data.last_name}`.trim());
+        setMyPhoto(data.photo_url);
+        setMyTitle([data.title, data.organization].filter(Boolean).join(" | "));
+      }
     }
   };
 
@@ -120,8 +159,6 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
 
   useEffect(() => { if (currentUserId) fetchPosts(currentUserId); }, [currentUserId]);
 
-  feedTabRef.current = feedTab;
-
   useEffect(() => {
     const handleInsert = (payload: any) => {
       const uid = currentUserIdRef.current;
@@ -135,10 +172,8 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
         return;
       }
 
-      // For others' posts, show refresh hint instantly on Following tab
-      if (feedTabRef.current === "following") {
-        setNewPostsAvailable(true);
-      }
+      // For others' posts, show a refresh hint instantly
+      setNewPostsAvailable(true);
     };
     const handleDeleteEvent = (payload: any) => {
       const uid = currentUserIdRef.current;
@@ -206,12 +241,12 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
   if (viewingSinglePostId) {
     return (
       <div className="space-y-4 max-w-2xl mx-auto">
-        <Button variant="ghost" size="sm" className="gap-2" onClick={() => { setViewingSinglePostId(null); setSinglePost(null); }}>
+        <Button variant="ghost" size="sm" className="gap-2 text-gray-900 hover:bg-gray-100" onClick={() => { setViewingSinglePostId(null); setSinglePost(null); }}>
           <ArrowLeft className="h-4 w-4" />
           {lang === "ro" ? "Înapoi la activitate" : "Back to activity"}
         </Button>
         {loadingSinglePost ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-orange-500" /></div>
         ) : singlePost ? (
           <PostCard
             post={{ id: singlePost.id, user_id: singlePost.user_id, content: singlePost.content, image_url: singlePost.image_url, video_url: (singlePost as any).video_url || null, post_type: singlePost.post_type, created_at: singlePost.created_at, comments_disabled: (singlePost as any).comments_disabled || false }}
@@ -223,13 +258,13 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
             simplifiedMenu
           />
         ) : (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-12 text-gray-500">
             {lang === "ro" ? "Postarea nu a fost găsită." : "Post not found."}
           </div>
         )}
 
         <Dialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)}>
-          <DialogContent className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-background border-0 sm:border sm:border-border rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%]" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+          <DialogContent className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-white border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%]" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
             <DialogTitle className="sr-only">{lang === "ro" ? "Profil" : "Profile"}</DialogTitle>
             <div className="overflow-y-auto h-full sm:max-h-[90vh]">
               {viewingProfileId && (
@@ -245,55 +280,113 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <h2 className="font-display text-2xl text-foreground">{lang === "ro" ? "Activitate" : "Activity"}</h2>
+    <div className="space-y-6 relative isolate">
+      <h2 className="font-display text-2xl text-gray-900">{lang === "ro" ? "Activitate" : "Activity"}</h2>
 
-      {/* Feed Tab Toggle */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2 flex justify-center">
-        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
-          <button
-            onClick={() => {
-              setFeedTab("following");
-              if (currentUserId) { markFollowingSeen(currentUserId); refetchNotifications(); }
-            }}
-            className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "following" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            {lang === "ro" ? "Urmăritori" : "Following"}
-            {followingCount > 0 && feedTab !== "following" && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-                {followingCount > 99 ? "99+" : followingCount}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => {
-              setFeedTab("mine");
-              if (currentUserId) { markMineSeen(currentUserId); refetchNotifications(); }
-            }}
-            className={`relative px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${feedTab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            {lang === "ro" ? "Postările mele" : "My Posts"}
-            {mineCount > 0 && feedTab !== "mine" && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-                {mineCount > 99 ? "99+" : mineCount}
-              </span>
-            )}
-          </button>
-        </div>
+      {/* Decorative geometric shapes above the page content */}
+      <div className="relative h-0 overflow-visible">
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "-150px",
+            right: "60px",
+            width: "170px",
+            height: "170px",
+            background: "linear-gradient(135deg, #f97316, #fb923c)",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "-100px",
+            left: "-40px",
+            width: "120px",
+            height: "120px",
+            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "-220px",
+            left: "40%",
+            width: "110px",
+            height: "110px",
+            background: "#a3e635",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
       </div>
 
-      {feedTab === "mine" && currentUserId && (
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_360px] gap-4 items-start">
+        {/* Left: sticky personal info */}
+        <div className="hidden lg:block lg:sticky lg:top-6">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+            <button type="button" onClick={() => onNavigateToProfile?.()} className="flex justify-center w-full cursor-pointer">
+              {myRole === "player" ? (
+                <FifaPlayerCard form={myProfile || {}} profile={myProfile} photoSrc={myPhoto} userId={currentUserId || undefined} mini />
+              ) : (
+                <Avatar className="h-24 w-24">
+                  {myPhoto ? <AvatarImage src={myPhoto} /> : null}
+                  <AvatarFallback className="bg-gray-100 text-gray-500 text-2xl">{myName.charAt(0).toUpperCase() || "?"}</AvatarFallback>
+                </Avatar>
+              )}
+            </button>
+            {myRole === "player" ? (
+              (myProfile?.position || myProfile?.current_team) && (
+                <p className="text-xs text-gray-500 mt-3">
+                  {[myProfile?.position, myProfile?.current_team].filter(Boolean).join(" · ")}
+                </p>
+              )
+            ) : (
+              <>
+                {myName && <p className="text-sm font-semibold text-gray-900 mt-3">{myName}</p>}
+                {myTitle && <p className="text-xs text-gray-500 mt-0.5">{myTitle}</p>}
+              </>
+            )}
+            <div className="border-t border-gray-200 mt-4 pt-3 flex items-center justify-center gap-1.5 text-sm">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-gray-900">{followerCount}</span>
+              <span className="text-gray-500">{lang === "ro" ? "urmăritori" : "followers"}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Center: feed */}
+        <div className="min-w-0 space-y-4">
+          {currentUserId && (
             <NewPostComposer currentUserId={currentUserId} myPhoto={myPhoto} onPosted={() => fetchPosts(currentUserId)} />
           )}
 
+          {/* Decorative geometric shape between composer and feed */}
+          <div className="relative h-0 overflow-visible">
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "-30px",
+                right: "-16px",
+                width: "180px",
+                height: "180px",
+                background: "linear-gradient(135deg, #f97316, #fb923c)",
+                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+                opacity: 0.9,
+              }}
+            />
+          </div>
+
           {/* New posts banner */}
-          {newPostsAvailable && feedTab === "following" && (
+          {newPostsAvailable && (
             <button
               onClick={() => {
                 setNewPostsAvailable(false);
                 if (currentUserId) fetchPosts(currentUserId);
               }}
-              className="w-full py-2.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+              className="w-full py-2.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 text-sm font-medium hover:bg-orange-100 transition-colors"
             >
               {lang === "ro" ? "🔄 Sunt postări noi. Apasă pentru a le vedea." : "🔄 New posts available. Tap to refresh."}
             </button>
@@ -301,22 +394,16 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
 
           {/* Feed */}
           {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : (() => {
-            const filteredPosts = feedTab === "mine"
-              ? posts.filter(p => p.user_id === currentUserId)
-              : posts.filter(p => p.user_id !== currentUserId);
-            return filteredPosts.length === 0 ? (
-              <div className="text-center py-16 text-muted-foreground">
-                {feedTab === "mine"
-                  ? (lang === "ro" ? "Nu ai publicat nicio postare încă." : "You haven't posted anything yet.")
-                  : (lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor!" : "No posts yet. Follow people to see their activity!")}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredPosts.map((post) => (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-orange-500" /></div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              {lang === "ro" ? "Nicio postare încă. Urmărește persoane sau publică ceva pentru a începe!" : "No posts yet. Follow people or share something to get started!"}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {posts.map((post, idx) => (
+                <Fragment key={post.id}>
                   <PostCard
-                    key={post.id}
                     post={{ id: post.id, user_id: post.user_id, content: post.content, image_url: post.image_url, video_url: (post as any).video_url || null, post_type: post.post_type, created_at: post.created_at, comments_disabled: (post as any).comments_disabled || false }}
                     author={{ user_id: post.user_id, name: post.author_name, photo: post.author_photo, role: post.author_role, title: post.author_title }}
                     currentUserId={currentUserId}
@@ -325,14 +412,126 @@ const ActivitySection = ({ onNavigateToChat }: { onNavigateToChat?: (userId: str
                     hideLikeCounts={hideLikeCounts}
                     simplifiedMenu
                   />
-                ))}
-              </div>
-            );
-          })()}
+                  {idx < posts.length - 1 && <FeedDivider index={idx} />}
+                </Fragment>
+              ))}
+            </div>
+          )}
+
+          {/* Decorative geometric shapes below the feed */}
+          <div className="relative h-0 overflow-visible">
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "-20px",
+                right: "0px",
+                width: "160px",
+                height: "160px",
+                background: "#a3e635",
+                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+                opacity: 0.9,
+              }}
+            />
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "20px",
+                left: "-16px",
+                width: "130px",
+                height: "130px",
+                background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                clipPath: "polygon(0 0, 100% 0, 0 100%)",
+                opacity: 0.9,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Right: news & announcements */}
+        <div className="hidden lg:block lg:sticky lg:top-6 relative">
+          <div
+            className="absolute -z-10 pointer-events-none"
+            style={{
+              top: "-30px",
+              right: "-20px",
+              width: "140px",
+              height: "140px",
+              background: "#a3e635",
+              clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+              opacity: 0.9,
+            }}
+          />
+          <div
+            className="absolute -z-10 pointer-events-none"
+            style={{
+              bottom: "-24px",
+              left: "-16px",
+              width: "110px",
+              height: "110px",
+              background: "linear-gradient(135deg, #f97316, #fb923c)",
+              clipPath: "polygon(0 100%, 100% 100%, 0 0)",
+              opacity: 0.9,
+            }}
+          />
+          <NewsAnnouncementsPanel />
+        </div>
+      </div>
+
+      {/* Decorative geometric shapes below the page content */}
+      <div className="relative h-0 overflow-visible">
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "40px",
+            right: "80px",
+            width: "150px",
+            height: "150px",
+            background: "#a3e635",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "100px",
+            left: "40px",
+            width: "120px",
+            height: "120px",
+            background: "linear-gradient(135deg, #f97316, #fb923c)",
+            clipPath: "polygon(0 100%, 100% 100%, 0 0)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "260px",
+            right: "260px",
+            width: "110px",
+            height: "110px",
+            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "320px",
+            left: "220px",
+            width: "100px",
+            height: "100px",
+            background: "#a3e635",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+      </div>
 
       {/* Profile View Dialog */}
       <Dialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)}>
-        <DialogContent className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-background border-0 sm:border sm:border-border rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%]" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-white border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%]" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
           <DialogTitle className="sr-only">{lang === "ro" ? "Profil" : "Profile"}</DialogTitle>
           <div className="overflow-y-auto h-full sm:max-h-[90vh]">
             {viewingProfileId && (

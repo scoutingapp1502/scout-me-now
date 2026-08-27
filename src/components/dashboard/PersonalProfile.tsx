@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from "react";
+import { Fragment, useEffect, useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import TeamNameInput from "@/components/ui/team-name-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,12 +12,16 @@ import MessageDialog from "./MessageDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PostCard from "./PostCard";
 import NewPostComposer from "./NewPostComposer";
+import NewsAnnouncementsPanel from "./NewsAnnouncementsPanel";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKeys, Language } from "@/i18n/translations";
+import { translatePosition, translateFootHandValue } from "@/lib/positionTranslations";
+import { translateTestLabel, translateTestDescription } from "@/lib/testTranslations";
 import PlayerStats from "./PlayerStats";
 import NationalityInput, { getDisplayNationality } from "@/components/ui/nationality-input";
 import { useFollowers } from "@/hooks/useFollowers";
@@ -36,6 +41,7 @@ import InviteFriendsModal from "./InviteFriendsModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useVideoSubmissions, submitVideoSubmission } from "@/hooks/useVideoSubmissions";
 import { useTestReferenceVideos } from "@/hooks/useTestReferenceVideos";
+import { useClubLogos } from "@/hooks/useClubLogos";
 import AddStoryModal from "./AddStoryModal";
 import StoryViewer from "./StoryViewer";
 import StoryArchiveModal from "./StoryArchiveModal";
@@ -200,14 +206,17 @@ export const getTechnicalTestsBySport = (sport: string | null | undefined): Tech
   return footballTests; // default
 };
 
-export const getTestLabelByKey = (sport: string | null | undefined, key: string): string => {
+export const getTestLabelByKey = (sport: string | null | undefined, key: string, lang: Language = "ro"): string => {
   const tests = getTechnicalTestsBySport(sport);
-  return tests.find((t) => t.key === key)?.label || key;
+  const test = tests.find((t) => t.key === key);
+  return test ? translateTestLabel(test.key, test.label, lang) : key;
 };
 
 export const getTestRefKey = (test: TechnicalTest): string => (test as AthleticTest).videoKey || test.key;
 
 const TestInfoContent = ({ test, referenceVideoUrl }: { test: TechnicalTest; referenceVideoUrl?: string | null }) => {
+  const { lang, t } = useLanguage();
+  const tt = t.dashboard.tests;
   const [showVideo, setShowVideo] = useState(false);
   const [videoError, setVideoError] = useState(false);
 
@@ -225,15 +234,15 @@ const TestInfoContent = ({ test, referenceVideoUrl }: { test: TechnicalTest; ref
             onError={() => setVideoError(true)}
           />
         ) : (
-          <div className="w-full rounded-md bg-muted flex items-center justify-center py-8 text-xs text-muted-foreground text-center px-4">
-            Video indisponibil momentan.
+          <div className="w-full rounded-md bg-gray-100 flex items-center justify-center py-8 text-xs text-gray-500 text-center px-4">
+            {tt.videoUnavailable}
           </div>
         )}
         <button
           onClick={() => { setShowVideo(false); setVideoError(false); }}
-          className="mt-2 text-xs text-primary hover:underline font-body"
+          className="mt-2 text-xs text-gray-900 hover:underline font-body"
         >
-          ← Înapoi la descriere
+          {tt.backToDescription}
         </button>
       </div>
     );
@@ -241,16 +250,16 @@ const TestInfoContent = ({ test, referenceVideoUrl }: { test: TechnicalTest; ref
 
   return (
     <div>
-      <p className="font-semibold mb-1">{test.icon} {test.label}</p>
-      <p className="text-muted-foreground text-xs whitespace-pre-line">{test.description}</p>
+      <p className="font-semibold mb-1 text-gray-900">{test.icon} {translateTestLabel(test.key, test.label, lang)}</p>
+      <p className="text-gray-500 text-xs whitespace-pre-line">{translateTestDescription(test.key, test.description, lang)}</p>
       <div className="flex justify-end mt-3">
         <Button
           size="sm"
-          className="text-xs gap-1.5 h-7 px-3"
+          className="text-xs gap-1.5 h-7 px-3 bg-orange-500 hover:bg-orange-600 text-white"
           onClick={() => setShowVideo(true)}
         >
           <Play className="h-3 w-3 fill-current" />
-          Video
+          {tt.videoBtn}
         </Button>
       </div>
     </div>
@@ -286,7 +295,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [form, setForm] = useState<Partial<PlayerProfile>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>("stats");
+  const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
@@ -315,6 +324,9 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
     headerTechnicalTests.map((t) => t.key),
     headerIsOwner,
   );
+  const { logos: clubLogosList, getLogoForTeam } = useClubLogos();
+  const currentTeamLogoUrl = getLogoForTeam(form.current_team, currentSport);
+  const teamNameSuggestions = clubLogosList.filter((l) => l.sport === currentSport).map((l) => l.club_name);
 
   // Agent autocomplete state
   const [agentSuggestions, setAgentSuggestions] = useState<AgentSuggestion[]>([]);
@@ -603,6 +615,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           last_name: form.last_name,
           bio: form.bio,
           position: form.position,
+          jersey_number: (form as any).jersey_number ?? null,
           preferred_foot: form.preferred_foot,
           nationality: form.nationality,
           date_of_birth: form.date_of_birth,
@@ -738,10 +751,10 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
     return (
       <button
         onClick={() => setEditingSection(section)}
-        className="text-muted-foreground hover:text-primary transition-colors p-1"
+        className="group text-gray-900 hover:text-gray-400 transition-colors p-1"
         aria-label="Editează"
       >
-        <Edit2 className="h-4 w-4" />
+        <Edit2 className="h-4 w-4 stroke-[2.5] group-hover:stroke-[1.5]" />
       </button>
     );
   };
@@ -754,10 +767,10 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           onClick={handleSave}
           disabled={saving}
           size="sm"
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5"
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-5"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-          Salvați
+          {t.dashboard.tests.saveBtn}
         </Button>
       </div>
     );
@@ -810,10 +823,13 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   }
 
   return (
-    <div className="max-w-4xl mx-auto relative">
+    <div className={`relative isolate ${activeTab === "posts" || activeTab === "profile" || activeTab === "stats" || activeTab === "video" ? "w-full" : "max-w-4xl mx-auto"}`}>
+      <div className={activeTab === "profile" || activeTab === "stats" || activeTab === "video" ? "grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start" : ""}>
+      <div className="min-w-0">
       {/* SECTION 1: Header / Hero - sticky */}
       <div className="z-20 rounded-xl overflow-hidden">
-      <div className="relative bg-gradient-to-br from-sidebar to-sidebar-accent rounded-t-xl overflow-hidden">
+      {activeTab !== "posts" && (
+      <div className="relative bg-white rounded-t-xl overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
           backgroundSize: '30px 30px'
@@ -821,19 +837,39 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
         <div className="relative flex flex-col sm:flex-row flex-wrap items-center sm:items-start gap-4 sm:gap-6 p-4 sm:p-8">
           {/* FIFA-style card - always visible, top-left */}
           <div className="order-0 shrink-0">
-            <FifaPlayerCard form={form} profile={profile} photoSrc={photoSrc} userId={userId} />
+            <FifaPlayerCard
+              form={form}
+              profile={profile}
+              photoSrc={photoSrc}
+              userId={userId}
+              hasStory={hasStory}
+              onOpenStory={() => setShowStoryViewer(true)}
+              onAddStory={() => setShowAddStory(true)}
+              showAddStoryButton={!readOnly && editingSection !== "header"}
+              isEditingHeader={editingSection === "header"}
+              onAvatarChange={handleAvatarChange}
+            />
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0 w-full text-center sm:text-left order-2 sm:order-1">
+          <div className="flex-1 min-w-0 w-full text-center sm:text-left order-2 sm:order-1 flex flex-col sm:self-stretch relative">
+            {currentTeamLogoUrl && (
+              <div className="hidden sm:flex absolute top-0 right-0 h-24 w-24 items-center justify-center bg-white rounded-lg shadow-sm p-2">
+                <img
+                  src={currentTeamLogoUrl}
+                  alt={form.current_team || ""}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            )}
             {editingSection === "header" ? (
               <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-lg sm:text-2xl h-auto py-1 min-w-0" />
-                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-sidebar-accent border-sidebar-border text-white font-display text-lg sm:text-2xl h-auto py-1 min-w-0" />
+                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-lg sm:text-2xl h-auto py-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
+                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-lg sm:text-2xl h-auto py-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
               </div>
             ) : (
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="font-display text-3xl sm:text-5xl text-white tracking-wide uppercase">
+              <h1 className="font-display text-3xl sm:text-5xl text-gray-900 tracking-wide uppercase">
                 {profile?.first_name || profile?.last_name
                   ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
                   : t.dashboard.profile.completeProfile}
@@ -844,7 +880,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                     <TooltipTrigger asChild>
                       <div
                         className="relative h-12 w-12 flex items-center justify-center cursor-help select-none drop-shadow-[0_0_8px_rgba(251,146,60,0.5)] hover:scale-110 transition-transform shrink-0"
-                        aria-label={`Streak activ: ${unlocks.loginStreak} zile consecutive`}
+                        aria-label={`${t.dashboard.tests.activeStreakTitle}: ${unlocks.loginStreak} ${t.dashboard.tests.daysConsecutiveWord}`}
                       >
                         <span className="text-4xl leading-none" aria-hidden="true">🔥</span>
                         <span className="absolute inset-0 flex items-center justify-center pt-1.5 font-display text-[13px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
@@ -853,13 +889,13 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-[240px]">
-                      <p className="font-display text-xs uppercase tracking-wide">Streak activ</p>
+                      <p className="font-display text-xs uppercase tracking-wide">{t.dashboard.tests.activeStreakTitle}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {unlocks.loginStreak} {unlocks.loginStreak === 1 ? "zi consecutivă" : "zile consecutive"} de logare în aplicație — semn de disciplină și seriozitate.
+                        {unlocks.loginStreak} {unlocks.loginStreak === 1 ? t.dashboard.tests.dayConsecutiveWord : t.dashboard.tests.daysConsecutiveWord} {t.dashboard.tests.activeStreakDescSuffix}
                       </p>
                       {unlocks.bestLoginStreak > unlocks.loginStreak && (
                         <p className="text-[10px] text-muted-foreground/80 mt-1">
-                          Record personal: {unlocks.bestLoginStreak} {unlocks.bestLoginStreak === 1 ? "zi" : "zile"}
+                          {t.dashboard.tests.personalRecordLabel} {unlocks.bestLoginStreak} {unlocks.bestLoginStreak === 1 ? t.dashboard.tests.dayWord : t.dashboard.tests.daysWord}
                         </p>
                       )}
                     </TooltipContent>
@@ -871,7 +907,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 
             {/* Gender display - only show if male or female */}
             {editingSection !== "header" && profile?.gender && profile.gender !== "prefer_not_to_say" && (
-              <p className="text-primary-foreground/70 font-body text-sm mt-1">
+              <p className="text-gray-500 font-body text-sm mt-1">
                 {profile.gender === "male" ? t.auth.genderMale : t.auth.genderFemale}
               </p>
             )}
@@ -879,43 +915,51 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
             {editingSection === "header" ? (
               <div className="flex flex-col sm:flex-row gap-2 mt-2">
                 <Select value={form.position || ""} onValueChange={(v) => updateForm("position", v)}>
-                  <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground w-full sm:w-48">
+                  <SelectTrigger className="bg-gray-100 border-gray-300 text-gray-900 w-full sm:w-48 focus:ring-1 focus:ring-gray-900">
                     <SelectValue placeholder={t.dashboard.profile.position} />
                     <SelectValue placeholder="Poziție" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(positionsBySport[form.sport || profile?.sport || "football"] || positionsBySport["football"]).map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    {(positionsBySport[form.sport || profile?.sport || "football"] || positionsBySport["football"]).map((p) => <SelectItem key={p} value={p}>{translatePosition(p, lang)}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  value={(form as any).jersey_number ?? ""}
+                  onChange={(e) => updateForm("jersey_number", e.target.value ? parseInt(e.target.value, 10) : null)}
+                  placeholder={lang === "ro" ? "Nr. tricou" : "Shirt no."}
+                  className="bg-gray-100 border-gray-300 text-gray-900 w-full sm:w-24 focus-visible:ring-1 focus-visible:ring-gray-900"
+                />
               </div>
             ) : (
-              <p className="text-muted-foreground font-body text-sm sm:text-base mt-1">
-                {form.position ? <span className="text-primary font-semibold">{form.position}</span> : (readOnly ? null : <span className="text-muted-foreground italic">{t.dashboard.profile.addPosition}</span>)}
+              <p className="text-gray-500 font-body text-sm sm:text-base mt-1">
+                {form.position ? <span className="text-gray-500 font-semibold">{translatePosition(form.position, lang)}</span> : (readOnly ? null : <span className="text-muted-foreground italic">{t.dashboard.profile.addPosition}</span>)}
                 {form.current_team && <span> · {form.current_team}</span>}
-                {(form as any).sport && <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-body uppercase">{(form as any).sport}</span>}
               </p>
             )}
 
             {/* Nationality, DOB & Social icons */}
             {editingSection !== "header" && (
-              <div className="flex items-center justify-center sm:justify-start gap-6 mt-4 pt-3 border-t border-border/30 flex-wrap">
+              <div className="flex items-center justify-center sm:justify-between gap-6 mt-4 pt-3 sm:pt-[calc(0.75rem+0.8cm)] border-t border-gray-200 flex-wrap sm:pr-[calc(2.5rem+0.5cm)]">
                 <div className="flex flex-col">
-                  <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.nationality}</span>
-                  <span className="text-sm font-semibold text-white font-body mt-0.5">
+                  <span className="text-sm text-gray-500 font-body">{t.dashboard.profile.nationality}</span>
+                  <span className="text-base font-semibold text-gray-900 font-body mt-0.5">
                     {profile?.nationality ? getDisplayNationality(profile.nationality, lang) : (readOnly ? "" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>)}
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.birthDate}</span>
-                  <span className="text-sm font-semibold text-white font-body mt-0.5">
+                  <span className="text-sm text-gray-500 font-body">{t.dashboard.profile.birthDate}</span>
+                  <span className="text-base font-semibold text-gray-900 font-body mt-0.5">
                     {profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : (readOnly ? "" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addDob || "Adaugă data nașterii"}</span>)}
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs text-primary font-body uppercase tracking-wide">{t.dashboard.profile.addSocial || "Rețele de socializare"}</span>
+                  <span className="text-sm text-gray-500 font-body">{t.dashboard.profile.addSocial || "Rețele de socializare"}</span>
                   <div className="flex items-center gap-2 mt-0.5">
-                    {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-white hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>}
-                    {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-white hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>}
+                    {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>}
+                    {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>}
                     {!profile?.instagram_url && !profile?.twitter_url && !readOnly && <span className="text-muted-foreground italic text-sm font-body font-normal">—</span>}
                   </div>
                 </div>
@@ -924,25 +968,25 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
             {editingSection === "header" && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
-                  <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
+                  <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
+                  <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Input value={form.instagram_url || ""} onChange={(e) => updateForm("instagram_url", e.target.value)} placeholder="Instagram URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
-                  <Input value={form.twitter_url || ""} onChange={(e) => updateForm("twitter_url", e.target.value)} placeholder="Twitter/X URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
-                  <Input value={form.tiktok_url || ""} onChange={(e) => updateForm("tiktok_url", e.target.value)} placeholder="TikTok URL" className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs min-w-0" />
+                  <Input value={form.instagram_url || ""} onChange={(e) => updateForm("instagram_url", e.target.value)} placeholder="Instagram URL" className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
+                  <Input value={form.twitter_url || ""} onChange={(e) => updateForm("twitter_url", e.target.value)} placeholder="Twitter/X URL" className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
+                  <Input value={form.tiktok_url || ""} onChange={(e) => updateForm("tiktok_url", e.target.value)} placeholder="TikTok URL" className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
                 </div>
               </div>
             )}
             {/* Follower count */}
             {editingSection !== "header" && (
-              <div className="mt-3">
+              <div className="mt-3 sm:mt-auto">
                 <button
                   onClick={() => !readOnly && setShowFollowersList(!showFollowersList)}
                   className={`flex items-center gap-1.5 text-sm font-body ${!readOnly ? "hover:text-primary cursor-pointer" : "cursor-default"} transition-colors`}
                 >
                   <Users className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-white">{followerCount}</span>
+                  <span className="font-semibold text-gray-900">{followerCount}</span>
                   <span className="text-muted-foreground">{lang === "ro" ? "urmăritori" : "followers"}</span>
                 </button>
               </div>
@@ -958,7 +1002,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                           onClick={(e) => { e.stopPropagation(); onNavigateToChat ? onNavigateToChat(userId) : setShowMessageDialog(true); }}
                           size="sm"
                           disabled={followStatus !== "accepted" || viewerLocked}
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground font-body gap-2 disabled:opacity-50"
+                          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-body gap-2 disabled:opacity-50"
                         >
                           {followStatus !== "accepted" ? <Lock className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
                           {lang === "ro" ? "Mesaj" : "Message"}
@@ -977,9 +1021,14 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                 <Button
                   onClick={(e) => { e.stopPropagation(); toggleFollow(); }}
                   size="sm"
-                  variant={followStatus === "accepted" ? "secondary" : "outline"}
                   disabled={followLoading || viewerLocked}
-                  className="font-body gap-2"
+                  className={`font-body gap-2 ${
+                    followStatus === "accepted"
+                      ? "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50"
+                      : followStatus === "pending"
+                        ? "bg-white border border-purple-600 text-purple-600 hover:bg-purple-50"
+                        : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                  }`}
                 >
                   {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : followStatus === "accepted" ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
                   {followStatus === "accepted"
@@ -995,7 +1044,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                         size="sm"
                         variant="outline"
                         disabled={viewerLocked}
-                        className="font-body gap-2 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+                        className="font-body gap-2 border-purple-300 text-purple-600 hover:bg-purple-50 hover:text-purple-600"
                       >
                         <ClipboardList className="h-4 w-4" />
                         {lang === "ro" ? "Acțiuni" : "Actions"}
@@ -1018,44 +1067,6 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
             )}
           </div>
 
-          {/* Avatar */}
-          <div className="relative group order-1 sm:order-2 shrink-0">
-            {/* Story ring */}
-            {hasStory && (
-              <div className="absolute inset-[-4px] rounded-[14px] z-0 overflow-hidden">
-                <div
-                  className="absolute inset-[-40%] story-ring-spin"
-                  style={{ background: "conic-gradient(from 0deg, #22c55e 0%, #4ade80 30%, #86efac 50%, transparent 55%, transparent 75%, #22c55e 100%)" }}
-                />
-              </div>
-            )}
-            <div
-              className={`relative z-10 w-24 h-24 sm:w-40 sm:h-40 rounded-xl overflow-hidden bg-muted shadow-lg ${hasStory ? "border-[3px] border-background cursor-pointer" : "border-2 border-primary/30"}`}
-              onClick={hasStory ? () => setShowStoryViewer(true) : undefined}
-            >
-              {photoSrc ? (
-                <img src={photoSrc} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  <Camera className="h-10 w-10" />
-                </div>
-              )}
-            </div>
-            {editingSection === "header" && (
-              <label className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-xl cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                <Camera className="h-6 w-6 text-primary" />
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-              </label>
-            )}
-            {!readOnly && editingSection !== "header" && (
-              <button
-                onClick={() => setShowAddStory(true)}
-                className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-primary border-2 border-background flex items-center justify-center z-20 hover:bg-primary/80 transition-colors shadow-md"
-              >
-                <Plus className="h-3.5 w-3.5 text-primary-foreground" />
-              </button>
-            )}
-          </div>
 
 
           {/* Edit pencil for header */}
@@ -1070,22 +1081,23 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                 onClick={handleSave}
                 disabled={saving}
                 size="sm"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-5"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-                Salvați
+                {t.dashboard.tests.saveBtn}
               </Button>
             </div>
           )}
         </div>
       </div>
+      )}
 
       {/* Tabs row (no edit button) */}
-      <div className="flex items-stretch border-b border-border bg-card rounded-b-xl z-20">
+      <div className={`flex items-stretch border-b border-gray-200 bg-white z-20 ${activeTab === "posts" ? "rounded-xl" : "rounded-b-xl"}`}>
         <div className="flex flex-1 overflow-x-auto">
           {([
-            { key: "stats" as TabType, label: "Stats" },
-            { key: "profile" as TabType, label: "Profile" },
+            { key: "profile" as TabType, label: lang === "ro" ? "Profil" : "Profile" },
+            { key: "stats" as TabType, label: lang === "ro" ? "Teste" : "Tests" },
             { key: "video" as TabType, label: "Video" },
             { key: "posts" as TabType, label: lang === "ro" ? "Postări" : "Posts" },
           ]).map((tab) => (
@@ -1094,13 +1106,13 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
               onClick={() => setActiveTab(tab.key)}
               className={`flex-1 px-4 sm:px-6 py-3 font-display text-base sm:text-lg tracking-wide transition-colors relative whitespace-nowrap
                 ${activeTab === tab.key
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-orange-500"
+                  : "text-gray-900 hover:text-orange-500"
                 }`}
             >
               {tab.label}
               {activeTab === tab.key && (
-                <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-full" />
+                <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-orange-500 rounded-t-full" />
               )}
             </button>
           ))}
@@ -1108,12 +1120,40 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
       </div>
       </div>
 
-
+      {/* Decorative geometric shape between hero and stats */}
+      {activeTab !== "video" && activeTab !== "posts" && (
+        <div className="relative h-0 overflow-visible">
+          <div
+            className="absolute -z-10 pointer-events-none"
+            style={{
+              top: "-40px",
+              left: "-60px",
+              width: "150px",
+              height: "150px",
+              background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+              clipPath: "polygon(0 0, 100% 0, 0 100%)",
+              opacity: 0.9,
+            }}
+          />
+          <div
+            className="absolute -z-10 pointer-events-none"
+            style={{
+              top: "-120px",
+              right: "-24px",
+              width: "460px",
+              height: "460px",
+              background: "linear-gradient(135deg, #f97316, #fb923c)",
+              clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+              opacity: 0.9,
+            }}
+          />
+        </div>
+      )}
 
       {/* SECTION 2: Tab content */}
-      <div className="mt-6 px-2 sm:px-6 pb-8">
+      <div className={`mt-6 pb-8 ${activeTab === "stats" || activeTab === "profile" || activeTab === "video" ? "" : "px-2 sm:px-6"}`}>
         {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} setEditingSection={setEditingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} viewerUserId={viewerUserId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} readOnly={readOnly} />}
-        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} collaborationStatus={collaborationStatus} collaborationLoading={collaborationLoading} cancelCollaborationRequest={cancelCollaborationRequest} acceptedAgent={acceptedAgent} photoSrc={photoSrc} />}
+        {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} collaborationStatus={collaborationStatus} collaborationLoading={collaborationLoading} cancelCollaborationRequest={cancelCollaborationRequest} acceptedAgent={acceptedAgent} photoSrc={photoSrc} teamNameSuggestions={teamNameSuggestions} />}
         {activeTab === "profile" && (
           <div className="mt-6">
             <RecommendationsSection
@@ -1138,7 +1178,186 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
             SectionSaveButton={SectionSaveButton}
           />
         )}
-        {activeTab === "posts" && <PostsTab userId={userId} readOnly={readOnly} />}
+        {activeTab === "posts" && (
+          <>
+          {/* Decorative geometric shapes above the posts feed, matching the Activitate page */}
+          <div className="relative h-0 overflow-visible">
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "-150px",
+                right: "60px",
+                width: "170px",
+                height: "170px",
+                background: "linear-gradient(135deg, #f97316, #fb923c)",
+                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+                opacity: 0.9,
+              }}
+            />
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "-100px",
+                left: "-40px",
+                width: "120px",
+                height: "120px",
+                background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                clipPath: "polygon(0 0, 100% 0, 0 100%)",
+                opacity: 0.9,
+              }}
+            />
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "-220px",
+                left: "40%",
+                width: "110px",
+                height: "110px",
+                background: "#a3e635",
+                clipPath: "polygon(0 0, 100% 0, 0 100%)",
+                opacity: 0.9,
+              }}
+            />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_360px] gap-4 items-start">
+            {/* Left: sticky personal info */}
+            <div className="hidden lg:block lg:sticky lg:top-6">
+              <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+                <button type="button" onClick={() => setActiveTab("profile")} className="flex justify-center w-full cursor-pointer">
+                  <FifaPlayerCard form={form} profile={profile} photoSrc={photoSrc} userId={userId} mini />
+                </button>
+                {(form.position || form.current_team) && (
+                  <p className="text-xs text-gray-500 mt-3">
+                    {[translatePosition(form.position, lang), form.current_team].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                <div className="border-t border-gray-200 mt-4 pt-3 flex items-center justify-center gap-1.5 text-sm">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-gray-900">{followerCount}</span>
+                  <span className="text-gray-500">{lang === "ro" ? "urmăritori" : "followers"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Center: posts feed */}
+            <div className="min-w-0">
+              <PostsTab userId={userId} readOnly={readOnly} />
+            </div>
+
+            {/* Right: news & announcements placeholder */}
+            <div className="hidden lg:block lg:sticky lg:top-6 relative">
+              <div
+                className="absolute -z-10 pointer-events-none"
+                style={{
+                  top: "-30px",
+                  right: "-20px",
+                  width: "140px",
+                  height: "140px",
+                  background: "#a3e635",
+                  clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+                  opacity: 0.9,
+                }}
+              />
+              <div
+                className="absolute -z-10 pointer-events-none"
+                style={{
+                  bottom: "-24px",
+                  left: "-16px",
+                  width: "110px",
+                  height: "110px",
+                  background: "linear-gradient(135deg, #f97316, #fb923c)",
+                  clipPath: "polygon(0 100%, 100% 100%, 0 0)",
+                  opacity: 0.9,
+                }}
+              />
+              <NewsAnnouncementsPanel />
+            </div>
+          </div>
+
+          {/* Decorative geometric shapes below the page content */}
+          <div className="relative h-0 overflow-visible">
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "40px",
+                right: "80px",
+                width: "150px",
+                height: "150px",
+                background: "#a3e635",
+                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+                opacity: 0.9,
+              }}
+            />
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "100px",
+                left: "40px",
+                width: "120px",
+                height: "120px",
+                background: "linear-gradient(135deg, #f97316, #fb923c)",
+                clipPath: "polygon(0 100%, 100% 100%, 0 0)",
+                opacity: 0.9,
+              }}
+            />
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "260px",
+                right: "260px",
+                width: "110px",
+                height: "110px",
+                background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                clipPath: "polygon(0 0, 100% 0, 0 100%)",
+                opacity: 0.9,
+              }}
+            />
+            <div
+              className="absolute -z-10 pointer-events-none"
+              style={{
+                top: "320px",
+                left: "220px",
+                width: "100px",
+                height: "100px",
+                background: "#a3e635",
+                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+                opacity: 0.9,
+              }}
+            />
+          </div>
+          </>
+        )}
+      </div>
+      </div>
+      {(activeTab === "profile" || activeTab === "stats" || activeTab === "video") && (
+        <div className="hidden lg:block lg:sticky lg:top-6 relative">
+          <div
+            className="absolute -z-10 pointer-events-none"
+            style={{
+              top: "-32px",
+              right: "-22px",
+              width: "150px",
+              height: "150px",
+              background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+              clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+              opacity: 0.9,
+            }}
+          />
+          <div
+            className="absolute -z-10 pointer-events-none"
+            style={{
+              bottom: "-26px",
+              left: "-18px",
+              width: "120px",
+              height: "120px",
+              background: "#a3e635",
+              clipPath: "polygon(0 100%, 100% 100%, 0 0)",
+              opacity: 0.9,
+            }}
+          />
+          <NewsAnnouncementsPanel />
+        </div>
+      )}
       </div>
 
       {/* Message Dialog */}
@@ -1159,7 +1378,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           scoutUserId={viewerUserId}
           playerUserId={userId}
           playerName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || (lang === "ro" ? "Jucător" : "Player")}
-          playerSubtitle={[form.position, profile?.nationality, currentSport].filter(Boolean).join(" · ")}
+          playerSubtitle={[translatePosition(form.position, lang), profile?.nationality, currentSport].filter(Boolean).join(" · ")}
           playerPhotoUrl={photoSrc}
         />
       )}
@@ -1214,57 +1433,81 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 };
 
 /* ======================== FIFA-STYLE PLAYER CARD ======================== */
-function FifaPlayerCard({ form, profile, photoSrc, userId }: {
+export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOpenStory, onAddStory, showAddStoryButton, isEditingHeader, onAvatarChange, mini = false }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; photoSrc?: string | null; userId?: string;
+  hasStory?: boolean; onOpenStory?: () => void; onAddStory?: () => void; showAddStoryButton?: boolean;
+  isEditingHeader?: boolean; onAvatarChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; mini?: boolean;
 }) {
   const { getSubmissionForTest } = useVideoSubmissions(userId);
-  // The old speed/jumping/endurance/acceleration numeric columns on
-  // player_profiles are legacy — nothing writes to them anymore (athletic
-  // tests only ever write to *_video columns and get a grade via
-  // video_submissions once admin-verified). Showing those dead columns as
-  // "0" misrepresented every player's OVR. Use the real verified grades
-  // instead, and only compute an average from tests that actually have one.
-  const verifiedGrades = athleticTests
-    .map((test) => getSubmissionForTest(test.videoKey))
-    .filter((sub) => sub?.status === "verified" && sub.grade !== null)
-    .map((sub) => sub!.grade as number);
-  const overallRating = verifiedGrades.length > 0
-    ? Math.round(verifiedGrades.reduce((sum, g) => sum + g, 0) / verifiedGrades.length)
-    : null;
 
   return (
-    <div className="mx-auto sm:mx-0 relative w-[220px] shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_hsl(var(--primary)/0.4)]"
+    <div className={`mx-auto sm:mx-0 relative ${mini ? "w-[140px]" : "w-[220px]"} shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)]`}
       style={{
-        background: 'linear-gradient(160deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.65) 60%, hsl(var(--primary) / 0.35) 100%)',
+        background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
       }}
     >
-      <div className="absolute inset-0 opacity-[0.07]" style={{
+      <div className="absolute inset-0" style={{
+        backgroundImage: `
+          radial-gradient(circle at 18% 12%, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 26%),
+          radial-gradient(circle at 88% 8%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 22%),
+          radial-gradient(circle at 78% 62%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 32%),
+          radial-gradient(circle at 8% 78%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 28%),
+          radial-gradient(circle at 55% 95%, rgba(124,45,18,0.35) 0%, rgba(124,45,18,0) 40%)
+        `,
+      }} />
+      <div className="absolute inset-0 opacity-[0.06]" style={{
         backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
       }} />
       <div className="relative">
-        <div className="flex items-start px-4 pt-4">
+        <div className={mini ? "flex items-start px-2 pt-2" : "flex items-start px-4 pt-4"}>
           <div className="flex flex-col items-center">
-            <span className="font-display text-[42px] text-primary-foreground leading-none drop-shadow-lg">{overallRating ?? "—"}</span>
-            <span className="font-display text-[11px] text-primary-foreground/80 uppercase tracking-[0.2em]">{profile?.position ? profile.position.substring(0, 3).toUpperCase() : "—"}</span>
+            <span className={`font-display text-primary-foreground leading-none drop-shadow-lg ${mini ? "text-[20px]" : "text-[42px]"}`}>{(profile as any)?.jersey_number ?? "—"}</span>
           </div>
         </div>
-        <div className="flex justify-center mt-1 px-5">
-          <div className="w-[130px] h-[130px] rounded-xl overflow-hidden border-2 border-primary-foreground/20 shadow-lg">
-            {photoSrc ? (
-              <img src={photoSrc} alt="Player" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-primary-foreground/10">
-                <Camera className="h-8 w-8 text-primary-foreground/40" />
+        <div className={mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-5"}>
+          <div className="relative group">
+            {hasStory && (
+              <div className="absolute inset-[-4px] rounded-[14px] z-0 overflow-hidden">
+                <div
+                  className="absolute inset-[-40%] story-ring-spin"
+                  style={{ background: "conic-gradient(from 0deg, #22c55e 0%, #4ade80 30%, #86efac 50%, transparent 55%, transparent 75%, #22c55e 100%)" }}
+                />
               </div>
+            )}
+            <div
+              className={`relative z-10 rounded-xl overflow-hidden shadow-lg ${mini ? "w-[95px] h-[95px]" : "w-[130px] h-[130px]"} ${hasStory ? "border-[3px] border-background cursor-pointer" : "border-2 border-primary-foreground/20"}`}
+              onClick={hasStory ? onOpenStory : undefined}
+            >
+              {photoSrc ? (
+                <img src={photoSrc} alt="Player" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-primary-foreground/10">
+                  <Camera className={mini ? "h-6 w-6 text-primary-foreground/40" : "h-8 w-8 text-primary-foreground/40"} />
+                </div>
+              )}
+            </div>
+            {isEditingHeader && (
+              <label className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 rounded-xl cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="h-6 w-6 text-white" />
+                <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
+              </label>
+            )}
+            {showAddStoryButton && (
+              <button
+                onClick={onAddStory}
+                className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-primary border-2 border-background flex items-center justify-center z-20 hover:bg-primary/80 transition-colors shadow-md"
+              >
+                <Plus className="h-3.5 w-3.5 text-primary-foreground" />
+              </button>
             )}
           </div>
         </div>
-        <div className="text-center mt-2 pb-2 mx-4">
+        <div className={mini ? "text-center mt-1 pb-2 mx-2" : "text-center mt-2 pb-2 mx-4"}>
           <div className="border-t border-primary-foreground/20 pt-2">
-            <p className="font-display text-sm text-primary-foreground uppercase tracking-[0.15em]">{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
+            <p className={`font-display text-primary-foreground uppercase tracking-[0.15em] ${mini ? "text-[10px]" : "text-sm"}`}>{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-5 pb-4">
+        <div className={mini ? "grid grid-cols-2 gap-x-2 gap-y-1 px-3 pb-3" : "grid grid-cols-2 gap-x-3 gap-y-1.5 px-5 pb-4"}>
           {[
             { label: "PLD", key: "speed_video" },
             { label: "2FVJ", key: "jumping_video" },
@@ -1274,11 +1517,11 @@ function FifaPlayerCard({ form, profile, photoSrc, userId }: {
             const sub = getSubmissionForTest(stat.key);
             const verified = sub?.status === "verified" && sub.grade !== null;
             return (
-              <div key={stat.label} className="flex items-center gap-2">
-                <span className="font-display text-lg text-primary-foreground leading-none">
+              <div key={stat.label} className="flex items-center gap-1.5">
+                <span className={`font-display text-primary-foreground leading-none ${mini ? "text-xs" : "text-lg"}`}>
                   {verified ? `${sub!.grade}${athleticTestUnits[stat.key] || ""}` : "—"}
                 </span>
-                <span className="text-[10px] text-primary-foreground/60 font-body uppercase tracking-wider">{stat.label}</span>
+                <span className={`text-primary-foreground/60 font-body uppercase tracking-wider ${mini ? "text-[8px]" : "text-[10px]"}`}>{stat.label}</span>
               </div>
             );
           })}
@@ -1296,7 +1539,8 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
   const editingMatchStats = editingSection === "match_stats";
   const editingTechnical = editingSection === "technical";
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const tt = t.dashboard.tests;
   const { toast } = useToast();
   const [inlineEditTest, setInlineEditTest] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -1325,41 +1569,42 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row gap-6 items-center">
           {/* Stat bars / edit inputs */}
-          <div className="flex-1 w-full bg-card border border-border rounded-2xl p-5 sm:p-6">
+          <div className="flex-1 w-full bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
             <div className="flex items-center justify-between mb-1">
-              <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Atletice</h4>
+              <h4 className="font-display text-lg text-gray-900 uppercase tracking-wide">{tt.athleticTitle}</h4>
             </div>
               <>
                 <div className="space-y-5">
                   {athleticTests.map((test) => {
                     const videoUrl = (form as any)[test.videoKey] || (profile as any)?.[test.videoKey] || "";
                     const sub = getSubmissionForTest(test.videoKey);
+                    const testLabel = translateTestLabel(test.key, test.label, lang);
                     return (
                       <div key={test.key} className="group">
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-1">
-                            <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
+                            <span className="text-sm font-body text-gray-900 uppercase tracking-wide">{test.icon} {testLabel}</span>
                             <Popover>
                               <PopoverTrigger asChild>
-                                <button className={`text-muted-foreground hover:text-primary transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`Info ${test.label}`}>
-                                  <Info className="h-4 w-4" />
+                                <button className={`group text-muted-foreground hover:text-gray-900 transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`${tt.infoAriaPrefix} ${testLabel}`}>
+                                  <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                                 </button>
                               </PopoverTrigger>
-                              <PopoverContent className="text-sm font-body w-80" side="top">
+                              <PopoverContent className="text-sm font-body w-80 bg-white border-gray-200 text-gray-900" side="top">
                                 <TestInfoContent test={test} referenceVideoUrl={testReferenceVideos[test.videoKey]} />
                               </PopoverContent>
                             </Popover>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-display text-xl text-foreground">
+                            <span className="font-display text-xl text-gray-900">
                               {sub?.status === "verified" && sub.grade !== null
                                 ? `${sub.grade}${athleticTestUnits[test.videoKey] || ""}`
                                 : "?"}
                             </span>
                             {isOwner && !videoUrl && inlineEditTest !== test.videoKey && (
                               <button
-                                className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/20 hover:bg-primary/40 text-primary transition-colors"
-                                aria-label={`Adaugă video ${test.label}`}
+                                className="flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 transition-colors"
+                                aria-label={`${tt.addVideoAriaPrefix} ${testLabel}`}
                                 onClick={() => setInlineEditTest(test.videoKey)}
                               >
                                 <Plus className="h-3.5 w-3.5" />
@@ -1368,7 +1613,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             {videoUrl && sub?.status !== "rejected" && (
                               <button
                                 className="flex items-center justify-center h-6 w-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                                aria-label={expandedTests.has(test.videoKey) ? `Ascunde video ${test.label}` : `Arată video ${test.label}`}
+                                aria-label={expandedTests.has(test.videoKey) ? `${tt.hideVideoAriaPrefix} ${testLabel}` : `${tt.showVideoAriaPrefix} ${testLabel}`}
                                 onClick={() => toggleTestExpanded(test.videoKey)}
                               >
                                 {expandedTests.has(test.videoKey) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -1376,12 +1621,12 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             )}
                           </div>
                         </div>
-                        <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-700 ease-out"
                             style={{
                               width: sub?.status === "verified" ? "100%" : sub?.status === "pending" ? "50%" : "0%",
-                              background: 'linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary)))',
+                              background: sub?.status === "verified" ? 'linear-gradient(90deg, #84cc16, #a3e635)' : 'linear-gradient(90deg, #9ca3af, #6b7280)',
                             }}
                           />
                         </div>
@@ -1403,45 +1648,45 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                         {!readOnly && sub && (
                           <>
                             {sub.status === "pending" && (
-                              <div className="mt-2 flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
-                                <Clock className="h-4 w-4 text-yellow-400 shrink-0" />
-                                <span className="text-xs text-yellow-300 font-body">Video în proces de verificare</span>
+                              <div className="mt-2 flex items-center gap-2 bg-yellow-100 border border-yellow-300 rounded-lg px-3 py-2">
+                                <Clock className="h-4 w-4 text-yellow-600 shrink-0" />
+                                <span className="text-xs text-yellow-800 font-body">{tt.videoVerifying}</span>
                               </div>
                             )}
                             {sub.status === "verified" && sub.grade !== null && (
-                              <div className="mt-2 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 space-y-1">
+                              <div className="mt-2 bg-green-100 border border-green-300 rounded-lg px-3 py-2 space-y-1">
                                 <div className="flex items-center gap-2">
-                                  <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
-                                  <span className="text-xs text-green-300 font-body">
-                                    Video verificat — Rezultat: <strong className="text-green-200">{sub.grade}{athleticTestUnits[test.videoKey] || ""}</strong>
+                                  <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                                  <span className="text-xs text-green-800 font-body">
+                                    {tt.videoVerifiedResultPrefix} <strong className="text-green-900">{sub.grade}{athleticTestUnits[test.videoKey] || ""}</strong>
                                   </span>
                                 </div>
                                 {sub.reviewer_notes && (
-                                  <p className="text-xs text-green-200/70 font-body pl-6">{sub.reviewer_notes}</p>
+                                  <p className="text-xs text-green-700 font-body pl-6">{sub.reviewer_notes}</p>
                                 )}
                                 {getVerifiedCooldownDaysLeft(sub) > 0 && (
-                                  <p className="text-xs text-green-300/60 font-body pl-6">
-                                    Poți trimite un video nou în <strong>{Math.ceil(getVerifiedCooldownDaysLeft(sub))} {Math.ceil(getVerifiedCooldownDaysLeft(sub)) === 1 ? "zi" : "zile"}</strong>.
+                                  <p className="text-xs text-green-600 font-body pl-6">
+                                    {tt.canResubmitInPrefix} <strong>{Math.ceil(getVerifiedCooldownDaysLeft(sub))} {Math.ceil(getVerifiedCooldownDaysLeft(sub)) === 1 ? tt.dayWord : tt.daysWord}</strong>.
                                   </p>
                                 )}
                               </div>
                             )}
                             {sub.status === "rejected" && (
-                              <div className="mt-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 space-y-1">
+                              <div className="mt-2 bg-red-100 border border-red-300 rounded-lg px-3 py-2 space-y-1">
                                 <div className="flex items-center gap-2">
-                                  <XCircle className="h-4 w-4 text-red-400 shrink-0" />
-                                  <span className="text-xs text-red-300 font-body font-semibold">Video respins</span>
+                                  <XCircle className="h-4 w-4 text-red-600 shrink-0" />
+                                  <span className="text-xs text-red-800 font-body font-semibold">{tt.videoRejected}</span>
                                 </div>
                                 {sub.reviewer_notes && (
-                                  <p className="text-xs text-red-200/80 font-body pl-6">{sub.reviewer_notes}</p>
+                                  <p className="text-xs text-red-700 font-body pl-6">{sub.reviewer_notes}</p>
                                 )}
                                 {getRejectionDaysLeft(sub) > 0 ? (
-                                  <p className="text-xs text-orange-300 font-body pl-6">
-                                    Poți trimite un video nou în <strong>{Math.ceil(getRejectionDaysLeft(sub))} {Math.ceil(getRejectionDaysLeft(sub)) === 1 ? "zi" : "zile"}</strong>.
+                                  <p className="text-xs text-orange-600 font-body pl-6">
+                                    {tt.canResubmitInPrefix} <strong>{Math.ceil(getRejectionDaysLeft(sub))} {Math.ceil(getRejectionDaysLeft(sub)) === 1 ? tt.dayWord : tt.daysWord}</strong>.
                                   </p>
                                 ) : (
-                                  <p className="text-xs text-green-300 font-body pl-6">
-                                    Termenul a expirat. Poți trimite un video nou.
+                                  <p className="text-xs text-green-700 font-body pl-6">
+                                    {tt.deadlineExpired}
                                   </p>
                                 )}
                               </div>
@@ -1453,9 +1698,9 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                           const daysLeft = getUploadCooldownDaysLeft(sub);
                           if (daysLeft > 0) {
                             return (
-                              <div className="mt-2 bg-orange-500/10 border border-orange-500/30 rounded-lg px-3 py-2">
-                                <p className="text-xs text-orange-300 font-body">
-                                  Poți trimite un video nou în <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? "zi" : "zile"}</strong>.
+                              <div className="mt-2 bg-orange-100 border border-orange-300 rounded-lg px-3 py-2">
+                                <p className="text-xs text-orange-800 font-body">
+                                  {tt.canResubmitInPrefix} <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? tt.dayWord : tt.daysWord}</strong>.
                                 </p>
                               </div>
                             );
@@ -1464,12 +1709,12 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             <div className="mt-3 space-y-2">
                               <div className="flex flex-col sm:flex-row gap-2">
                                 <Input
-                                  placeholder="Link YouTube sau video URL"
+                                  placeholder={tt.videoUrlPlaceholder}
                                   value={(form as any)[test.inputKey] || ""}
                                   onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
-                                  className="text-white flex-1 min-w-0"
+                                  className="bg-gray-100 border-gray-300 text-gray-900 flex-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900"
                                 />
-                                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
+                                <Button type="button" variant="outline" size="sm" className="shrink-0 border-gray-300 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 hover:text-white hover:border-transparent" onClick={() => {
                                   const val = (form as any)[test.inputKey]?.trim();
                                   if (val) {
                                     updateForm(test.videoKey as any, val);
@@ -1480,10 +1725,10 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                 </Button>
                               </div>
                               <div className="relative">
-                                <div className="border-2 border-dashed border-border rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
                                   onClick={() => document.getElementById(`inline-${test.uploadId}`)?.click()}>
                                   <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                                  <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                                  <span className="text-xs text-muted-foreground font-body block mt-1">{tt.orUploadVideo}</span>
                                 </div>
                                 <input
                                   id={`inline-${test.uploadId}`}
@@ -1497,23 +1742,23 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                     const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
                                     const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
                                     if (uploadError) {
-                                      toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                                      toast({ title: tt.uploadErrorTitle, description: tt.uploadErrorDesc, variant: "destructive" });
                                       return;
                                     }
                                     const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
                                     updateForm(test.videoKey as any, urlData.publicUrl);
-                                    toast({ title: "Video încărcat cu succes!" });
+                                    toast({ title: tt.videoUploadedSuccess });
                                   }}
                                 />
                               </div>
                               <div className="flex justify-end">
                                 <Button
                                   type="button"
-                                  className="bg-green-700 hover:bg-green-800 text-white"
+                                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
                                   onClick={async () => {
                                     const dl = getUploadCooldownDaysLeft(sub);
                                     if (dl > 0) {
-                                      toast({ title: "Nu poți trimite un video nou încă", description: `Poți trimite din nou în ${Math.ceil(dl)} zile.`, variant: "destructive" });
+                                      toast({ title: tt.cannotSubmitYetTitle, description: `${tt.canResubmitAgainInPrefix} ${Math.ceil(dl)} ${tt.daysWord}.`, variant: "destructive" });
                                       return;
                                     }
                                     // If the user typed a link but never clicked the small "+" to
@@ -1522,7 +1767,8 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                     const pendingInputUrl = (form as any)[test.inputKey]?.trim();
                                     const newVideoUrl = (form as any)[test.videoKey] || pendingInputUrl || null;
                                     if (!newVideoUrl) {
-                                      toast({ title: "Adaugă un video", description: "Încarcă un fișier sau adaugă un link video înainte de a salva.", variant: "destructive" });
+                                      updateForm(test.inputKey as any, "");
+                                      setInlineEditTest(null);
                                       return;
                                     }
                                     const payload: any = {};
@@ -1532,22 +1778,22 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                       .update(payload)
                                       .eq("user_id", userId);
                                     if (error) {
-                                      toast({ title: "Eroare la salvare", variant: "destructive" });
+                                      toast({ title: tt.saveErrorTitle, variant: "destructive" });
                                     } else {
                                       const result = await submitVideo(test.videoKey, newVideoUrl, userId);
                                       if (result.error) {
-                                        toast({ title: "Video salvat, dar trimiterea către verificare a eșuat.", variant: "destructive" });
+                                        toast({ title: tt.videoSavedButSubmitFailed, variant: "destructive" });
                                       } else {
                                         updateForm(test.videoKey as any, newVideoUrl);
                                         updateForm(test.inputKey as any, "");
-                                        toast({ title: "Video salvat! Va fi verificat de echipa noastră." });
+                                        toast({ title: tt.videoSavedPendingReview });
                                       }
                                       setInlineEditTest(null);
                                     }
                                   }}
                                 >
                                   <Save className="h-4 w-4 mr-1" />
-                                  Salvați
+                                  {tt.saveBtn}
                                 </Button>
                               </div>
                             </div>
@@ -1557,10 +1803,10 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     );
                   })}
                 </div>
-                <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground font-body uppercase tracking-wide">Rating General</span>
+                <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between">
+                  <span className="text-sm text-gray-500 font-body uppercase tracking-wide">{tt.ratingGeneral}</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-display text-3xl text-primary">?</span>
+                    <span className="font-display text-3xl text-gray-900">?</span>
                     <span className="text-xs text-muted-foreground font-body">/100</span>
                   </div>
                 </div>
@@ -1568,11 +1814,39 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
           </div>
         </div>
 
+        {/* Decorative geometric shapes between the two test cards */}
+        <div className="relative h-0 overflow-visible">
+          <div
+            className="absolute -z-10 pointer-events-none"
+            style={{
+              top: "-90px",
+              right: "0px",
+              width: "360px",
+              height: "360px",
+              background: "#a3e635",
+              clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+              opacity: 0.9,
+            }}
+          />
+          <div
+            className="absolute -z-10 pointer-events-none"
+            style={{
+              top: "-40px",
+              left: "-16px",
+              width: "260px",
+              height: "260px",
+              background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+              clipPath: "polygon(0 0, 100% 0, 0 100%)",
+              opacity: 0.9,
+            }}
+          />
+        </div>
+
         {/* Teste Tehnice Specifice section */}
-        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
           <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
-              <h4 className="font-display text-lg text-foreground uppercase tracking-wide">Teste Tehnice Specifice</h4>
+              <h4 className="font-display text-lg text-gray-900 uppercase tracking-wide">{tt.technicalTitle}</h4>
               {!unlocks.loading && unlocks.bestStreak >= 7 && (
                 <StreakBadges bestStreak={unlocks.bestStreak} currentStreak={unlocks.currentStreak} />
               )}
@@ -1581,19 +1855,20 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
           </div>
           {/* Mesaj motivațional pentru următorul badge — doar pe profilul propriu */}
           {isOwner && !unlocks.loading && (() => {
-            const next = getNextBadgeMilestone(unlocks.bestStreak);
+            const next = getNextBadgeMilestone(unlocks.bestStreak, tt);
             if (!next) return null;
             const remaining = next.threshold - unlocks.bestStreak;
+            const dayWord = remaining === 1 ? tt.dayWord : tt.daysWord;
             return (
-              <p className="text-[11px] text-muted-foreground font-body mb-2">
-                🏅 Încă {remaining} {remaining === 1 ? "zi" : "zile"} de streak până la badge-ul „{next.label}"
+              <p className="text-[11px] text-gray-500 font-body mb-2">
+                {tt.nextBadgeTemplate.replace("{n}", String(remaining)).replace("{day}", dayWord).replace("{label}", next.label)}
               </p>
             );
           })()}
 
           {/* Progress streak — vizibil doar pe profilul propriu și doar dacă mai sunt teste de deblocat */}
           {isOwner && !unlocks.loading && unlocks.unlockedTests.length < technicalTests.length && (
-            <div className="mb-4 p-3 rounded-lg bg-muted/30 border border-border">
+            <div className="mb-4 p-3 rounded-lg bg-gray-100 border border-gray-200">
               {(() => {
                 let previewKey = unlocks.nextTestPreview;
                 if (!previewKey) {
@@ -1603,55 +1878,64 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     previewKey = locked[seed % locked.length].key;
                   }
                 }
-                const nextLabel = technicalTests.find((t) => t.key === previewKey)?.label;
+                const previewTest = technicalTests.find((t) => t.key === previewKey);
+                const nextLabel = previewTest ? translateTestLabel(previewTest.key, previewTest.label, lang) : undefined;
                 const days = unlocks.daysUntilNextUnlock;
+                const dayWord = days === 1 ? tt.dayWord : tt.daysWord;
                 const firstLine =
                   days === 0
                     ? nextLabel
-                      ? `Următoarea ta intrare deblochează testul: ${nextLabel}`
-                      : "Următorul test se deblochează la următoarea ta intrare!"
+                      ? tt.nextTestUnlocksNowTemplate.replace("{label}", nextLabel)
+                      : tt.nextTestUnlocksNowGenericTemplate
                     : nextLabel
-                      ? `încă ${days} ${days === 1 ? "zi" : "zile"} până la deblocarea testului: ${nextLabel}`
-                      : `încă ${days} ${days === 1 ? "zi" : "zile"} până la următorul test deblocat`;
+                      ? tt.nextTestUnlocksInTemplate.replace("{n}", String(days)).replace("{day}", dayWord).replace("{label}", nextLabel)
+                      : tt.nextTestUnlocksInGenericTemplate.replace("{n}", String(days)).replace("{day}", dayWord);
                 return (
                   <div className="flex items-start gap-2 mb-2">
                     <Gift className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span className="text-xs font-body text-foreground font-semibold">
+                    <span className="text-xs font-body text-gray-900 font-semibold">
                       {firstLine}
                     </span>
                   </div>
                 );
               })()}
-              <Progress value={(unlocks.currentStreak / unlocks.required) * 100} className="h-2" />
-              <p className="text-[10px] text-muted-foreground mt-1.5 font-body">
-                {unlocks.currentStreak}/{unlocks.required} zile consecutive · Intră în aplicație în fiecare zi pentru a debloca teste noi 🎁
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${Math.min(100, (unlocks.currentStreak / unlocks.required) * 100)}%`,
+                    background: 'linear-gradient(90deg, #9ca3af, #6b7280)',
+                  }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-500 mt-1.5 font-body">
+                {tt.streakProgressTemplate.replace("{cur}", String(unlocks.currentStreak)).replace("{req}", String(unlocks.required))}
               </p>
             </div>
           )}
           {isOwner && !unlocks.loading && unlocks.unlockedTests.length === technicalTests.length && (
             <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/30">
-              <span className="text-xs font-body text-foreground">🏆 Felicitări! Ai deblocat toate testele tehnice.</span>
+              <span className="text-xs font-body text-gray-900">{tt.allTestsUnlockedCongrats}</span>
             </div>
           )}
 
           {isOwner && !unlocks.loading && unlocks.unlockedTests.length < technicalTests.length && (
-            <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/25 flex items-center gap-3">
+            <div className="mb-4 p-3 rounded-xl bg-orange-50 border border-orange-200 flex items-center gap-3">
               <div className="text-2xl shrink-0">🤝</div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-body font-semibold text-foreground leading-tight">
-                  Deblochează un test invitând prieteni
+                <p className="text-xs font-body font-semibold text-gray-900 leading-tight">
+                  {tt.inviteUnlockTitle}
                 </p>
-                <p className="text-[10px] text-muted-foreground font-body mt-0.5 leading-relaxed">
-                  Adu 3 sportivi pe SportRise și alegi tu ce test se deblochează.
+                <p className="text-[10px] text-gray-500 font-body mt-0.5 leading-relaxed">
+                  {tt.inviteUnlockDesc}
                 </p>
               </div>
               <Button
                 size="sm"
-                variant="outline"
-                className="shrink-0 text-xs font-body border-primary/40 text-primary hover:bg-primary/10 h-7 px-3"
+                className="shrink-0 text-xs font-body bg-orange-500 hover:bg-orange-600 text-white h-7 px-3"
                 onClick={() => setShowInviteModal(true)}
               >
-                Invită acum
+                {tt.inviteNowBtn}
               </Button>
             </div>
           )}
@@ -1660,20 +1944,21 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
             <div className="space-y-4">
               {technicalTests.map((test) => {
                 const unlocked = isUnlocked(test.key);
+                const testLabel = translateTestLabel(test.key, test.label, lang);
                 if (!unlocked) {
                   return (
-                    <div key={test.key} className="opacity-60 p-3 rounded-lg bg-muted/20 border border-dashed border-border">
+                    <div key={test.key} className="opacity-60 p-3 rounded-lg bg-gray-100 border border-dashed border-gray-300">
                       <div className="flex items-center gap-2">
-                        <LockIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label} — Test blocat</span>
+                        <LockIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-body text-gray-500 uppercase tracking-wide">{test.icon} {testLabel} — {tt.testLockedSuffix}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 font-body">Continuă streak-ul ca să deblochezi acest test.</p>
+                      <p className="text-xs text-gray-500 mt-1 font-body">{tt.continueStreakToUnlock}</p>
                     </div>
                   );
                 }
                 return (
                 <div key={test.key}>
-                  <p className="text-xs text-muted-foreground font-body mb-2">🎥 Video {test.label}</p>
+                  <p className="text-xs text-muted-foreground font-body mb-2">🎥 {tt.videoLabelPrefix} {testLabel}</p>
                   {(form as any)[test.key] ? (
                     <div className="mb-2 flex items-center gap-2">
                       <span className="text-xs text-muted-foreground font-body truncate flex-1">{(form as any)[test.key]}</span>
@@ -1686,9 +1971,9 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     const daysLeft = getUploadCooldownDaysLeft(sub);
                     if (daysLeft > 0) {
                       return (
-                        <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg px-3 py-2">
-                          <p className="text-xs text-orange-300 font-body">
-                            Poți trimite un video nou în <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? "zi" : "zile"}</strong>.
+                        <div className="bg-orange-100 border border-orange-300 rounded-lg px-3 py-2">
+                          <p className="text-xs text-orange-800 font-body">
+                            {tt.canResubmitInPrefix} <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? tt.dayWord : tt.daysWord}</strong>.
                           </p>
                         </div>
                       );
@@ -1697,12 +1982,12 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     <>
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Input
-                          placeholder="Link YouTube sau video URL"
+                          placeholder={tt.videoUrlPlaceholder}
                           value={(form as any)[test.inputKey] || ""}
                           onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
-                          className="text-white flex-1 min-w-0"
+                          className="bg-gray-100 border-gray-300 text-gray-900 flex-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900"
                         />
-                        <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
+                        <Button type="button" variant="outline" size="sm" className="shrink-0 border-gray-300 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 hover:text-white hover:border-transparent" onClick={() => {
                           const val = (form as any)[test.inputKey]?.trim();
                           if (val) {
                             updateForm(test.key as any, val);
@@ -1713,10 +1998,10 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                         </Button>
                       </div>
                       <div className="relative mt-2">
-                        <div className="border-2 border-dashed border-border rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
                           onClick={() => document.getElementById(test.uploadId)?.click()}>
                           <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                          <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                          <span className="text-xs text-muted-foreground font-body block mt-1">{tt.orUploadVideo}</span>
                         </div>
                         <input
                           id={test.uploadId}
@@ -1730,12 +2015,12 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
                             const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
                             if (uploadError) {
-                              toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                              toast({ title: tt.uploadErrorTitle, description: tt.uploadErrorDesc, variant: "destructive" });
                               return;
                             }
                             const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
                             updateForm(test.key as any, urlData.publicUrl);
-                            toast({ title: "Video încărcat cu succes!" });
+                            toast({ title: tt.videoUploadedSuccess });
                           }}
                         />
                       </div>
@@ -1751,17 +2036,18 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
             <div className="space-y-4">
               {technicalTests.map((test) => {
                 const unlocked = isUnlocked(test.key);
+                const testLabel = translateTestLabel(test.key, test.label, lang);
                 if (!unlocked) {
                   return (
-                    <div key={test.key} className="p-3 rounded-lg bg-muted/20 border border-dashed border-border">
+                    <div key={test.key} className="p-3 rounded-lg bg-gray-100 border border-dashed border-gray-300">
                       <div className="flex items-center gap-2">
-                        <LockIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">
-                          {test.icon} {test.label} — Test blocat
+                        <LockIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-body text-gray-500 uppercase tracking-wide">
+                          {test.icon} {testLabel} — {tt.testLockedSuffix}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 font-body">
-                        {isOwner ? "Continuă streak-ul zilnic ca să deblochezi acest test." : "Test nedeblocat de sportiv."}
+                      <p className="text-xs text-gray-500 mt-1 font-body">
+                        {isOwner ? tt.continueStreakToUnlockDaily : tt.notUnlockedByAthlete}
                       </p>
                     </div>
                   );
@@ -1769,21 +2055,21 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                 return (
                 <div key={test.key}>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-body text-muted-foreground uppercase tracking-wide">{test.icon} {test.label}</span>
+                    <span className="text-sm font-body text-gray-900 uppercase tracking-wide">{test.icon} {testLabel}</span>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className={`text-muted-foreground hover:text-primary transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`Info ${test.label}`}>
-                          <Info className="h-4 w-4" />
+                        <button className={`group text-muted-foreground hover:text-gray-900 transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`${tt.infoAriaPrefix} ${testLabel}`}>
+                          <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="text-sm font-body w-80" side="top">
+                      <PopoverContent className="text-sm font-body w-80 bg-white border-gray-200 text-gray-900" side="top">
                         <TestInfoContent test={test} referenceVideoUrl={testReferenceVideos[test.key]} />
                       </PopoverContent>
                     </Popover>
                     {isOwner && !((form as any)[test.key] || (profile as any)?.[test.key]) && !editingTechnical && (
                       <button
-                        className="ml-auto flex items-center justify-center h-7 w-7 rounded-full bg-primary/20 hover:bg-primary/40 text-primary transition-colors"
-                        aria-label={`Adaugă video ${test.label}`}
+                        className="ml-auto flex items-center justify-center h-7 w-7 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 transition-colors"
+                        aria-label={`${tt.addVideoAriaPrefix} ${testLabel}`}
                         onClick={() => setInlineEditTest(inlineEditTest === test.key ? null : test.key)}
                       >
                         <Plus className="h-4 w-4" />
@@ -1792,7 +2078,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     {((form as any)[test.key] || (profile as any)?.[test.key]) && getSubmissionForTest(test.key)?.status !== "rejected" && (
                       <button
                         className="ml-auto flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                        aria-label={expandedTests.has(test.key) ? `Ascunde video ${test.label}` : `Arată video ${test.label}`}
+                        aria-label={expandedTests.has(test.key) ? `${tt.hideVideoAriaPrefix} ${testLabel}` : `${tt.showVideoAriaPrefix} ${testLabel}`}
                         onClick={() => toggleTestExpanded(test.key)}
                       >
                         {expandedTests.has(test.key) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -1803,7 +2089,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     const videoUrl = (form as any)[test.key] || (profile as any)?.[test.key] || "";
                     const sub = getSubmissionForTest(test.key);
                     if (sub?.status === "rejected") return null;
-                    if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">Niciun video încărcat.</p>;
+                    if (!videoUrl) return <p className="text-xs text-muted-foreground mt-2 font-body">{tt.noVideoUploaded}</p>;
                     if (!expandedTests.has(test.key)) return null;
                     return (
                       <div className="mt-2">
@@ -1826,28 +2112,28 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                      if (!sub) return null;
                      if (sub.status === "pending") {
                        return (
-                         <div className="mt-2 flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
-                           <Clock className="h-4 w-4 text-yellow-400 shrink-0" />
-                           <span className="text-xs text-yellow-300 font-body">Video în proces de verificare</span>
+                         <div className="mt-2 flex items-center gap-2 bg-yellow-100 border border-yellow-300 rounded-lg px-3 py-2">
+                           <Clock className="h-4 w-4 text-yellow-600 shrink-0" />
+                           <span className="text-xs text-yellow-800 font-body">{tt.videoVerifying}</span>
                          </div>
                        );
                      }
                      if (sub.status === "verified" && sub.grade !== null) {
                        const daysLeft = getVerifiedCooldownDaysLeft(sub);
                        return (
-                         <div className="mt-2 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 space-y-1">
+                         <div className="mt-2 bg-green-100 border border-green-300 rounded-lg px-3 py-2 space-y-1">
                            <div className="flex items-center gap-2">
-                             <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
-                             <span className="text-xs text-green-300 font-body">
-                               Video verificat — Nota: <strong className="text-green-200">{sub.grade}</strong>
+                             <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                             <span className="text-xs text-green-800 font-body">
+                               {tt.videoVerifiedNotePrefix} <strong className="text-green-900">{sub.grade}</strong>
                              </span>
                            </div>
                            {sub.reviewer_notes && (
-                             <p className="text-xs text-green-200/70 font-body pl-6">{sub.reviewer_notes}</p>
+                             <p className="text-xs text-green-700 font-body pl-6">{sub.reviewer_notes}</p>
                            )}
                            {daysLeft > 0 && (
-                             <p className="text-xs text-green-300/60 font-body pl-6">
-                               Poți trimite un video nou în <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? "zi" : "zile"}</strong>.
+                             <p className="text-xs text-green-600 font-body pl-6">
+                               {tt.canResubmitInPrefix} <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? tt.dayWord : tt.daysWord}</strong>.
                              </p>
                            )}
                          </div>
@@ -1857,21 +2143,21 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                        if (readOnly) return null;
                        const daysLeft = getRejectionDaysLeft(sub);
                        return (
-                         <div className="mt-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 space-y-1">
+                         <div className="mt-2 bg-red-100 border border-red-300 rounded-lg px-3 py-2 space-y-1">
                            <div className="flex items-center gap-2">
-                             <XCircle className="h-4 w-4 text-red-400 shrink-0" />
-                             <span className="text-xs text-red-300 font-body font-semibold">Video respins</span>
+                             <XCircle className="h-4 w-4 text-red-600 shrink-0" />
+                             <span className="text-xs text-red-800 font-body font-semibold">{tt.videoRejected}</span>
                            </div>
                            {sub.reviewer_notes && (
-                             <p className="text-xs text-red-200/80 font-body pl-6">{sub.reviewer_notes}</p>
+                             <p className="text-xs text-red-700 font-body pl-6">{sub.reviewer_notes}</p>
                            )}
                            {daysLeft > 0 ? (
-                             <p className="text-xs text-orange-300 font-body pl-6">
-                               Poți trimite un video nou în <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? "zi" : "zile"}</strong>.
+                             <p className="text-xs text-orange-600 font-body pl-6">
+                               {tt.canResubmitInPrefix} <strong>{Math.ceil(daysLeft)} {Math.ceil(daysLeft) === 1 ? tt.dayWord : tt.daysWord}</strong>.
                              </p>
                            ) : (
-                             <p className="text-xs text-green-300 font-body pl-6">
-                               Termenul a expirat. Poți trimite un video nou.
+                             <p className="text-xs text-green-700 font-body pl-6">
+                               {tt.deadlineExpired}
                              </p>
                            )}
                          </div>
@@ -1884,12 +2170,12 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     <div className="mt-3 space-y-2">
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Input
-                          placeholder="Link YouTube sau video URL"
+                          placeholder={tt.videoUrlPlaceholder}
                           value={(form as any)[test.inputKey] || ""}
                           onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
-                          className="text-white flex-1 min-w-0"
+                          className="bg-gray-100 border-gray-300 text-gray-900 flex-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900"
                         />
-                        <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => {
+                        <Button type="button" variant="outline" size="sm" className="shrink-0 border-gray-300 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 hover:text-white hover:border-transparent" onClick={() => {
                           const val = (form as any)[test.inputKey]?.trim();
                           if (val) {
                             updateForm(test.key as any, val);
@@ -1900,10 +2186,10 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                         </Button>
                       </div>
                       <div className="relative">
-                        <div className="border-2 border-dashed border-border rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
                           onClick={() => document.getElementById(`inline-${test.uploadId}`)?.click()}>
                           <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
-                          <span className="text-xs text-muted-foreground font-body block mt-1">Sau încarcă video (MP4, WebM, MOV)</span>
+                          <span className="text-xs text-muted-foreground font-body block mt-1">{tt.orUploadVideo}</span>
                         </div>
                         <input
                           id={`inline-${test.uploadId}`}
@@ -1917,24 +2203,24 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             const path = `${userId}/${test.storagePath}-${Date.now()}.${ext}`;
                             const { error: uploadError } = await supabase.storage.from("player-videos").upload(path, file, { upsert: true });
                             if (uploadError) {
-                              toast({ title: "Eroare", description: "Nu s-a putut încărca videoul.", variant: "destructive" });
+                              toast({ title: tt.uploadErrorTitle, description: tt.uploadErrorDesc, variant: "destructive" });
                               return;
                             }
                             const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
                             updateForm(test.key as any, urlData.publicUrl);
-                            toast({ title: "Video încărcat cu succes!" });
+                            toast({ title: tt.videoUploadedSuccess });
                           }}
                         />
                       </div>
                       <div className="flex justify-end">
                         <Button
                           type="button"
-                          className="bg-green-700 hover:bg-green-800 text-white"
+                          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
                           onClick={async () => {
                             const sub = getSubmissionForTest(test.key);
                             const daysLeft = getUploadCooldownDaysLeft(sub);
                             if (daysLeft > 0) {
-                              toast({ title: "Nu poți trimite un video nou încă", description: `Poți trimite din nou în ${Math.ceil(daysLeft)} zile.`, variant: "destructive" });
+                              toast({ title: tt.cannotSubmitYetTitle, description: `${tt.canResubmitAgainInPrefix} ${Math.ceil(daysLeft)} ${tt.daysWord}.`, variant: "destructive" });
                               return;
                             }
                             const payload: any = {};
@@ -1945,19 +2231,19 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                               .update(payload)
                               .eq("user_id", userId);
                             if (error) {
-                              toast({ title: "Eroare la salvare", variant: "destructive" });
+                              toast({ title: tt.saveErrorTitle, variant: "destructive" });
                             } else {
                               // Submit for verification
                               if (videoUrl) {
                                 await submitVideo(test.key, videoUrl, userId);
                               }
-                              toast({ title: "Video salvat! Va fi verificat de echipa noastră." });
+                              toast({ title: tt.videoSavedPendingReview });
                               setInlineEditTest(null);
                             }
                           }}
                         >
                           <Save className="h-4 w-4 mr-1" />
-                          Salvați
+                          {tt.saveBtn}
                         </Button>
                       </div>
                     </div>
@@ -1976,7 +2262,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
       onOpenChange={setShowInviteModal}
       userId={userId}
       unlockedTests={unlocks.unlockedTests}
-      availableTests={technicalTests}
+      availableTests={technicalTests.map((test) => ({ ...test, label: translateTestLabel(test.key, test.label, lang) }))}
       onUnlocked={() => {
         setShowInviteModal(false);
         unlocks.refetch();
@@ -2163,10 +2449,10 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries, sport }: 
   };
 
   return (
-    <div className="space-y-3 border-t border-border pt-3 mt-2">
+    <div className="space-y-3 border-t border-gray-200 pt-3 mt-2">
       <div className="flex items-center justify-between">
-        <Label className="text-xs text-foreground font-semibold">🏆 Palmares</Label>
-        <Button type="button" variant="ghost" size="sm" onClick={addPalmares} className="h-6 px-2 text-xs text-foreground">
+        <Label className="text-xs text-gray-900 font-semibold">🏆 Palmares</Label>
+        <Button type="button" size="sm" onClick={addPalmares} className="h-6 px-2 text-xs bg-orange-500 hover:bg-orange-600 text-white">
           <Plus className="h-3 w-3 mr-1" /> Adaugă rezultat
         </Button>
       </div>
@@ -2444,8 +2730,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   );
 }
 
-function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport, agentSuggestions, showAgentSuggestions, setShowAgentSuggestions, selectedRegisteredAgent, handleAgentNameChange, selectAgent, collaborationStatus, collaborationLoading, cancelCollaborationRequest, acceptedAgent, photoSrc }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string; agentSuggestions: AgentSuggestion[]; showAgentSuggestions: boolean; setShowAgentSuggestions: (v: boolean) => void; selectedRegisteredAgent: AgentSuggestion | null; handleAgentNameChange: (v: string) => void; selectAgent: (a: AgentSuggestion) => void; collaborationStatus: "none" | "pending" | "accepted" | "rejected"; collaborationLoading: boolean; cancelCollaborationRequest: () => void; acceptedAgent: AgentSuggestion | null; photoSrc?: string | null;
+function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnly, SectionEditButton, careerEntries, setCareerEntries, SectionSaveButton, sport, agentSuggestions, showAgentSuggestions, setShowAgentSuggestions, selectedRegisteredAgent, handleAgentNameChange, selectAgent, collaborationStatus, collaborationLoading, cancelCollaborationRequest, acceptedAgent, photoSrc, teamNameSuggestions }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string; agentSuggestions: AgentSuggestion[]; showAgentSuggestions: boolean; setShowAgentSuggestions: (v: boolean) => void; selectedRegisteredAgent: AgentSuggestion | null; handleAgentNameChange: (v: string) => void; selectAgent: (a: AgentSuggestion) => void; collaborationStatus: "none" | "pending" | "accepted" | "rejected"; collaborationLoading: boolean; cancelCollaborationRequest: () => void; acceptedAgent: AgentSuggestion | null; photoSrc?: string | null; teamNameSuggestions: string[];
 }) {
   const { lang, t } = useLanguage();
 
@@ -2462,23 +2748,23 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
 
       {/* Physical + details */}
       <div className={`grid grid-cols-1 ${!readOnly || profile?.agent_name || profile?.agent_email || profile?.agent_phone ? "sm:grid-cols-2" : ""} gap-4`}>
-        <div className="bg-card border border-border rounded-xl p-5">
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.physicalData}</h3>
+            <h3 className="font-display text-lg text-gray-900 uppercase">{t.dashboard.profile.physicalData}</h3>
             <div className="flex items-center gap-1">
               {!readOnly && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi date fizice">
-                      <Info className="h-4 w-4" />
+                    <button className="group text-muted-foreground hover:text-gray-900 transition-colors" aria-label={t.dashboard.profile.physicalDataTipsLabel}>
+                      <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">💡 Sfaturi</p>
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                      <li>Completează datele fizice cu acuratețe</li>
-                      <li>Actualizează-le periodic pentru a reflecta progresul</li>
-                      <li>Scouterii verifică aceste date frecvent</li>
+                  <PopoverContent className="text-sm font-body bg-white border-gray-200 text-gray-900" side="top">
+                    <p className="font-semibold mb-1 text-gray-900">💡 {t.dashboard.profile.tips}</p>
+                    <ul className="list-disc list-inside space-y-1 text-gray-500 text-xs">
+                      <li>{t.dashboard.profile.physicalTip1}</li>
+                      <li>{t.dashboard.profile.physicalTip2}</li>
+                      <li>{t.dashboard.profile.physicalTip3}</li>
                     </ul>
                   </PopoverContent>
                 </Popover>
@@ -2488,13 +2774,13 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           </div>
           {editingPhysical ? (
             <div className="space-y-3">
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.heightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.height_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("height_cm", v ? parseInt(v) : null); }} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.weightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.weight_kg ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("weight_kg", v ? parseInt(v) : null); }} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.wingspanLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.wingspan_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("wingspan_cm", v ? parseInt(v) : null); }} className="text-white" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.heightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.height_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("height_cm", v ? parseInt(v) : null); }} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.weightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.weight_kg ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("weight_kg", v ? parseInt(v) : null); }} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.wingspanLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.wingspan_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("wingspan_cm", v ? parseInt(v) : null); }} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
               <div>
-                <Label className="text-xs text-muted-foreground">{(form.sport || profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</Label>
+                <Label className="text-xs text-gray-500">{(form.sport || profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</Label>
                 <Select value={form.preferred_foot || ""} onValueChange={(v) => updateForm("preferred_foot", v)}>
-                  <SelectTrigger className="text-white"><SelectValue placeholder={t.dashboard.profile.selectFoot} /></SelectTrigger>
+                  <SelectTrigger className="bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900"><SelectValue placeholder={t.dashboard.profile.selectFoot} /></SelectTrigger>
                   <SelectContent>
                     {(form.sport || profile?.sport) === "basketball" ? (
                       <>
@@ -2512,31 +2798,31 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="text-white" /></div>
-              <div><Label className="text-xs text-muted-foreground">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} className="text-white" /></div>
-              <div className="border-t border-border pt-3 mt-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Date genetice</p>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
+              <div className="border-t border-gray-200 pt-3 mt-1">
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">{t.dashboard.profile.geneticData}</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Înălțime tată (cm)</Label>
+                    <Label className="text-xs text-gray-500">{t.dashboard.profile.fatherHeight} (cm)</Label>
                     <Input
                       type="text" inputMode="numeric" pattern="[0-9]*"
                       value={(form as any).father_height_cm ?? ""}
                       placeholder="ex: 185"
                       onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }}
                       onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("father_height_cm", v ? parseInt(v) : null); }}
-                      className="text-white"
+                      className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Înălțime mamă (cm)</Label>
+                    <Label className="text-xs text-gray-500">{t.dashboard.profile.motherHeight} (cm)</Label>
                     <Input
                       type="text" inputMode="numeric" pattern="[0-9]*"
                       value={(form as any).mother_height_cm ?? ""}
                       placeholder="ex: 165"
                       onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }}
                       onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("mother_height_cm", v ? parseInt(v) : null); }}
-                      className="text-white"
+                      className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                     />
                   </div>
                 </div>
@@ -2544,14 +2830,14 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             </div>
           ) : (
             <div className="space-y-3 font-body text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.height}</span><span className="text-foreground font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.weight}</span><span className="text-foreground font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.wingspan}</span><span className="text-foreground font-semibold">{profile?.wingspan_cm ? `${(profile.wingspan_cm / 100).toFixed(2)}m` : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{(profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</span><span className="text-foreground font-semibold">{profile?.preferred_foot || "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.dashboard.profile.nationality}</span><span className="text-foreground font-semibold">{profile?.nationality ? getDisplayNationality(profile.nationality, lang) : "—"}</span></div>
-              <div className="border-t border-border pt-3 mt-1 space-y-3">
-                <div className="flex justify-between"><span className="text-muted-foreground">Înălțime mamă</span><span className="text-foreground font-semibold">{(profile as any)?.mother_height_cm ? `${((profile as any).mother_height_cm / 100).toFixed(2)}m` : "—"}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Înălțime tată</span><span className="text-foreground font-semibold">{(profile as any)?.father_height_cm ? `${((profile as any).father_height_cm / 100).toFixed(2)}m` : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.height}</span><span className="text-gray-900 font-semibold">{profile?.height_cm ? `${(profile.height_cm / 100).toFixed(2)}m` : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.weight}</span><span className="text-gray-900 font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.wingspan}</span><span className="text-gray-900 font-semibold">{profile?.wingspan_cm ? `${(profile.wingspan_cm / 100).toFixed(2)}m` : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{(profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</span><span className="text-gray-900 font-semibold">{translateFootHandValue(profile?.preferred_foot, (profile?.sport) === "basketball", t) || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.nationality}</span><span className="text-gray-900 font-semibold">{profile?.nationality ? getDisplayNationality(profile.nationality, lang) : "—"}</span></div>
+              <div className="border-t border-gray-200 pt-3 mt-1 space-y-3">
+                <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.motherHeight}</span><span className="text-gray-900 font-semibold">{(profile as any)?.mother_height_cm ? `${((profile as any).mother_height_cm / 100).toFixed(2)}m` : "—"}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.fatherHeight}</span><span className="text-gray-900 font-semibold">{(profile as any)?.father_height_cm ? `${((profile as any).father_height_cm / 100).toFixed(2)}m` : "—"}</span></div>
               </div>
             </div>
            )}
@@ -2559,23 +2845,23 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
         </div>
 
         {(!readOnly || profile?.agent_name || profile?.agent_email || profile?.agent_phone || acceptedAgent) && (
-        <div className="bg-card border border-border rounded-xl p-5">
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display text-lg text-foreground uppercase">{t.dashboard.profile.agentContact}</h3>
+            <h3 className="font-display text-lg text-gray-900 uppercase">{t.dashboard.profile.agentContact}</h3>
             <div className="flex items-center gap-1">
               {!readOnly && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi contact agent">
-                      <Info className="h-4 w-4" />
+                    <button className="group text-muted-foreground hover:text-gray-900 transition-colors" aria-label={t.dashboard.profile.agentTipsLabel}>
+                      <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="text-sm font-body" side="top">
-                    <p className="font-semibold mb-1">💡 Sfaturi</p>
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                      <li>Adaugă datele agentului pentru contactări rapide</li>
-                      <li>Verifică adresa de email să fie corectă</li>
-                      <li>Include un număr de telefon activ</li>
+                  <PopoverContent className="text-sm font-body bg-white border-gray-200 text-gray-900" side="top">
+                    <p className="font-semibold mb-1 text-gray-900">💡 {t.dashboard.profile.tips}</p>
+                    <ul className="list-disc list-inside space-y-1 text-gray-500 text-xs">
+                      <li>{t.dashboard.profile.agentTip1}</li>
+                      <li>{t.dashboard.profile.agentTip2}</li>
+                      <li>{t.dashboard.profile.agentTip3}</li>
                     </ul>
                   </PopoverContent>
                 </Popover>
@@ -2584,7 +2870,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             </div>
           </div>
           {editingAgent && (
-            <p className="text-xs text-muted-foreground mb-3">
+            <p className="text-xs text-gray-500 mb-3">
               {lang === "ro" ? "Selectează un agent înregistrat sau adaugă manual pentru a trimite o cerere de colaborare" : "Select a registered agent or add manually to send a collaboration request"}
             </p>
           )}
@@ -2592,18 +2878,18 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             <div className="space-y-3">
               {/* Pending collaboration request */}
               {collaborationStatus === "pending" && selectedRegisteredAgent && (
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {selectedRegisteredAgent.photo_url ? (
                         <img src={selectedRegisteredAgent.photo_url} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <span className="text-xs font-semibold text-muted-foreground">{selectedRegisteredAgent.first_name?.[0]}{selectedRegisteredAgent.last_name?.[0]}</span>
+                        <span className="text-xs font-semibold text-gray-500">{selectedRegisteredAgent.first_name?.[0]}{selectedRegisteredAgent.last_name?.[0]}</span>
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{selectedRegisteredAgent.first_name} {selectedRegisteredAgent.last_name}</p>
-                      <p className="text-xs text-yellow-500">{lang === "ro" ? "⏳ Cerere în așteptare..." : "⏳ Request pending..."}</p>
+                      <p className="text-sm font-medium text-gray-900">{selectedRegisteredAgent.first_name} {selectedRegisteredAgent.last_name}</p>
+                      <p className="text-xs text-yellow-700">{lang === "ro" ? "⏳ Cerere în așteptare..." : "⏳ Request pending..."}</p>
                     </div>
                     <Button
                       variant="ghost"
@@ -2621,35 +2907,35 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               {/* Search field - only show when no pending request */}
               {collaborationStatus !== "pending" && (
                 <div className="relative">
-                  <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentName}</Label>
+                  <Label className="text-xs text-gray-500">{t.dashboard.profile.agentName}</Label>
                   <Input
                     value={form.agent_name || ""}
                     onChange={(e) => handleAgentNameChange(e.target.value)}
                     onFocus={() => { if (agentSuggestions.length > 0) setShowAgentSuggestions(true); }}
                     onBlur={() => setTimeout(() => setShowAgentSuggestions(false), 200)}
-                    className="text-foreground"
+                    className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                     placeholder={lang === "ro" ? "Caută agent după nume..." : "Search agent by name..."}
                     autoComplete="off"
                   />
                   {showAgentSuggestions && agentSuggestions.length > 0 && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
                       {agentSuggestions.map((agent) => (
                         <button
                           key={agent.user_id}
                           type="button"
-                          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left transition-colors"
+                          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 text-left transition-colors"
                           onMouseDown={(e) => { e.preventDefault(); selectAgent(agent); }}
                         >
-                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                             {agent.photo_url ? (
                               <img src={agent.photo_url} alt="" className="h-full w-full object-cover" />
                             ) : (
-                              <span className="text-xs font-semibold text-muted-foreground">{agent.first_name?.[0]}{agent.last_name?.[0]}</span>
+                              <span className="text-xs font-semibold text-gray-500">{agent.first_name?.[0]}{agent.last_name?.[0]}</span>
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-foreground">{agent.first_name} {agent.last_name}</p>
-                            {agent.email && <p className="text-xs text-muted-foreground">{agent.email}</p>}
+                            <p className="text-sm font-medium text-gray-900">{agent.first_name} {agent.last_name}</p>
+                            {agent.email && <p className="text-xs text-gray-500">{agent.email}</p>}
                           </div>
                         </button>
                       ))}
@@ -2661,12 +2947,12 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               {/* Manual agent email - only when NOT selecting a registered agent */}
               {collaborationStatus !== "pending" && (
                 <div>
-                  <Label className="text-xs text-muted-foreground">{t.dashboard.profile.agentEmail}</Label>
+                  <Label className="text-xs text-gray-500">{t.dashboard.profile.agentEmail}</Label>
                   <Input
                     type="email"
                     value={form.agent_email || ""}
                     onChange={(e) => updateForm("agent_email", e.target.value)}
-                    className={`text-foreground ${form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    className={`bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900 ${form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     placeholder="agent@example.com"
                   />
                   {form.agent_email && !form.agent_email.includes("@") && (
@@ -2679,47 +2965,47 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             <div className="font-body text-sm space-y-2">
               {acceptedAgent ? (
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {acceptedAgent.photo_url ? (
                       <img src={acceptedAgent.photo_url} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-xs font-semibold text-muted-foreground">{acceptedAgent.first_name?.[0]}{acceptedAgent.last_name?.[0]}</span>
+                      <span className="text-xs font-semibold text-gray-500">{acceptedAgent.first_name?.[0]}{acceptedAgent.last_name?.[0]}</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     {!readOnly && profile?.agent_email ? (
                       <Popover>
                         <PopoverTrigger asChild>
-                          <button type="button" className="text-foreground font-semibold hover:underline text-left">
+                          <button type="button" className="text-gray-900 font-semibold hover:underline text-left">
                             {acceptedAgent.first_name} {acceptedAgent.last_name}
                           </button>
                         </PopoverTrigger>
-                        <PopoverContent align="start" className="w-auto p-3">
-                          <p className="text-xs text-muted-foreground mb-1">{lang === "ro" ? "Email agent" : "Agent email"}</p>
-                          <p className="text-sm text-foreground select-all">{profile.agent_email}</p>
+                        <PopoverContent align="start" className="w-auto p-3 bg-white border-gray-200 text-gray-900">
+                          <p className="text-xs text-gray-500 mb-1">{lang === "ro" ? "Email agent" : "Agent email"}</p>
+                          <p className="text-sm text-gray-900 select-all">{profile.agent_email}</p>
                         </PopoverContent>
                       </Popover>
                     ) : (
-                      <p className="text-foreground font-semibold">{acceptedAgent.first_name} {acceptedAgent.last_name}</p>
+                      <p className="text-gray-900 font-semibold">{acceptedAgent.first_name} {acceptedAgent.last_name}</p>
                     )}
                     <p className="text-xs text-primary">{lang === "ro" ? "✓ Colaborare activă" : "✓ Active collaboration"}</p>
                   </div>
                 </div>
               ) : profile?.agent_name ? (
                 <>
-                  <p className="text-foreground font-semibold">{profile.agent_name}</p>
-                  {!readOnly && profile.agent_email && <p className="text-muted-foreground">{profile.agent_email}</p>}
-                  {!readOnly && profile.agent_phone && <p className="text-muted-foreground">{profile.agent_phone}</p>}
+                  <p className="text-gray-900 font-semibold">{profile.agent_name}</p>
+                  {!readOnly && profile.agent_email && <p className="text-gray-500">{profile.agent_email}</p>}
+                  {!readOnly && profile.agent_phone && <p className="text-gray-500">{profile.agent_phone}</p>}
                 </>
               ) : collaborationStatus === "pending" && selectedRegisteredAgent ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-yellow-500">⏳</span>
-                  <span className="text-muted-foreground">
+                  <span className="text-yellow-600">⏳</span>
+                  <span className="text-gray-500">
                     {lang === "ro" ? `Cerere trimisă către ${selectedRegisteredAgent.first_name} ${selectedRegisteredAgent.last_name}` : `Request sent to ${selectedRegisteredAgent.first_name} ${selectedRegisteredAgent.last_name}`}
                   </span>
                 </div>
               ) : (
-                <p className="text-muted-foreground">{t.dashboard.profile.noAgent}</p>
+                <p className="text-gray-500">{t.dashboard.profile.noAgent}</p>
               )}
             </div>
           )}
@@ -2728,24 +3014,52 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
         )}
       </div>
 
+      {/* Decorative geometric shapes between the physical/agent row and career */}
+      <div className="relative h-0 overflow-visible">
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "-40px",
+            right: "0px",
+            width: "260px",
+            height: "260px",
+            background: "#a3e635",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "0px",
+            left: "-16px",
+            width: "200px",
+            height: "200px",
+            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+      </div>
+
       {/* About */}
-      <div className="bg-card border border-border rounded-xl p-5 sm:p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-5 sm:p-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h3 className="font-display text-2xl text-foreground">{t.dashboard.profile.about}</h3>
+            <h3 className="font-display text-2xl text-gray-900">{t.dashboard.profile.about}</h3>
             {!readOnly && (
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Sfaturi despre">
-                    <Info className="h-4 w-4" />
+                  <button className="group text-muted-foreground hover:text-gray-900 transition-colors" aria-label={t.dashboard.profile.aboutTipsLabel}>
+                    <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="text-sm font-body" side="top">
-                  <p className="font-semibold mb-1">💡 Sfaturi</p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-                    <li>Descrie parcursul tău sportiv pe scurt</li>
-                    <li>Menționează echipele anterioare și performanțele</li>
-                    <li>Încarcă documente justificative pentru credibilitate</li>
+                <PopoverContent className="text-sm font-body bg-white border-gray-200 text-gray-900" side="top">
+                  <p className="font-semibold mb-1 text-gray-900">💡 {t.dashboard.profile.tips}</p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-500 text-xs">
+                    <li>{t.dashboard.profile.aboutTip1}</li>
+                    <li>{t.dashboard.profile.aboutTip2}</li>
+                    <li>{t.dashboard.profile.aboutTip3}</li>
                   </ul>
                 </PopoverContent>
               </Popover>
@@ -2756,29 +3070,30 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
         {editingAbout ? (
           <div className="space-y-4">
             {careerEntries.map((entry, idx) => (
-              <div key={idx} className="bg-muted border border-border rounded-lg p-4 space-y-3 relative">
+              <div key={idx} className="bg-gray-100 border border-gray-200 rounded-lg p-4 space-y-3 relative">
                 <button
                   type="button"
                   onClick={() => setCareerEntries(careerEntries.filter((_, i) => i !== idx))}
-                  className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors"
+                  className="absolute top-2 right-2 text-gray-500 hover:text-destructive transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
                 <div>
-                  <Label className="text-xs text-foreground font-medium">Echipa*</Label>
-                  <Input
+                  <Label className="text-xs text-gray-900 font-medium">Echipa*</Label>
+                  <TeamNameInput
                     value={entry.team_name}
-                    onChange={(e) => {
+                    onChange={(val) => {
                       const updated = [...careerEntries];
-                      updated[idx] = { ...entry, team_name: e.target.value };
+                      updated[idx] = { ...entry, team_name: val };
                       setCareerEntries(updated);
                       // Sync to header if this entry is currently active
                       if (entry.currently_active) {
-                        updateForm("current_team", e.target.value);
+                        updateForm("current_team", val);
                       }
                     }}
+                    suggestions={teamNameSuggestions}
                     placeholder="Ex.: FC Barcelona"
-                    className="bg-background"
+                    className="bg-white border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                   />
                 </div>
                 {/* Date overlap validation */}
@@ -2798,7 +3113,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                 })()}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-foreground font-medium">Data început</Label>
+                    <Label className="text-xs text-gray-900 font-medium">Data început</Label>
                     <Input
                       type="date"
                       value={entry.start_date}
@@ -2807,11 +3122,11 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                         updated[idx] = { ...entry, start_date: e.target.value };
                         setCareerEntries(updated);
                       }}
-                      className="bg-background text-foreground [color-scheme:dark]"
+                      className="bg-white border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-foreground font-medium">Data sfârșit</Label>
+                    <Label className="text-xs text-gray-900 font-medium">Data sfârșit</Label>
                     <Input
                       type="date"
                       value={entry.end_date}
@@ -2822,7 +3137,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                         setCareerEntries(updated);
                       }}
                       disabled={entry.currently_active}
-                      className="bg-background text-foreground [color-scheme:dark]"
+                      className="bg-white border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                     />
                   </div>
                 </div>
@@ -2848,7 +3163,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       }
                     }}
                   />
-                  <Label htmlFor={`currently-active-${idx}`} className="text-xs text-foreground cursor-pointer">
+                  <Label htmlFor={`currently-active-${idx}`} className="text-xs text-gray-900 cursor-pointer">
                     Activez în acest moment
                   </Label>
                 </div>
@@ -2867,7 +3182,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               variant="outline"
               size="sm"
               onClick={() => setCareerEntries([...careerEntries, { team_name: "", start_date: "", end_date: "", currently_active: false, description: "" }])}
-              className="w-full text-foreground border-foreground/30 hover:text-foreground"
+              className="w-full bg-white text-gray-900 border-gray-300 hover:text-gray-900 hover:bg-gray-100"
             >
               <Plus className="h-4 w-4 mr-1" /> Adaugă echipă
             </Button>
@@ -2878,8 +3193,8 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             {careerEntries.length > 0 ? (
               careerEntries.map((entry, idx) => (
                 <div key={idx} className="border-l-2 border-primary/30 pl-3">
-                  <p className="font-semibold text-foreground text-sm">{entry.team_name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="font-semibold text-gray-900 text-sm">{entry.team_name}</p>
+                  <p className="text-xs text-gray-500">
                     {entry.start_date ? new Date(entry.start_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
                     {" — "}
                     {entry.currently_active ? "Prezent" : entry.end_date ? new Date(entry.end_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
@@ -2895,7 +3210,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                          const parts = [p.place, p.championship, p.category ? `${categoryLabel} ${p.category}` : null, p.year ? `Sezonul ${p.year}` : null].filter(Boolean);
                          return (
                            <div key={pIdx} className="mt-1">
-                             <p className="text-xs text-foreground/70">🏆 {parts.join(" • ")}</p>
+                             <p className="text-xs text-gray-500">🏆 {parts.join(" • ")}</p>
                              {p.document_url && (
                                <button type="button" onClick={() => window.open(p.document_url, '_blank')} className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5">
                                  <FileText className="h-3 w-3" /> Document atașat
@@ -2905,13 +3220,13 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                          );
                       });
                     } catch {
-                      return <p className="text-xs text-foreground/70 mt-1">{entry.description}</p>;
+                      return <p className="text-xs text-gray-500 mt-1">{entry.description}</p>;
                     }
                   })()}
                 </div>
               ))
             ) : (
-              <p className="italic text-muted-foreground text-sm">{t.dashboard.profile.noDescription}</p>
+              <p className="italic text-gray-500 text-sm">{t.dashboard.profile.noDescription}</p>
             )}
           </div>
         )}
@@ -3075,42 +3390,42 @@ function VideoSection({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="font-display text-lg text-foreground uppercase tracking-wide">{title}</h4>
+      <div className={`flex items-center justify-between ${videos.length === 1 ? "sm:max-w-[calc(50%-0.5rem)]" : ""}`}>
+        <h4 className="font-display text-lg text-gray-900 uppercase tracking-wide">{title}</h4>
         <SectionEditButton section={section} />
       </div>
       {editing && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <div>
-            <Label className="text-xs text-muted-foreground font-body mb-2 block">{t.dashboard.profile.addVideo}</Label>
+            <Label className="text-xs text-gray-500 font-body mb-2 block">{t.dashboard.profile.addVideo}</Label>
             <div className="flex gap-2">
               <Input
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
                 placeholder={t.dashboard.profile.videoPlaceholder}
-                className="flex-1 text-foreground"
+                className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                 onKeyDown={(e) => e.key === "Enter" && addVideoWithDescription()}
               />
-              <Button onClick={addVideoWithDescription} size="sm"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
+              <Button onClick={addVideoWithDescription} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
             </div>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground font-body mb-1 block">Descriere video (opțional)</Label>
+            <Label className="text-xs text-gray-500 font-body mb-1 block">Descriere video (opțional)</Label>
             <Textarea
               value={newVideoDescription}
               onChange={(e) => setNewVideoDescription(e.target.value)}
               placeholder="Ex: Liga 1 - Etapa 12, vs FC Steaua, gol din minutul 34..."
               rows={2}
-              className="text-foreground text-sm"
+              className="bg-gray-100 border-gray-300 text-gray-900 text-sm focus-visible:ring-1 focus-visible:ring-gray-900"
             />
           </div>
           <div className="flex items-center gap-2">
             <label className="flex-1">
-              <div className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
+              <div className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg p-3 cursor-pointer hover:border-primary/50 hover:bg-gray-100 transition-colors">
                 {uploading ? (
-                  <><Loader2 className="h-5 w-5 text-primary animate-spin" /><span className="text-sm text-muted-foreground font-body">Se încarcă...</span></>
+                  <><Loader2 className="h-5 w-5 text-primary animate-spin" /><span className="text-sm text-gray-500 font-body">Se încarcă...</span></>
                 ) : (
-                  <><Upload className="h-5 w-5 text-muted-foreground" /><span className="text-sm text-muted-foreground font-body">Încarcă video de pe calculator (MP4, WebM, MOV, max 100MB)</span></>
+                  <><Upload className="h-5 w-5 text-gray-500" /><span className="text-sm text-gray-500 font-body">Încarcă video de pe calculator (MP4, WebM, MOV, max 100MB)</span></>
                 )}
               </div>
               <input
@@ -3132,7 +3447,7 @@ function VideoSection({
             const isUploaded = isUploadedVideo(url);
             const description = descriptions[i] || "";
             return (
-              <div key={i} className="bg-card border border-border rounded-xl overflow-hidden group relative">
+              <div key={i} className="bg-white border border-gray-200 rounded-xl overflow-hidden group relative">
                 {youtubeId ? (
                   <div className="aspect-video">
                     <iframe
@@ -3153,24 +3468,24 @@ function VideoSection({
                     />
                   </div>
                 ) : (
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors">
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 hover:bg-gray-100 transition-colors">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <Youtube className="h-5 w-5 text-primary" />
                     </div>
-                    <span className="font-body text-sm text-foreground truncate">{url}</span>
+                    <span className="font-body text-sm text-gray-900 truncate">{url}</span>
                   </a>
                 )}
-                <div className="px-4 py-3 border-t border-border">
+                <div className="px-4 py-3 border-t border-gray-200">
                   {editing ? (
                     <Textarea
                       value={description}
                       onChange={(e) => updateDescription(i, e.target.value)}
                       placeholder="Descriere: competiție, adversar, stagiu meci..."
                       rows={2}
-                      className="text-foreground text-xs"
+                      className="bg-gray-100 border-gray-300 text-gray-900 text-xs focus-visible:ring-1 focus-visible:ring-gray-900"
                     />
                   ) : description ? (
-                    <p className="text-foreground/80 font-body text-sm leading-relaxed">{description}</p>
+                    <p className="text-gray-700 font-body text-sm leading-relaxed">{description}</p>
                   ) : null}
                 </div>
                 {editing && (
@@ -3186,9 +3501,9 @@ function VideoSection({
           })}
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-xl p-8 text-center">
-          <Youtube className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground font-body text-sm">{t.dashboard.profile.noVideos}</p>
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
+          <Youtube className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-500 font-body text-sm">{t.dashboard.profile.noVideos}</p>
         </div>
       )}
       {editing && <SectionSaveButton />}
@@ -3198,6 +3513,34 @@ function VideoSection({
 
 
 /* ======================== POSTS TAB ======================== */
+// Decorative geometric accents scattered between feed cards, alternating
+// sides and colors so they don't all pile up on the same edge.
+const feedDividerVariants = [
+  { side: "left" as const, background: "linear-gradient(135deg, #7c3aed, #a855f7)", clipPath: "polygon(0 0, 100% 0, 0 100%)" },
+  { side: "right" as const, background: "#a3e635", clipPath: "polygon(100% 0, 100% 100%, 0 100%)" },
+  { side: "left" as const, background: "linear-gradient(135deg, #f97316, #fb923c)", clipPath: "polygon(0 100%, 100% 100%, 0 0)" },
+];
+
+const FeedDivider = ({ index }: { index: number }) => {
+  const variant = feedDividerVariants[index % feedDividerVariants.length];
+  return (
+    <div className="relative h-0 overflow-visible">
+      <div
+        className="absolute -z-10 pointer-events-none"
+        style={{
+          top: "-20px",
+          [variant.side]: "-20px",
+          width: "120px",
+          height: "120px",
+          background: variant.background,
+          clipPath: variant.clipPath,
+          opacity: 0.9,
+        }}
+      />
+    </div>
+  );
+};
+
 function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boolean }) {
   const { lang } = useLanguage();
   const { toast } = useToast();
@@ -3276,32 +3619,81 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
   }
 
   return (
-    <div className="space-y-4 max-w-2xl mx-auto">
+    <div className="space-y-4">
       {!readOnly && currentUserId && (
         <NewPostComposer currentUserId={currentUserId} myPhoto={authorInfo?.photo} onPosted={fetchPosts} />
       )}
+
+      {/* Decorative geometric shape between composer and feed */}
+      <div className="relative h-0 overflow-visible">
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "-30px",
+            right: "-16px",
+            width: "180px",
+            height: "180px",
+            background: "linear-gradient(135deg, #f97316, #fb923c)",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+      </div>
+
       {posts.length === 0 ? (
         <p className="text-center text-muted-foreground py-12 font-body">
           {lang === "ro" ? "Nicio postare încă." : "No posts yet."}
         </p>
       ) : (
-        posts.map(post => (
-          <PostCard
-            key={post.id}
-            post={post}
-            author={{
-              user_id: userId,
-              name: authorInfo?.name || "",
-              photo: authorInfo?.photo || null,
-              role: authorInfo?.role || "player",
-              title: authorInfo?.title || "",
-            }}
-            currentUserId={currentUserId}
-            onDelete={handleDelete}
-            onViewProfile={handleViewProfile}
-          />
-        ))
+        <div className="space-y-4">
+          {posts.map((post, idx) => (
+            <Fragment key={post.id}>
+              <PostCard
+                post={post}
+                author={{
+                  user_id: userId,
+                  name: authorInfo?.name || "",
+                  photo: authorInfo?.photo || null,
+                  role: authorInfo?.role || "player",
+                  title: authorInfo?.title || "",
+                }}
+                currentUserId={currentUserId}
+                onDelete={handleDelete}
+                onViewProfile={handleViewProfile}
+              />
+              {idx < posts.length - 1 && <FeedDivider index={idx} />}
+            </Fragment>
+          ))}
+        </div>
       )}
+
+      {/* Decorative geometric shapes below the feed */}
+      <div className="relative h-0 overflow-visible">
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "-20px",
+            right: "0px",
+            width: "160px",
+            height: "160px",
+            background: "#a3e635",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "20px",
+            left: "-16px",
+            width: "130px",
+            height: "130px",
+            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+      </div>
     </div>
   );
 }

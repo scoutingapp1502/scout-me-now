@@ -12,6 +12,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
 import { calcPlayerCompletion, calcScoutCompletion, calcAgentCompletion, calcClubRepCompletion } from "@/lib/profileCompletion";
 import { getDisplayNationality } from "@/components/ui/nationality-input";
+import { translatePosition, translateFootHandValue } from "@/lib/positionTranslations";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 
@@ -45,8 +46,8 @@ const ROLE_COLOR: Record<RoleKey, string> = {
 };
 
 const ROLE_BADGE: Record<RoleKey, string> = {
-  player: "bg-blue-500/20 text-blue-300 border-blue-500/40",
-  cauta_jucator: "bg-teal-500/20 text-teal-300 border-teal-500/40",
+  player: "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-transparent",
+  cauta_jucator: "bg-teal-50 text-teal-700 border-teal-200",
 };
 
 interface Props {
@@ -54,7 +55,7 @@ interface Props {
 }
 
 const CommunitySection = ({ onNavigateToChat }: Props) => {
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const [items, setItems] = useState<CommunityCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<RoleKey>("player");
@@ -358,7 +359,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
           variant="ghost"
           size="sm"
           onClick={() => setSelected(null)}
-          className="mb-4 gap-2 text-muted-foreground hover:text-foreground font-body"
+          className="mb-4 gap-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 font-body"
         >
           <ArrowLeft className="h-4 w-4" />
           {tr.back}
@@ -378,18 +379,46 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
   ];
 
   return (
-    <div className="space-y-5">
-      <h1 className="font-display text-3xl text-foreground">{tr.title}</h1>
+    <div className="space-y-5 relative isolate">
+      <h1 className="font-display text-3xl text-gray-900">{tr.title}</h1>
+
+      {/* Decorative geometric shapes */}
+      <div className="relative h-0 overflow-visible">
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "-20px",
+            right: "40px",
+            width: "150px",
+            height: "150px",
+            background: "linear-gradient(135deg, #f97316, #fb923c)",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "40px",
+            left: "-30px",
+            width: "110px",
+            height: "110px",
+            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+      </div>
 
       {/* Search + Advanced filters toggle */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input
             placeholder={tr.searchPh}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 bg-card border-border text-foreground rounded-xl h-11 text-sm font-body"
+            className="pl-10 pr-4 bg-gray-100 border-0 text-gray-900 rounded-full h-11 text-sm font-body focus-visible:ring-1 focus-visible:ring-gray-900"
           />
         </div>
         <Button
@@ -397,14 +426,14 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
           onClick={() => setShowFilters(!showFilters)}
           className={`relative rounded-xl h-11 px-4 font-body text-sm gap-2 transition-all ${
             showFilters || activeFilterCount > 0
-              ? "border-primary bg-primary/5 text-primary hover:bg-primary/10"
-              : "border-border text-muted-foreground hover:text-foreground"
+              ? "border-orange-500 bg-orange-50 text-orange-600 hover:bg-orange-100"
+              : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-900"
           }`}
         >
           <SlidersHorizontal className="h-4 w-4" />
           {tr.advFilters}
           {activeFilterCount > 0 && (
-            <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+            <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white text-[10px] font-bold">
               {activeFilterCount}
             </span>
           )}
@@ -422,13 +451,13 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
               onClick={() => { setActiveTab(t.key); clearFilters(); }}
               className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-body transition-colors ${
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground hover:text-foreground border border-border"
+                  ? "bg-orange-500 text-white"
+                  : "bg-white text-gray-500 hover:text-gray-900 border border-gray-200"
               }`}
             >
               {t.label}
               <span className={`flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-bold ${
-                isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                isActive ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
               }`}>
                 {t.count}
               </span>
@@ -439,15 +468,15 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
 
       {/* Filter panel */}
       {showFilters && (
-        <div className="bg-card border border-border rounded-xl p-4 sm:p-5 space-y-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
             {/* ── PLAYER tab ───────────────────────────────────────── */}
             {activeTab === "player" && (<>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.sport}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.sport}</label>
                 <Select value={filterSport} onValueChange={(v) => { setFilterSport(v); setFilterPosition("all"); }}>
-                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
                     {uniqueSports.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
@@ -455,19 +484,19 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.positionOrSpec}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.positionOrSpec}</label>
                 <Select value={filterPosition} onValueChange={setFilterPosition}>
-                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
-                    {uniquePositions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    {uniquePositions.map(p => <SelectItem key={p} value={p}>{translatePosition(p, lang)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.nationality}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.nationality}</label>
                 <Select value={filterPlayerNationality} onValueChange={setFilterPlayerNationality}>
-                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
                     {uniquePlayerNationalities.map(n => <SelectItem key={n} value={n}>{getDisplayNationality(n, lang)}</SelectItem>)}
@@ -475,7 +504,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.minHeight}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.minHeight}</label>
                 <Input
                   type="text"
                   inputMode="numeric"
@@ -483,28 +512,28 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   value={filterHeight}
                   onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }}
                   onChange={(e) => setFilterHeight(e.target.value.replace(/\D/g, ""))}
-                  className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"
+                  className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.preferredFootLabel}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.preferredFootLabel}</label>
                 <Select value={filterPreferredFoot} onValueChange={setFilterPreferredFoot}>
-                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
                     {filterSport === "basketball"
-                      ? (<><SelectItem value="Dreapta">Dreapta</SelectItem><SelectItem value="Stânga">Stânga</SelectItem><SelectItem value="Ambele">Ambele</SelectItem></>)
-                      : (<><SelectItem value="Drept">Drept</SelectItem><SelectItem value="Stâng">Stâng</SelectItem><SelectItem value="Ambele">Ambele</SelectItem></>)
+                      ? (<><SelectItem value="Dreapta">{translateFootHandValue("Dreapta", true, t)}</SelectItem><SelectItem value="Stânga">{translateFootHandValue("Stânga", true, t)}</SelectItem><SelectItem value="Ambele">{translateFootHandValue("Ambele", true, t)}</SelectItem></>)
+                      : (<><SelectItem value="Drept">{translateFootHandValue("Drept", false, t)}</SelectItem><SelectItem value="Stâng">{translateFootHandValue("Stâng", false, t)}</SelectItem><SelectItem value="Ambele">{translateFootHandValue("Ambele", false, t)}</SelectItem></>)
                     }
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.birthDate}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.birthDate}</label>
                 <div className="flex gap-2">
                   <Popover open={dobFromOpen} onOpenChange={setDobFromOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm", !filterDobFrom && "text-muted-foreground")}>
+                      <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal rounded-lg h-10 bg-white border-gray-200 font-body text-sm", !filterDobFrom && "text-gray-500")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {filterDobFrom ? format(filterDobFrom, "dd/MM/yyyy") : tr.dobFrom}
                       </Button>
@@ -515,7 +544,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   </Popover>
                   <Popover open={dobToOpen} onOpenChange={setDobToOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal rounded-lg h-10 bg-background border-border font-body text-sm", !filterDobTo && "text-muted-foreground")}>
+                      <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal rounded-lg h-10 bg-white border-gray-200 font-body text-sm", !filterDobTo && "text-gray-500")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {filterDobTo ? format(filterDobTo, "dd/MM/yyyy") : tr.dobTo}
                       </Button>
@@ -531,9 +560,9 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
             {/* ── CAUTA_JUCATOR tab ───────────────────────────────────── */}
             {activeTab === "cauta_jucator" && (<>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.sportSpec}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.sportSpec}</label>
                 <Select value={filterSportSpec} onValueChange={setFilterSportSpec}>
-                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
                     {uniqueSportSpecs.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
@@ -541,9 +570,9 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.organization}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.organization}</label>
                 <Select value={filterOrganization} onValueChange={setFilterOrganization}>
-                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
                     {uniqueOrganizations.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
@@ -551,9 +580,9 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.activityCountry}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.activityCountry}</label>
                 <Select value={filterActivityCountry} onValueChange={setFilterActivityCountry}>
-                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
                     {uniqueActivityCountries.map(c => <SelectItem key={c} value={c}>{getDisplayNationality(c, lang)}</SelectItem>)}
@@ -561,9 +590,9 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wider">{tr.language}</label>
+                <label className="text-xs font-semibold text-gray-500 font-body uppercase tracking-wider">{tr.language}</label>
                 <Select value={filterLanguage} onValueChange={setFilterLanguage}>
-                  <SelectTrigger className="rounded-lg h-10 bg-background border-border font-body text-sm text-foreground"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
                     {uniqueLanguages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
@@ -575,7 +604,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
           </div>
           {activeFilterCount > 0 && (
             <div className="flex justify-end">
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground gap-1.5">
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500 hover:bg-gray-100 hover:text-gray-900 gap-1.5">
                 <X className="h-3.5 w-3.5" />
                 {tr.clear}
               </Button>
@@ -585,7 +614,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
       )}
 
       {/* Results count */}
-      <p className="text-xs text-muted-foreground font-body">
+      <p className="text-xs text-gray-500 font-body">
         {filtered.length} {tr.results}
       </p>
 
@@ -593,17 +622,17 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-56 rounded-2xl bg-muted animate-pulse" />
+            <div key={i} className="h-56 rounded-2xl bg-gray-100 animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12 font-body">{tr.none}</p>
+        <p className="text-center text-gray-500 py-12 font-body">{tr.none}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map(item => {
             const initials = `${item.first_name?.[0] ?? ""}${item.last_name?.[0] ?? ""}`.toUpperCase();
             const subtitle = item.role === "player"
-              ? [item.position, item.current_team].filter(Boolean).join(" · ")
+              ? [translatePosition(item.position, lang), item.current_team].filter(Boolean).join(" · ")
               : [item.title, item.organization].filter(Boolean).join(" · ");
             const tag = item.role === "player" ? item.current_team : item.organization;
             return (
@@ -617,7 +646,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                     }
                   }).catch((err) => console.error("Failed to track profile view:", err));
                 }}
-                className="bg-card border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 transition-colors flex flex-col"
+                className="bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:border-orange-300 transition-colors flex flex-col"
               >
                 <div className={`relative w-full h-48 ${ROLE_COLOR[item.role]} flex items-center justify-center overflow-hidden`}>
                   {item.photo_url ? (
@@ -627,18 +656,18 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   )}
                 </div>
                 <div className="p-4 space-y-2 flex-1 flex flex-col">
-                  <p className="font-display text-base text-foreground truncate">
+                  <p className="font-display text-base text-gray-900 truncate">
                     {item.first_name} {item.last_name}
                   </p>
                   {subtitle && (
-                    <p className="text-xs text-muted-foreground font-body truncate">{subtitle}</p>
+                    <p className="text-xs text-gray-500 font-body truncate">{subtitle}</p>
                   )}
                   <div className="flex items-center gap-2 flex-wrap mt-auto pt-2">
                     <span className={`text-[10px] font-body px-2 py-0.5 rounded border ${ROLE_BADGE[item.role]}`}>
                       {tr.roleLabel[item.role]}
                     </span>
                     {tag && (
-                      <span className="text-[10px] text-muted-foreground font-body bg-muted px-2 py-0.5 rounded truncate max-w-[120px]">
+                      <span className="text-[10px] text-gray-500 font-body bg-gray-100 px-2 py-0.5 rounded truncate max-w-[120px]">
                         {tag}
                       </span>
                     )}
@@ -649,6 +678,46 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
           })}
         </div>
       )}
+
+      {/* Decorative geometric shapes below the results */}
+      <div className="relative h-0 overflow-visible">
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "40px",
+            right: "80px",
+            width: "140px",
+            height: "140px",
+            background: "#a3e635",
+            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "100px",
+            left: "60px",
+            width: "120px",
+            height: "120px",
+            background: "linear-gradient(135deg, #f97316, #fb923c)",
+            clipPath: "polygon(0 100%, 100% 100%, 0 0)",
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute -z-10 pointer-events-none"
+          style={{
+            top: "260px",
+            right: "220px",
+            width: "110px",
+            height: "110px",
+            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            opacity: 0.9,
+          }}
+        />
+      </div>
     </div>
   );
 };

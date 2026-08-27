@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { translatePosition } from "@/lib/positionTranslations";
 import ScoutPlayerNoteDialog from "./ScoutPlayerNoteDialog";
 import ScoutPlayerReportDialog, { exportReportPDF, getReportPDFBlob } from "./ScoutPlayerReportDialog";
 import { useAccountLock } from "@/hooks/useAccountLock";
@@ -70,10 +71,10 @@ const PRIORITY_LABEL_EN: Record<string, string> = { low: "Low", medium: "Medium"
 const REC_LABEL_RO: Record<string, string> = { buy: "Cumpără", shortlist: "Listă scurtă", follow: "Urmărire", forget: "Renunță" };
 const REC_LABEL_EN: Record<string, string> = { buy: "Buy", shortlist: "Shortlist", follow: "Follow", forget: "Forget" };
 const REC_COLOR: Record<string, string> = {
-  buy:       "bg-green-500/15 text-green-400 border-green-500/30",
-  shortlist: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  follow:    "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  forget:    "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
+  buy:       "bg-green-100 text-green-700 border-green-300",
+  shortlist: "bg-amber-100 text-amber-700 border-amber-300",
+  follow:    "bg-blue-100 text-blue-700 border-blue-300",
+  forget:    "bg-gray-100 text-gray-600 border-gray-300",
 };
 
 /* ─── Multi-select filter (Popover + checkboxes) ─────────────────── */
@@ -98,11 +99,11 @@ function MultiSelectFilter({ label, options, selected, onChange }: {
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2 max-h-64 overflow-y-auto" align="start">
         {options.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-2">—</p>
+          <p className="text-xs text-gray-500 text-center py-2">—</p>
         ) : (
           <div className="space-y-0.5">
             {options.map(opt => (
-              <label key={opt.value} className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors text-sm font-body hover:bg-muted">
+              <label key={opt.value} className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors text-sm font-body hover:bg-gray-100">
                 <Checkbox checked={selected.includes(opt.value)} onCheckedChange={() => toggle(opt.value)} />
                 <span className="truncate">{opt.label}</span>
               </label>
@@ -115,13 +116,13 @@ function MultiSelectFilter({ label, options, selected, onChange }: {
 }
 
 function StarRow({ value, max = 10 }: { value: number | null; max?: number }) {
-  if (!value) return <span className="text-xs text-muted-foreground">—</span>;
+  if (!value) return <span className="text-xs text-gray-500">—</span>;
   return (
     <div className="flex items-center gap-0.5">
       {Array.from({ length: max }, (_, i) => (
-        <Star key={i} className={`h-3 w-3 ${i < value ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/20"}`} />
+        <Star key={i} className={`h-3 w-3 ${i < value ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`} />
       ))}
-      <span className="ml-1 text-xs text-muted-foreground">{value}/{max}</span>
+      <span className="ml-1 text-xs text-gray-500">{value}/{max}</span>
     </div>
   );
 }
@@ -137,27 +138,27 @@ export default function ScoutActionsSection({ scoutUserId, userRole }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-display text-foreground flex items-center gap-3">
-          <ClipboardList className="h-8 w-8 text-primary" />
+        <h1 className="text-3xl font-display text-gray-900 flex items-center gap-3">
+          <ClipboardList className="h-8 w-8 text-orange-500" />
           {ro ? "Acțiuni" : "Actions"}
         </h1>
-        <p className="text-sm text-muted-foreground font-body mt-1">
+        <p className="text-sm text-gray-500 font-body mt-1">
           {ro ? "Toate notițele și rapoartele tale despre jucători." : "All your notes and reports about players."}
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-border pb-0">
+      <div className="flex gap-2 border-b border-gray-200 pb-0">
         <button
           onClick={() => setTab("notes")}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-body border-b-2 transition-colors -mb-px ${tab === "notes" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-body border-b-2 transition-colors -mb-px ${tab === "notes" ? "border-orange-500 text-orange-500" : "border-transparent text-gray-500 hover:text-gray-900"}`}
         >
           <StickyNote className="h-4 w-4" />
           {ro ? "Notițe" : "Notes"}
         </button>
         <button
           onClick={() => setTab("reports")}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-body border-b-2 transition-colors -mb-px ${tab === "reports" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-body border-b-2 transition-colors -mb-px ${tab === "reports" ? "border-orange-500 text-orange-500" : "border-transparent text-gray-500 hover:text-gray-900"}`}
         >
           <FileBarChart className="h-4 w-4" />
           {ro ? "Rapoarte" : "Reports"}
@@ -278,13 +279,13 @@ function NotesTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: bo
     doc.save(`nota-${fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-orange-500" /></div>;
 
   return (
     <div className="space-y-4">
-      <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={ro ? "Caută după nume, observații sau meci…" : "Search by name, notes or match…"} className="pl-9" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -318,11 +319,11 @@ function NotesTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: bo
           />
         </div>
         <div className="flex items-center justify-between">
-          <div className="text-xs text-muted-foreground font-body">{filtered.length} {ro ? "notițe" : "notes"}</div>
+          <div className="text-xs text-gray-500 font-body">{filtered.length} {ro ? "notițe" : "notes"}</div>
           {activeFilterCount > 0 && (
             <button
               onClick={clearFilters}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-body transition-colors"
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 font-body transition-colors"
             >
               <X className="h-3 w-3" />
               {ro ? "Șterge filtrele" : "Clear filters"}
@@ -332,7 +333,7 @@ function NotesTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: bo
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground font-body">
+        <div className="text-center py-16 text-gray-500 font-body">
           {notes.length === 0
             ? (ro ? "Nu ai încă nicio notiță. Deschide profilul unui jucător pentru a adăuga una." : "No notes yet.")
             : (ro ? "Niciun rezultat pentru filtrele selectate." : "No results.")}
@@ -343,29 +344,29 @@ function NotesTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: bo
             const fullName = `${n.player?.first_name || ""} ${n.player?.last_name || ""}`.trim() || (ro ? "Jucător" : "Player");
             const initials = fullName.split(" ").map(p => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
             return (
-              <div key={n.id} className="bg-card border border-border rounded-lg p-4 hover:border-primary/40 transition-colors">
+              <div key={n.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 shrink-0 rounded-full bg-muted overflow-hidden flex items-center justify-center text-sm font-semibold text-muted-foreground border border-border">
+                  <div className="w-12 h-12 shrink-0 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center text-sm font-semibold text-gray-500 border border-gray-200">
                     {n.player?.photo_url ? <img src={n.player.photo_url} alt={fullName} className="w-full h-full object-cover" /> : initials}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="font-heading font-semibold text-foreground truncate">{fullName}</div>
-                        {[n.player?.sport, n.player?.position].filter(Boolean).join(" · ") && (
-                          <div className="text-xs text-muted-foreground font-body capitalize truncate">{[n.player?.sport, n.player?.position].filter(Boolean).join(" · ")}</div>
+                        <div className="font-heading font-semibold text-gray-900 truncate">{fullName}</div>
+                        {[n.player?.sport, translatePosition(n.player?.position, lang)].filter(Boolean).join(" · ") && (
+                          <div className="text-xs text-gray-500 font-body capitalize truncate">{[n.player?.sport, translatePosition(n.player?.position, lang)].filter(Boolean).join(" · ")}</div>
                         )}
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
-                        {[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-3.5 w-3.5 ${s <= n.personal_rating ? "text-primary fill-primary" : "text-muted-foreground/30"}`} />)}
+                        {[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-3.5 w-3.5 ${s <= n.personal_rating ? "text-orange-500 fill-orange-500" : "text-gray-300"}`} />)}
                       </div>
                     </div>
                     {n.label && <div className="mt-2"><Badge variant="outline" className="text-xs">{n.label}</Badge></div>}
                     {(n.match_watched || n.match_date) && (
-                      <div className="text-xs text-muted-foreground font-body mt-2">{n.match_watched}{n.match_watched && n.match_date ? " · " : ""}{n.match_date}</div>
+                      <div className="text-xs text-gray-500 font-body mt-2">{n.match_watched}{n.match_watched && n.match_date ? " · " : ""}{n.match_date}</div>
                     )}
-                    <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-border">
-                      <span className="text-[11px] text-muted-foreground font-body">{ro ? "Actualizat" : "Updated"}: {new Date(n.updated_at).toLocaleDateString(ro ? "ro-RO" : "en-US")}</span>
+                    <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-gray-200">
+                      <span className="text-[11px] text-gray-500 font-body">{ro ? "Actualizat" : "Updated"}: {new Date(n.updated_at).toLocaleDateString(ro ? "ro-RO" : "en-US")}</span>
                       <div className="flex gap-1.5">
                         <Button size="sm" variant="outline" onClick={() => handleExportSinglePDF(n)} title="Export PDF"><Download className="h-3.5 w-3.5" /></Button>
                         <Button size="sm" variant="outline" disabled={isLocked} onClick={() => setEditingPlayer(n)}><Pencil className="h-3.5 w-3.5 mr-1" />{ro ? "Editează" : "Edit"}</Button>
@@ -386,7 +387,7 @@ function NotesTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: bo
           scoutUserId={scoutUserId}
           playerUserId={editingPlayer.player_user_id}
           playerName={`${editingPlayer.player?.first_name || ""} ${editingPlayer.player?.last_name || ""}`.trim()}
-          playerSubtitle={[editingPlayer.player?.sport, editingPlayer.player?.position].filter(Boolean).join(" · ")}
+          playerSubtitle={[editingPlayer.player?.sport, translatePosition(editingPlayer.player?.position, lang)].filter(Boolean).join(" · ")}
           playerPhotoUrl={editingPlayer.player?.photo_url || null}
         />
       )}
@@ -522,13 +523,13 @@ function ReportsTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: 
     }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-orange-500" /></div>;
 
   return (
     <div className="space-y-4">
-      <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={ro ? "Caută după nume sau concluzie…" : "Search by name or summary…"} className="pl-9" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -569,11 +570,11 @@ function ReportsTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: 
           />
         </div>
         <div className="flex items-center justify-between">
-          <div className="text-xs text-muted-foreground font-body">{filtered.length} {ro ? "rapoarte" : "reports"}</div>
+          <div className="text-xs text-gray-500 font-body">{filtered.length} {ro ? "rapoarte" : "reports"}</div>
           {activeFilterCount > 0 && (
             <button
               onClick={clearFilters}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-body transition-colors"
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 font-body transition-colors"
             >
               <X className="h-3 w-3" />
               {ro ? "Șterge filtrele" : "Clear filters"}
@@ -583,7 +584,7 @@ function ReportsTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: 
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground font-body">
+        <div className="text-center py-16 text-gray-500 font-body">
           {reports.length === 0
             ? (ro ? "Nu ai încă niciun raport. Deschide profilul unui jucător pentru a adăuga unul." : "No reports yet.")
             : (ro ? "Niciun rezultat pentru filtrele selectate." : "No results.")}
@@ -594,23 +595,23 @@ function ReportsTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: 
             const fullName = `${r.player?.first_name || ""} ${r.player?.last_name || ""}`.trim() || (ro ? "Jucător" : "Player");
             const initials = fullName.split(" ").map(p => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
             return (
-              <div key={r.id} className="bg-card border border-border rounded-lg p-4 hover:border-primary/40 transition-colors">
+              <div key={r.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 shrink-0 rounded-full bg-muted overflow-hidden flex items-center justify-center text-sm font-semibold text-muted-foreground border border-border">
+                  <div className="w-12 h-12 shrink-0 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center text-sm font-semibold text-gray-500 border border-gray-200">
                     {r.player?.photo_url ? <img src={r.player.photo_url} alt={fullName} className="w-full h-full object-cover" /> : initials}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="font-heading font-semibold text-foreground truncate">{fullName}</div>
-                        {[r.player?.sport, r.player?.position].filter(Boolean).join(" · ") && (
-                          <div className="text-xs text-muted-foreground font-body capitalize truncate">{[r.player?.sport, r.player?.position].filter(Boolean).join(" · ")}</div>
+                        <div className="font-heading font-semibold text-gray-900 truncate">{fullName}</div>
+                        {[r.player?.sport, translatePosition(r.player?.position, lang)].filter(Boolean).join(" · ") && (
+                          <div className="text-xs text-gray-500 font-body capitalize truncate">{[r.player?.sport, translatePosition(r.player?.position, lang)].filter(Boolean).join(" · ")}</div>
                         )}
                       </div>
                       {r.overall_rating && (
                         <div className="shrink-0 text-right">
-                          <div className="text-sm font-semibold text-yellow-400 leading-tight">{r.overall_rating}/10</div>
-                          <div className="text-[10px] text-muted-foreground font-body leading-tight">{ro ? "Notă generală" : "Overall"}</div>
+                          <div className="text-sm font-semibold text-yellow-600 leading-tight">{r.overall_rating}/10</div>
+                          <div className="text-[10px] text-gray-500 font-body leading-tight">{ro ? "Notă generală" : "Overall"}</div>
                         </div>
                       )}
                     </div>
@@ -622,10 +623,10 @@ function ReportsTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: 
                         { label: ro ? "Fizic" : "Physical", value: r.physical_rating },
                         { label: ro ? "Mental" : "Mental", value: r.mental_rating },
                       ].filter(stat => stat.value).map(stat => (
-                        <div key={stat.label} className="flex-1 min-w-[4.5rem] rounded-md bg-muted/50 px-2 py-1.5 text-center">
-                          <div className="text-[10px] leading-tight text-muted-foreground font-body truncate">{stat.label}</div>
-                          <div className="text-sm font-semibold text-foreground font-body leading-tight">
-                            {stat.value}<span className="text-[10px] font-normal text-muted-foreground">/10</span>
+                        <div key={stat.label} className="flex-1 min-w-[4.5rem] rounded-md bg-gray-100 px-2 py-1.5 text-center">
+                          <div className="text-[10px] leading-tight text-gray-500 font-body truncate">{stat.label}</div>
+                          <div className="text-sm font-semibold text-gray-900 font-body leading-tight">
+                            {stat.value}<span className="text-[10px] font-normal text-gray-500">/10</span>
                           </div>
                         </div>
                       ))}
@@ -637,8 +638,8 @@ function ReportsTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: 
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-border">
-                      <span className="text-[11px] text-muted-foreground font-body">{ro ? "Actualizat" : "Updated"}: {new Date(r.updated_at).toLocaleDateString(ro ? "ro-RO" : "en-US")}</span>
+                    <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-gray-200">
+                      <span className="text-[11px] text-gray-500 font-body">{ro ? "Actualizat" : "Updated"}: {new Date(r.updated_at).toLocaleDateString(ro ? "ro-RO" : "en-US")}</span>
                       <div className="flex gap-1.5">
                         <Button size="sm" variant="outline" onClick={() => handleExportPDF(r)} title="Export PDF"><Download className="h-3.5 w-3.5" /></Button>
                         <Button
@@ -649,7 +650,7 @@ function ReportsTab({ scoutUserId, isLocked }: { scoutUserId: string; isLocked: 
                           {addingToProfileId === r.id ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : uploadedReportIds.has(r.id) ? (
-                            <Check className="h-3.5 w-3.5 text-primary" />
+                            <Check className="h-3.5 w-3.5 text-orange-500" />
                           ) : (
                             <Upload className="h-3.5 w-3.5" />
                           )}

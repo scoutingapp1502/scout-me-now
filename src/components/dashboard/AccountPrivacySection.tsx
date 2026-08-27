@@ -21,10 +21,10 @@ function RadioRow({
   value: AccountVisibility; current: AccountVisibility; labelRo: string; labelEn: string; lang: string; onSelect: (v: AccountVisibility) => void;
 }) {
   return (
-    <button onClick={() => onSelect(value)} className="w-full flex items-center justify-between py-3.5 hover:bg-muted/20 transition-colors text-left">
-      <span className="text-sm font-body text-foreground">{lang === "ro" ? labelRo : labelEn}</span>
-      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${current === value ? "border-foreground" : "border-muted-foreground/40"}`}>
-        {current === value && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
+    <button onClick={() => onSelect(value)} className="w-full flex items-center justify-between py-3.5 hover:bg-gray-50 transition-colors text-left">
+      <span className="text-sm font-body text-gray-900">{lang === "ro" ? labelRo : labelEn}</span>
+      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${current === value ? "border-gray-900" : "border-gray-300/40"}`}>
+        {current === value && <div className="w-2.5 h-2.5 rounded-full bg-gray-900" />}
       </div>
     </button>
   );
@@ -83,32 +83,32 @@ export default function AccountPrivacySection({ userId, onBack }: AccountPrivacy
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="relative flex items-center px-4 py-3 border-b border-border shrink-0">
-        <button onClick={onBack} className="p-1 text-muted-foreground hover:text-foreground">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-200 shrink-0">
+        <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-foreground whitespace-nowrap">
+        <h2 className="absolute left-1/2 -translate-x-1/2 font-heading text-sm tracking-wide text-gray-900 whitespace-nowrap">
           {lang === "ro" ? "Confidențialitate cont" : "Account privacy"}
         </h2>
         {saving && (
-          <div className="ml-auto w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="ml-auto w-4 h-4 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 space-y-0">
         {/* Visibility choice */}
-        <div className="py-5 border-b border-border">
-          <p className="text-sm font-semibold font-body text-foreground mb-1">
+        <div className="py-5 border-b border-gray-200">
+          <p className="text-sm font-semibold font-body text-gray-900 mb-1">
             {lang === "ro" ? "Cine îți poate vedea profilul și postările" : "Who can see your profile and posts"}
           </p>
-          <p className="text-xs text-muted-foreground font-body mb-3 leading-relaxed">
+          <p className="text-xs text-gray-500 font-body mb-3 leading-relaxed">
             {lang === "ro"
               ? "Alege cine îți poate vedea profilul și postările."
               : "Choose who can see your profile and posts."}
           </p>
-          <div className="divide-y divide-border/60">
+          <div className="divide-y divide-gray-200/60">
             <RadioRow
               value="scouts_only"
               current={config.visibility}
@@ -134,7 +134,7 @@ export default function AccountPrivacySection({ userId, onBack }: AccountPrivacy
               onSelect={(v) => save({ visibility: v })}
             />
           </div>
-          <p className="text-sm text-muted-foreground font-body leading-relaxed mt-3">
+          <p className="text-sm text-gray-500 font-body leading-relaxed mt-3">
             {lang === "ro" ? DESCRIPTIONS[config.visibility].ro : DESCRIPTIONS[config.visibility].en}
           </p>
         </div>

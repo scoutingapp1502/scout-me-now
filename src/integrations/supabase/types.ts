@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -105,6 +105,48 @@ export type Database = {
           photo_url?: string | null
           position?: string | null
           sport?: string | null
+        }
+        Relationships: []
+      }
+      announcements: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          document_urls: string[]
+          id: string
+          image_url: string | null
+          is_active: boolean
+          title: string
+          translations: Json
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          document_urls?: string[]
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          title: string
+          translations?: Json
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          document_urls?: string[]
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          title?: string
+          translations?: Json
+          updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
@@ -207,6 +249,36 @@ export type Database = {
           blocker_id?: string
           created_at?: string
           id?: string
+        }
+        Relationships: []
+      }
+      club_logos: {
+        Row: {
+          club_name: string
+          created_at: string
+          id: string
+          logo_url: string
+          sport: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          club_name: string
+          created_at?: string
+          id?: string
+          logo_url: string
+          sport?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          club_name?: string
+          created_at?: string
+          id?: string
+          logo_url?: string
+          sport?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -504,6 +576,10 @@ export type Database = {
       }
       group_messages: {
         Row: {
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          attachment_url: string | null
           content: string
           created_at: string
           group_id: string
@@ -512,6 +588,10 @@ export type Database = {
           shared_post_id: string | null
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           content: string
           created_at?: string
           group_id: string
@@ -520,6 +600,10 @@ export type Database = {
           shared_post_id?: string | null
         }
         Update: {
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           content?: string
           created_at?: string
           group_id?: string
@@ -620,6 +704,10 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          attachment_url: string | null
           content: string
           conversation_id: string
           created_at: string
@@ -629,6 +717,10 @@ export type Database = {
           shared_post_id: string | null
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           content: string
           conversation_id: string
           created_at?: string
@@ -638,6 +730,10 @@ export type Database = {
           shared_post_id?: string | null
         }
         Update: {
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           content?: string
           conversation_id?: string
           created_at?: string
@@ -733,6 +829,7 @@ export type Database = {
           height_cm: number | null
           id: string
           instagram_url: string | null
+          jersey_number: number | null
           jumping: number | null
           jumping_video: string | null
           last_name: string
@@ -794,6 +891,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           instagram_url?: string | null
+          jersey_number?: number | null
           jumping?: number | null
           jumping_video?: string | null
           last_name?: string
@@ -855,6 +953,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           instagram_url?: string | null
+          jersey_number?: number | null
           jumping?: number | null
           jumping_video?: string | null
           last_name?: string
@@ -1214,6 +1313,7 @@ export type Database = {
           created_at: string
           id: string
           post_id: string
+          post_source: string
           user_id: string
         }
         Insert: {
@@ -1221,6 +1321,7 @@ export type Database = {
           created_at?: string
           id?: string
           post_id: string
+          post_source?: string
           user_id: string
         }
         Update: {
@@ -1228,6 +1329,7 @@ export type Database = {
           created_at?: string
           id?: string
           post_id?: string
+          post_source?: string
           user_id?: string
         }
         Relationships: [
@@ -1236,13 +1338,6 @@ export type Database = {
             columns: ["collection_id"]
             isOneToOne: false
             referencedRelation: "collections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "saved_posts_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
@@ -1471,29 +1566,35 @@ export type Database = {
       }
       scout_posts: {
         Row: {
+          comments_disabled: boolean
           content: string
           created_at: string
           deleted_at: string | null
           id: string
           image_url: string | null
+          is_archived: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
+          comments_disabled?: boolean
           content: string
           created_at?: string
           deleted_at?: string | null
           id?: string
           image_url?: string | null
+          is_archived?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
+          comments_disabled?: boolean
           content?: string
           created_at?: string
           deleted_at?: string | null
           id?: string
           image_url?: string | null
+          is_archived?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -2022,6 +2123,7 @@ export type Database = {
       can_view_profile: { Args: { _profile_user_id: string }; Returns: boolean }
       censor_profanity: { Args: { input_text: string }; Returns: string }
       current_week_start: { Args: never; Returns: string }
+      delete_my_account: { Args: never; Returns: undefined }
       get_approved_verification_ids: {
         Args: { _user_ids: string[] }
         Returns: {
@@ -2092,9 +2194,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      have_i_restricted: { Args: { _other_user_id: string }; Returns: boolean }
       increment_session_duration: {
         Args: { p_date: string; p_seconds: number; p_user_id: string }
         Returns: number
+      }
+      is_blocked_between: { Args: { _a: string; _b: string }; Returns: boolean }
+      is_conversation_participant: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
       }
       is_group_member: { Args: { p_group_id: string }; Returns: boolean }
       is_verification_approved: { Args: { _user_id: string }; Returns: boolean }
@@ -2121,6 +2229,10 @@ export type Database = {
         Args: { _follow_id: string }
         Returns: undefined
       }
+      reply_to_story: {
+        Args: { _content: string; _story_owner_id: string }
+        Returns: string
+      }
       request_follow: { Args: { _following_id: string }; Returns: string }
       search_agents: {
         Args: { search_term: string }
@@ -2137,6 +2249,14 @@ export type Database = {
           _agent_user_id: string
           _initiated_by: string
           _player_user_id: string
+        }
+        Returns: string
+      }
+      share_story_to_conversation: {
+        Args: {
+          _content: string
+          _recipient_id: string
+          _story_owner_id: string
         }
         Returns: string
       }
@@ -2306,3 +2426,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.116.0 (currently installed v2.115.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

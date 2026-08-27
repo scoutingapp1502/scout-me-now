@@ -2,17 +2,21 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning } from "lucide-react";
+import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone } from "lucide-react";
 import AdminVideoReview from "@/pages/AdminVideoReview";
 import AdminScoutVerification from "@/pages/AdminScoutVerification";
 import AdminTestVideos from "@/pages/AdminTestVideos";
 import AdminSupportTickets from "@/pages/AdminSupportTickets";
+import AdminClubLogos from "@/pages/AdminClubLogos";
+import AdminAnnouncements from "@/pages/AdminAnnouncements";
 import { Loader2 } from "lucide-react";
 
 const adminSections = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
   { id: "video-review", label: "Verificare Videouri", icon: Video },
   { id: "test-videos", label: "Video-uri Exemplu Teste", icon: Film },
+  { id: "club-logos", label: "Logo-uri Cluburi", icon: Image },
+  { id: "announcements", label: "Știri și Anunțuri", icon: Megaphone },
   { id: "scout-verification", label: "Verificare Documente Înregistrate", icon: UserCheck },
   { id: "support-tickets", label: "Rapoarte Utilizatori", icon: MessageSquareWarning },
 ];
@@ -23,6 +27,7 @@ export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("video-review");
+  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const check = async () => {
@@ -46,6 +51,37 @@ export default function AdminDashboard() {
     check();
   }, [navigate, toast]);
 
+  const fetchPendingCounts = async () => {
+    const [videos, docs, tickets] = await Promise.all([
+      supabase.from("video_submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("scout_verification_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      (supabase as any).from("support_tickets").select("*", { count: "exact", head: true }).neq("status", "resolved"),
+    ]);
+    setPendingCounts({
+      "video-review": videos.count || 0,
+      "scout-verification": docs.count || 0,
+      "support-tickets": tickets.count || 0,
+    });
+  };
+
+  // Refetch whenever leaving a section so badges update after reviewing
+  // items, plus realtime subscriptions so new submissions show up live.
+  useEffect(() => {
+    if (!isAdmin) return;
+    fetchPendingCounts();
+  }, [isAdmin, activeSection]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const channel = supabase
+      .channel("admin-pending-counts")
+      .on("postgres_changes", { event: "*", schema: "public", table: "video_submissions" }, fetchPendingCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "scout_verification_requests" }, fetchPendingCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, fetchPendingCounts)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isAdmin]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -53,49 +89,55 @@ export default function AdminDashboard() {
 
   if (loading || !isAdmin) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-gray-200 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-background dark overflow-hidden">
+    <div className="flex h-screen bg-gray-200 overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col">
-        <div className="p-6 border-b border-sidebar-border">
+      <aside className="w-64 min-h-screen bg-white border-r border-gray-200 flex flex-col">
+        <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <span className="font-display text-2xl text-primary">ADMIN</span>
+            <Shield className="h-5 w-5 text-orange-500" />
+            <span className="font-display text-2xl text-orange-500">ADMIN</span>
           </div>
-          <p className="text-xs text-sidebar-foreground/60 font-body mt-1">SportRise Admin Panel</p>
+          <p className="text-xs text-gray-500 font-body mt-1">SportRise Admin Panel</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
           {adminSections.map((section) => {
             const Icon = section.icon;
             const isActive = activeSection === section.id;
+            const badgeCount = pendingCounts[section.id] || 0;
             return (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all relative ${
                   isActive
-                    ? "bg-primary text-primary-foreground shadow-lg"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    ? "bg-orange-500 text-white shadow-lg"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
-                <Icon className="h-5 w-5" />
-                {section.label}
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className="text-left">{section.label}</span>
+                {badgeCount > 0 && (
+                  <span className="ml-auto w-5 h-5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center shrink-0">
+                    <span className="text-[10px] text-white font-bold">{badgeCount > 99 ? "99+" : badgeCount}</span>
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/60 hover:text-destructive hover:bg-sidebar-accent font-body text-sm transition-all"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:text-destructive hover:bg-gray-100 font-body text-sm transition-all"
           >
             <LogOut className="h-5 w-5" />
             Deconectare
@@ -104,11 +146,11 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-gray-200">
         {activeSection === "overview" && (
           <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-2xl font-heading font-bold mb-4">Dashboard Admin</h1>
-            <p className="text-muted-foreground">Bine ai venit în panoul de administrare SportRise.</p>
+            <h1 className="text-2xl font-heading font-bold mb-4 text-gray-900">Dashboard Admin</h1>
+            <p className="text-gray-500">Bine ai venit în panoul de administrare SportRise.</p>
           </div>
         )}
         {activeSection === "video-review" && (
@@ -116,6 +158,12 @@ export default function AdminDashboard() {
         )}
         {activeSection === "test-videos" && (
           <AdminTestVideos embedded />
+        )}
+        {activeSection === "club-logos" && (
+          <AdminClubLogos embedded />
+        )}
+        {activeSection === "announcements" && (
+          <AdminAnnouncements embedded />
         )}
         {activeSection === "scout-verification" && (
           <AdminScoutVerification />

@@ -174,15 +174,15 @@ export default function ScoutPlayerNoteDialog({
           <DialogTitle className="sr-only">{ro ? "Notiță jucător" : "Player note"}</DialogTitle>
           <div className="flex items-center justify-between gap-3 pr-8">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-muted overflow-hidden flex items-center justify-center text-sm font-semibold text-muted-foreground border border-border">
+              <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center text-sm font-semibold text-gray-500 border border-gray-200">
                 {playerPhotoUrl ? <img src={playerPhotoUrl} alt={playerName} className="w-full h-full object-cover" /> : initials}
               </div>
               <div className="text-left">
-                <div className="font-heading font-semibold text-base text-foreground leading-tight">{playerName}</div>
-                {playerSubtitle && <div className="text-xs text-muted-foreground font-body">{playerSubtitle}</div>}
+                <div className="font-heading font-semibold text-base text-gray-900 leading-tight">{playerName}</div>
+                {playerSubtitle && <div className="text-xs text-gray-500 font-body">{playerSubtitle}</div>}
               </div>
             </div>
-            <Badge variant="outline" className="text-xs font-body">
+            <Badge variant="outline" className="text-xs font-body bg-purple-100 border-purple-200 text-purple-700">
               {ro ? "Notiță privată" : "Private note"}
             </Badge>
           </div>
@@ -190,13 +190,13 @@ export default function ScoutPlayerNoteDialog({
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
           </div>
         ) : (
           <div className="space-y-5 pt-2">
             {/* ETICHETĂ */}
             <div>
-              <Label className="text-xs font-body text-muted-foreground tracking-wider">{ro ? "ETICHETĂ" : "LABEL"}</Label>
+              <Label className="text-xs font-body text-gray-500 tracking-wider">{ro ? "ETICHETĂ" : "LABEL"}</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {allLabels.map(l => {
                   const isCustom = customLabels.includes(l);
@@ -206,7 +206,7 @@ export default function ScoutPlayerNoteDialog({
                       key={l}
                       type="button"
                       onClick={() => { setLabel(active ? null : l); markDirty(); }}
-                      className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-body transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80"}`}
+                      className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-body transition-colors ${active ? "bg-orange-500 text-white border-orange-500" : "bg-gray-100 text-gray-900 border-gray-200 hover:bg-gray-200"}`}
                     >
                       {l}
                       {isCustom && (
@@ -247,6 +247,7 @@ export default function ScoutPlayerNoteDialog({
                     if (showLabelInput) addCustomLabel();
                     else setShowLabelInput(true);
                   }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white hover:text-white border-purple-600"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -255,7 +256,7 @@ export default function ScoutPlayerNoteDialog({
 
             {/* RATING PERSONAL */}
             <div>
-              <Label className="text-xs font-body text-muted-foreground tracking-wider">{ro ? "RATING PERSONAL" : "PERSONAL RATING"}</Label>
+              <Label className="text-xs font-body text-gray-500 tracking-wider">{ro ? "RATING PERSONAL" : "PERSONAL RATING"}</Label>
               <div className="flex items-center gap-1 mt-2">
                 {[1, 2, 3, 4, 5].map(n => (
                   <button
@@ -265,7 +266,7 @@ export default function ScoutPlayerNoteDialog({
                     className="p-1"
                     aria-label={`rating ${n}`}
                   >
-                    <Star className={`h-6 w-6 transition-colors ${n <= rating ? "text-primary fill-primary" : "text-muted-foreground"}`} />
+                    <Star className={`h-6 w-6 transition-colors ${n <= rating ? "text-orange-500 fill-orange-500" : "text-gray-300"}`} />
                   </button>
                 ))}
               </div>
@@ -273,7 +274,7 @@ export default function ScoutPlayerNoteDialog({
 
             {/* CALITĂȚI OBSERVATE */}
             <div>
-              <Label className="text-xs font-body text-muted-foreground tracking-wider">{ro ? "CALITĂȚI OBSERVATE" : "OBSERVED QUALITIES"}</Label>
+              <Label className="text-xs font-body text-gray-500 tracking-wider">{ro ? "CALITĂȚI OBSERVATE" : "OBSERVED QUALITIES"}</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {allQualities.map(q => {
                   const isCustom = customQualities.includes(q);
@@ -283,7 +284,7 @@ export default function ScoutPlayerNoteDialog({
                       key={q}
                       type="button"
                       onClick={() => toggleQuality(q)}
-                      className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-body transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80"}`}
+                      className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-body transition-colors ${active ? "bg-orange-500 text-white border-orange-500" : "bg-gray-100 text-gray-900 border-gray-200 hover:bg-gray-200"}`}
                     >
                       {q}
                       {isCustom && (
@@ -324,6 +325,7 @@ export default function ScoutPlayerNoteDialog({
                     if (showQualityInput) addCustomQuality();
                     else setShowQualityInput(true);
                   }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white hover:text-white border-purple-600"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -333,7 +335,7 @@ export default function ScoutPlayerNoteDialog({
             {/* MECI / DATA */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs font-body text-muted-foreground tracking-wider">{ro ? "MECI VIZIONAT" : "MATCH WATCHED"}</Label>
+                <Label className="text-xs font-body text-gray-500 tracking-wider">{ro ? "MECI VIZIONAT" : "MATCH WATCHED"}</Label>
                 <Input
                   value={matchWatched}
                   onChange={(e) => { setMatchWatched(e.target.value); markDirty(); }}
@@ -342,7 +344,7 @@ export default function ScoutPlayerNoteDialog({
                 />
               </div>
               <div>
-                <Label className="text-xs font-body text-muted-foreground tracking-wider">{ro ? "DATA VIZIONĂRII" : "WATCH DATE"}</Label>
+                <Label className="text-xs font-body text-gray-500 tracking-wider">{ro ? "DATA VIZIONĂRII" : "WATCH DATE"}</Label>
                 <Input
                   type="date"
                   value={matchDate}
@@ -354,7 +356,7 @@ export default function ScoutPlayerNoteDialog({
 
             {/* OBSERVAȚII */}
             <div>
-              <Label className="text-xs font-body text-muted-foreground tracking-wider">{ro ? "OBSERVAȚII LIBERE" : "FREE OBSERVATIONS"}</Label>
+              <Label className="text-xs font-body text-gray-500 tracking-wider">{ro ? "OBSERVAȚII LIBERE" : "FREE OBSERVATIONS"}</Label>
               <Textarea
                 value={observations}
                 onChange={(e) => { setObservations(e.target.value); markDirty(); }}
@@ -366,7 +368,7 @@ export default function ScoutPlayerNoteDialog({
 
             {/* PRIORITATE */}
             <div>
-              <Label className="text-xs font-body text-muted-foreground tracking-wider">{ro ? "PRIORITATE URMĂRIRE" : "TRACKING PRIORITY"}</Label>
+              <Label className="text-xs font-body text-gray-500 tracking-wider">{ro ? "PRIORITATE URMĂRIRE" : "TRACKING PRIORITY"}</Label>
               <div className="grid grid-cols-3 gap-2 mt-2">
                 {priorities.map(p => {
                   const active = priority === p.key;
@@ -375,7 +377,7 @@ export default function ScoutPlayerNoteDialog({
                       key={p.key}
                       type="button"
                       onClick={() => { setPriority(active ? null : p.key); markDirty(); }}
-                      className={`px-3 py-2 rounded-md border text-sm font-body transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80"}`}
+                      className={`px-3 py-2 rounded-md border text-sm font-body transition-colors ${active ? "bg-orange-500 text-white border-orange-500" : "bg-gray-100 text-gray-900 border-gray-200 hover:bg-gray-200"}`}
                     >
                       {p.label}
                     </button>
@@ -385,15 +387,15 @@ export default function ScoutPlayerNoteDialog({
             </div>
 
             {/* FOOTER */}
-            <div className="flex items-center justify-between pt-3 border-t border-border">
-              <span className="text-xs text-muted-foreground font-body">
+            <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+              <span className="text-xs text-gray-500 font-body">
                 {dirty ? (ro ? "Nesalvat" : "Unsaved") : (ro ? "Salvat" : "Saved")}
               </span>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
                   {ro ? "Anulează" : "Cancel"}
                 </Button>
-                <Button type="button" onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                <Button type="button" onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : (ro ? "Salvează notița" : "Save note")}
                 </Button>
               </div>

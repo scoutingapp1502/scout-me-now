@@ -80,8 +80,8 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
 
   if (checkingAuth || !isAdmin) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Se verifică permisiunile...</p>
+      <div className="min-h-screen bg-gray-200 flex items-center justify-center">
+        <p className="text-gray-500">Se verifică permisiunile...</p>
       </div>
     );
   }
@@ -128,18 +128,18 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
   const statusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <span className="flex items-center gap-1 text-yellow-400 text-xs"><Clock className="h-3 w-3" /> În așteptare</span>;
+        return <span className="flex items-center gap-1 text-yellow-600 text-xs"><Clock className="h-3 w-3" /> În așteptare</span>;
       case "verified":
-        return <span className="flex items-center gap-1 text-green-400 text-xs"><CheckCircle className="h-3 w-3" /> Verificat</span>;
+        return <span className="flex items-center gap-1 text-green-600 text-xs"><CheckCircle className="h-3 w-3" /> Verificat</span>;
       case "rejected":
-        return <span className="flex items-center gap-1 text-red-400 text-xs"><XCircle className="h-3 w-3" /> Respins</span>;
+        return <span className="flex items-center gap-1 text-red-500 text-xs"><XCircle className="h-3 w-3" /> Respins</span>;
       default:
         return null;
     }
   };
 
   return (
-    <div className={embedded ? "text-foreground" : "min-h-screen bg-background text-foreground"}>
+    <div className={embedded ? "text-gray-900" : "min-h-screen bg-gray-200 text-gray-900"}>
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
         {!embedded && (
           <div className="flex items-center gap-3 mb-6">
@@ -155,37 +155,45 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
 
         {/* Filters */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          {(["pending", "verified", "rejected", "all"] as const).map((f) => (
-            <Button
-              key={f}
-              variant={filter === f ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter(f)}
-            >
-              {f === "pending" ? "În așteptare" : f === "verified" ? "Verificate" : f === "rejected" ? "Respinse" : "Toate"}
-              {f === "pending" && ` (${submissions.filter((s) => s.status === "pending").length})`}
-            </Button>
-          ))}
+          {(["pending", "verified", "rejected", "all"] as const).map((f) => {
+            const count = f === "pending" ? submissions.filter((s) => s.status === "pending").length : 0;
+            return (
+              <Button
+                key={f}
+                variant={filter === f ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter(f)}
+                className="gap-2"
+              >
+                {f === "pending" ? "În așteptare" : f === "verified" ? "Verificate" : f === "rejected" ? "Respinse" : "Toate"}
+                {count > 0 && (
+                  <span className="min-w-5 h-5 px-1 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center shrink-0">
+                    <span className="text-[10px] text-white font-bold">{count > 99 ? "99+" : count}</span>
+                  </span>
+                )}
+              </Button>
+            );
+          })}
         </div>
 
         {loading ? (
-          <p className="text-muted-foreground">Se încarcă...</p>
+          <p className="text-gray-500">Se încarcă...</p>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-12 text-gray-500">
             <Video className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>Niciun video de afișat.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {filtered.map((sub) => (
-              <div key={sub.id} className="border border-border rounded-lg p-4 bg-card">
+              <div key={sub.id} className="border border-gray-200 rounded-lg p-4 bg-white">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-sm">{sub.player_name}</span>
                       {statusBadge(sub.status)}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-500">
                       {testLabelMap[sub.test_key] || sub.test_key} • {new Date(sub.created_at).toLocaleDateString("ro-RO")}
                     </p>
                     {sub.grade !== null && (
@@ -199,14 +207,14 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                       </p>
                     )}
                     {sub.reviewer_notes && (
-                      <p className="text-xs text-muted-foreground mt-1">Note: {sub.reviewer_notes}</p>
+                      <p className="text-xs text-gray-500 mt-1">Note: {sub.reviewer_notes}</p>
                     )}
                   </div>
                   <a
                     href={sub.video_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary text-xs underline whitespace-nowrap"
+                    className="text-orange-500 text-xs underline whitespace-nowrap"
                   >
                     Vezi video →
                   </a>
@@ -221,8 +229,8 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                   />
                 )}
                 {sub.video_url && (sub.video_url.includes("youtube") || sub.video_url.includes("youtu.be")) && (
-                  <div className="mt-3 text-xs text-muted-foreground">
-                    <a href={sub.video_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                  <div className="mt-3 text-xs text-gray-500">
+                    <a href={sub.video_url} target="_blank" rel="noopener noreferrer" className="text-orange-500 underline">
                       Deschide pe YouTube →
                     </a>
                   </div>
@@ -232,9 +240,9 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                 {sub.status === "pending" && (
                   <>
                     {reviewingId === sub.id ? (
-                      <div className="mt-4 space-y-3 border-t border-border pt-3">
+                      <div className="mt-4 space-y-3 border-t border-gray-200 pt-3">
                         <div>
-                          <label className="text-xs text-muted-foreground">
+                          <label className="text-xs text-gray-500">
                             {athleticTestUnits[sub.test_key]?.label || "Nota (1-10)"}
                           </label>
                           <Input
@@ -249,9 +257,9 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground">
-                            Note / Observații <span className="text-red-400">*</span>
-                            <span className="ml-1 text-muted-foreground/60">(obligatoriu la respingere)</span>
+                          <label className="text-xs text-gray-500">
+                            Note / Observații <span className="text-red-500">*</span>
+                            <span className="ml-1 text-gray-400">(obligatoriu la respingere)</span>
                           </label>
                           <Textarea
                             value={notes}
