@@ -142,6 +142,10 @@ interface PersonalProfileProps {
   onNavigateToChat?: (userId: string) => void;
 }
 
+const LOCALE_BY_LANG: Record<string, string> = {
+  ro: "ro-RO", en: "en-US", de: "de-DE", fr: "fr-FR", es: "es-ES", it: "it-IT",
+};
+
 const positionsBySport: Record<string, string[]> = {
   football: [
     "Portar", "Fundaș Central", "Fundaș Dreapta", "Fundaș Stânga",
@@ -2277,6 +2281,8 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
   documents: string[]; onAdd: (url: string) => void; onRemove: (index: number) => void; editing: boolean; label: string;
 }) {
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const tp = t.dashboard.palmares;
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2329,11 +2335,11 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
 
   return (
     <div className="mt-3">
-      <p className="text-xs text-foreground font-medium font-body mb-2">{label}</p>
+      <p className="text-xs text-gray-900 font-medium font-body mb-2">{label}</p>
       {documents.length > 0 && (
         <div className="space-y-2 mb-2">
           {documents.map((url, i) => (
-            <div key={i} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+            <div key={i} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
               <FileText className="h-4 w-4 text-primary shrink-0" />
               <button
                 type="button"
@@ -2347,7 +2353,7 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
                     window.open(url, '_blank');
                   }
                 }}
-                className="text-sm text-foreground font-body hover:text-primary truncate flex-1 text-left"
+                className="text-sm text-gray-900 font-body hover:text-primary truncate flex-1 text-left"
               >
                 {getFileName(url)}
               </button>
@@ -2362,11 +2368,11 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
       )}
       {editing && (
         <label className="block">
-          <div className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
+          <div className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg p-3 cursor-pointer hover:border-primary/50 hover:bg-gray-100 transition-colors">
             {uploading ? (
-              <><Loader2 className="h-4 w-4 text-primary animate-spin" /><span className="text-sm text-muted-foreground font-body">Se încarcă...</span></>
+              <><Loader2 className="h-4 w-4 text-primary animate-spin" /><span className="text-sm text-muted-foreground font-body">{t.dashboard.scoutExtra.uploadingDocText}</span></>
             ) : (
-              <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground font-body">Încarcă document (PDF, JPG, PNG, max 10MB)</span></>
+              <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground font-body">{tp.uploadDocMaxSizeBtn}</span></>
             )}
           </div>
           <input type="file" accept=".pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} disabled={uploading} />
@@ -2399,6 +2405,8 @@ function parsePalmaresList(description: string | undefined): PalmaresItem[] {
 function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries, sport }: {
   entry: CareerEntry; idx: number; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; sport?: string;
 }) {
+  const { t } = useLanguage();
+  const tp = t.dashboard.palmares;
   const palmaresList = parsePalmaresList(entry.description);
   const hasRealData = palmaresList.some(p => p.place || p.championship || p.document_url);
   const [isOpen, setIsOpen] = useState(hasRealData);
@@ -2451,9 +2459,9 @@ function PalmaresEditor({ entry, idx, careerEntries, setCareerEntries, sport }: 
   return (
     <div className="space-y-3 border-t border-gray-200 pt-3 mt-2">
       <div className="flex items-center justify-between">
-        <Label className="text-xs text-gray-900 font-semibold">🏆 Palmares</Label>
+        <Label className="text-xs text-gray-900 font-semibold">🏆 {tp.title}</Label>
         <Button type="button" size="sm" onClick={addPalmares} className="h-6 px-2 text-xs bg-orange-500 hover:bg-orange-600 text-white">
-          <Plus className="h-3 w-3 mr-1" /> Adaugă rezultat
+          <Plus className="h-3 w-3 mr-1" /> {tp.addResultBtn}
         </Button>
       </div>
       {isOpen && palmaresList.map((palmares, pIdx) => (
@@ -2482,14 +2490,16 @@ function ChampionshipCombobox({ value, customChampionship, setCustomChampionship
   value: string; customChampionship: boolean; setCustomChampionship: (v: boolean) => void;
   championshipOptions: string[]; onChange: (v: string) => void;
 }) {
+  const { t } = useLanguage();
+  const tp = t.dashboard.palmares;
   const [open, setOpen] = useState(false);
 
   if (customChampionship) {
     return (
       <div>
-        <Label className="text-xs text-foreground font-medium">Campionat</Label>
+        <Label className="text-xs text-gray-900 font-medium">{tp.championshipLabel}</Label>
         <div className="flex gap-1">
-          <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Ex.: Campionat European" className="bg-background text-foreground placeholder:text-foreground/60" />
+          <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={tp.championshipCustomPlaceholder} className="bg-gray-100 text-gray-900 placeholder:text-gray-400" />
           <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomChampionship(false); onChange(""); }}><X className="h-3 w-3" /></Button>
         </div>
       </div>
@@ -2498,19 +2508,19 @@ function ChampionshipCombobox({ value, customChampionship, setCustomChampionship
 
   return (
     <div>
-      <Label className="text-xs text-foreground font-medium">Campionat</Label>
+      <Label className="text-xs text-gray-900 font-medium">{tp.championshipLabel}</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between bg-background text-foreground font-normal h-10 text-sm">
-            {value || "Selectează..."}
+          <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between bg-gray-100 text-gray-900 font-normal h-10 text-sm">
+            {value || tp.selectPlaceholder}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[300px] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Caută campionat..." />
+            <CommandInput placeholder={tp.searchChampionshipPlaceholder} />
             <CommandList>
-              <CommandEmpty>Nu s-a găsit.</CommandEmpty>
+              <CommandEmpty>{tp.noChampionshipFound}</CommandEmpty>
               <CommandGroup>
                 {championshipOptions.map((o, i) => (
                   <CommandItem key={o} value={`option_${i}_${o}`} keywords={[o]} onSelect={() => { onChange(o); setOpen(false); }}>
@@ -2520,7 +2530,7 @@ function ChampionshipCombobox({ value, customChampionship, setCustomChampionship
                 ))}
                 <CommandItem value="__custom__" onSelect={() => { setCustomChampionship(true); setOpen(false); }}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Altele...
+                  {tp.otherOption}
                 </CommandItem>
               </CommandGroup>
             </CommandList>
@@ -2533,6 +2543,8 @@ function ChampionshipCombobox({ value, customChampionship, setCustomChampionship
 
 function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onUpdate: (url: string) => void }) {
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const tp = t.dashboard.palmares;
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2540,11 +2552,11 @@ function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onU
     if (!file) return;
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      toast({ title: "Eroare", description: "Format nesuportat. Folosește PDF, JPG, PNG sau WebP.", variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: tp.unsupportedFormatError, variant: "destructive" });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "Eroare", description: "Fișierul trebuie să fie mai mic de 10MB.", variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: tp.fileTooLargeError, variant: "destructive" });
       return;
     }
     setUploading(true);
@@ -2558,9 +2570,9 @@ function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onU
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
       onUpdate(urlData.publicUrl);
-      toast({ title: "Document încărcat!" });
+      toast({ title: tp.documentUploadedToast });
     } catch (err: any) {
-      toast({ title: "Eroare", description: err.message, variant: "destructive" });
+      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -2569,10 +2581,10 @@ function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onU
 
   if (documentUrl) {
     return (
-      <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5 mt-1">
+      <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5 mt-1">
         <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
-        <button type="button" onClick={() => window.open(documentUrl, '_blank')} className="text-xs text-foreground font-body hover:text-primary truncate flex-1 text-left">
-          Document atașat
+        <button type="button" onClick={() => window.open(documentUrl, '_blank')} className="text-xs text-gray-900 font-body hover:text-primary truncate flex-1 text-left">
+          {tp.documentAttachedText}
         </button>
         <button type="button" onClick={() => onUpdate("")} className="text-destructive hover:text-destructive/80 shrink-0">
           <X className="h-3.5 w-3.5" />
@@ -2583,11 +2595,11 @@ function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onU
 
   return (
     <label className="block mt-1">
-      <div className="flex items-center justify-center gap-1.5 border border-dashed border-border rounded-md p-1.5 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
+      <div className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-md p-1.5 cursor-pointer hover:border-primary/50 hover:bg-gray-100 transition-colors">
         {uploading ? (
-          <><Loader2 className="h-3.5 w-3.5 text-primary animate-spin" /><span className="text-xs text-muted-foreground font-body">Se încarcă...</span></>
+          <><Loader2 className="h-3.5 w-3.5 text-primary animate-spin" /><span className="text-xs text-muted-foreground font-body">{t.dashboard.scoutExtra.uploadingDocText}</span></>
         ) : (
-          <><Upload className="h-3.5 w-3.5 text-muted-foreground" /><span className="text-xs text-muted-foreground font-body">Atașează document</span></>
+          <><Upload className="h-3.5 w-3.5 text-muted-foreground" /><span className="text-xs text-muted-foreground font-body">{tp.attachDocumentBtn}</span></>
         )}
       </div>
       <input type="file" accept=".pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} disabled={uploading} />
@@ -2605,6 +2617,8 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
   onDragStart: () => void; onDragOver: (e: React.DragEvent) => void; onDragEnd: () => void;
   entryStartDate?: string; entryEndDate?: string; sport?: string;
 }) {
+  const { t } = useLanguage();
+  const tp = t.dashboard.palmares;
   const placeOptions = ["Locul 1", "Locul 2", "Locul 3"];
   const footballChampionshipOptions = [
     "SuperLiga - Sezon Regular", "SuperLiga - Play-Off", "SuperLiga - Play-Out",
@@ -2640,9 +2654,9 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      className={`relative grid grid-cols-1 sm:grid-cols-2 gap-3 bg-background/30 rounded-md p-2 pl-7 border transition-all cursor-grab active:cursor-grabbing ${isDragging ? "opacity-50 border-primary" : isDragOver ? "border-primary/60 bg-primary/5" : "border-border/50"}`}
+      className={`relative grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 rounded-md p-2 pl-7 border transition-all cursor-grab active:cursor-grabbing ${isDragging ? "opacity-50 border-primary" : isDragOver ? "border-primary/60 bg-primary/5" : "border-gray-200"}`}
     >
-      <GripVertical className="absolute left-1.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <GripVertical className="absolute left-1.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
       <button type="button" onClick={() => onRemove(pIdx)} className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors">
         <Trash2 className="h-4 w-4" />
       </button>
@@ -2654,49 +2668,49 @@ function SinglePalmaresRow({ palmares, pIdx, total, onUpdate, onRemove, isDraggi
         onChange={(v) => { onUpdate(pIdx, "championship", v); if (sport === "basketball" && seniorChampionships.includes(v)) { onUpdate(pIdx, "category", ""); setCustomCategory(false); } }}
       />
       <div>
-        <Label className="text-xs text-foreground font-medium">Loc</Label>
+        <Label className="text-xs text-gray-900 font-medium">{tp.placeLabel}</Label>
         {customPlace ? (
           <div className="flex gap-1">
-            <Input value={palmares.place} onChange={(e) => onUpdate(pIdx, "place", e.target.value)} placeholder="Ex.: Locul 4" className="bg-background text-foreground placeholder:text-foreground/60" />
+            <Input value={palmares.place} onChange={(e) => onUpdate(pIdx, "place", e.target.value)} placeholder={tp.placeCustomPlaceholder} className="bg-gray-100 text-gray-900 placeholder:text-gray-400" />
             <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomPlace(false); onUpdate(pIdx, "place", ""); }}><X className="h-3 w-3" /></Button>
           </div>
         ) : (
           <Select value={palmares.place} onValueChange={(v) => v === "__custom__" ? setCustomPlace(true) : onUpdate(pIdx, "place", v)}>
-            <SelectTrigger className="bg-background text-foreground"><SelectValue placeholder="Selectează..." /></SelectTrigger>
+            <SelectTrigger className="bg-gray-100 text-gray-900"><SelectValue placeholder={tp.selectPlaceholder} /></SelectTrigger>
             <SelectContent>
-              {placeOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              <SelectItem value="__custom__">Altele...</SelectItem>
+              {placeOptions.map((o, i) => <SelectItem key={o} value={o}>{tp.placeOptions[i] || o}</SelectItem>)}
+              <SelectItem value="__custom__">{tp.otherOption}</SelectItem>
             </SelectContent>
           </Select>
         )}
       </div>
       <div>
-        <Label className="text-xs text-foreground font-medium">{sport === "basketball" ? "Categorie" : "Grupa/Serie"}</Label>
+        <Label className="text-xs text-gray-900 font-medium">{sport === "basketball" ? tp.categoryLabelBasketball : tp.categoryLabelFootball}</Label>
         {sport === "basketball" ? (
           isCategoryDisabled ? (
-            <Input value="" disabled placeholder="—" className="bg-muted text-muted-foreground" />
+            <Input value="" disabled placeholder="—" className="bg-gray-100 text-gray-400" />
           ) : customCategory ? (
             <div className="flex gap-1">
-              <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder="Ex.: U21" className="bg-background text-foreground placeholder:text-foreground/60" />
+              <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder={tp.categoryCustomPlaceholderBasketball} className="bg-gray-100 text-gray-900 placeholder:text-gray-400" />
               <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomCategory(false); onUpdate(pIdx, "category", ""); }}><X className="h-3 w-3" /></Button>
             </div>
           ) : (
             <Select value={palmares.category} onValueChange={(v) => v === "__custom__" ? setCustomCategory(true) : onUpdate(pIdx, "category", v)}>
-              <SelectTrigger className="bg-background text-foreground"><SelectValue placeholder="Selectează..." /></SelectTrigger>
+              <SelectTrigger className="bg-gray-100 text-gray-900"><SelectValue placeholder={tp.selectPlaceholder} /></SelectTrigger>
               <SelectContent>
                 {basketballCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                <SelectItem value="__custom__">Altele...</SelectItem>
+                <SelectItem value="__custom__">{tp.otherOption}</SelectItem>
               </SelectContent>
             </Select>
           )
         ) : (
-          <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder="Ex.: Seria 1" className="bg-background text-foreground placeholder:text-foreground/60" />
+          <Input value={palmares.category} onChange={(e) => onUpdate(pIdx, "category", e.target.value)} placeholder={tp.categoryPlaceholderFootball} className="bg-gray-100 text-gray-900 placeholder:text-gray-400" />
         )}
       </div>
       <div>
-        <Label className="text-xs text-foreground font-medium">Sezonul</Label>
+        <Label className="text-xs text-gray-900 font-medium">{tp.seasonLabel}</Label>
         <Select value={palmares.year} onValueChange={(v) => onUpdate(pIdx, "year", v)}>
-          <SelectTrigger className="bg-background text-foreground"><SelectValue placeholder="Selectează..." /></SelectTrigger>
+          <SelectTrigger className="bg-gray-100 text-gray-900"><SelectValue placeholder={tp.selectPlaceholder} /></SelectTrigger>
           <SelectContent>
             {(() => {
               const currentYear = new Date().getFullYear();
@@ -2734,6 +2748,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; updateForm: (k: string, v: any) => void; userId: string; readOnly: boolean; SectionEditButton: React.FC<{ section: EditingSection }>; careerEntries: CareerEntry[]; setCareerEntries: React.Dispatch<React.SetStateAction<CareerEntry[]>>; SectionSaveButton: React.FC; sport?: string; agentSuggestions: AgentSuggestion[]; showAgentSuggestions: boolean; setShowAgentSuggestions: (v: boolean) => void; selectedRegisteredAgent: AgentSuggestion | null; handleAgentNameChange: (v: string) => void; selectAgent: (a: AgentSuggestion) => void; collaborationStatus: "none" | "pending" | "accepted" | "rejected"; collaborationLoading: boolean; cancelCollaborationRequest: () => void; acceptedAgent: AgentSuggestion | null; photoSrc?: string | null; teamNameSuggestions: string[];
 }) {
   const { lang, t } = useLanguage();
+  const tp = t.dashboard.palmares;
 
   const editingPhysical = editingSection === "physical";
   const editingAgent = editingSection === "agent";
@@ -3079,7 +3094,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                   <Trash2 className="h-4 w-4" />
                 </button>
                 <div>
-                  <Label className="text-xs text-gray-900 font-medium">Echipa*</Label>
+                  <Label className="text-xs text-gray-900 font-medium">{tp.teamLabel}</Label>
                   <TeamNameInput
                     value={entry.team_name}
                     onChange={(val) => {
@@ -3092,7 +3107,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       }
                     }}
                     suggestions={teamNameSuggestions}
-                    placeholder="Ex.: FC Barcelona"
+                    placeholder={tp.teamPlaceholder}
                     className="bg-white border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                   />
                 </div>
@@ -3108,12 +3123,12 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     return s1 <= e2 && s2 <= e1;
                   });
                   return hasOverlap ? (
-                    <p className="text-xs text-destructive font-medium">⚠ Perioadele se suprapun cu o altă echipă. Verifică datele.</p>
+                    <p className="text-xs text-destructive font-medium">{tp.overlapWarning}</p>
                   ) : null;
                 })()}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-gray-900 font-medium">Data început</Label>
+                    <Label className="text-xs text-gray-900 font-medium">{t.dashboard.scoutProfile.startDateLabel}</Label>
                     <Input
                       type="date"
                       value={entry.start_date}
@@ -3126,7 +3141,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-900 font-medium">Data sfârșit</Label>
+                    <Label className="text-xs text-gray-900 font-medium">{t.dashboard.scoutProfile.endDateLabel}</Label>
                     <Input
                       type="date"
                       value={entry.end_date}
@@ -3164,7 +3179,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     }}
                   />
                   <Label htmlFor={`currently-active-${idx}`} className="text-xs text-gray-900 cursor-pointer">
-                    Activez în acest moment
+                    {tp.currentlyActiveLabel}
                   </Label>
                 </div>
                 {/* Palmares structured fields */}
@@ -3184,7 +3199,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               onClick={() => setCareerEntries([...careerEntries, { team_name: "", start_date: "", end_date: "", currently_active: false, description: "" }])}
               className="w-full bg-white text-gray-900 border-gray-300 hover:text-gray-900 hover:bg-gray-100"
             >
-              <Plus className="h-4 w-4 mr-1" /> Adaugă echipă
+              <Plus className="h-4 w-4 mr-1" /> {tp.addTeamBtn}
             </Button>
             <SectionSaveButton />
           </div>
@@ -3195,9 +3210,9 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                 <div key={idx} className="border-l-2 border-primary/30 pl-3">
                   <p className="font-semibold text-gray-900 text-sm">{entry.team_name}</p>
                   <p className="text-xs text-gray-500">
-                    {entry.start_date ? new Date(entry.start_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
+                    {entry.start_date ? new Date(entry.start_date).toLocaleDateString(LOCALE_BY_LANG[lang] || "en-US", { month: "short", year: "numeric" }) : "—"}
                     {" — "}
-                    {entry.currently_active ? "Prezent" : entry.end_date ? new Date(entry.end_date).toLocaleDateString("ro-RO", { month: "short", year: "numeric" }) : "—"}
+                    {entry.currently_active ? t.dashboard.scoutProfile.presentWord : entry.end_date ? new Date(entry.end_date).toLocaleDateString(LOCALE_BY_LANG[lang] || "en-US", { month: "short", year: "numeric" }) : "—"}
                   </p>
                   {entry.description && (() => {
                     try {
@@ -3206,14 +3221,14 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       const validItems = items.filter((p: any) => p.place || p.championship || p.category || p.year);
                       if (validItems.length === 0) return null;
                       return validItems.map((p: any, pIdx: number) => {
-                         const categoryLabel = sport === "basketball" ? "Categorie" : "Grupa/Seria";
-                         const parts = [p.place, p.championship, p.category ? `${categoryLabel} ${p.category}` : null, p.year ? `Sezonul ${p.year}` : null].filter(Boolean);
+                         const categoryLabel = sport === "basketball" ? tp.categoryLabelBasketball : tp.categoryLabelFootball;
+                         const parts = [p.place, p.championship, p.category ? `${categoryLabel} ${p.category}` : null, p.year ? `${tp.seasonPrefix} ${p.year}` : null].filter(Boolean);
                          return (
                            <div key={pIdx} className="mt-1">
                              <p className="text-xs text-gray-500">🏆 {parts.join(" • ")}</p>
                              {p.document_url && (
                                <button type="button" onClick={() => window.open(p.document_url, '_blank')} className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5">
-                                 <FileText className="h-3 w-3" /> Document atașat
+                                 <FileText className="h-3 w-3" /> {tp.documentAttachedText}
                                </button>
                              )}
                            </div>

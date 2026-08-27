@@ -620,21 +620,20 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
 
       {/* Cards grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-56 rounded-2xl bg-gray-100 animate-pulse" />
+            <div key={i} className="h-[107px] rounded-md bg-gray-100 animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <p className="text-center text-gray-500 py-12 font-body">{tr.none}</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map(item => {
             const initials = `${item.first_name?.[0] ?? ""}${item.last_name?.[0] ?? ""}`.toUpperCase();
             const subtitle = item.role === "player"
               ? [translatePosition(item.position, lang), item.current_team].filter(Boolean).join(" · ")
               : [item.title, item.organization].filter(Boolean).join(" · ");
-            const tag = item.role === "player" ? item.current_team : item.organization;
             return (
               <div
                 key={`${item.role}-${item.user_id}`}
@@ -646,32 +645,33 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                     }
                   }).catch((err) => console.error("Failed to track profile view:", err));
                 }}
-                className="bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:border-orange-300 transition-colors flex flex-col"
+                className="bg-white border border-gray-200 rounded-md overflow-hidden cursor-pointer hover:border-orange-300 hover:shadow-sm transition-all flex items-stretch h-[107px]"
               >
-                <div className={`relative w-full h-48 ${ROLE_COLOR[item.role]} flex items-center justify-center overflow-hidden`}>
+                <div
+                  className={`relative w-24 shrink-0 ${ROLE_COLOR[item.role]} flex items-center justify-center overflow-hidden`}
+                  style={{ clipPath: "polygon(0 0, 100% 0, 72% 100%, 0% 100%)" }}
+                >
                   {item.photo_url ? (
                     <img src={item.photo_url} alt={`${item.first_name} ${item.last_name}`} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="font-display text-4xl text-white">{initials || <User className="h-10 w-10" />}</span>
+                    <span className="font-display text-2xl text-white/90">{initials || <User className="h-8 w-8" />}</span>
                   )}
                 </div>
-                <div className="p-4 space-y-2 flex-1 flex flex-col">
-                  <p className="font-display text-base text-gray-900 truncate">
-                    {item.first_name} {item.last_name}
-                  </p>
-                  {subtitle && (
-                    <p className="text-xs text-gray-500 font-body truncate">{subtitle}</p>
-                  )}
-                  <div className="flex items-center gap-2 flex-wrap mt-auto pt-2">
-                    <span className={`text-[10px] font-body px-2 py-0.5 rounded border ${ROLE_BADGE[item.role]}`}>
-                      {tr.roleLabel[item.role]}
-                    </span>
-                    {tag && (
-                      <span className="text-[10px] text-gray-500 font-body bg-gray-100 px-2 py-0.5 rounded truncate max-w-[120px]">
-                        {tag}
-                      </span>
+                <div className="flex-1 min-w-0 flex items-center justify-between gap-2 px-4">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-body text-gray-500 uppercase tracking-wide truncate">
+                      {item.first_name?.toUpperCase()}
+                    </p>
+                    <p className="font-display text-sm sm:text-base text-gray-900 uppercase truncate leading-tight">
+                      {item.last_name?.toUpperCase()}
+                    </p>
+                    {subtitle && (
+                      <p className="text-[11px] text-gray-400 font-body truncate mt-0.5">{subtitle}</p>
                     )}
                   </div>
+                  <span className={`shrink-0 text-[9px] font-body px-1.5 py-0.5 rounded border whitespace-nowrap ${ROLE_BADGE[item.role]}`}>
+                    {tr.roleLabel[item.role]}
+                  </span>
                 </div>
               </div>
             );
