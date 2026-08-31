@@ -131,9 +131,11 @@ const Auth = () => {
             <div className="mx-auto mb-2 w-12 h-12 rounded-full bg-primary flex items-center justify-center">
               <span className="text-primary-foreground text-2xl">⚽</span>
             </div>
-            <CardTitle className="font-display text-3xl text-foreground">
-              {tab === "register" ? t.auth.createAccount : tab === "forgot" ? t.auth.forgotPasswordTitle : t.auth.login}
-            </CardTitle>
+            {tab !== "login" && (
+              <CardTitle className="font-display text-3xl text-foreground">
+                {tab === "register" ? t.auth.createAccount : t.auth.forgotPasswordTitle}
+              </CardTitle>
+            )}
             <CardDescription className="font-body">
               {tab === "register" ? t.auth.registerDesc : tab === "forgot" ? t.auth.forgotPasswordDesc : t.auth.loginDesc}
             </CardDescription>
