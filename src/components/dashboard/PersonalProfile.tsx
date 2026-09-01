@@ -690,10 +690,12 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 
       // Save career entries if editing about section
       if (editingSection === "about") {
+        // Drop entries the player left blank (added by mistake, never filled in)
+        const filledEntries = careerEntries.filter((e) => e.team_name.trim());
         // Check for date overlaps
-        const hasOverlap = careerEntries.some((entry, idx) => {
+        const hasOverlap = filledEntries.some((entry, idx) => {
           if (!entry.start_date) return false;
-          return careerEntries.some((other, otherIdx) => {
+          return filledEntries.some((other, otherIdx) => {
             if (idx >= otherIdx || !other.start_date) return false;
             const s1 = new Date(entry.start_date).getTime();
             const e1 = entry.currently_active ? Infinity : (entry.end_date ? new Date(entry.end_date).getTime() : s1);
@@ -710,9 +712,9 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
         // Delete existing entries
         await supabase.from("player_career_entries").delete().eq("user_id", userId);
         // Insert new entries
-        if (careerEntries.length > 0) {
+        if (filledEntries.length > 0) {
           // Sort chronologically by start_date before saving
-          const sorted = [...careerEntries].sort((a, b) => {
+          const sorted = [...filledEntries].sort((a, b) => {
             if (!a.start_date && !b.start_date) return 0;
             if (!a.start_date) return 1;
             if (!b.start_date) return -1;
@@ -730,9 +732,11 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           }));
           const { error: careerError } = await supabase.from("player_career_entries").insert(entries);
           if (careerError) throw careerError;
+        } else {
+          setCareerEntries([]);
         }
         // Sync current_team from active career entry
-        const activeEntry = careerEntries.find(e => e.currently_active);
+        const activeEntry = filledEntries.find(e => e.currently_active);
         const newCurrentTeam = activeEntry?.team_name || "";
         await supabase.from("player_profiles").update({ current_team: newCurrentTeam }).eq("user_id", userId);
         updateForm("current_team", newCurrentTeam);
@@ -2761,6 +2765,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
   const editingPhysical = editingSection === "physical";
   const editingAgent = editingSection === "agent";
   const editingAbout = editingSection === "about";
+  const [expandedCareerIdx, setExpandedCareerIdx] = useState<number | null>(null);
 
   const aboutDocs = editingAbout ? (form.about_documents || []) : (profile?.about_documents || []);
 
@@ -3092,15 +3097,39 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
         </div>
         {editingAbout ? (
           <div className="space-y-4">
-            {careerEntries.map((entry, idx) => (
-              <div key={idx} className="bg-gray-100 border border-gray-200 rounded-lg p-4 space-y-3 relative">
-                <button
-                  type="button"
-                  onClick={() => setCareerEntries(careerEntries.filter((_, i) => i !== idx))}
-                  className="absolute top-2 right-2 text-gray-500 hover:text-destructive transition-colors"
+            {careerEntries.map((entry, idx) => {
+              const isExpanded = expandedCareerIdx === idx;
+              return (
+              <div key={idx} className="bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+                <div
+                  className="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer"
+                  onClick={() => setExpandedCareerIdx(isExpanded ? null : idx)}
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-gray-900 truncate">{entry.team_name || (lang === "ro" ? "Echipă nouă" : "New team")}</p>
+                    <p className="text-xs text-gray-500">
+                      {entry.start_date ? new Date(entry.start_date).toLocaleDateString(LOCALE_BY_LANG[lang] || "en-US", { month: "short", year: "numeric" }) : "—"}
+                      {" — "}
+                      {entry.currently_active ? t.dashboard.scoutProfile.presentWord : entry.end_date ? new Date(entry.end_date).toLocaleDateString(LOCALE_BY_LANG[lang] || "en-US", { month: "short", year: "numeric" }) : "—"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCareerEntries(careerEntries.filter((_, i) => i !== idx));
+                        if (isExpanded) setExpandedCareerIdx(null);
+                      }}
+                      className="text-gray-500 hover:text-destructive transition-colors p-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  </div>
+                </div>
+                {isExpanded && (
+                <div className="px-4 pb-4 space-y-3 border-t border-gray-200 pt-3">
                 <div>
                   <Label className="text-xs text-gray-900 font-medium">{tp.teamLabel}</Label>
                   <TeamNameInput
@@ -3198,13 +3227,19 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                   setCareerEntries={setCareerEntries}
                   sport={sport}
                 />
+                </div>
+                )}
               </div>
-            ))}
+              );
+            })}
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setCareerEntries([...careerEntries, { team_name: "", start_date: "", end_date: "", currently_active: false, description: "" }])}
+              onClick={() => {
+                setCareerEntries([...careerEntries, { team_name: "", start_date: "", end_date: "", currently_active: false, description: "" }]);
+                setExpandedCareerIdx(careerEntries.length);
+              }}
               className="w-full bg-white text-gray-900 border-gray-300 hover:text-gray-900 hover:bg-gray-100"
             >
               <Plus className="h-4 w-4 mr-1" /> {tp.addTeamBtn}
@@ -3213,8 +3248,8 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           </div>
         ) : (
           <div className="space-y-3">
-            {careerEntries.length > 0 ? (
-              careerEntries.map((entry, idx) => (
+            {careerEntries.filter((e) => e.team_name.trim()).length > 0 ? (
+              careerEntries.filter((e) => e.team_name.trim()).map((entry, idx) => (
                 <div key={idx} className="border-l-2 border-primary/30 pl-3">
                   <p className="font-semibold text-gray-900 text-sm">{entry.team_name}</p>
                   <p className="text-xs text-gray-500">

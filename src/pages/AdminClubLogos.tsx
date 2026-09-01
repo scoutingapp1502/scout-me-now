@@ -1,11 +1,22 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useClubLogos, type ClubLogo } from "@/hooks/useClubLogos";
+import { useClubLogos, normalizeClubName, type ClubLogo } from "@/hooks/useClubLogos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, Trash2, Edit2, Loader2, Shield, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Upload, Trash2, Edit2, Loader2, Shield, X, Search } from "lucide-react";
 
 const SPORTS: { key: string; label: string }[] = [
   { key: "football", label: "Fotbal" },
@@ -21,10 +32,16 @@ export default function AdminClubLogos({ embedded }: { embedded?: boolean } = {}
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingClub, setEditingClub] = useState<ClubLogo | null>(null);
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null);
+  const [similarClub, setSimilarClub] = useState<ClubLogo | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [clubToDelete, setClubToDelete] = useState<ClubLogo | null>(null);
 
   const startEdit = (club: ClubLogo) => {
     setEditingClub(club);
     setNewClubName(club.club_name);
+    setSelectedFile(null);
   };
 
   const cancelEdit = () => {
@@ -32,10 +49,72 @@ export default function AdminClubLogos({ embedded }: { embedded?: boolean } = {}
     setNewClubName("");
   };
 
-  const handleFileUpload = async (file: File) => {
+  const findSimilarClub = (clubName: string) => {
+    const normalized = normalizeClubName(clubName);
+    return logos.find((l) => l.sport === sport && normalizeClubName(l.club_name) === normalized) || null;
+  };
+
+  const createClub = async (clubName: string, file: File | null) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    let logoUrl: string | null = null;
+    if (file) {
+      setUploading(true);
+      const ext = file.name.split(".").pop();
+      const safeName = clubName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const path = `${sport}/${safeName}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("club-logos").upload(path, file, { upsert: true });
+      if (uploadError) {
+        toast({ title: "Eroare", description: "Nu s-a putut încărca logo-ul.", variant: "destructive" });
+        setUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("club-logos").getPublicUrl(path);
+      logoUrl = urlData.publicUrl;
+    } else {
+      setSaving(true);
+    }
+
+    const { error } = await saveLogo(clubName, logoUrl, user.id, sport);
+    setUploading(false);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Eroare la salvare", variant: "destructive" });
+    } else {
+      toast({ title: file ? "Logo salvat!" : "Club salvat!" });
+      setNewClubName("");
+      setSelectedFile(null);
+    }
+  };
+
+  const handleAddClub = (file: File | null) => {
     const clubName = newClubName.trim();
     if (!clubName) {
       toast({ title: "Introdu mai întâi numele clubului", variant: "destructive" });
+      return;
+    }
+    const similar = findSimilarClub(clubName);
+    if (similar) {
+      setPendingUploadFile(file);
+      setSimilarClub(similar);
+      return;
+    }
+    createClub(clubName, file);
+  };
+
+  const confirmSaveAnyway = () => {
+    const clubName = newClubName.trim();
+    setSimilarClub(null);
+    createClub(clubName, pendingUploadFile);
+    setPendingUploadFile(null);
+  };
+
+  const handleEditUpload = async (file: File) => {
+    if (!editingClub) return;
+    const clubName = newClubName.trim();
+    if (!clubName) {
+      toast({ title: "Numele clubului nu poate fi gol", variant: "destructive" });
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
@@ -51,14 +130,12 @@ export default function AdminClubLogos({ embedded }: { embedded?: boolean } = {}
       return;
     }
     const { data: urlData } = supabase.storage.from("club-logos").getPublicUrl(path);
-    const { error } = editingClub
-      ? await updateLogo(editingClub.id, { club_name: clubName, logo_url: urlData.publicUrl }, user.id)
-      : await saveLogo(clubName, urlData.publicUrl, user.id, sport);
+    const { error } = await updateLogo(editingClub.id, { club_name: clubName, logo_url: urlData.publicUrl }, user.id);
     setUploading(false);
     if (error) {
       toast({ title: "Eroare la salvare", variant: "destructive" });
     } else {
-      toast({ title: editingClub ? "Club actualizat!" : "Logo salvat!" });
+      toast({ title: "Club actualizat!" });
       setNewClubName("");
       setEditingClub(null);
     }
@@ -94,7 +171,24 @@ export default function AdminClubLogos({ embedded }: { embedded?: boolean } = {}
     }
   };
 
-  const filteredLogos = logos.filter((l) => l.sport === sport);
+  const confirmDelete = () => {
+    if (!clubToDelete) return;
+    handleRemove(clubToDelete.club_name, clubToDelete.sport);
+    setClubToDelete(null);
+  };
+
+  const handleToggleEnabled = async (club: ClubLogo, enabled: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await updateLogo(club.id, { enabled }, user.id);
+    if (error) {
+      toast({ title: "Eroare la salvare", variant: "destructive" });
+    }
+  };
+
+  const filteredLogos = logos
+    .filter((l) => l.sport === sport)
+    .filter((l) => !search.trim() || normalizeClubName(l.club_name).includes(normalizeClubName(search)));
 
   return (
     <div className={embedded ? "text-gray-900" : "min-h-screen bg-gray-200 text-gray-900"}>
@@ -146,14 +240,41 @@ export default function AdminClubLogos({ embedded }: { embedded?: boolean } = {}
             value={newClubName}
             onChange={(e) => setNewClubName(e.target.value)}
           />
-          {editingClub && (
+          {editingClub ? (
             <div className="flex items-center gap-3">
-              <img src={editingClub.logo_url} alt={editingClub.club_name} className="h-10 w-10 object-contain bg-white border border-gray-200 rounded-lg p-1" />
+              {editingClub.logo_url ? (
+                <img src={editingClub.logo_url} alt={editingClub.club_name} className="h-10 w-10 object-contain bg-white border border-gray-200 rounded-lg p-1" />
+              ) : (
+                <div className="h-10 w-10 flex items-center justify-center bg-gray-100 border border-gray-200 rounded-lg">
+                  <Shield className="h-5 w-5 text-gray-400" />
+                </div>
+              )}
               <Button type="button" size="sm" onClick={handleSaveNameOnly} disabled={saving} className="bg-orange-500 hover:bg-orange-600 text-white">
                 {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
                 Salvează numele
               </Button>
             </div>
+          ) : (
+            <>
+              {selectedFile && (
+                <div className="flex items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                  <span className="text-xs text-gray-600 font-body truncate">📎 {selectedFile.name}</span>
+                  <button type="button" onClick={() => setSelectedFile(null)} className="text-gray-400 hover:text-gray-700 transition-colors shrink-0" title="Elimină logo-ul selectat">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleAddClub(selectedFile)}
+                disabled={saving || uploading || !newClubName.trim()}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {saving || uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                Salvează
+              </Button>
+            </>
           )}
           <div
             className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer hover:border-orange-300 transition-colors"
@@ -165,7 +286,7 @@ export default function AdminClubLogos({ embedded }: { embedded?: boolean } = {}
               <Upload className="h-5 w-5 text-gray-500 mx-auto" />
             )}
             <span className="text-xs text-gray-500 font-body block mt-1">
-              {editingClub ? "Încarcă o imagine nouă pentru acest logo" : "Încarcă imaginea logo-ului (PNG, JPG, SVG, WebP)"}
+              {editingClub ? "Încarcă o imagine nouă pentru acest logo" : "Alege imaginea logo-ului (PNG, JPG, SVG, WebP) — se salvează la apăsarea butonului Salvează"}
             </span>
           </div>
           <input
@@ -175,9 +296,25 @@ export default function AdminClubLogos({ embedded }: { embedded?: boolean } = {}
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleFileUpload(file);
+              if (!file) return;
+              if (editingClub) {
+                handleEditUpload(file);
+              } else {
+                setSelectedFile(file);
+              }
               e.target.value = "";
             }}
+          />
+        </div>
+
+        {/* Search existing clubs */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Caută un club..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
           />
         </div>
 
@@ -187,11 +324,15 @@ export default function AdminClubLogos({ embedded }: { embedded?: boolean } = {}
             <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
           </div>
         ) : filteredLogos.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-8">Niciun logo adăugat încă pentru {SPORTS.find((s) => s.key === sport)?.label.toLowerCase()}.</p>
+          <p className="text-sm text-gray-500 text-center py-8">
+            {search.trim()
+              ? `Niciun club găsit pentru „${search.trim()}".`
+              : `Niciun logo adăugat încă pentru ${SPORTS.find((s) => s.key === sport)?.label.toLowerCase()}.`}
+          </p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {filteredLogos.map((l) => (
-              <div key={l.id} className="relative border border-gray-200 rounded-lg p-3 bg-white flex flex-col items-center gap-2">
+              <div key={l.id} className={`relative border rounded-lg p-3 bg-white flex flex-col items-center gap-2 transition-opacity ${l.enabled ? "border-gray-200" : "border-gray-200 opacity-50"}`}>
                 <div className="absolute top-1 right-1 flex gap-1">
                   <Button
                     type="button"
@@ -208,21 +349,65 @@ export default function AdminClubLogos({ embedded }: { embedded?: boolean } = {}
                     size="icon"
                     variant="destructive"
                     className="h-6 w-6"
-                    onClick={() => handleRemove(l.club_name, l.sport)}
+                    onClick={() => setClubToDelete(l)}
                     title="Șterge logo"
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
                 <div className="h-12 w-12 flex items-center justify-center bg-white rounded-md">
-                  <img src={l.logo_url} alt={l.club_name} className="h-full w-full object-contain" />
+                  {l.logo_url ? (
+                    <img src={l.logo_url} alt={l.club_name} className="h-full w-full object-contain" />
+                  ) : (
+                    <Shield className="h-6 w-6 text-gray-300" />
+                  )}
                 </div>
                 <span className="text-xs text-center font-body truncate w-full">{l.club_name}</span>
+                <div className="flex items-center gap-1.5">
+                  <Switch
+                    checked={l.enabled}
+                    onCheckedChange={(checked) => handleToggleEnabled(l, checked)}
+                    className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
+                  />
+                  <span className="text-[10px] text-gray-500 font-body">{l.enabled ? "Vizibil" : "Ascuns"}</span>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!similarClub} onOpenChange={(open) => { if (!open) { setSimilarClub(null); setPendingUploadFile(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Club similar existent</AlertDialogTitle>
+            <AlertDialogDescription>
+              Există deja un club salvat cu un nume asemănător: „{similarClub?.club_name}". Vrei să salvezi „{newClubName.trim()}" oricum?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setSimilarClub(null); setPendingUploadFile(null); }}>Anulează</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSaveAnyway}>Salvează oricum</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!clubToDelete} onOpenChange={(open) => { if (!open) setClubToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ștergi clubul?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ești sigur că vrei să ștergi „{clubToDelete?.club_name}"? Logo-ul nu va mai apărea pe profilul jucătorilor din acest club.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setClubToDelete(null)}>Anulează</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Șterge
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

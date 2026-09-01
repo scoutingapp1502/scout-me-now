@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 export interface ClubLogo {
   id: string;
   club_name: string;
-  logo_url: string;
+  logo_url: string | null;
   sport: string;
+  enabled: boolean;
 }
 
 const DIACRITICS_REGEX = new RegExp("[\\u0300-\\u036f]", "g");
@@ -27,7 +28,7 @@ export function useClubLogos() {
     setLoading(true);
     const { data } = await (supabase as any)
       .from("club_logos")
-      .select("id, club_name, logo_url, sport")
+      .select("id, club_name, logo_url, sport, enabled")
       .order("club_name");
     setLogos(data || []);
     setLoading(false);
@@ -37,7 +38,7 @@ export function useClubLogos() {
     fetchAll();
   }, [fetchAll]);
 
-  const saveLogo = async (clubName: string, logoUrl: string, adminUserId: string, sport: string) => {
+  const saveLogo = async (clubName: string, logoUrl: string | null, adminUserId: string, sport: string) => {
     const { error } = await (supabase as any)
       .from("club_logos")
       .upsert({ club_name: clubName, logo_url: logoUrl, updated_by: adminUserId, sport }, { onConflict: "sport,club_name" });
@@ -45,7 +46,7 @@ export function useClubLogos() {
     return { error };
   };
 
-  const updateLogo = async (id: string, fields: { club_name?: string; logo_url?: string }, adminUserId: string) => {
+  const updateLogo = async (id: string, fields: { club_name?: string; logo_url?: string; enabled?: boolean }, adminUserId: string) => {
     const { error } = await (supabase as any)
       .from("club_logos")
       .update({ ...fields, updated_by: adminUserId })
@@ -68,7 +69,7 @@ export function useClubLogos() {
     if (!teamName) return null;
     const normalized = normalizeClubName(teamName);
     const match = logos.find((l) => normalizeClubName(l.club_name) === normalized && (!sport || l.sport === sport));
-    return match?.logo_url || null;
+    return match?.enabled ? match.logo_url || null : null;
   }, [logos]);
 
   return { logos, loading, saveLogo, updateLogo, removeLogo, getLogoForTeam, refetch: fetchAll };
