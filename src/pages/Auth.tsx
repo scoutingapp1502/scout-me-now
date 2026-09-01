@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, ArrowLeft, ChevronDown, Upload, FileCheck, Star, Info } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, ChevronDown, Upload, FileCheck, Info } from "lucide-react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,22 +13,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
+import SportriseWordmark from "@/components/SportriseWordmark";
 
 // Roles that must upload a verification document at signup and stay
 // gated (dashboard visible, actions disabled) until an admin approves it.
 const REQUIRES_VERIFICATION = ["cauta_jucator"];
-
-const SportriseWordmark = ({ className = "" }: { className?: string }) => (
-  <div className={`font-display inline-flex items-end justify-center leading-none tracking-wide ${className}`}>
-    <span className="text-gray-900">SPORT</span>
-    <span className="text-orange-500">R</span>
-    <span className="relative inline-block h-[1em] w-[0.32em] mx-[0.02em]">
-      <Star className="absolute left-1/2 -translate-x-1/2 -top-[0.4em] h-[0.55em] w-[0.55em] fill-electric text-electric" />
-      <span className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[0.16em] h-[0.72em] bg-orange-500 rounded-[0.02em]" />
-    </span>
-    <span className="text-orange-500">SE</span>
-  </div>
-);
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -261,7 +250,7 @@ const Auth = () => {
 
         <Card className="bg-white/95 backdrop-blur border-gray-200 shadow-2xl">
           <CardHeader className="text-center pb-2">
-            <SportriseWordmark className="mx-auto mb-3 text-4xl" />
+            <SportriseWordmark className="mx-auto mb-3 text-lg" />
             <CardTitle className="font-body text-2xl font-bold tracking-tight text-gray-900">
               {tab === "register" ? t.auth.createAccount : tab === "forgot" ? t.auth.forgotPasswordTitle : t.auth.login}
             </CardTitle>

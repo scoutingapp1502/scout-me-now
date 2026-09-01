@@ -46,6 +46,9 @@ import AddStoryModal from "./AddStoryModal";
 import StoryViewer from "./StoryViewer";
 import StoryArchiveModal from "./StoryArchiveModal";
 
+// Stories feature is temporarily disabled. Flip back to true to re-enable.
+const STORIES_ENABLED = false;
+
 type PlayerProfile = Tables<"player_profiles">;
 
 const COUNTRY_PHONE_PREFIXES = [
@@ -244,7 +247,7 @@ const TestInfoContent = ({ test, referenceVideoUrl }: { test: TechnicalTest; ref
         )}
         <button
           onClick={() => { setShowVideo(false); setVideoError(false); }}
-          className="mt-2 text-xs text-gray-900 hover:underline font-body"
+          className="mt-2 text-xs text-gray-900 hover:font-semibold font-body"
         >
           {tt.backToDescription}
         </button>
@@ -798,6 +801,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 
   // Check active stories — must be before any early returns (Rules of Hooks)
   useEffect(() => {
+    if (!STORIES_ENABLED) return;
     (supabase as any)
       .from("stories")
       .select("id", { count: "exact", head: true })
@@ -846,10 +850,10 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
               profile={profile}
               photoSrc={photoSrc}
               userId={userId}
-              hasStory={hasStory}
+              hasStory={STORIES_ENABLED && hasStory}
               onOpenStory={() => setShowStoryViewer(true)}
               onAddStory={() => setShowAddStory(true)}
-              showAddStoryButton={!readOnly && editingSection !== "header"}
+              showAddStoryButton={STORIES_ENABLED && !readOnly && editingSection !== "header"}
               isEditingHeader={editingSection === "header"}
               onAvatarChange={handleAvatarChange}
             />
@@ -1412,26 +1416,30 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
         </DialogContent>
       </Dialog>
 
-      <AddStoryModal
-        userId={userId}
-        open={showAddStory}
-        onClose={() => setShowAddStory(false)}
-        onPosted={() => setHasStory(true)}
-        userPhoto={photoSrc}
-      />
-      <StoryViewer
-        userId={userId}
-        open={showStoryViewer}
-        onClose={() => setShowStoryViewer(false)}
-        displayName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || undefined}
-        avatarUrl={photoSrc}
-        currentUserId={viewerUserId ?? undefined}
-      />
-      <StoryArchiveModal
-        userId={userId}
-        open={showArchive}
-        onClose={() => setShowArchive(false)}
-      />
+      {STORIES_ENABLED && (
+        <>
+          <AddStoryModal
+            userId={userId}
+            open={showAddStory}
+            onClose={() => setShowAddStory(false)}
+            onPosted={() => setHasStory(true)}
+            userPhoto={photoSrc}
+          />
+          <StoryViewer
+            userId={userId}
+            open={showStoryViewer}
+            onClose={() => setShowStoryViewer(false)}
+            displayName={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || undefined}
+            avatarUrl={photoSrc}
+            currentUserId={viewerUserId ?? undefined}
+          />
+          <StoryArchiveModal
+            userId={userId}
+            open={showArchive}
+            onClose={() => setShowArchive(false)}
+          />
+        </>
+      )}
     </div>
   );
 };

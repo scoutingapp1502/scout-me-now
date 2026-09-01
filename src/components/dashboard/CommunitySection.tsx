@@ -15,6 +15,7 @@ import { getDisplayNationality } from "@/components/ui/nationality-input";
 import { translatePosition, translateFootHandValue } from "@/lib/positionTranslations";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
 import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
+import { useClubLogos } from "@/hooks/useClubLogos";
 
 type RoleKey = "player" | "cauta_jucator";
 
@@ -56,6 +57,7 @@ interface Props {
 
 const CommunitySection = ({ onNavigateToChat }: Props) => {
   const { lang, t } = useLanguage();
+  const { getLogoForTeam } = useClubLogos();
   const [items, setItems] = useState<CommunityCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<RoleKey>("player");
@@ -634,6 +636,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
             const subtitle = item.role === "player"
               ? [translatePosition(item.position, lang), item.current_team].filter(Boolean).join(" · ")
               : [item.title, item.organization].filter(Boolean).join(" · ");
+            const clubLogo = item.role === "player" ? getLogoForTeam(item.current_team, item.sport) : null;
             return (
               <div
                 key={`${item.role}-${item.user_id}`}
@@ -668,10 +671,20 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                     {subtitle && (
                       <p className="text-[11px] text-gray-400 font-body truncate mt-0.5">{subtitle}</p>
                     )}
+                    {item.role === "player" && (
+                      <span className="inline-block mt-0.5 text-[9px] font-body px-1.5 py-0.5 rounded bg-gradient-to-r from-indigo-600 to-purple-600 text-white whitespace-nowrap">
+                        {tr.roleLabel.player}
+                      </span>
+                    )}
                   </div>
-                  <span className={`shrink-0 text-[9px] font-body px-1.5 py-0.5 rounded border whitespace-nowrap ${ROLE_BADGE[item.role]}`}>
-                    {tr.roleLabel[item.role]}
-                  </span>
+                  {clubLogo && (
+                    <img src={clubLogo} alt={item.current_team || ""} className="shrink-0 w-11 h-11 object-contain" />
+                  )}
+                  {item.role !== "player" && (
+                    <span className={`shrink-0 text-[9px] font-body px-1.5 py-0.5 rounded border whitespace-nowrap ${ROLE_BADGE[item.role]}`}>
+                      {tr.roleLabel[item.role]}
+                    </span>
+                  )}
                 </div>
               </div>
             );

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import SportriseWordmark from "@/components/SportriseWordmark";
 import MessagesSection from "@/components/dashboard/MessagesSection";
 import ActivitySection from "@/components/dashboard/ActivitySection";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
@@ -421,7 +422,8 @@ const Dashboard = () => {
               <button onClick={() => setSidebarOpen(true)} className="text-foreground">
                 <Menu className="h-6 w-6" />
               </button>
-              <span className="font-display text-xl text-primary">⚽ SPORTRISE</span>
+              <span className="text-lg">⚽</span>
+              <SportriseWordmark className="text-lg" />
             </header>
             <main className={`flex-1 p-4 overflow-y-auto ${showLightMain ? "bg-gray-200" : "bg-background"}`}>
               {renderSection()}

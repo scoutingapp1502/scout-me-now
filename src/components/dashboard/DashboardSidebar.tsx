@@ -6,6 +6,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
 import { useNotificationCount } from "@/hooks/useNotificationCount";
+import SportriseWordmark from "@/components/SportriseWordmark";
 
 const SPORT_LABELS: Record<string, { ro: string; en: string }> = {
   football: { ro: "Fotbal", en: "Football" },
@@ -136,7 +137,10 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   return (
     <aside className="w-64 min-h-screen bg-white border-r border-gray-200 flex flex-col">
       <div className="p-6 border-b border-gray-200">
-        <span className="font-display text-2xl text-gray-900">{userRole === "cauta_jucator" ? "" : "⚽ "}SPORTRISE</span>
+        <div className="flex items-center gap-1.5">
+          {userRole !== "cauta_jucator" && <span className="text-lg">{playerSport === "basketball" ? "🏀" : "⚽"}</span>}
+          <SportriseWordmark className="text-lg" />
+        </div>
         {playerName && (
           <p className="text-sm text-gray-500 font-body mt-1 truncate">
             {playerName}{userRole === "player" && playerSport ? ` · ${getSportLabel(playerSport, lang)}` : ""}

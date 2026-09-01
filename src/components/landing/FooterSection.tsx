@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
+import SportriseWordmark from "@/components/SportriseWordmark";
 
 const FooterSection = () => {
   const { t } = useLanguage();
@@ -9,7 +10,8 @@ const FooterSection = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col gap-4 items-center text-center">
           <div className="flex items-center gap-2">
-            <span className="font-display text-lg sm:text-xl text-primary-foreground">⚽ SPORTRISE</span>
+            <span className="text-lg">⚽</span>
+            <SportriseWordmark className="text-lg" onDark />
           </div>
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-muted-foreground font-body">
             <Link to="/" className="hover:text-electric transition-colors">{t.footer.home}</Link>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
+import SportriseWordmark from "@/components/SportriseWordmark";
 
 const Navbar = () => {
   const { t } = useLanguage();
@@ -16,9 +17,7 @@ const Navbar = () => {
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-electric flex items-center justify-center">
             <span className="text-pitch font-display text-base sm:text-lg">⚽</span>
           </div>
-          <span className="font-display text-lg sm:text-2xl text-primary-foreground tracking-wider">
-            SPORTRISE
-          </span>
+          <SportriseWordmark className="text-lg" onDark />
         </Link>
 
         <div className="hidden sm:flex items-center gap-3">
