@@ -141,11 +141,26 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
           {userRole !== "cauta_jucator" && <span className="text-lg">{playerSport === "basketball" ? "🏀" : "⚽"}</span>}
           <SportriseWordmark className="text-lg" />
         </div>
-        {playerName && (
-          <p className="text-sm text-gray-500 font-body mt-1 truncate">
-            {playerName}{userRole === "player" && playerSport ? ` · ${getSportLabel(playerSport, lang)}` : ""}
-          </p>
-        )}
+        {playerName && (() => {
+          const words = playerName.trim().split(/\s+/).filter(Boolean);
+          const sportLabel = userRole === "player" && playerSport ? getSportLabel(playerSport, lang) : "";
+          if (words.length >= 3) {
+            return (
+              <div className="text-sm text-gray-500 font-body mt-1 leading-tight">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="truncate">{words.slice(0, -1).join(" ")}</span>
+                  {sportLabel && <span className="shrink-0 text-gray-400">{sportLabel}</span>}
+                </div>
+                <span className="block truncate">{words[words.length - 1]}</span>
+              </div>
+            );
+          }
+          return (
+            <p className="text-sm text-gray-500 font-body mt-1 truncate">
+              {playerName}{sportLabel ? ` · ${sportLabel}` : ""}
+            </p>
+          );
+        })()}
         {userRole === "cauta_jucator" && (
           <p className="text-xs text-purple-600 font-semibold font-body mt-0.5 tracking-wider uppercase">{t.dashboard.recommendations.roleLabels.cauta_jucator}</p>
         )}
@@ -170,6 +185,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
               return (
                 <button
                   key={section.id}
+                  data-tour={`nav-${section.id}`}
                   onClick={() => onSectionChange(section.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all relative ${
                     isActive

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -31,8 +31,8 @@ import LikeShareCountsSection from "@/components/dashboard/LikeShareCountsSectio
 import LanguageSection from "@/components/dashboard/LanguageSection";
 import AboutSection from "@/components/dashboard/AboutSection";
 import HelpSection from "@/components/dashboard/HelpSection";
-import ProfileCompletionBar from "@/components/dashboard/ProfileCompletionBar";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
+import WelcomeTour from "@/components/dashboard/WelcomeTour";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotifications";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -59,10 +59,14 @@ const Dashboard = () => {
   const [playerName, setPlayerName] = useState("");
   const [playerSport, setPlayerSport] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [completionBarDismissed, setCompletionBarDismissed] = useState(false);
   const [userRole, setUserRole] = useState<"player" | "cauta_jucator" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const [tourForceTab, setTourForceTab] = useState<string | null>(null);
+  // Once the tour has been shown-and-dismissed this session, never show it
+  // again even if a later re-fetch races the has_seen_tour write.
+  const tourResolvedRef = useRef(false);
   const [pendingChatUserId, setPendingChatUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const { sections, percentage, loading: completionLoading } = useProfileCompletion(user?.id ?? null, userRole);
@@ -159,38 +163,60 @@ const Dashboard = () => {
     };
   }, [navigate]);
 
-  // Fetch display name based on role
+  // Fetch display name based on role. Keyed on user?.id (not the user object
+  // itself) so a TOKEN_REFRESHED auth event — which hands us a new `user`
+  // object reference every ~hour for the same logged-in user — doesn't
+  // re-trigger this and re-decide whether to show the welcome tour.
+  const userId = user?.id;
   useEffect(() => {
-    if (!user || !userRole) return;
+    if (!userId || !userRole) return;
     if (userRole === "cauta_jucator") {
       supabase
         .from("scout_profiles")
-        .select("first_name, last_name")
-        .eq("user_id", user.id)
+        .select("first_name, last_name, has_seen_tour")
+        .eq("user_id", userId)
         .maybeSingle()
         .then(
           ({ data }) => {
-            if (data) setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+            if (data) {
+              setPlayerName(`${data.first_name} ${data.last_name}`.trim());
+              if (!(data as any).has_seen_tour && !tourResolvedRef.current) setShowTour(true);
+            }
           },
           (err) => console.error("Failed to load scout display name:", err)
         );
     } else {
       supabase
         .from("player_profiles")
-        .select("first_name, last_name, sport")
-        .eq("user_id", user.id)
+        .select("first_name, last_name, sport, has_seen_tour")
+        .eq("user_id", userId)
         .maybeSingle()
         .then(
           ({ data }) => {
             if (data) {
               setPlayerName(`${data.first_name} ${data.last_name}`.trim());
               if (data.sport) setPlayerSport(data.sport);
+              if (!(data as any).has_seen_tour && !tourResolvedRef.current) setShowTour(true);
             }
           },
           (err) => console.error("Failed to load player display name:", err)
         );
     }
-  }, [user, userRole]);
+  }, [userId, userRole]);
+
+  const handleTourNavigate = (sectionId: string, tabId?: string) => {
+    setActiveSection(sectionId);
+    if (tabId) setTourForceTab(tabId);
+  };
+
+  const handleTourFinish = async () => {
+    setShowTour(false);
+    tourResolvedRef.current = true;
+    if (!user?.id || !userRole) return;
+    const table = userRole === "cauta_jucator" ? "scout_profiles" : "player_profiles";
+    const { error } = await supabase.from(table).update({ has_seen_tour: true } as any).eq("user_id", user.id);
+    if (error) console.error("Failed to persist has_seen_tour:", error);
+  };
 
   // Finish joining a group via invite link if the user had to log in first
   // (JoinGroup.tsx stashes the token before redirecting to /auth).
@@ -298,15 +324,8 @@ const Dashboard = () => {
     if (isMobile) setSidebarOpen(false);
   };
 
-  const completionBar = !completionLoading && percentage < 100 ? (
-    <ProfileCompletionBar
-      percentage={percentage}
-      sections={sections}
-      onSectionClick={handleWizardGoToSection}
-      dismissed={completionBarDismissed}
-      onDismiss={() => setCompletionBarDismissed(true)}
-    />
-  ) : null;
+  // Profile completion bar disabled — was reappearing after every section save.
+  const completionBar = null;
 
   const renderSection = () => {
     switch (activeSection) {
@@ -316,7 +335,7 @@ const Dashboard = () => {
             {completionBar}
             {(userRole === "cauta_jucator")
               ? <ScoutPersonalProfile userId={user.id} />
-              : <PersonalProfile userId={user.id} />}
+              : <PersonalProfile userId={user.id} forceActiveTab={tourForceTab as any} onForceTabHandled={() => setTourForceTab(null)} />}
           </>
         );
       case "players":
@@ -364,7 +383,7 @@ const Dashboard = () => {
             {completionBar}
             {(userRole === "cauta_jucator")
               ? <ScoutPersonalProfile userId={user.id} />
-              : <PersonalProfile userId={user.id} />}
+              : <PersonalProfile userId={user.id} forceActiveTab={tourForceTab as any} onForceTabHandled={() => setTourForceTab(null)} />}
           </>
         );
     }
@@ -382,7 +401,10 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-background dark overflow-hidden">
-      {showWizard && userRole && (
+      {showTour && userRole && (
+        <WelcomeTour role={userRole} onNavigate={handleTourNavigate} onFinish={handleTourFinish} />
+      )}
+      {showWizard && userRole && !showTour && (
         <OnboardingWizard
           sections={sections}
           percentage={percentage}
@@ -391,7 +413,7 @@ const Dashboard = () => {
           onDismiss={handleWizardDismiss}
         />
       )}
-      {showStreakModal && !showWizard && (
+      {showStreakModal && !showWizard && !showTour && (
         <StreakNotificationModal
           currentStreak={streakState.currentStreak}
           required={streakState.required}

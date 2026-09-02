@@ -421,11 +421,17 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
     {
       const { data: followsData } = await supabase
         .from("follows")
-        .select("following_id")
+        .select("following_id, responded_at, created_at")
         .eq("follower_id", user.id)
         .eq("status", "accepted");
 
-      const followedIds = (followsData || []).map((f: any) => f.following_id);
+      // Only surface activity from after the follow was actually accepted —
+      // otherwise a fresh follow floods you with the player's whole history.
+      const followedSinceMap: Record<string, string> = {};
+      (followsData || []).forEach((f: any) => {
+        followedSinceMap[f.following_id] = f.responded_at || f.created_at;
+      });
+      const followedIds = Object.keys(followedSinceMap);
 
       if (followedIds.length > 0) {
         const { data: playerRolesData } = await supabase
@@ -459,18 +465,23 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
             };
           });
 
-          videoNotifs = (videoNotifsRes.data || []).map((n: any) => ({
-            id: `video-${n.id}`,
-            type: "video" as const,
-            videoType: n.type as "highlight" | "test",
-            player_id: n.player_id,
-            player_name: playerInfoMap[n.player_id]?.name || "Jucător",
-            player_photo: playerInfoMap[n.player_id]?.photo || null,
-            player_sport: playerInfoMap[n.player_id]?.sport || null,
-            test_key: n.test_key || null,
-            created_at: n.created_at,
-            isRead: isNotificationRead(user.id, `video-${n.id}`),
-          }));
+          videoNotifs = (videoNotifsRes.data || [])
+            .filter((n: any) => {
+              const followedSince = followedSinceMap[n.player_id];
+              return followedSince && new Date(n.created_at) >= new Date(followedSince);
+            })
+            .map((n: any) => ({
+              id: `video-${n.id}`,
+              type: "video" as const,
+              videoType: n.type as "highlight" | "test",
+              player_id: n.player_id,
+              player_name: playerInfoMap[n.player_id]?.name || "Jucător",
+              player_photo: playerInfoMap[n.player_id]?.photo || null,
+              player_sport: playerInfoMap[n.player_id]?.sport || null,
+              test_key: n.test_key || null,
+              created_at: n.created_at,
+              isRead: isNotificationRead(user.id, `video-${n.id}`),
+            }));
         }
       }
     }

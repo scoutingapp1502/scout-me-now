@@ -108,10 +108,14 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
   const fetchPosts = async (userId: string) => {
     setLoading(true);
     const [{ data: followsData }, { data: favouritesData }] = await Promise.all([
-      supabase.from("follows").select("following_id").eq("follower_id", userId).eq("status", "accepted"),
+      supabase.from("follows").select("following_id, responded_at, created_at").eq("follower_id", userId).eq("status", "accepted"),
       (supabase as any).from("user_favourites").select("favourite_user_id").eq("user_id", userId),
     ]);
-    const followedIds = (followsData || []).map(f => f.following_id);
+    // Only show a followed user's posts from after they accepted the follow —
+    // otherwise a fresh accept floods the feed with their whole back-catalog.
+    const followedSinceMap: Record<string, string> = {};
+    (followsData || []).forEach((f: any) => { followedSinceMap[f.following_id] = f.responded_at || f.created_at; });
+    const followedIds = Object.keys(followedSinceMap);
     const allIds = [...new Set([userId, ...followedIds])];
     const favouriteIds = new Set((favouritesData || []).map((f: any) => f.favourite_user_id as string));
 
@@ -124,7 +128,11 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
     const rawPosts = [
       ...(postsRes.data || []),
       ...(scoutPostsRes.data || []).map((p: any) => ({ ...p, post_type: "scout", video_url: null })),
-    ].sort((a, b) => {
+    ].filter((p: any) => {
+      if (p.user_id === userId) return true;
+      const followedSince = followedSinceMap[p.user_id];
+      return followedSince && new Date(p.created_at) >= new Date(followedSince);
+    }).sort((a, b) => {
       const aFav = favouriteIds.has(a.user_id);
       const bFav = favouriteIds.has(b.user_id);
       if (aFav !== bFav) return aFav ? -1 : 1;

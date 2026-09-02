@@ -91,10 +91,50 @@ for (const [en, ro] of Object.entries(EN_TO_RO)) {
   RO_TO_EN[ro.toLowerCase()] = en;
 }
 
-export function getDisplayNationality(enValue: string | null | undefined, lang: "ro" | "en"): string {
+// High-confidence feminine forms for the most common nationalities. Anything not
+// listed here falls back to a suffix-based derivation (deriveFeminineRo below).
+const EN_TO_RO_FEMININE: Record<string, string> = {
+  "Romanian": "Româncă", "Russian": "Rusoaică", "Greek": "Greacă", "Turkish": "Turcoaică",
+  "Bulgarian": "Bulgăroaică", "Hungarian": "Maghiară", "German": "Germancă", "French": "Franceză",
+  "English": "Engleză", "Italian": "Italiancă", "Spanish": "Spaniolă", "Portuguese": "Portugheză",
+  "Dutch": "Olandeză", "Belgian": "Belgiancă", "Swiss": "Elvețiancă", "Austrian": "Austriacă",
+  "Polish": "Poloneză", "Czech": "Cehă", "Slovak": "Slovacă", "Slovenian": "Slovenă",
+  "Croatian": "Croată", "Serbian": "Sârboaică", "Bosnian": "Bosniacă", "Ukrainian": "Ucraineancă",
+  "Moldovan": "Moldoveancă", "Lithuanian": "Lituaniancă", "Latvian": "Letonă", "Estonian": "Estonă",
+  "Danish": "Daneză", "Swedish": "Suedeză", "Norwegian": "Norvegiancă", "Finnish": "Finlandeză",
+  "Icelandic": "Islandeză", "Irish": "Irlandeză", "Scottish": "Scoțiancă", "British": "Britanică",
+  "Welsh": "Galeză", "American": "Americancă", "Canadian": "Canadiancă", "Mexican": "Mexicancă",
+  "Brazilian": "Braziliancă", "Argentine": "Argentiniancă", "Chilean": "Chileancă",
+  "Colombian": "Colombiancă", "Peruvian": "Peruancă", "Venezuelan": "Venezueleancă",
+  "Cuban": "Cubaneză", "Chinese": "Chineză", "Japanese": "Japoneză", "Indian": "Indiancă",
+  "Indonesian": "Indoneziancă", "Filipino": "Filipineză", "South Korean": "Sud-Coreeancă",
+  "North Korean": "Nord-Coreeancă", "Vietnamese": "Vietnameză", "Thai": "Tailandeză",
+  "Malaysian": "Malaeziancă", "Pakistani": "Pakistaneză", "Egyptian": "Egipteancă",
+  "Moroccan": "Marocană", "Algerian": "Algeriană", "Tunisian": "Tunisiană", "Nigerian": "Nigeriană",
+  "Ghanaian": "Ghaneză", "Kenyan": "Kenyană", "Ethiopian": "Etiopiancă", "South African": "Sud-Africancă",
+  "Israeli": "Israeliancă", "Iranian": "Iraniancă", "Iraqi": "Irakiancă", "Syrian": "Siriancă",
+  "Lebanese": "Libaneză", "Jordanian": "Iordaniancă", "Saudi": "Saudită", "Emirati": "Emirateză",
+  "Australian": "Australiancă", "New Zealander": "Neozeelandeză",
+};
+
+// Best-effort suffix rules for nationalities without an explicit feminine form above.
+function deriveFeminineRo(masculine: string): string {
+  if (masculine.endsWith("ez")) return masculine.slice(0, -2) + "eză";
+  if (masculine.endsWith("ean")) return masculine.slice(0, -3) + "eancă";
+  if (masculine.endsWith("ian")) return masculine.slice(0, -3) + "iancă";
+  if (masculine.endsWith("an")) return masculine.slice(0, -2) + "ancă";
+  if (masculine.endsWith("ac")) return masculine.slice(0, -2) + "acă";
+  return masculine;
+}
+
+export function getDisplayNationality(enValue: string | null | undefined, lang: "ro" | "en", gender?: string | null): string {
   if (!enValue) return "";
-  if (lang === "ro") return EN_TO_RO[enValue] || enValue;
-  return enValue;
+  if (lang !== "ro") return enValue;
+  const masculine = EN_TO_RO[enValue] || enValue;
+  if (gender === "female") {
+    return EN_TO_RO_FEMININE[enValue] || deriveFeminineRo(masculine);
+  }
+  return masculine;
 }
 
 interface NationalityInputProps {
@@ -102,9 +142,10 @@ interface NationalityInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  gender?: string | null;
 }
 
-const NationalityInput = ({ value, onChange, placeholder, className }: NationalityInputProps) => {
+const NationalityInput = ({ value, onChange, placeholder, className, gender }: NationalityInputProps) => {
   const [open, setOpen] = useState(false);
   const [inputText, setInputText] = useState("");
   const [filtered, setFiltered] = useState<{ en: string; display: string }[]>([]);
@@ -114,24 +155,24 @@ const NationalityInput = ({ value, onChange, placeholder, className }: Nationali
   // Sync display text when value (EN) changes externally
   useEffect(() => {
     if (value) {
-      setInputText(lang === "ro" ? (EN_TO_RO[value] || value) : value);
+      setInputText(getDisplayNationality(value, lang, gender));
     } else {
       setInputText("");
     }
-  }, [value, lang]);
+  }, [value, lang, gender]);
 
   useEffect(() => {
     if (inputText && inputText.length > 0) {
       const lower = inputText.toLowerCase();
       const results = NATIONALITIES_EN
-        .map((en) => ({ en, display: lang === "ro" ? (EN_TO_RO[en] || en) : en }))
+        .map((en) => ({ en, display: getDisplayNationality(en, lang, gender) }))
         .filter((item) => item.display.toLowerCase().includes(lower))
         .slice(0, 8);
       setFiltered(results);
     } else {
       setFiltered([]);
     }
-  }, [inputText, lang]);
+  }, [inputText, lang, gender]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -159,7 +200,7 @@ const NationalityInput = ({ value, onChange, placeholder, className }: Nationali
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
           {filtered.map((item) => (
             <button
               key={item.en}
@@ -169,7 +210,7 @@ const NationalityInput = ({ value, onChange, placeholder, className }: Nationali
                 setInputText(item.display);
                 setOpen(false);
               }}
-              className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent/50 transition-colors"
+              className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
             >
               {item.display}
             </button>

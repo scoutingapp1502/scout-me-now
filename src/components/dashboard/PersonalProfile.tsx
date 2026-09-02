@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, useCallback, useMemo, lazy, Suspense } from "react";
+import { Fragment, useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,11 +143,17 @@ interface PersonalProfileProps {
   userId: string;
   readOnly?: boolean;
   onNavigateToChat?: (userId: string) => void;
+  forceActiveTab?: TabType | null;
+  onForceTabHandled?: () => void;
 }
 
 const LOCALE_BY_LANG: Record<string, string> = {
   ro: "ro-RO", en: "en-US", de: "de-DE", fr: "fr-FR", es: "es-ES", it: "it-IT",
 };
+
+// Career dates only ever store a year now (e.g. "2019"); pull the year out directly
+// instead of round-tripping through Date/toLocaleDateString to avoid timezone drift.
+const careerYear = (dateStr: string | undefined | null): string => (dateStr ? dateStr.slice(0, 4) : "");
 
 const positionsBySport: Record<string, string[]> = {
   football: [
@@ -292,7 +298,7 @@ interface AgentSuggestion {
   email: string | null;
 }
 
-const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: PersonalProfileProps) => {
+const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActiveTab, onForceTabHandled }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { lang, t } = useLanguage();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
@@ -303,6 +309,13 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("profile");
+
+  useEffect(() => {
+    if (forceActiveTab) {
+      setActiveTab(forceActiveTab);
+      onForceTabHandled?.();
+    }
+  }, [forceActiveTab]);
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [careerEntries, setCareerEntries] = useState<CareerEntry[]>([]);
@@ -643,6 +656,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           agent_email: form.agent_email,
           agent_phone: form.agent_phone,
           photo_url: photoUrl,
+          avatar_pos_x: (form as any).avatar_pos_x ?? 50,
+          avatar_pos_y: (form as any).avatar_pos_y ?? 50,
           speed: form.speed,
           jumping: form.jumping,
           endurance: form.endurance,
@@ -860,13 +875,16 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
               showAddStoryButton={STORIES_ENABLED && !readOnly && editingSection !== "header"}
               isEditingHeader={editingSection === "header"}
               onAvatarChange={handleAvatarChange}
+              avatarPosX={(form as any).avatar_pos_x}
+              avatarPosY={(form as any).avatar_pos_y}
+              onAvatarPositionChange={(x, y) => { updateForm("avatar_pos_x", x); updateForm("avatar_pos_y", y); }}
             />
           </div>
 
           {/* Info */}
           <div className="flex-1 min-w-0 w-full text-center sm:text-left order-2 sm:order-1 flex flex-col sm:self-stretch relative">
-            {currentTeamLogoUrl && (
-              <div className="hidden sm:flex absolute top-0 right-0 h-24 w-24 items-center justify-center bg-white rounded-lg shadow-sm p-2">
+            {currentTeamLogoUrl && editingSection !== "header" && (
+              <div className="hidden sm:flex absolute top-0 right-0 h-28 w-28 items-center justify-center bg-white rounded-lg shadow-sm p-2">
                 <img
                   src={currentTeamLogoUrl}
                   alt={form.current_team || ""}
@@ -881,10 +899,21 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
               </div>
             ) : (
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="font-display text-3xl sm:text-5xl text-gray-900 tracking-wide uppercase">
-                {profile?.first_name || profile?.last_name
-                  ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
-                  : t.dashboard.profile.completeProfile}
+              <h1 className="font-display text-3xl sm:text-5xl text-gray-900 tracking-wide uppercase leading-tight">
+                {(() => {
+                  const fullName = `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim();
+                  if (!fullName) return t.dashboard.profile.completeProfile;
+                  const words = fullName.split(/\s+/).filter(Boolean);
+                  if (words.length >= 3) {
+                    return (
+                      <>
+                        <span className="block">{words.slice(0, -1).join(" ")}</span>
+                        <span className="block">{words[words.length - 1]}</span>
+                      </>
+                    );
+                  }
+                  return fullName;
+                })()}
               </h1>
               {!unlocks.loading && unlocks.loginStreak > 0 && (
                 <TooltipProvider delayDuration={150}>
@@ -900,13 +929,13 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                         </span>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[240px]">
-                      <p className="font-display text-xs uppercase tracking-wide">{t.dashboard.tests.activeStreakTitle}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <TooltipContent side="top" className="max-w-[240px] bg-white border-gray-200 text-gray-900 shadow-lg">
+                      <p className="font-display text-xs uppercase tracking-wide text-gray-900">{t.dashboard.tests.activeStreakTitle}</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
                         {unlocks.loginStreak} {unlocks.loginStreak === 1 ? t.dashboard.tests.dayConsecutiveWord : t.dashboard.tests.daysConsecutiveWord} {t.dashboard.tests.activeStreakDescSuffix}
                       </p>
                       {unlocks.bestLoginStreak > unlocks.loginStreak && (
-                        <p className="text-[10px] text-muted-foreground/80 mt-1">
+                        <p className="text-[10px] text-gray-400 mt-1">
                           {t.dashboard.tests.personalRecordLabel} {unlocks.bestLoginStreak} {unlocks.bestLoginStreak === 1 ? t.dashboard.tests.dayWord : t.dashboard.tests.daysWord}
                         </p>
                       )}
@@ -958,7 +987,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
                 <div className="flex flex-col">
                   <span className="text-sm text-gray-500 font-body">{t.dashboard.profile.nationality}</span>
                   <span className="text-base font-semibold text-gray-900 font-body mt-0.5">
-                    {profile?.nationality ? getDisplayNationality(profile.nationality, lang) : (readOnly ? "" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>)}
+                    {profile?.nationality ? getDisplayNationality(profile.nationality, lang, profile?.gender) : (readOnly ? "" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>)}
                   </span>
                 </div>
                 <div className="flex flex-col">
@@ -980,7 +1009,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
             {editingSection === "header" && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
+                  <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} gender={form.gender} className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
                   <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -1083,7 +1112,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 
           {/* Edit pencil for header */}
           {!readOnly && (
-            <div className="absolute top-3 right-3 z-10">
+            <div className="absolute top-3 right-3 z-10" data-tour="profile-edit">
               <SectionEditButton section="header" />
             </div>
           )}
@@ -1115,6 +1144,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
           ]).map((tab) => (
             <button
               key={tab.key}
+              data-tour={`tab-${tab.key}`}
               onClick={() => setActiveTab(tab.key)}
               className={`flex-1 px-4 sm:px-6 py-3 font-display text-base sm:text-lg tracking-wide transition-colors relative whitespace-nowrap
                 ${activeTab === tab.key
@@ -1449,12 +1479,46 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Persona
 };
 
 /* ======================== FIFA-STYLE PLAYER CARD ======================== */
-export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOpenStory, onAddStory, showAddStoryButton, isEditingHeader, onAvatarChange, mini = false }: {
+export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOpenStory, onAddStory, showAddStoryButton, isEditingHeader, onAvatarChange, avatarPosX, avatarPosY, onAvatarPositionChange, mini = false }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; photoSrc?: string | null; userId?: string;
   hasStory?: boolean; onOpenStory?: () => void; onAddStory?: () => void; showAddStoryButton?: boolean;
-  isEditingHeader?: boolean; onAvatarChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; mini?: boolean;
+  isEditingHeader?: boolean; onAvatarChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  avatarPosX?: number; avatarPosY?: number; onAvatarPositionChange?: (x: number, y: number) => void; mini?: boolean;
 }) {
   const { getSubmissionForTest } = useVideoSubmissions(userId);
+  const dragState = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
+  const dragMovedRef = useRef(false);
+  const photoFrameRef = useRef<HTMLDivElement>(null);
+  const posX = avatarPosX ?? 50;
+  const posY = avatarPosY ?? 50;
+
+  const handlePhotoPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isEditingHeader || !onAvatarPositionChange) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragMovedRef.current = false;
+    dragState.current = { startX: e.clientX, startY: e.clientY, startPosX: posX, startPosY: posY };
+  };
+
+  const handlePhotoPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragState.current || !onAvatarPositionChange) return;
+    const frame = photoFrameRef.current;
+    if (!frame) return;
+    const { width, height } = frame.getBoundingClientRect();
+    const rawDeltaX = e.clientX - dragState.current.startX;
+    const rawDeltaY = e.clientY - dragState.current.startY;
+    if (Math.abs(rawDeltaX) > 3 || Math.abs(rawDeltaY) > 3) dragMovedRef.current = true;
+    const deltaXPct = (rawDeltaX / width) * 100;
+    const deltaYPct = (rawDeltaY / height) * 100;
+    const nextX = Math.min(100, Math.max(0, dragState.current.startPosX - deltaXPct));
+    const nextY = Math.min(100, Math.max(0, dragState.current.startPosY - deltaYPct));
+    onAvatarPositionChange(nextX, nextY);
+  };
+
+  const handlePhotoPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragState.current) e.currentTarget.releasePointerCapture(e.pointerId);
+    dragState.current = null;
+  };
 
   return (
     <div className={`mx-auto sm:mx-0 relative ${mini ? "w-[140px]" : "w-[220px]"} shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)]`}
@@ -1491,11 +1555,12 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
               </div>
             )}
             <div
+              ref={photoFrameRef}
               className={`relative z-10 rounded-xl overflow-hidden shadow-lg ${mini ? "w-[95px] h-[95px]" : "w-[130px] h-[130px]"} ${hasStory ? "border-[3px] border-background cursor-pointer" : "border-2 border-primary-foreground/20"}`}
-              onClick={hasStory ? onOpenStory : undefined}
+              onClick={hasStory && !isEditingHeader ? onOpenStory : undefined}
             >
               {photoSrc ? (
-                <img src={photoSrc} alt="Player" className="w-full h-full object-cover" />
+                <img src={photoSrc} alt="Player" className="w-full h-full object-cover" style={{ objectPosition: `${posX}% ${posY}%` }} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-primary-foreground/10">
                   <Camera className={mini ? "h-6 w-6 text-primary-foreground/40" : "h-8 w-8 text-primary-foreground/40"} />
@@ -1503,7 +1568,18 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
               )}
             </div>
             {isEditingHeader && (
-              <label className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 rounded-xl cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+              <label
+                className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 rounded-xl cursor-move opacity-0 group-hover:opacity-100 transition-opacity"
+                onPointerDown={handlePhotoPointerDown}
+                onPointerMove={handlePhotoPointerMove}
+                onPointerUp={handlePhotoPointerUp}
+                onClickCapture={(e) => {
+                  if (dragMovedRef.current) {
+                    e.preventDefault();
+                    dragMovedRef.current = false;
+                  }
+                }}
+              >
                 <Camera className="h-6 w-6 text-white" />
                 <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
               </label>
@@ -1602,7 +1678,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             <span className="text-sm font-body text-gray-900 uppercase tracking-wide">{test.icon} {testLabel}</span>
                             <Popover>
                               <PopoverTrigger asChild>
-                                <button className={`group text-muted-foreground hover:text-gray-900 transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`${tt.infoAriaPrefix} ${testLabel}`}>
+                                <button className={`group text-purple-600 hover:text-purple-700 transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`${tt.infoAriaPrefix} ${testLabel}`}>
                                   <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                                 </button>
                               </PopoverTrigger>
@@ -1859,7 +1935,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
         </div>
 
         {/* Teste Tehnice Specifice section */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6" data-tour="tests-list">
           <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               <h4 className="font-display text-lg text-gray-900 uppercase tracking-wide">{tt.technicalTitle}</h4>
@@ -2074,7 +2150,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     <span className="text-sm font-body text-gray-900 uppercase tracking-wide">{test.icon} {testLabel}</span>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className={`group text-muted-foreground hover:text-gray-900 transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`${tt.infoAriaPrefix} ${testLabel}`}>
+                        <button className={`group text-purple-600 hover:text-purple-700 transition-colors p-1 ${readOnly ? 'hidden' : ''}`} aria-label={`${tt.infoAriaPrefix} ${testLabel}`}>
                           <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                         </button>
                       </PopoverTrigger>
@@ -2783,7 +2859,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               {!readOnly && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="group text-muted-foreground hover:text-gray-900 transition-colors" aria-label={t.dashboard.profile.physicalDataTipsLabel}>
+                    <button className="group text-purple-600 hover:text-purple-700 transition-colors" aria-label={t.dashboard.profile.physicalDataTipsLabel}>
                       <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                     </button>
                   </PopoverTrigger>
@@ -2827,7 +2903,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                 </Select>
               </div>
               <div><Label className="text-xs text-gray-500">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
-              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} gender={form.gender} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
               <div className="border-t border-gray-200 pt-3 mt-1">
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">{t.dashboard.profile.geneticData}</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -2862,7 +2938,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.weight}</span><span className="text-gray-900 font-semibold">{profile?.weight_kg ? `${profile.weight_kg}kg` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.wingspan}</span><span className="text-gray-900 font-semibold">{profile?.wingspan_cm ? `${(profile.wingspan_cm / 100).toFixed(2)}m` : "—"}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">{(profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</span><span className="text-gray-900 font-semibold">{translateFootHandValue(profile?.preferred_foot, (profile?.sport) === "basketball", t) || "—"}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.nationality}</span><span className="text-gray-900 font-semibold">{profile?.nationality ? getDisplayNationality(profile.nationality, lang) : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.nationality}</span><span className="text-gray-900 font-semibold">{profile?.nationality ? getDisplayNationality(profile.nationality, lang, profile?.gender) : "—"}</span></div>
               <div className="border-t border-gray-200 pt-3 mt-1 space-y-3">
                 <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.motherHeight}</span><span className="text-gray-900 font-semibold">{(profile as any)?.mother_height_cm ? `${((profile as any).mother_height_cm / 100).toFixed(2)}m` : "—"}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">{t.dashboard.profile.fatherHeight}</span><span className="text-gray-900 font-semibold">{(profile as any)?.father_height_cm ? `${((profile as any).father_height_cm / 100).toFixed(2)}m` : "—"}</span></div>
@@ -2880,7 +2956,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               {!readOnly && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="group text-muted-foreground hover:text-gray-900 transition-colors" aria-label={t.dashboard.profile.agentTipsLabel}>
+                    <button className="group text-purple-600 hover:text-purple-700 transition-colors" aria-label={t.dashboard.profile.agentTipsLabel}>
                       <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                     </button>
                   </PopoverTrigger>
@@ -3078,7 +3154,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
             {!readOnly && (
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="group text-muted-foreground hover:text-gray-900 transition-colors" aria-label={t.dashboard.profile.aboutTipsLabel}>
+                  <button className="group text-purple-600 hover:text-purple-700 transition-colors" aria-label={t.dashboard.profile.aboutTipsLabel}>
                     <Info className="h-4 w-4 group-hover:stroke-[2.5]" />
                   </button>
                 </PopoverTrigger>
@@ -3108,9 +3184,9 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                   <div className="min-w-0">
                     <p className="font-semibold text-sm text-gray-900 truncate">{entry.team_name || (lang === "ro" ? "Echipă nouă" : "New team")}</p>
                     <p className="text-xs text-gray-500">
-                      {entry.start_date ? new Date(entry.start_date).toLocaleDateString(LOCALE_BY_LANG[lang] || "en-US", { month: "short", year: "numeric" }) : "—"}
+                      {entry.start_date ? careerYear(entry.start_date) : "—"}
                       {" — "}
-                      {entry.currently_active ? t.dashboard.scoutProfile.presentWord : entry.end_date ? new Date(entry.end_date).toLocaleDateString(LOCALE_BY_LANG[lang] || "en-US", { month: "short", year: "numeric" }) : "—"}
+                      {entry.currently_active ? t.dashboard.scoutProfile.presentWord : entry.end_date ? careerYear(entry.end_date) : "—"}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -3165,27 +3241,34 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                 })()}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-gray-900 font-medium">{t.dashboard.scoutProfile.startDateLabel}</Label>
+                    <Label className="text-xs text-gray-900 font-medium">{lang === "ro" ? "Anul de început" : "Start year"}</Label>
                     <Input
-                      type="date"
-                      value={entry.start_date}
+                      type="number"
+                      inputMode="numeric"
+                      placeholder={lang === "ro" ? "ex: 2019" : "e.g. 2019"}
+                      value={careerYear(entry.start_date)}
+                      min={1950}
+                      max={new Date().getFullYear() + 1}
                       onChange={(e) => {
                         const updated = [...careerEntries];
-                        updated[idx] = { ...entry, start_date: e.target.value };
+                        updated[idx] = { ...entry, start_date: e.target.value ? `${e.target.value}-01-01` : "" };
                         setCareerEntries(updated);
                       }}
                       className="bg-white border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-900 font-medium">{t.dashboard.scoutProfile.endDateLabel}</Label>
+                    <Label className="text-xs text-gray-900 font-medium">{lang === "ro" ? "Anul de sfârșit" : "End year"}</Label>
                     <Input
-                      type="date"
-                      value={entry.end_date}
-                      min={entry.start_date || undefined}
+                      type="number"
+                      inputMode="numeric"
+                      placeholder={lang === "ro" ? "ex: 2021" : "e.g. 2021"}
+                      value={careerYear(entry.end_date)}
+                      min={entry.start_date ? careerYear(entry.start_date) : 1950}
+                      max={new Date().getFullYear() + 1}
                       onChange={(e) => {
                         const updated = [...careerEntries];
-                        updated[idx] = { ...entry, end_date: e.target.value };
+                        updated[idx] = { ...entry, end_date: e.target.value ? `${e.target.value}-01-01` : "" };
                         setCareerEntries(updated);
                       }}
                       disabled={entry.currently_active}
@@ -3253,9 +3336,9 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                 <div key={idx} className="border-l-2 border-primary/30 pl-3">
                   <p className="font-semibold text-gray-900 text-sm">{entry.team_name}</p>
                   <p className="text-xs text-gray-500">
-                    {entry.start_date ? new Date(entry.start_date).toLocaleDateString(LOCALE_BY_LANG[lang] || "en-US", { month: "short", year: "numeric" }) : "—"}
+                    {entry.start_date ? careerYear(entry.start_date) : "—"}
                     {" — "}
-                    {entry.currently_active ? t.dashboard.scoutProfile.presentWord : entry.end_date ? new Date(entry.end_date).toLocaleDateString(LOCALE_BY_LANG[lang] || "en-US", { month: "short", year: "numeric" }) : "—"}
+                    {entry.currently_active ? t.dashboard.scoutProfile.presentWord : entry.end_date ? careerYear(entry.end_date) : "—"}
                   </p>
                   {entry.description && (() => {
                     try {
@@ -3300,7 +3383,7 @@ function VideoTab({ form, profile, editingSection, newVideoUrl, setNewVideoUrl, 
   newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-tour="video-add">
       <VideoSection
         title="VIDEO HIGHLIGHTS"
         section="video"
@@ -3564,7 +3647,11 @@ function VideoSection({
           <p className="text-gray-500 font-body text-sm">{t.dashboard.profile.noVideos}</p>
         </div>
       )}
-      {editing && <SectionSaveButton />}
+      {editing && (
+        <div className={videos.length === 1 ? "sm:max-w-[calc(50%-0.5rem)]" : ""}>
+          <SectionSaveButton />
+        </div>
+      )}
     </div>
   );
 }

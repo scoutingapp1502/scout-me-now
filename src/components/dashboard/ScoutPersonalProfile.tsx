@@ -686,6 +686,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
             <div className="flex flex-col items-end gap-2">
               {!readOnly && editingSection !== "header" && (
                 <button
+                  data-tour="profile-edit"
                   onClick={() => setEditingSection("header")}
                   className="group text-gray-900 hover:text-gray-400 transition-colors p-1"
                   aria-label={ts.editAria}
