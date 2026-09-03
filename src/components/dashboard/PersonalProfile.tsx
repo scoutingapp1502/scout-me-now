@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -851,11 +851,10 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
 
   return (
     <div className={`relative isolate ${activeTab === "posts" || activeTab === "profile" || activeTab === "stats" || activeTab === "video" ? "w-full" : "max-w-4xl mx-auto"}`}>
-      <div className={activeTab === "profile" || activeTab === "stats" || activeTab === "video" ? "grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start" : ""}>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
       <div className="min-w-0">
       {/* SECTION 1: Header / Hero - sticky */}
       <div className="z-20 rounded-xl overflow-hidden">
-      {activeTab !== "posts" && (
       <div className="relative bg-white rounded-t-xl overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
@@ -894,8 +893,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
             )}
             {editingSection === "header" ? (
               <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-lg sm:text-2xl h-auto py-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
-                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-lg sm:text-2xl h-auto py-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
+                <Input value={form.first_name || ""} onChange={(e) => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-lg sm:text-2xl h-auto py-1 min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900" />
+                <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-lg sm:text-2xl h-auto py-1 min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900" />
               </div>
             ) : (
             <div className="flex items-center gap-3 flex-wrap">
@@ -971,7 +970,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
                   value={(form as any).jersey_number ?? ""}
                   onChange={(e) => updateForm("jersey_number", e.target.value ? parseInt(e.target.value, 10) : null)}
                   placeholder={lang === "ro" ? "Nr. tricou" : "Shirt no."}
-                  className="bg-gray-100 border-gray-300 text-gray-900 w-full sm:w-24 focus-visible:ring-1 focus-visible:ring-gray-900"
+                  className="bg-gray-100 border-gray-300 text-gray-900 w-full sm:w-24 focus-visible:ring-2 focus-visible:ring-gray-900"
                 />
               </div>
             ) : (
@@ -1009,13 +1008,13 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
             {editingSection === "header" && (
               <div className="flex flex-col gap-2 mt-3">
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} gender={form.gender} className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
-                  <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
+                  <NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} placeholder={t.dashboard.profile.nationality} gender={form.gender} className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900" />
+                  <Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} placeholder={t.dashboard.profile.birthDate} className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Input value={form.instagram_url || ""} onChange={(e) => updateForm("instagram_url", e.target.value)} placeholder="Instagram URL" className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
-                  <Input value={form.twitter_url || ""} onChange={(e) => updateForm("twitter_url", e.target.value)} placeholder="Twitter/X URL" className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
-                  <Input value={form.tiktok_url || ""} onChange={(e) => updateForm("tiktok_url", e.target.value)} placeholder="TikTok URL" className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900" />
+                  <Input value={form.instagram_url || ""} onChange={(e) => updateForm("instagram_url", e.target.value)} placeholder="Instagram URL" className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900" />
+                  <Input value={form.twitter_url || ""} onChange={(e) => updateForm("twitter_url", e.target.value)} placeholder="Twitter/X URL" className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900" />
+                  <Input value={form.tiktok_url || ""} onChange={(e) => updateForm("tiktok_url", e.target.value)} placeholder="TikTok URL" className="bg-gray-100 border-gray-300 text-gray-900 text-xs min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900" />
                 </div>
               </div>
             )}
@@ -1131,10 +1130,9 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
           )}
         </div>
       </div>
-      )}
 
       {/* Tabs row (no edit button) */}
-      <div className={`flex items-stretch border-b border-gray-200 bg-white z-20 ${activeTab === "posts" ? "rounded-xl" : "rounded-b-xl"}`}>
+      <div className="flex items-stretch border-b border-gray-200 bg-white z-20 rounded-b-xl">
         <div className="flex flex-1 overflow-x-auto">
           {([
             { key: "profile" as TabType, label: lang === "ro" ? "Profil" : "Profile" },
@@ -1220,159 +1218,10 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
             SectionSaveButton={SectionSaveButton}
           />
         )}
-        {activeTab === "posts" && (
-          <>
-          {/* Decorative geometric shapes above the posts feed, matching the Activitate page */}
-          <div className="relative h-0 overflow-visible">
-            <div
-              className="absolute -z-10 pointer-events-none"
-              style={{
-                top: "-150px",
-                right: "60px",
-                width: "170px",
-                height: "170px",
-                background: "linear-gradient(135deg, #f97316, #fb923c)",
-                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-                opacity: 0.9,
-              }}
-            />
-            <div
-              className="absolute -z-10 pointer-events-none"
-              style={{
-                top: "-100px",
-                left: "-40px",
-                width: "120px",
-                height: "120px",
-                background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-                clipPath: "polygon(0 0, 100% 0, 0 100%)",
-                opacity: 0.9,
-              }}
-            />
-            <div
-              className="absolute -z-10 pointer-events-none"
-              style={{
-                top: "-220px",
-                left: "40%",
-                width: "110px",
-                height: "110px",
-                background: "#a3e635",
-                clipPath: "polygon(0 0, 100% 0, 0 100%)",
-                opacity: 0.9,
-              }}
-            />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_360px] gap-4 items-start">
-            {/* Left: sticky personal info */}
-            <div className="hidden lg:block lg:sticky lg:top-6">
-              <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-                <button type="button" onClick={() => setActiveTab("profile")} className="flex justify-center w-full cursor-pointer">
-                  <FifaPlayerCard form={form} profile={profile} photoSrc={photoSrc} userId={userId} mini />
-                </button>
-                {(form.position || form.current_team) && (
-                  <p className="text-xs text-gray-500 mt-3">
-                    {[translatePosition(form.position, lang), form.current_team].filter(Boolean).join(" · ")}
-                  </p>
-                )}
-                <div className="border-t border-gray-200 mt-4 pt-3 flex items-center justify-center gap-1.5 text-sm">
-                  <Users className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-gray-900">{followerCount}</span>
-                  <span className="text-gray-500">{lang === "ro" ? "urmăritori" : "followers"}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Center: posts feed */}
-            <div className="min-w-0">
-              <PostsTab userId={userId} readOnly={readOnly} />
-            </div>
-
-            {/* Right: news & announcements placeholder */}
-            <div className="hidden lg:block lg:sticky lg:top-6 relative">
-              <div
-                className="absolute -z-10 pointer-events-none"
-                style={{
-                  top: "-30px",
-                  right: "-20px",
-                  width: "140px",
-                  height: "140px",
-                  background: "#a3e635",
-                  clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-                  opacity: 0.9,
-                }}
-              />
-              <div
-                className="absolute -z-10 pointer-events-none"
-                style={{
-                  bottom: "-24px",
-                  left: "-16px",
-                  width: "110px",
-                  height: "110px",
-                  background: "linear-gradient(135deg, #f97316, #fb923c)",
-                  clipPath: "polygon(0 100%, 100% 100%, 0 0)",
-                  opacity: 0.9,
-                }}
-              />
-              <NewsAnnouncementsPanel />
-            </div>
-          </div>
-
-          {/* Decorative geometric shapes below the page content */}
-          <div className="relative h-0 overflow-visible">
-            <div
-              className="absolute -z-10 pointer-events-none"
-              style={{
-                top: "40px",
-                right: "80px",
-                width: "150px",
-                height: "150px",
-                background: "#a3e635",
-                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-                opacity: 0.9,
-              }}
-            />
-            <div
-              className="absolute -z-10 pointer-events-none"
-              style={{
-                top: "100px",
-                left: "40px",
-                width: "120px",
-                height: "120px",
-                background: "linear-gradient(135deg, #f97316, #fb923c)",
-                clipPath: "polygon(0 100%, 100% 100%, 0 0)",
-                opacity: 0.9,
-              }}
-            />
-            <div
-              className="absolute -z-10 pointer-events-none"
-              style={{
-                top: "260px",
-                right: "260px",
-                width: "110px",
-                height: "110px",
-                background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-                clipPath: "polygon(0 0, 100% 0, 0 100%)",
-                opacity: 0.9,
-              }}
-            />
-            <div
-              className="absolute -z-10 pointer-events-none"
-              style={{
-                top: "320px",
-                left: "220px",
-                width: "100px",
-                height: "100px",
-                background: "#a3e635",
-                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-                opacity: 0.9,
-              }}
-            />
-          </div>
-          </>
-        )}
+        {activeTab === "posts" && <PostsTab userId={userId} readOnly={readOnly} />}
       </div>
       </div>
-      {(activeTab === "profile" || activeTab === "stats" || activeTab === "video") && (
-        <div className="hidden lg:block lg:sticky lg:top-6 relative">
+      <div className="hidden lg:block lg:sticky lg:top-6 relative">
           <div
             className="absolute -z-10 pointer-events-none"
             style={{
@@ -1399,7 +1248,6 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
           />
           <NewsAnnouncementsPanel />
         </div>
-      )}
       </div>
 
       {/* Message Dialog */}
@@ -1804,7 +1652,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                   placeholder={tt.videoUrlPlaceholder}
                                   value={(form as any)[test.inputKey] || ""}
                                   onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
-                                  className="bg-gray-100 border-gray-300 text-gray-900 flex-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900"
+                                  className="bg-gray-100 border-gray-300 text-gray-900 flex-1 min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900"
                                 />
                                 <Button type="button" variant="outline" size="sm" className="shrink-0 border-gray-300 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 hover:text-white hover:border-transparent" onClick={() => {
                                   const val = (form as any)[test.inputKey]?.trim();
@@ -2077,7 +1925,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                           placeholder={tt.videoUrlPlaceholder}
                           value={(form as any)[test.inputKey] || ""}
                           onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
-                          className="bg-gray-100 border-gray-300 text-gray-900 flex-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900"
+                          className="bg-gray-100 border-gray-300 text-gray-900 flex-1 min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900"
                         />
                         <Button type="button" variant="outline" size="sm" className="shrink-0 border-gray-300 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 hover:text-white hover:border-transparent" onClick={() => {
                           const val = (form as any)[test.inputKey]?.trim();
@@ -2265,7 +2113,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                           placeholder={tt.videoUrlPlaceholder}
                           value={(form as any)[test.inputKey] || ""}
                           onChange={(e) => updateForm(test.inputKey as any, e.target.value)}
-                          className="bg-gray-100 border-gray-300 text-gray-900 flex-1 min-w-0 focus-visible:ring-1 focus-visible:ring-gray-900"
+                          className="bg-gray-100 border-gray-300 text-gray-900 flex-1 min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900"
                         />
                         <Button type="button" variant="outline" size="sm" className="shrink-0 border-gray-300 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 hover:text-white hover:border-transparent" onClick={() => {
                           const val = (form as any)[test.inputKey]?.trim();
@@ -2878,9 +2726,9 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
           </div>
           {editingPhysical ? (
             <div className="space-y-3">
-              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.heightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.height_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("height_cm", v ? parseInt(v) : null); }} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
-              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.weightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.weight_kg ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("weight_kg", v ? parseInt(v) : null); }} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
-              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.wingspanLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.wingspan_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("wingspan_cm", v ? parseInt(v) : null); }} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.heightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.height_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("height_cm", v ? parseInt(v) : null); }} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.weightLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.weight_kg ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("weight_kg", v ? parseInt(v) : null); }} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.wingspanLabel}</Label><Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.wingspan_cm ?? ""} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("wingspan_cm", v ? parseInt(v) : null); }} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900" /></div>
               <div>
                 <Label className="text-xs text-gray-500">{(form.sport || profile?.sport) === "basketball" ? t.dashboard.profile.preferredHand : t.dashboard.profile.preferredFoot}</Label>
                 <Select value={form.preferred_foot || ""} onValueChange={(v) => updateForm("preferred_foot", v)}>
@@ -2902,8 +2750,8 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
-              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} gender={form.gender} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.birthDate}</Label><Input type="date" value={form.date_of_birth || ""} onChange={(e) => updateForm("date_of_birth", e.target.value)} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900" /></div>
+              <div><Label className="text-xs text-gray-500">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} gender={form.gender} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900" /></div>
               <div className="border-t border-gray-200 pt-3 mt-1">
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">{t.dashboard.profile.geneticData}</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -2915,7 +2763,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       placeholder="ex: 185"
                       onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }}
                       onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("father_height_cm", v ? parseInt(v) : null); }}
-                      className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                      className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                     />
                   </div>
                   <div>
@@ -2926,7 +2774,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                       placeholder="ex: 165"
                       onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !["Backspace","Delete","ArrowLeft","ArrowRight","Tab"].includes(e.key)) e.preventDefault(); }}
                       onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); updateForm("mother_height_cm", v ? parseInt(v) : null); }}
-                      className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                      className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                     />
                   </div>
                 </div>
@@ -3017,7 +2865,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     onChange={(e) => handleAgentNameChange(e.target.value)}
                     onFocus={() => { if (agentSuggestions.length > 0) setShowAgentSuggestions(true); }}
                     onBlur={() => setTimeout(() => setShowAgentSuggestions(false), 200)}
-                    className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                    className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                     placeholder={lang === "ro" ? "Caută agent după nume..." : "Search agent by name..."}
                     autoComplete="off"
                   />
@@ -3056,7 +2904,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     type="email"
                     value={form.agent_email || ""}
                     onChange={(e) => updateForm("agent_email", e.target.value)}
-                    className={`bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900 ${form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    className={`bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900 ${form.agent_email && !form.agent_email.includes("@") ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     placeholder="agent@example.com"
                   />
                   {form.agent_email && !form.agent_email.includes("@") && (
@@ -3221,7 +3069,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                     }}
                     suggestions={teamNameSuggestions}
                     placeholder={tp.teamPlaceholder}
-                    className="bg-white border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                    className="bg-white border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                   />
                 </div>
                 {/* Date overlap validation */}
@@ -3254,7 +3102,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                         updated[idx] = { ...entry, start_date: e.target.value ? `${e.target.value}-01-01` : "" };
                         setCareerEntries(updated);
                       }}
-                      className="bg-white border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                      className="bg-white border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                     />
                   </div>
                   <div>
@@ -3272,7 +3120,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                         setCareerEntries(updated);
                       }}
                       disabled={entry.currently_active}
-                      className="bg-white border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                      className="bg-white border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                     />
                   </div>
                 </div>
@@ -3544,7 +3392,7 @@ function VideoSection({
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
                 placeholder={t.dashboard.profile.videoPlaceholder}
-                className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                 onKeyDown={(e) => e.key === "Enter" && addVideoWithDescription()}
               />
               <Button onClick={addVideoWithDescription} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
@@ -3557,7 +3405,7 @@ function VideoSection({
               onChange={(e) => setNewVideoDescription(e.target.value)}
               placeholder="Ex: Liga 1 - Etapa 12, vs FC Steaua, gol din minutul 34..."
               rows={2}
-              className="bg-gray-100 border-gray-300 text-gray-900 text-sm focus-visible:ring-1 focus-visible:ring-gray-900"
+              className="bg-gray-100 border-gray-300 text-gray-900 text-sm focus-visible:ring-2 focus-visible:ring-gray-900"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -3623,7 +3471,7 @@ function VideoSection({
                       onChange={(e) => updateDescription(i, e.target.value)}
                       placeholder="Descriere: competiție, adversar, stagiu meci..."
                       rows={2}
-                      className="bg-gray-100 border-gray-300 text-gray-900 text-xs focus-visible:ring-1 focus-visible:ring-gray-900"
+                      className="bg-gray-100 border-gray-300 text-gray-900 text-xs focus-visible:ring-2 focus-visible:ring-gray-900"
                     />
                   ) : description ? (
                     <p className="text-gray-700 font-body text-sm leading-relaxed">{description}</p>
@@ -3658,34 +3506,6 @@ function VideoSection({
 
 
 /* ======================== POSTS TAB ======================== */
-// Decorative geometric accents scattered between feed cards, alternating
-// sides and colors so they don't all pile up on the same edge.
-const feedDividerVariants = [
-  { side: "left" as const, background: "linear-gradient(135deg, #7c3aed, #a855f7)", clipPath: "polygon(0 0, 100% 0, 0 100%)" },
-  { side: "right" as const, background: "#a3e635", clipPath: "polygon(100% 0, 100% 100%, 0 100%)" },
-  { side: "left" as const, background: "linear-gradient(135deg, #f97316, #fb923c)", clipPath: "polygon(0 100%, 100% 100%, 0 0)" },
-];
-
-const FeedDivider = ({ index }: { index: number }) => {
-  const variant = feedDividerVariants[index % feedDividerVariants.length];
-  return (
-    <div className="relative h-0 overflow-visible">
-      <div
-        className="absolute -z-10 pointer-events-none"
-        style={{
-          top: "-20px",
-          [variant.side]: "-20px",
-          width: "120px",
-          height: "120px",
-          background: variant.background,
-          clipPath: variant.clipPath,
-          opacity: 0.9,
-        }}
-      />
-    </div>
-  );
-};
-
 function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boolean }) {
   const { lang } = useLanguage();
   const { toast } = useToast();
@@ -3693,6 +3513,7 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [authorInfo, setAuthorInfo] = useState<{ name: string; photo: string | null; role: string; title: string } | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
@@ -3751,9 +3572,19 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
       return;
     }
     setPosts(prev => prev.filter(p => p.id !== postId));
+    setSelectedPostId((cur) => (cur === postId ? null : cur));
   }, [lang, toast]);
 
   const handleViewProfile = useCallback(() => {}, []);
+
+  const selectedPost = posts.find((p) => p.id === selectedPostId) || null;
+  const author = {
+    user_id: userId,
+    name: authorInfo?.name || "",
+    photo: authorInfo?.photo || null,
+    role: authorInfo?.role || "player",
+    title: authorInfo?.title || "",
+  };
 
   if (loading) {
     return (
@@ -3769,76 +3600,52 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
         <NewPostComposer currentUserId={currentUserId} myPhoto={authorInfo?.photo} onPosted={fetchPosts} />
       )}
 
-      {/* Decorative geometric shape between composer and feed */}
-      <div className="relative h-0 overflow-visible">
-        <div
-          className="absolute -z-10 pointer-events-none"
-          style={{
-            top: "-30px",
-            right: "-16px",
-            width: "180px",
-            height: "180px",
-            background: "linear-gradient(135deg, #f97316, #fb923c)",
-            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-            opacity: 0.9,
-          }}
-        />
-      </div>
-
       {posts.length === 0 ? (
         <p className="text-center text-muted-foreground py-12 font-body">
           {lang === "ro" ? "Nicio postare încă." : "No posts yet."}
         </p>
       ) : (
-        <div className="space-y-4">
-          {posts.map((post, idx) => (
-            <Fragment key={post.id}>
-              <PostCard
-                post={post}
-                author={{
-                  user_id: userId,
-                  name: authorInfo?.name || "",
-                  photo: authorInfo?.photo || null,
-                  role: authorInfo?.role || "player",
-                  title: authorInfo?.title || "",
-                }}
-                currentUserId={currentUserId}
-                onDelete={handleDelete}
-                onViewProfile={handleViewProfile}
-              />
-              {idx < posts.length - 1 && <FeedDivider index={idx} />}
-            </Fragment>
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-1.5">
+          {posts.map((post) => (
+            <button
+              key={post.id}
+              type="button"
+              onClick={() => setSelectedPostId(post.id)}
+              className="relative aspect-square overflow-hidden rounded-md bg-gray-100 group"
+            >
+              {post.image_url ? (
+                <img src={post.image_url} alt="" loading="lazy" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+              ) : post.video_url ? (
+                <>
+                  <video src={post.video_url} className="w-full h-full object-cover" muted preload="metadata" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <Play className="h-6 w-6 text-white fill-white drop-shadow" />
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center p-3 bg-white border border-gray-200">
+                  <p className="text-gray-900 text-[11px] leading-snug text-center line-clamp-5 font-medium">{post.content}</p>
+                </div>
+              )}
+            </button>
           ))}
         </div>
       )}
 
-      {/* Decorative geometric shapes below the feed */}
-      <div className="relative h-0 overflow-visible">
-        <div
-          className="absolute -z-10 pointer-events-none"
-          style={{
-            top: "-20px",
-            right: "0px",
-            width: "160px",
-            height: "160px",
-            background: "#a3e635",
-            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-            opacity: 0.9,
-          }}
-        />
-        <div
-          className="absolute -z-10 pointer-events-none"
-          style={{
-            top: "20px",
-            left: "-16px",
-            width: "130px",
-            height: "130px",
-            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-            clipPath: "polygon(0 0, 100% 0, 0 100%)",
-            opacity: 0.9,
-          }}
-        />
-      </div>
+      <Dialog open={!!selectedPostId} onOpenChange={(open) => { if (!open) setSelectedPostId(null); }}>
+        <DialogContent className="max-w-lg p-0 max-h-[85vh] overflow-y-auto bg-white">
+          {selectedPost && (
+            <PostCard
+              post={selectedPost}
+              author={author}
+              currentUserId={currentUserId}
+              onDelete={handleDelete}
+              onViewProfile={handleViewProfile}
+              reserveCloseButtonSpace
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

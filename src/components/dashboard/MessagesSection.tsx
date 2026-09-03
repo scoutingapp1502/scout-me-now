@@ -1333,7 +1333,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               value={groupSearchQuery}
               onChange={e => setGroupSearchQuery(e.target.value)}
               placeholder={lang === "ro" ? "Caută în conversație" : "Search in conversation"}
-              className="pl-10 pr-9 rounded-full border-0 bg-gray-100 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+              className="pl-10 pr-9 rounded-full border-0 bg-gray-100 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
               autoFocus
             />
             {groupSearchQuery && (
@@ -1678,7 +1678,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           >
             {uploadingAttachment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
           </Button>
-          <Input value={groupMsgInput} onChange={e => setGroupMsgInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendGroupMessage(); } }} placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."} className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900" autoFocus />
+          <Input value={groupMsgInput} onChange={e => setGroupMsgInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendGroupMessage(); } }} placeholder={lang === "ro" ? "Scrie un mesaj..." : "Type a message..."} className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900" autoFocus />
           <Button onClick={handleSendGroupMessage} disabled={!groupMsgInput.trim()} size="icon" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"><Send className="h-4 w-4" /></Button>
         </div>
       </div>
@@ -1743,7 +1743,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               value={dmSearchQuery}
               onChange={e => setDmSearchQuery(e.target.value)}
               placeholder={lang === "ro" ? "Caută în conversație" : "Search in conversation"}
-              className="pl-10 pr-9 rounded-full border-0 bg-gray-100 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+              className="pl-10 pr-9 rounded-full border-0 bg-gray-100 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
               autoFocus
             />
             {dmSearchQuery && (
@@ -2210,7 +2210,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={canMessageSelected ? (lang === "ro" ? "Scrie un mesaj..." : "Type a message...") : (lang === "ro" ? "Trebuie să ai o urmărire acceptată" : "Accepted follow required")}
-              className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+              className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
               autoFocus
               disabled={!canMessageSelected}
             />
@@ -2268,7 +2268,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={lang === "ro" ? "Caută sau începe o conversație nouă" : "Search or start a new chat"}
-          className="pl-10 rounded-full border-0 bg-gray-100 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+          className="pl-10 rounded-full border-0 bg-gray-100 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
         />
       </div>
 

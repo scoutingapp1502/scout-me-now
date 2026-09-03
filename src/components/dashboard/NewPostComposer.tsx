@@ -130,7 +130,7 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
           value={newContent}
           onChange={(e) => setNewContent(e.target.value)}
           placeholder={lang === "ro" ? "Împărtășește o idee, un eveniment, o provocare..." : "Share an idea, event, challenge..."}
-          className="min-h-[60px] resize-none bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+          className="min-h-[60px] resize-none bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
         />
       </div>
 

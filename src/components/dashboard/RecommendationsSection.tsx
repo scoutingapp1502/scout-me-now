@@ -1010,7 +1010,7 @@ const RequestDialog = ({
                     setSelectedPerson(null);
                   }}
                   placeholder={rt.searchPeoplePlaceholder}
-                  className="pl-9 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                  className="pl-9 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                 />
               </div>
 
@@ -1075,7 +1075,7 @@ const RequestDialog = ({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={rt.emailPlaceholder}
-                    className="pl-9 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                    className="pl-9 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                     type="email"
                   />
                 </div>
@@ -1166,7 +1166,7 @@ const RequestDialog = ({
                   value={clubCustom}
                   onChange={(e) => setClubCustom(e.target.value)}
                   placeholder={rt.clubCustomPlaceholder}
-                  className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                  className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                 />
               )}
             </div>
@@ -1252,7 +1252,7 @@ const RequestDialog = ({
                 value={msg}
                 onChange={(e) => setMsg(e.target.value)}
                 placeholder={rt.writeRecForPlaceholder.replace("{name}", selectedPerson?.full_name || "")}
-                className="min-h-[120px] bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                className="min-h-[120px] bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
               />
             </div>
 
@@ -1450,7 +1450,7 @@ const OfferDialog = ({
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setSelectedPerson(null); }}
                   placeholder={rt.searchPeoplePlaceholder}
-                  className="pl-9 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                  className="pl-9 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                 />
               </div>
 
@@ -1549,7 +1549,7 @@ const OfferDialog = ({
                   value={calitateCustom}
                   onChange={(e) => setCalitateCustom(e.target.value)}
                   placeholder={rt.qualityCustomPlaceholder}
-                  className="mt-2 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                  className="mt-2 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                 />
               )}
             </div>
@@ -1578,7 +1578,7 @@ const OfferDialog = ({
                   value={bazaEvaluariiCustom}
                   onChange={(e) => setBazaEvaluariiCustom(e.target.value)}
                   placeholder={rt.evaluationBasisCustomPlaceholder}
-                  className="mt-2 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                  className="mt-2 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                 />
               )}
             </div>
@@ -1624,7 +1624,7 @@ const OfferDialog = ({
               value={msg}
               onChange={(e) => setMsg(e.target.value)}
               placeholder={rt.recWritePlaceholder}
-              className="min-h-[160px] bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+              className="min-h-[160px] bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
             />
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-gray-500 font-body">{rt.stepWord} 3 {rt.ofWord} 3</span>
@@ -1691,7 +1691,7 @@ const RespondDialog = ({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder={`${rt.respondPlaceholderPrefix} ${requesterName || rt.thisPersonFallback}...`}
-            className="min-h-[160px] bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+            className="min-h-[160px] bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
           />
         </div>
 

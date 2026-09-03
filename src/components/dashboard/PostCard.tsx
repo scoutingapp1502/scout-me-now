@@ -50,6 +50,8 @@ interface PostCardProps {
   hideLikeCounts?: boolean;
   hideMenu?: boolean;
   simplifiedMenu?: boolean;
+  /** Reserves room next to the "..." menu for a dialog's own close button. */
+  reserveCloseButtonSpace?: boolean;
 }
 
 // Batches the per-post engagement lookup (likes count, my like state,
@@ -177,7 +179,7 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
   );
 }
 
-const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLikeCounts = false, hideMenu = false, simplifiedMenu = false }: PostCardProps) => {
+const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLikeCounts = false, hideMenu = false, simplifiedMenu = false, reserveCloseButtonSpace = false }: PostCardProps) => {
   const { lang } = useLanguage();
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   useEffect(() => {
@@ -758,7 +760,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden transition-colors">
       <div className="p-4 pb-3">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className={`flex items-start justify-between ${reserveCloseButtonSpace ? "pr-10" : ""}`}>
           <div className="flex items-center gap-3">
             <button
               onClick={() => onViewProfile(author.user_id, author.role)}
@@ -967,7 +969,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 value={likersSearch}
                 onChange={(e) => setLikersSearch(e.target.value)}
                 placeholder={lang === "ro" ? "Caută" : "Search"}
-                className="pl-9 rounded-full bg-gray-100 border-0 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                className="pl-9 rounded-full bg-gray-100 border-0 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
               />
             </div>
           </div>
@@ -1093,7 +1095,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 onChange={(e) => setCommentText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submitComment()}
                 placeholder={lang === "ro" ? "Scrie un comentariu..." : "Write a comment..."}
-                className="text-xs h-8 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900"
+                className="text-xs h-8 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                 disabled={viewerLocked}
               />
               <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100" onClick={submitComment} disabled={!commentText.trim() || viewerLocked}>

@@ -420,7 +420,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
             placeholder={tr.searchPh}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 bg-gray-100 border-0 text-gray-900 rounded-full h-11 text-sm font-body focus-visible:ring-1 focus-visible:ring-gray-900"
+            className="pl-10 pr-4 bg-gray-100 border-0 text-gray-900 rounded-full h-11 text-sm font-body focus-visible:ring-2 focus-visible:ring-gray-900"
           />
         </div>
         <Button

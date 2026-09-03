@@ -33,6 +33,7 @@ import AboutSection from "@/components/dashboard/AboutSection";
 import HelpSection from "@/components/dashboard/HelpSection";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import WelcomeTour from "@/components/dashboard/WelcomeTour";
+import AppAssistant from "@/components/dashboard/AppAssistant";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotifications";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -140,14 +141,13 @@ const Dashboard = () => {
         return;
       }
       setUser(session.user);
-      // A fresh login (as opposed to a page refresh restoring an existing
-      // session, which fires INITIAL_SESSION instead) should always be able
-      // to show the profile-completion wizard again, even if it was
-      // dismissed earlier — sessionStorage otherwise keeps the dismissal
-      // across a logout/login within the same browser tab.
-      if (event === "SIGNED_IN") {
-        sessionStorage.removeItem(`wizard-dismissed-${session.user.id}`);
-      }
+      // Note: some Supabase client versions fire SIGNED_IN (not just
+      // INITIAL_SESSION) when a page refresh restores an existing session
+      // from storage, not only on an actual fresh login. Clearing the
+      // wizard-dismissed flag on SIGNED_IN therefore used to make the
+      // profile-completion wizard reappear on every refresh — removed.
+      // Dismissal is scoped to the browser tab (sessionStorage) and resets
+      // naturally on a genuinely new tab/session.
       // onAuthStateChange already emits an INITIAL_SESSION event as soon as it
       // subscribes, so a separate getSession() call is unnecessary and was
       // causing ensureRoleAndProfile to run twice concurrently on load.
@@ -468,6 +468,7 @@ const Dashboard = () => {
           </main>
         </>
       )}
+      {!showTour && !showWizard && !showStreakModal && <AppAssistant />}
     </div>
   );
 };
