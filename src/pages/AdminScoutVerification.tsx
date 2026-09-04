@@ -130,14 +130,14 @@ export default function AdminScoutVerification() {
 
   if (requests.length === 0) {
     return (
-      <div className="max-w-3xl mx-auto p-6 text-center text-gray-500 font-body">
+      <div className="max-w-3xl mx-auto p-4 sm:p-6 text-center text-gray-500 font-body">
         Nu există solicitări de verificare a documentelor.
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4 text-gray-900">
+    <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4 text-gray-900">
       <h2 className="text-xl font-heading font-bold">Verificare Documente Înregistrate</h2>
       <p className="text-sm text-gray-500 font-body">
         {requests.filter(r => r.status === "pending").length} solicitări în așteptare

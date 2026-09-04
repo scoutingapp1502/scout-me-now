@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Loader2, User, ImagePlus, Video, X, Send } from "lucide-react";
+import { Loader2, User, ImagePlus, Video, X, Send, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useAccountLock } from "@/hooks/useAccountLock";
 
 const POST_TYPES = [
   { value: "general", labelRo: "General", labelEn: "General" },
@@ -17,11 +18,13 @@ const POST_TYPES = [
 interface NewPostComposerProps {
   currentUserId: string;
   myPhoto?: string | null;
+  myRole?: "player" | "cauta_jucator" | null;
   onPosted: () => void;
 }
 
-const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerProps) => {
+const NewPostComposer = ({ currentUserId, myPhoto, myRole, onPosted }: NewPostComposerProps) => {
   const { lang } = useLanguage();
+  const { isLocked: accountLocked } = useAccountLock(currentUserId, myRole);
   const [newContent, setNewContent] = useState("");
   const [newType, setNewType] = useState("general");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -76,6 +79,10 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
 
   const handlePost = async () => {
     if (!newContent.trim() || !currentUserId) return;
+    if (myRole === "cauta_jucator" && accountLocked) {
+      toast.error(lang === "ro" ? "Contul tău trebuie verificat înainte de a putea publica." : "Your account must be verified before you can post.");
+      return;
+    }
     setPosting(true);
     let imageUrl: string | null = null;
     if (imageFile) {
@@ -103,11 +110,17 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
       const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
       videoUrl = urlData.publicUrl;
     }
-    const { error } = await supabase
-      .from("posts")
-      .insert({ user_id: currentUserId, content: newContent.trim(), image_url: imageUrl, video_url: videoUrl, post_type: newType } as any)
-      .select()
-      .single();
+    const { error } = myRole === "cauta_jucator"
+      ? await supabase
+          .from("scout_posts")
+          .insert({ user_id: currentUserId, content: newContent.trim(), image_url: imageUrl } as any)
+          .select()
+          .single()
+      : await supabase
+          .from("posts")
+          .insert({ user_id: currentUserId, content: newContent.trim(), image_url: imageUrl, video_url: videoUrl, post_type: newType } as any)
+          .select()
+          .single();
     if (error) {
       toast.error(lang === "ro" ? "Eroare la publicare" : "Failed to post");
     } else {
@@ -120,8 +133,18 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
     setPosting(false);
   };
 
+  const isScoutLocked = myRole === "cauta_jucator" && accountLocked;
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+      {isScoutLocked && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+          <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+          <p className="text-xs text-amber-700">
+            {lang === "ro" ? "Poți publica după ce contul tău este verificat de un administrator." : "You can post once your account has been verified by an admin."}
+          </p>
+        </div>
+      )}
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
           {myPhoto ? <img src={myPhoto} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-gray-500" />}
@@ -131,6 +154,7 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
           onChange={(e) => setNewContent(e.target.value)}
           placeholder={lang === "ro" ? "Împărtășește o idee, un eveniment, o provocare..." : "Share an idea, event, challenge..."}
           className="min-h-[60px] resize-none bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
+          disabled={isScoutLocked}
         />
       </div>
 
@@ -150,21 +174,25 @@ const NewPostComposer = ({ currentUserId, myPhoto, onPosted }: NewPostComposerPr
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
-          <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} />
-          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100" disabled={isScoutLocked}>
             <ImagePlus className="h-4 w-4 mr-1" />{lang === "ro" ? "Fotografie" : "Photo"}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => videoInputRef.current?.click()} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-            <Video className="h-4 w-4 mr-1" />{lang === "ro" ? "Videoclip" : "Video"}
-          </Button>
+          {myRole !== "cauta_jucator" && (
+            <>
+              <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} />
+              <Button variant="ghost" size="sm" onClick={() => videoInputRef.current?.click()} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                <Video className="h-4 w-4 mr-1" />{lang === "ro" ? "Videoclip" : "Video"}
+              </Button>
 
-          <Select value={newType} onValueChange={setNewType}>
-            <SelectTrigger className="w-auto h-8 text-xs bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900"><SelectValue /></SelectTrigger>
-            <SelectContent className="bg-white border-gray-200 text-gray-900">{POST_TYPES.map(t => <SelectItem key={t.value} value={t.value} className="focus:bg-gray-100 focus:text-gray-900">{lang === "ro" ? t.labelRo : t.labelEn}</SelectItem>)}</SelectContent>
-          </Select>
+              <Select value={newType} onValueChange={setNewType}>
+                <SelectTrigger className="w-auto h-8 text-xs bg-gray-100 border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-white border-gray-200 text-gray-900">{POST_TYPES.map(t => <SelectItem key={t.value} value={t.value} className="focus:bg-gray-100 focus:text-gray-900">{lang === "ro" ? t.labelRo : t.labelEn}</SelectItem>)}</SelectContent>
+              </Select>
+            </>
+          )}
         </div>
-        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={handlePost} disabled={posting || !newContent.trim()}>
-          {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={handlePost} disabled={posting || !newContent.trim() || isScoutLocked}>
+          {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : isScoutLocked ? <Lock className="h-4 w-4 mr-1" /> : <Send className="h-4 w-4 mr-1" />}
           {lang === "ro" ? "Publică" : "Post"}
         </Button>
       </div>

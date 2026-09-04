@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useLayoutEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageSquare, User, Loader2, ArrowLeft, Send, Search, X, Smile, Users, Check, CheckCheck, Link2, UserPlus, ChevronRight, MoreHorizontal, Lock, Bell, LogOut, Ban, Film, Image as ImageIcon, Paperclip, FileText } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
@@ -41,11 +42,71 @@ const getRoleLabel = (role: string | null, lang: string) => {
   return labels[role]?.[lang] || role;
 };
 
+// Only images (for inline preview) and a small set of document types are
+// allowed as chat attachments — anything else (video, audio, archives,
+// executables, etc.) is rejected before upload. HEIC/HEIF MIME types are
+// inconsistent across OSes (some report "", some "image/heic"), so the
+// extension is checked too.
+const ALLOWED_ATTACHMENT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/heic", "image/heif"];
+const ALLOWED_ATTACHMENT_DOC_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+];
+const ALLOWED_ATTACHMENT_EXTENSIONS = [".jpg", ".jpeg", ".png", ".heic", ".heif", ".pdf", ".doc", ".docx", ".txt"];
+const ATTACHMENT_ACCEPT = ".jpg,.jpeg,.png,.heic,.heif,.pdf,.doc,.docx,.txt,image/jpeg,image/png,image/heic,image/heif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
+
+const isAllowedAttachment = (file: File): boolean => {
+  const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
+  if (!ALLOWED_ATTACHMENT_EXTENSIONS.includes(ext)) return false;
+  if (!file.type) return true; // some OSes report no MIME type for HEIC; extension check above already passed
+  return ALLOWED_ATTACHMENT_IMAGE_TYPES.includes(file.type) || ALLOWED_ATTACHMENT_DOC_TYPES.includes(file.type);
+};
+
+const isImageAttachment = (attachmentType?: string | null, attachmentName?: string | null): boolean => {
+  if (attachmentType && ALLOWED_ATTACHMENT_IMAGE_TYPES.includes(attachmentType)) return true;
+  const ext = "." + (attachmentName?.split(".").pop() || "").toLowerCase();
+  return [".jpg", ".jpeg", ".png", ".heic", ".heif"].includes(ext);
+};
+
+const downloadAttachment = async (url: string, name: string) => {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = name || "download";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    // Cross-origin fetch failed (e.g. storage CORS) — fall back to a plain
+    // navigation, which still downloads for same-origin-configured buckets.
+    window.open(url, "_blank");
+  }
+};
+
 const formatFileSize = (bytes?: number | null): string => {
   if (!bytes) return "";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+const formatDayLabel = (dateStr: string, lang: string): string => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  if (isSameDay(date, today)) return lang === "ro" ? "Astăzi" : "Today";
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (isSameDay(date, yesterday)) return lang === "ro" ? "Ieri" : "Yesterday";
+  return date.toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", { day: "numeric", month: "long", year: "numeric" });
 };
 
 const fileExtension = (name?: string | null): string => (name?.split(".").pop() || "").toLowerCase();
@@ -95,6 +156,7 @@ interface Message {
   content: string;
   created_at: string;
   read: boolean;
+  deleted_at?: string | null;
   shared_post_id?: string | null;
   sharedPost?: SharedPost | null;
   attachment_url?: string | null;
@@ -117,6 +179,7 @@ interface GroupItem {
   lastMessageAt: string;
   inviteToken: string | null;
   muted: boolean;
+  unreadCount: number;
 }
 
 interface GroupMessage {
@@ -126,12 +189,14 @@ interface GroupMessage {
   created_at: string;
   senderName?: string;
   senderPhoto?: string | null;
+  deleted_at?: string | null;
   shared_post_id?: string | null;
   sharedPost?: SharedPost | null;
   attachment_url?: string | null;
   attachment_name?: string | null;
   attachment_size?: number | null;
   attachment_type?: string | null;
+  readByCount?: number;
 }
 
 interface MessagesSectionProps {
@@ -213,13 +278,27 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatScrollReady, setChatScrollReady] = useState(false);
+  const [groupChatScrollReady, setGroupChatScrollReady] = useState(false);
+  const [deletingMessage, setDeletingMessage] = useState<{ id: string; isGroup: boolean } | null>(null);
+  const [readByDialogMessageId, setReadByDialogMessageId] = useState<string | null>(null);
+  const [readByNames, setReadByNames] = useState<{ name: string; photo: string | null }[]>([]);
+  const [readByLoading, setReadByLoading] = useState(false);
+  const [longPressedMessageId, setLongPressedMessageId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFiredRef = useRef(false);
   const [newMessage, setNewMessage] = useState("");
   const [sending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const { isLocked: messagingLocked } = useAccountLock(currentUserId, currentUserRole);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const groupMessagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollContainerRef = useRef<HTMLDivElement>(null);
+  const groupMessagesScrollContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  const scrolledConversationRef = useRef<string | null>(null);
+  const scrolledGroupRef = useRef<string | null>(null);
   const { isOnline } = usePresence(currentUserId);
   const [photoModal, setPhotoModal] = useState<{ url: string; name: string } | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -385,7 +464,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     const [{ data: groupsData }, { data: allMembers }, { data: previews }] = await Promise.all([
       (supabase as any).from("group_conversations").select("id, name, updated_at, invite_token").in("id", groupIds).order("updated_at", { ascending: false }),
       (supabase as any).from("group_members").select("group_id, user_id").in("group_id", groupIds),
-      (supabase as any).rpc("get_group_message_previews", { p_group_ids: groupIds }),
+      (supabase as any).rpc("get_group_message_previews", { p_group_ids: groupIds, p_user_id: user.id }),
     ]);
     if (!groupsData?.length) { setGroups([]); return; }
 
@@ -419,6 +498,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         lastMessageAt: preview?.created_at ?? g.updated_at,
         inviteToken: g.invite_token ?? null,
         muted: mutedByGroup.get(g.id) ?? false,
+        unreadCount: Number(preview?.unread_count ?? 0),
       };
     });
     setGroups(result);
@@ -544,6 +624,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     // already switched to a different conversation (e.g. clicking A then B
     // in quick succession, where A's fetch resolves after B's).
     let cancelled = false;
+    setChatScrollReady(false);
+    scrolledConversationRef.current = null;
     const load = async () => {
       setChatLoading(true);
       const { data: allowed } = await supabase.rpc("can_message_user", { _other_user_id: selectedConversation.other_user_id });
@@ -632,15 +714,62 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           }
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${selectedConversation.conversation_id}`,
+        },
+        (payload) => {
+          const updatedMsg = payload.new as Message;
+          setMessages((prev) => prev.map((m) => m.id === updatedMsg.id ? { ...m, read: updatedMsg.read } : m));
+        }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [selectedConversation, currentUserId, iRestrictedOther]);
 
+  // useLayoutEffect runs synchronously before the browser paints, so the
+  // jump-to-bottom happens before the user ever sees the scroll-at-top
+  // frame — a plain useEffect (or scrollIntoView) can still flash the top
+  // of the conversation for one frame before jumping. Visibility is only
+  // ever gated on chatLoading (never on whether the jump "succeeded"), so a
+  // missed/duplicate scroll can never permanently hide the conversation.
+  useLayoutEffect(() => {
+    if (chatLoading) return;
+    const convId = selectedConversation?.conversation_id ?? null;
+    const isFirstScrollForConversation = scrolledConversationRef.current !== convId;
+    if (isFirstScrollForConversation && messagesScrollContainerRef.current) {
+      messagesScrollContainerRef.current.scrollTop = messagesScrollContainerRef.current.scrollHeight;
+    }
+    scrolledConversationRef.current = convId;
+    setChatScrollReady(true);
+  }, [messages, selectedConversation, chatLoading]);
+
   useEffect(() => {
+    if (chatLoading) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     chatInputRef.current?.focus();
   }, [messages]);
+
+  useLayoutEffect(() => {
+    if (groupChatLoading) return;
+    const groupId = selectedGroup?.id ?? null;
+    const isFirstScrollForGroup = scrolledGroupRef.current !== groupId;
+    if (isFirstScrollForGroup && groupMessagesScrollContainerRef.current) {
+      groupMessagesScrollContainerRef.current.scrollTop = groupMessagesScrollContainerRef.current.scrollHeight;
+    }
+    scrolledGroupRef.current = groupId;
+    setGroupChatScrollReady(true);
+  }, [groupMessages, selectedGroup, groupChatLoading]);
+
+  useEffect(() => {
+    if (groupChatLoading) return;
+    groupMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [groupMessages]);
 
   const handleViewPost = async (postId: string) => {
     setViewingPostId(postId);
@@ -705,6 +834,69 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     </Dialog>
   );
 
+  const deleteMessageDialog = (
+    <AlertDialog open={!!deletingMessage} onOpenChange={(open) => { if (!open) setDeletingMessage(null); }}>
+      <AlertDialogContent className="bg-white border-gray-200 text-gray-900">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{lang === "ro" ? "Ștergi acest mesaj?" : "Delete this message?"}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {lang === "ro" ? "Mesajul va fi șters pentru toți participanții. Această acțiune nu poate fi anulată." : "This message will be deleted for everyone. This action cannot be undone."}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{lang === "ro" ? "Anulează" : "Cancel"}</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              if (!deletingMessage) return;
+              if (deletingMessage.isGroup) handleDeleteGroupMessage(deletingMessage.id);
+              else handleDeleteMessage(deletingMessage.id);
+              setDeletingMessage(null);
+            }}
+          >
+            {lang === "ro" ? "Șterge" : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+  const readByDialog = (
+    <Dialog open={!!readByDialogMessageId} onOpenChange={(open) => { if (!open) { setReadByDialogMessageId(null); setReadByNames([]); } }}>
+      <DialogContent className="max-w-sm bg-white border-gray-200 text-gray-900">
+        <DialogTitle>{lang === "ro" ? "Văzut de" : "Seen by"}</DialogTitle>
+        {readByLoading ? (
+          <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        ) : readByNames.length === 0 ? (
+          <p className="text-sm text-gray-500 py-4 text-center">{lang === "ro" ? "Încă nimeni nu a văzut acest mesaj." : "No one has seen this message yet."}</p>
+        ) : (
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {readByNames.map((r, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={r.photo ?? undefined} />
+                  <AvatarFallback className="text-xs">{(r.name || "?")[0]}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm text-gray-900">{r.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
+  const imagePreviewModal = photoModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPhotoModal(null)}>
+      <div className="relative max-w-lg max-h-[80vh] w-full mx-4" onClick={(e) => e.stopPropagation()}>
+        <Button variant="ghost" size="icon" onClick={() => setPhotoModal(null)} className="absolute -top-10 right-0 text-white hover:text-white/80">
+          <X className="h-5 w-5" />
+        </Button>
+        <img src={photoModal.url} alt={photoModal.name} className="w-full h-auto rounded-xl object-contain max-h-[80vh]" />
+      </div>
+    </div>
+  );
+
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedConversation || !currentUserId || !canMessageSelected) return;
     const content = censorMessageText(newMessage.trim());
@@ -745,6 +937,10 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
   const handleSendAttachment = async (file: File) => {
     if (!selectedConversation || !currentUserId || !canMessageSelected) return;
+    if (!isAllowedAttachment(file)) {
+      toast({ title: lang === "ro" ? "Tip de fișier neacceptat. Poți trimite doar imagini (JPG, PNG, HEIC) sau documente (PDF, DOC, DOCX, TXT)." : "File type not allowed. You can only send images (JPG, PNG, HEIC) or documents (PDF, DOC, DOCX, TXT).", variant: "destructive" });
+      return;
+    }
     if (file.size > 20 * 1024 * 1024) {
       toast({ title: lang === "ro" ? "Fișierul este prea mare (max 20MB)." : "File is too large (max 20MB).", variant: "destructive" });
       return;
@@ -773,6 +969,66 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       return;
     }
     setMessages((prev) => [...prev, data as Message]);
+  };
+
+  // Mobile has no hover, so the "..." menu opens via long-press instead —
+  // held for 450ms without moving/releasing. longPressFiredRef suppresses
+  // the click/tap that would otherwise fire right after the menu opens.
+  const handleMessagePressStart = (messageId: string) => {
+    longPressFiredRef.current = false;
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      longPressFiredRef.current = true;
+      setLongPressedMessageId(messageId);
+    }, 450);
+  };
+  const cancelMessagePress = () => {
+    if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+  };
+  useEffect(() => () => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }, []);
+
+  const openReadByDialog = async (messageId: string) => {
+    if (!selectedGroup) return;
+    setReadByDialogMessageId(messageId);
+    setReadByLoading(true);
+    const { data } = await (supabase as any)
+      .from("group_message_reads")
+      .select("user_id, read_at")
+      .eq("message_id", messageId)
+      .order("read_at", { ascending: true });
+    const memberMap = new Map(selectedGroup.members.map(m => [m.userId, m]));
+    const names = (data ?? [])
+      .map((r: any) => memberMap.get(r.user_id))
+      .filter((m: GroupMember | undefined): m is GroupMember => !!m)
+      .map((m: GroupMember) => ({ name: m.name, photo: m.photo }));
+    setReadByNames(names);
+    setReadByLoading(false);
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    const { error } = await (supabase as any)
+      .from("messages")
+      .update({ deleted_at: new Date().toISOString(), content: "", attachment_url: null, attachment_name: null, attachment_size: null, attachment_type: null, shared_post_id: null })
+      .eq("id", messageId)
+      .eq("sender_id", currentUserId);
+    if (error) {
+      toast({ title: lang === "ro" ? "Mesajul nu a putut fi șters." : "Message could not be deleted.", variant: "destructive" });
+      return;
+    }
+    setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, deleted_at: new Date().toISOString(), content: "", attachment_url: null, sharedPost: null } : m));
+  };
+
+  const handleDeleteGroupMessage = async (messageId: string) => {
+    const { error } = await (supabase as any)
+      .from("group_messages")
+      .update({ deleted_at: new Date().toISOString(), content: "", attachment_url: null, attachment_name: null, attachment_size: null, attachment_type: null, shared_post_id: null })
+      .eq("id", messageId)
+      .eq("sender_id", currentUserId);
+    if (error) {
+      toast({ title: lang === "ro" ? "Mesajul nu a putut fi șters." : "Message could not be deleted.", variant: "destructive" });
+      return;
+    }
+    setGroupMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, deleted_at: new Date().toISOString(), content: "", attachment_url: null, sharedPost: null } : m));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -811,9 +1067,11 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   };
 
   const loadGroupMessages = async (group: GroupItem) => {
+    setGroupChatScrollReady(false);
+    scrolledGroupRef.current = null;
     setGroupChatLoading(true);
     const [{ data: msgs }, { data: restricted }] = await Promise.all([
-      (supabase as any).from("group_messages").select("id, group_id, sender_id, content, created_at, shared_post_id, attachment_url, attachment_name, attachment_size, attachment_type").eq("group_id", group.id).order("created_at", { ascending: true }),
+      (supabase as any).from("group_messages").select("id, group_id, sender_id, content, created_at, deleted_at, shared_post_id, attachment_url, attachment_name, attachment_size, attachment_type").eq("group_id", group.id).order("created_at", { ascending: true }),
       currentUserId
         ? (supabase as any).from("group_restricted_senders").select("restricted_user_id").eq("group_id", group.id).eq("restrictor_id", currentUserId)
         : Promise.resolve({ data: [] }),
@@ -822,7 +1080,11 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     const restrictedIds = new Set((restricted ?? []).map((r: any) => r.restricted_user_id));
     const memberMap = new Map(group.members.map(m => [m.userId, m]));
     const postIds = [...new Set((msgs ?? []).filter((m: any) => m.shared_post_id).map((m: any) => m.shared_post_id as string))];
-    const sharedPostMap = await resolveSharedPosts(postIds);
+    const myMessageIds = (msgs ?? []).filter((m: any) => m.sender_id === currentUserId).map((m: any) => m.id as string);
+    const [sharedPostMap, readCountByMessageId] = await Promise.all([
+      resolveSharedPosts(postIds),
+      fetchGroupReadCounts(myMessageIds),
+    ]);
     setGroupMessages((msgs ?? [])
       .filter((m: any) => !restrictedIds.has(m.sender_id))
       .map((m: any) => ({
@@ -830,8 +1092,26 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         senderName: memberMap.get(m.sender_id)?.name ?? "",
         senderPhoto: memberMap.get(m.sender_id)?.photo ?? null,
         sharedPost: m.shared_post_id ? (sharedPostMap.get(m.shared_post_id) ?? null) : null,
+        readByCount: readCountByMessageId.get(m.id) ?? 0,
       })));
     setGroupChatLoading(false);
+    if (currentUserId) {
+      (supabase as any).rpc("mark_group_messages_read", { _group_id: group.id }).catch((err: unknown) => console.error("Failed to mark group messages read:", err));
+    }
+  };
+
+  // Batched read-count lookup for the caller's own group messages only —
+  // read status of other people's messages isn't shown, so there's no need
+  // to fetch it for the whole conversation.
+  const fetchGroupReadCounts = async (messageIds: string[]): Promise<Map<string, number>> => {
+    const counts = new Map<string, number>();
+    if (messageIds.length === 0) return counts;
+    const { data } = await (supabase as any)
+      .from("group_message_reads")
+      .select("message_id")
+      .in("message_id", messageIds);
+    (data ?? []).forEach((r: any) => counts.set(r.message_id, (counts.get(r.message_id) ?? 0) + 1));
+    return counts;
   };
 
   const handleCopyInviteLink = async () => {
@@ -938,6 +1218,10 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
   const handleSendGroupAttachment = async (file: File) => {
     if (!selectedGroup || !currentUserId) return;
+    if (!isAllowedAttachment(file)) {
+      toast({ title: lang === "ro" ? "Tip de fișier neacceptat. Poți trimite doar imagini (JPG, PNG, HEIC) sau documente (PDF, DOC, DOCX, TXT)." : "File type not allowed. You can only send images (JPG, PNG, HEIC) or documents (PDF, DOC, DOCX, TXT).", variant: "destructive" });
+      return;
+    }
     if (file.size > 20 * 1024 * 1024) {
       toast({ title: lang === "ro" ? "Fișierul este prea mare (max 20MB)." : "File is too large (max 20MB).", variant: "destructive" });
       return;
@@ -1012,7 +1296,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   if (selectedGroup && showRestrictPicker) {
     const otherMembers = selectedGroup.members.filter(m => m.userId !== currentUserId);
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => { setShowRestrictPicker(false); setRestrictTarget(null); }}>
             <ArrowLeft className="h-5 w-5" />
@@ -1077,7 +1361,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   // ---- GROUP MEMBER LIST VIEW ----
   if (selectedGroup && showGroupInfo && showMemberList) {
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => setShowMemberList(false)}>
             <ArrowLeft className="h-5 w-5" />
@@ -1127,7 +1411,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     };
 
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         <div className="flex items-center gap-2 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100 shrink-0" onClick={() => setShowGroupMedia(false)}>
             <ArrowLeft className="h-5 w-5" />
@@ -1271,7 +1555,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   // ---- MUTE SETTINGS VIEW ----
   if (selectedGroup && showMuteSettings) {
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8 bg-white text-gray-900 px-4 sm:px-6">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 bg-white text-gray-900 px-4 sm:px-6">
         <div className="flex items-center gap-3 pt-4 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => setShowMuteSettings(false)}>
             <ArrowLeft className="h-5 w-5" />
@@ -1322,7 +1606,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     };
 
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         <div className="flex items-center gap-2 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => { setShowGroupSearch(false); setGroupSearchQuery(""); }}>
             <ArrowLeft className="h-5 w-5" />
@@ -1411,7 +1695,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     ];
 
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => setShowGroupInfo(false)}>
             <ArrowLeft className="h-5 w-5" />
@@ -1541,7 +1825,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     const stackedMembers = selectedGroup.members.slice(0, 3);
     return (
       <>
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => { setSelectedGroup(null); setGroupMessages([]); setShowAddMembers(false); setShowGroupInfo(false); setShowMemberList(false); setShowRestrictPicker(false); setRestrictTarget(null); setShowMuteSettings(false); setShowGroupSearch(false); fetchGroups(); }}>
             <ArrowLeft className="h-5 w-5" />
@@ -1559,7 +1843,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             </div>
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto py-4 space-y-3 min-h-0">
+        <div ref={groupMessagesScrollContainerRef} className={`flex-1 overflow-y-auto py-4 space-y-3 min-h-0 ${!groupChatLoading && !groupChatScrollReady ? "invisible" : ""}`}>
           {/* Group info card — shown at the start of the conversation */}
           <div className="flex flex-col items-center text-center pb-6 mb-2 border-b border-gray-200">
             {stackedMembers.length > 0 ? (
@@ -1610,62 +1894,114 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           ) : groupMessages.length === 0 ? (
             <p className="text-center text-gray-500 text-sm py-8">{lang === "ro" ? "Niciun mesaj încă." : "No messages yet."}</p>
           ) : (
-            groupMessages.map(msg => {
+            groupMessages.map((msg, idx) => {
               const isMine = msg.sender_id === currentUserId;
+              const otherMembersCount = selectedGroup.members.length - 1;
+              const isReadByAll = isMine && otherMembersCount > 0 && (msg.readByCount ?? 0) >= otherMembersCount;
+              const prevMsg = idx > 0 ? groupMessages[idx - 1] : null;
+              const showDaySeparator = !prevMsg || !isSameDay(new Date(prevMsg.created_at), new Date(msg.created_at));
               return (
-                <div id={`group-msg-${msg.id}`} key={msg.id} className={`flex gap-2 ${isMine ? "justify-end" : "justify-start"}`}>
+                <div key={msg.id}>
+                {showDaySeparator && (
+                  <div className="flex items-center justify-center my-3">
+                    <span className="text-[11px] font-medium text-gray-500 bg-gray-200/80 rounded-full px-3 py-1">
+                      {formatDayLabel(msg.created_at, lang)}
+                    </span>
+                  </div>
+                )}
+                <div id={`group-msg-${msg.id}`} className={`flex items-center gap-1.5 group ${isMine ? "justify-end" : "justify-start"}`}>
+                  {isMine && !msg.deleted_at && (
+                    <DropdownMenu open={longPressedMessageId === msg.id} onOpenChange={(open) => { if (!open) setLongPressedMessageId(null); }}>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="flex lg:opacity-0 lg:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-700 shrink-0 order-first items-center justify-center w-0 lg:w-4 overflow-hidden lg:overflow-visible"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                        >
+                          <MoreHorizontal className="h-4 w-4 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => { setLongPressedMessageId(null); openReadByDialog(msg.id); }}>
+                          {lang === "ro" ? "Vezi cine a văzut mesajul" : "See who's seen this message"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer" onClick={() => { setLongPressedMessageId(null); setDeletingMessage({ id: msg.id, isGroup: true }); }}>
+                          {lang === "ro" ? "Șterge mesajul" : "Delete message"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                   {!isMine && (
                     <Avatar className="h-7 w-7 shrink-0 mt-1">
                       <AvatarImage src={msg.senderPhoto ?? undefined} />
                       <AvatarFallback className="text-xs">{(msg.senderName || "?")[0]}</AvatarFallback>
                     </Avatar>
                   )}
-                  <div className={`max-w-[70%] ${isMine ? "" : ""}`}>
+                  <div
+                    className={`max-w-[70%] ${isMine ? "" : ""}`}
+                    onTouchStart={isMine && !msg.deleted_at ? () => handleMessagePressStart(msg.id) : undefined}
+                    onTouchEnd={isMine && !msg.deleted_at ? cancelMessagePress : undefined}
+                    onTouchMove={isMine && !msg.deleted_at ? cancelMessagePress : undefined}
+                  >
                     {!isMine && <p className="text-[10px] text-gray-500 mb-0.5 ml-1">{msg.senderName}</p>}
-                    {msg.attachment_url ? (
+                    {msg.deleted_at ? (
+                      <div className="rounded-2xl px-4 py-2 text-sm italic text-gray-400 border border-gray-200 bg-gray-50">
+                        {lang === "ro" ? "Acest mesaj a fost șters" : "This message was deleted"}
+                      </div>
+                    ) : msg.attachment_url ? (
                       <div className={`rounded-xl transition-colors duration-500 ${highlightedGroupMsgId === msg.id ? "ring-2 ring-primary" : ""}`}>
-                        <a
-                          href={msg.attachment_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors min-w-[220px]"
-                        >
-                          <FileThumb name={msg.attachment_name} className="w-10 h-12 rounded" />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-gray-900 truncate">{msg.attachment_name}</p>
-                            <p className="text-xs text-gray-500">{formatFileSize(msg.attachment_size)}{msg.attachment_size ? " · " : ""}{fileExtension(msg.attachment_name)}</p>
-                          </div>
-                        </a>
-                        <p className={`text-[10px] mt-1 text-gray-500 ${isMine ? "text-right" : ""}`}>
+                        {isImageAttachment(msg.attachment_type, msg.attachment_name) ? (
+                          <button type="button" onClick={() => setPhotoModal({ url: msg.attachment_url!, name: msg.attachment_name || "" })} className="block">
+                            <img src={msg.attachment_url} alt={msg.attachment_name || ""} className="max-w-full max-h-64 rounded-xl object-cover" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => downloadAttachment(msg.attachment_url!, msg.attachment_name || "download")}
+                            className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors min-w-[220px] w-full text-left"
+                          >
+                            <FileThumb name={msg.attachment_name} className="w-10 h-12 rounded" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-gray-900 truncate">{msg.attachment_name}</p>
+                              <p className="text-xs text-gray-500">{formatFileSize(msg.attachment_size)}{msg.attachment_size ? " · " : ""}{fileExtension(msg.attachment_name)}</p>
+                            </div>
+                          </button>
+                        )}
+                        <p className={`text-[10px] mt-1 text-gray-500 flex items-center gap-1 ${isMine ? "justify-end" : ""}`}>
                           {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                          {isMine && (isReadByAll ? <CheckCheck className="h-3.5 w-3.5 text-sky-500 shrink-0" /> : <Check className="h-3.5 w-3.5 text-gray-500 shrink-0" />)}
                         </p>
                       </div>
                     ) : msg.sharedPost ? (
                       <div className={`rounded-xl transition-colors duration-500 ${highlightedGroupMsgId === msg.id ? "ring-2 ring-primary" : ""}`}>
                         <SharedPostCard post={msg.sharedPost} onClick={() => handleViewPost(msg.sharedPost!.id)} />
-                        <p className={`text-[10px] mt-1 text-gray-500 ${isMine ? "text-right" : ""}`}>
+                        <p className={`text-[10px] mt-1 text-gray-500 flex items-center gap-1 ${isMine ? "justify-end" : ""}`}>
                           {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                          {isMine && (isReadByAll ? <CheckCheck className="h-3.5 w-3.5 text-sky-500 shrink-0" /> : <Check className="h-3.5 w-3.5 text-gray-500 shrink-0" />)}
                         </p>
                       </div>
                     ) : (
                       <div className={`rounded-2xl px-4 py-2 text-sm transition-colors duration-500 ${highlightedGroupMsgId === msg.id ? "ring-2 ring-primary" : ""} ${isMine ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-md" : "bg-white border border-gray-200 text-gray-900 rounded-bl-md"}`}>
                         <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                        <p className={`text-[10px] mt-1 ${isMine ? "text-white/70" : "text-gray-500"}`}>
+                        <p className={`text-[10px] mt-1 flex items-center gap-1 ${isMine ? "text-white/70 justify-end" : "text-gray-500"}`}>
                           {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                          {isMine && (isReadByAll ? <CheckCheck className="h-3.5 w-3.5 text-sky-300 shrink-0" /> : <Check className="h-3.5 w-3.5 text-white/70 shrink-0" />)}
                         </p>
                       </div>
                     )}
                   </div>
                 </div>
+                </div>
               );
             })
           )}
-          <div ref={messagesEndRef} />
+          <div ref={groupMessagesEndRef} />
         </div>
         <div className="border-t border-gray-200 pt-3 shrink-0 flex gap-2">
           <input
             ref={groupFileInputRef}
             type="file"
+            accept={ATTACHMENT_ACCEPT}
             className="hidden"
             onChange={(e) => { const file = e.target.files?.[0]; if (file) handleSendGroupAttachment(file); e.target.value = ""; }}
           />
@@ -1683,6 +2019,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         </div>
       </div>
       {viewPostDialog}
+      {deleteMessageDialog}
+      {readByDialog}
+      {imagePreviewModal}
       </>
     );
   }
@@ -1732,7 +2071,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     };
 
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         <div className="flex items-center gap-2 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => { setShowDmSearch(false); setDmSearchQuery(""); }}>
             <ArrowLeft className="h-5 w-5" />
@@ -1811,7 +2150,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     };
 
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         <div className="flex items-center gap-2 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100 shrink-0" onClick={() => setShowConversationMedia(false)}>
             <ArrowLeft className="h-5 w-5" />
@@ -1948,7 +2287,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   // ---- CONVERSATION INFO VIEW ----
   if (selectedConversation && showConversationInfo) {
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" className="text-gray-900 hover:bg-gray-100" onClick={() => setShowConversationInfo(false)}>
             <ArrowLeft className="h-5 w-5" />
@@ -2045,18 +2384,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     };
 
     return (
-      <div className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] -mt-4 -mb-4 sm:-mt-8 sm:-mb-8">
+      <div className="flex flex-col h-full min-h-0 -m-4 lg:-m-8 px-4 lg:px-8">
         {/* Photo modal */}
-        {photoModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPhotoModal(null)}>
-            <div className="relative max-w-lg max-h-[80vh] w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" onClick={() => setPhotoModal(null)} className="absolute -top-10 right-0 text-white hover:text-white/80">
-                <X className="h-5 w-5" />
-              </Button>
-              <img src={photoModal.url} alt={photoModal.name} className="w-full h-auto rounded-xl object-contain max-h-[80vh]" />
-            </div>
-          </div>
-        )}
+        {imagePreviewModal}
 
         <div className="flex items-center gap-3 pt-1 pb-3 border-b border-gray-200 shrink-0">
           <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0 text-gray-900 hover:bg-gray-100">
@@ -2093,7 +2423,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4 space-y-3 min-h-0">
+        <div ref={messagesScrollContainerRef} className={`flex-1 overflow-y-auto py-4 space-y-3 min-h-0 ${!chatLoading && !chatScrollReady ? "invisible" : ""}`}>
           {chatLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -2103,36 +2433,85 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               {lang === "ro" ? "Niciun mesaj încă. Trimite primul mesaj!" : "No messages yet. Send the first message!"}
             </p>
           ) : (
-            messages.map((msg) => {
+            messages.map((msg, idx) => {
               const isMine = msg.sender_id === currentUserId;
+              const prevMsg = idx > 0 ? messages[idx - 1] : null;
+              const showDaySeparator = !prevMsg || !isSameDay(new Date(prevMsg.created_at), new Date(msg.created_at));
               return (
-                <div id={`dm-msg-${msg.id}`} key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                  {msg.attachment_url ? (
-                    <div className={`max-w-[75%] rounded-xl transition-colors duration-500 ${highlightedDmMsgId === msg.id ? "ring-2 ring-primary" : ""}`}>
-                      <a
-                        href={msg.attachment_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors min-w-[220px]"
-                      >
-                        <FileThumb name={msg.attachment_name} className="w-10 h-12 rounded" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">{msg.attachment_name}</p>
-                          <p className="text-xs text-gray-500">{formatFileSize(msg.attachment_size)}{msg.attachment_size ? " · " : ""}{fileExtension(msg.attachment_name)}</p>
-                        </div>
-                      </a>
-                      <p className={`text-[10px] mt-1 text-gray-500 ${isMine ? "text-right" : ""}`}>
+                <div key={msg.id}>
+                {showDaySeparator && (
+                  <div className="flex items-center justify-center my-3">
+                    <span className="text-[11px] font-medium text-gray-500 bg-gray-200/80 rounded-full px-3 py-1">
+                      {formatDayLabel(msg.created_at, lang)}
+                    </span>
+                  </div>
+                )}
+                <div id={`dm-msg-${msg.id}`} className={`flex items-center gap-1.5 group ${isMine ? "justify-end" : "justify-start"}`}>
+                  {isMine && !msg.deleted_at && (
+                    <DropdownMenu open={longPressedMessageId === msg.id} onOpenChange={(open) => { if (!open) setLongPressedMessageId(null); }}>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="flex lg:opacity-0 lg:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-700 shrink-0 order-first items-center justify-center w-0 lg:w-4 overflow-hidden lg:overflow-visible"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                        >
+                          <MoreHorizontal className="h-4 w-4 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
+                        <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer" onClick={() => { setLongPressedMessageId(null); setDeletingMessage({ id: msg.id, isGroup: false }); }}>
+                          {lang === "ro" ? "Șterge mesajul" : "Delete message"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                  {msg.deleted_at ? (
+                    <div className="max-w-[75%] rounded-2xl px-4 py-2 text-sm italic text-gray-400 border border-gray-200 bg-gray-50">
+                      {lang === "ro" ? "Acest mesaj a fost șters" : "This message was deleted"}
+                    </div>
+                  ) : msg.attachment_url ? (
+                    <div
+                      className={`max-w-[75%] rounded-xl transition-colors duration-500 ${highlightedDmMsgId === msg.id ? "ring-2 ring-primary" : ""}`}
+                      onTouchStart={isMine ? () => handleMessagePressStart(msg.id) : undefined}
+                      onTouchEnd={isMine ? cancelMessagePress : undefined}
+                      onTouchMove={isMine ? cancelMessagePress : undefined}
+                    >
+                      {isImageAttachment(msg.attachment_type, msg.attachment_name) ? (
+                        <button type="button" onClick={() => setPhotoModal({ url: msg.attachment_url!, name: msg.attachment_name || "" })} className="block">
+                          <img src={msg.attachment_url} alt={msg.attachment_name || ""} className="max-w-full max-h-64 rounded-xl object-cover" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => downloadAttachment(msg.attachment_url!, msg.attachment_name || "download")}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors min-w-[220px] w-full text-left"
+                        >
+                          <FileThumb name={msg.attachment_name} className="w-10 h-12 rounded" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 truncate">{msg.attachment_name}</p>
+                            <p className="text-xs text-gray-500">{formatFileSize(msg.attachment_size)}{msg.attachment_size ? " · " : ""}{fileExtension(msg.attachment_name)}</p>
+                          </div>
+                        </button>
+                      )}
+                      <p className={`text-[10px] mt-1 text-gray-500 flex items-center gap-1 ${isMine ? "justify-end" : ""}`}>
                         {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                        {isMine && (msg.read ? <CheckCheck className="h-3.5 w-3.5 text-sky-500 shrink-0" /> : <Check className="h-3.5 w-3.5 text-gray-500 shrink-0" />)}
                       </p>
                     </div>
                   ) : msg.sharedPost ? (
-                    <div className={`max-w-[75%] rounded-xl transition-colors duration-500 ${highlightedDmMsgId === msg.id ? "ring-2 ring-primary" : ""}`}>
+                    <div
+                      className={`max-w-[75%] rounded-xl transition-colors duration-500 ${highlightedDmMsgId === msg.id ? "ring-2 ring-primary" : ""}`}
+                      onTouchStart={isMine ? () => handleMessagePressStart(msg.id) : undefined}
+                      onTouchEnd={isMine ? cancelMessagePress : undefined}
+                      onTouchMove={isMine ? cancelMessagePress : undefined}
+                    >
                       <SharedPostCard post={msg.sharedPost} onClick={() => handleViewPost(msg.sharedPost!.id)} />
-                      <p className={`text-[10px] mt-1 text-gray-500 ${isMine ? "text-right" : ""}`}>
+                      <p className={`text-[10px] mt-1 text-gray-500 flex items-center gap-1 ${isMine ? "justify-end" : ""}`}>
                         {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
+                        {isMine && (msg.read ? <CheckCheck className="h-3.5 w-3.5 text-sky-500 shrink-0" /> : <Check className="h-3.5 w-3.5 text-gray-500 shrink-0" />)}
                       </p>
                     </div>
                   ) : (
@@ -2142,16 +2521,21 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                           ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-md"
                           : "bg-white border border-gray-200 text-gray-900 rounded-bl-md"
                       }`}
+                      onTouchStart={isMine ? () => handleMessagePressStart(msg.id) : undefined}
+                      onTouchEnd={isMine ? cancelMessagePress : undefined}
+                      onTouchMove={isMine ? cancelMessagePress : undefined}
                     >
                       <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                      <p className={`text-[10px] mt-1 ${isMine ? "text-white/70" : "text-gray-500"}`}>
+                      <p className={`text-[10px] mt-1 flex items-center gap-1 ${isMine ? "text-white/70 justify-end" : "text-gray-500"}`}>
                         {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
+                        {isMine && (msg.read ? <CheckCheck className="h-3.5 w-3.5 text-sky-300 shrink-0" /> : <Check className="h-3.5 w-3.5 text-white/70 shrink-0" />)}
                       </p>
                     </div>
                   )}
+                </div>
                 </div>
               );
             })
@@ -2182,6 +2566,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             <input
               ref={dmFileInputRef}
               type="file"
+              accept={ATTACHMENT_ACCEPT}
               className="hidden"
               onChange={(e) => { const file = e.target.files?.[0]; if (file) handleSendAttachment(file); e.target.value = ""; }}
             />
@@ -2220,6 +2605,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           </div>
         </div>
         {viewPostDialog}
+        {deleteMessageDialog}
       </div>
     );
   }
@@ -2252,9 +2638,14 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                   <Users className="h-6 w-6 text-primary absolute inset-0 m-auto" />
                 </div>
                 <div className="flex-1 min-w-0 border-b border-gray-300 pb-3">
-                  <p className="text-sm font-display text-gray-900 truncate">{g.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{g.members.length} {lang === "ro" ? "membri" : "members"} · {g.lastMessage}</p>
+                  <p className={`text-sm font-display truncate ${g.unreadCount > 0 ? "text-gray-900 font-bold" : "text-gray-900"}`}>{g.name}</p>
+                  <p className={`text-xs truncate ${g.unreadCount > 0 ? "text-gray-900 font-semibold" : "text-gray-500"}`}>{g.members.length} {lang === "ro" ? "membri" : "members"} · {g.lastMessage}</p>
                 </div>
+                {g.unreadCount > 0 && (
+                  <div className="min-w-5 h-5 px-1 rounded-full bg-primary flex items-center justify-center shrink-0">
+                    <span className="text-[10px] text-primary-foreground font-bold">{g.unreadCount}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>

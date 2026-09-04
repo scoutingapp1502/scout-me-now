@@ -696,8 +696,8 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
   }
 
   return (
-    <div className="max-w-2xl mx-auto relative isolate">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-2xl lg:mx-auto relative isolate flex flex-col h-full min-h-0 -m-4 lg:-m-8">
+      <div className="flex items-center justify-between mb-6 pt-4 lg:pt-8 px-4 lg:px-8 shrink-0 sticky top-0 z-10 bg-gray-200">
         <h2 className="text-2xl font-display text-gray-900">
           {lang === "ro" ? "Notificări" : "Notifications"}
         </h2>
@@ -710,7 +710,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
       </div>
 
       {/* Decorative geometric shape above the list */}
-      <div className="relative h-0 overflow-visible">
+      <div className="relative h-0 overflow-visible shrink-0">
         <div
           className="absolute -z-10 pointer-events-none"
           style={{
@@ -725,12 +725,13 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
         />
       </div>
 
+      <div className="flex-1 overflow-y-auto pb-4 lg:pb-8 px-0 lg:px-8">
       {loading ? (
-        <div className="text-gray-500 text-center py-12">
+        <div className="text-gray-500 text-center py-12 px-4 lg:px-0">
           {lang === "ro" ? "Se încarcă..." : "Loading..."}
         </div>
       ) : notifications.length === 0 ? (
-        <div className="text-gray-500 text-center py-12">
+        <div className="text-gray-500 text-center py-12 px-4 lg:px-0">
           {lang === "ro" ? "Nu ai notificări încă." : "No notifications yet."}
         </div>
       ) : (
@@ -1131,6 +1132,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
             opacity: 0.9,
           }}
         />
+      </div>
       </div>
     </div>
   );

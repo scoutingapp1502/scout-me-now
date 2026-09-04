@@ -269,7 +269,7 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                             rows={2}
                           />
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             size="sm"
                             className="bg-green-600 hover:bg-green-700 text-white"

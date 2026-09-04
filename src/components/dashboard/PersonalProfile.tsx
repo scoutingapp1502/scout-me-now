@@ -13,6 +13,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PostCard from "./PostCard";
 import NewPostComposer from "./NewPostComposer";
 import NewsAnnouncementsPanel from "./NewsAnnouncementsPanel";
+import PersonalAreaFooter from "./PersonalAreaFooter";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -145,6 +146,7 @@ interface PersonalProfileProps {
   onNavigateToChat?: (userId: string) => void;
   forceActiveTab?: TabType | null;
   onForceTabHandled?: () => void;
+  onNavigate?: (section: string) => void;
 }
 
 const LOCALE_BY_LANG: Record<string, string> = {
@@ -298,7 +300,7 @@ interface AgentSuggestion {
   email: string | null;
 }
 
-const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActiveTab, onForceTabHandled }: PersonalProfileProps) => {
+const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActiveTab, onForceTabHandled, onNavigate }: PersonalProfileProps) => {
   const { toast } = useToast();
   const { lang, t } = useLanguage();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
@@ -850,12 +852,15 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
   }
 
   return (
-    <div className={`relative isolate ${activeTab === "posts" || activeTab === "profile" || activeTab === "stats" || activeTab === "video" ? "w-full" : "max-w-4xl mx-auto"}`}>
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
+    <div className={`relative isolate -mx-4 lg:mx-0 w-[calc(100%+2rem)] lg:w-auto ${activeTab === "posts" || activeTab === "profile" || activeTab === "stats" || activeTab === "video" ? "" : "max-w-4xl lg:mx-auto"}`}>
+      <div className={activeTab === "profile" || activeTab === "stats" || activeTab === "video" ? "grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start" : ""}>
       <div className="min-w-0">
-      {/* SECTION 1: Header / Hero - sticky */}
+      {/* SECTION 1: Header / Hero - sticky. On the "posts" tab this stays
+          visible only on mobile/tablet (the desktop layout already shows a
+          mini profile card in the left sidebar there, so the full hero
+          would be redundant on lg:+). */}
       <div className="z-20 rounded-xl overflow-hidden">
-      <div className="relative bg-white rounded-t-xl overflow-hidden">
+      <div className={`relative bg-white rounded-t-xl overflow-hidden ${activeTab === "posts" ? "lg:hidden" : ""}`}>
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
           backgroundSize: '30px 30px'
@@ -883,7 +888,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
           {/* Info */}
           <div className="flex-1 min-w-0 w-full text-center sm:text-left order-2 sm:order-1 flex flex-col sm:self-stretch relative">
             {currentTeamLogoUrl && editingSection !== "header" && (
-              <div className="hidden sm:flex absolute top-0 right-0 h-28 w-28 items-center justify-center bg-white rounded-lg shadow-sm p-2">
+              <div className="hidden sm:flex absolute top-0 right-0 h-16 w-16 lg:h-28 lg:w-28 items-center justify-center bg-white rounded-lg shadow-sm p-1.5 lg:p-2">
                 <img
                   src={currentTeamLogoUrl}
                   alt={form.current_team || ""}
@@ -897,7 +902,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
                 <Input value={form.last_name || ""} onChange={(e) => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-lg sm:text-2xl h-auto py-1 min-w-0 focus-visible:ring-2 focus-visible:ring-gray-900" />
               </div>
             ) : (
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center justify-center sm:justify-start gap-3 flex-wrap">
               <h1 className="font-display text-3xl sm:text-5xl text-gray-900 tracking-wide uppercase leading-tight">
                 {(() => {
                   const fullName = `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim();
@@ -919,11 +924,11 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div
-                        className="relative h-12 w-12 flex items-center justify-center cursor-help select-none drop-shadow-[0_0_8px_rgba(251,146,60,0.5)] hover:scale-110 transition-transform shrink-0"
+                        className="relative h-9 w-9 sm:h-12 sm:w-12 lg:h-12 lg:w-12 flex items-center justify-center cursor-help select-none drop-shadow-[0_0_8px_rgba(251,146,60,0.5)] hover:scale-110 transition-transform shrink-0"
                         aria-label={`${t.dashboard.tests.activeStreakTitle}: ${unlocks.loginStreak} ${t.dashboard.tests.daysConsecutiveWord}`}
                       >
-                        <span className="text-4xl leading-none" aria-hidden="true">🔥</span>
-                        <span className="absolute inset-0 flex items-center justify-center pt-1.5 font-display text-[13px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                        <span className="text-3xl sm:text-4xl lg:text-4xl leading-none" aria-hidden="true">🔥</span>
+                        <span className="absolute inset-0 flex items-center justify-center pt-1 sm:pt-1.5 lg:pt-1.5 font-display text-[11px] sm:text-[13px] lg:text-[13px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                           {unlocks.loginStreak}
                         </span>
                       </div>
@@ -982,24 +987,24 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
 
             {/* Nationality, DOB & Social icons */}
             {editingSection !== "header" && (
-              <div className="flex items-center justify-center sm:justify-between gap-6 mt-4 pt-3 sm:pt-[calc(0.75rem+0.8cm)] border-t border-gray-200 flex-wrap sm:pr-[calc(2.5rem+0.5cm)]">
-                <div className="flex flex-col">
-                  <span className="text-sm text-gray-500 font-body">{t.dashboard.profile.nationality}</span>
-                  <span className="text-base font-semibold text-gray-900 font-body mt-0.5">
+              <div className="grid grid-cols-3 lg:flex items-start lg:items-center justify-items-center lg:justify-items-stretch text-center lg:text-left justify-center lg:justify-between gap-3 sm:gap-4 lg:gap-6 mt-4 pt-3 lg:pt-[calc(0.75rem+0.8cm)] border-t border-gray-200 lg:flex-wrap lg:pr-[calc(2.5rem+0.5cm)]">
+                <div className="flex flex-col min-w-0 w-full">
+                  <span className="text-xs sm:text-sm text-gray-500 font-body truncate">{t.dashboard.profile.nationality}</span>
+                  <span className="text-sm sm:text-base font-semibold text-gray-900 font-body mt-0.5 truncate">
                     {profile?.nationality ? getDisplayNationality(profile.nationality, lang, profile?.gender) : (readOnly ? "" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addNationality || "Adaugă naționalitate"}</span>)}
                   </span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm text-gray-500 font-body">{t.dashboard.profile.birthDate}</span>
-                  <span className="text-base font-semibold text-gray-900 font-body mt-0.5">
+                <div className="flex flex-col min-w-0 w-full">
+                  <span className="text-xs sm:text-sm text-gray-500 font-body truncate">{t.dashboard.profile.birthDate}</span>
+                  <span className="text-sm sm:text-base font-semibold text-gray-900 font-body mt-0.5 truncate">
                     {profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : (readOnly ? "" : <span className="italic text-muted-foreground font-normal">{t.dashboard.profile.addDob || "Adaugă data nașterii"}</span>)}
                   </span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm text-gray-500 font-body">{t.dashboard.profile.addSocial || "Rețele de socializare"}</span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>}
-                    {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>}
+                <div className="flex flex-col min-w-0 w-full">
+                  <span className="text-xs sm:text-sm text-gray-500 font-body truncate">{t.dashboard.profile.addSocial || "Rețele de socializare"}</span>
+                  <div className="flex items-center justify-center lg:justify-start gap-1 mt-0.5">
+                    {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-primary transition-colors p-1.5 -m-1.5"><Instagram className="h-5 w-5" /></a>}
+                    {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-primary transition-colors p-1.5 -m-1.5"><Twitter className="h-5 w-5" /></a>}
                     {!profile?.instagram_url && !profile?.twitter_url && !readOnly && <span className="text-muted-foreground italic text-sm font-body font-normal">—</span>}
                   </div>
                 </div>
@@ -1033,7 +1038,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
             )}
             {/* Action buttons for readOnly */}
             {readOnly && !isOwnReadOnlyProfile && (
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex flex-wrap justify-center sm:justify-start lg:flex-nowrap gap-2">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1132,7 +1137,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
       </div>
 
       {/* Tabs row (no edit button) */}
-      <div className="flex items-stretch border-b border-gray-200 bg-white z-20 rounded-b-xl">
+      <div className={`flex items-stretch border-b border-gray-200 bg-white z-20 ${activeTab === "posts" ? "rounded-xl lg:rounded-t-none" : "rounded-b-xl"}`}>
         <div className="flex flex-1 overflow-x-auto">
           {([
             { key: "profile" as TabType, label: lang === "ro" ? "Profil" : "Profile" },
@@ -1144,7 +1149,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
               key={tab.key}
               data-tour={`tab-${tab.key}`}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 px-4 sm:px-6 py-3 font-display text-base sm:text-lg tracking-wide transition-colors relative whitespace-nowrap
+              className={`flex-1 px-2 sm:px-4 lg:px-6 py-2.5 sm:py-3 font-display text-sm sm:text-base lg:text-lg tracking-wide transition-colors relative whitespace-nowrap
                 ${activeTab === tab.key
                   ? "text-orange-500"
                   : "text-gray-900 hover:text-orange-500"
@@ -1164,24 +1169,16 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
       {activeTab !== "video" && activeTab !== "posts" && (
         <div className="relative h-0 overflow-visible">
           <div
-            className="absolute -z-10 pointer-events-none"
+            className="absolute -z-10 pointer-events-none w-[90px] h-[90px] -top-6 -left-9 sm:w-[150px] sm:h-[150px] sm:-top-10 sm:-left-[60px]"
             style={{
-              top: "-40px",
-              left: "-60px",
-              width: "150px",
-              height: "150px",
               background: "linear-gradient(135deg, #7c3aed, #a855f7)",
               clipPath: "polygon(0 0, 100% 0, 0 100%)",
               opacity: 0.9,
             }}
           />
           <div
-            className="absolute -z-10 pointer-events-none"
+            className="absolute -z-10 pointer-events-none w-[220px] h-[220px] -top-14 -right-3 sm:w-[320px] sm:h-[320px] sm:-top-20 sm:-right-6 lg:w-[460px] lg:h-[460px] lg:-top-[120px] lg:-right-6"
             style={{
-              top: "-120px",
-              right: "-24px",
-              width: "460px",
-              height: "460px",
               background: "linear-gradient(135deg, #f97316, #fb923c)",
               clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
               opacity: 0.9,
@@ -1249,6 +1246,8 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
           <NewsAnnouncementsPanel />
         </div>
       </div>
+
+      {!readOnly && <PersonalAreaFooter onNavigate={onNavigate} />}
 
       {/* Message Dialog */}
       {readOnly && (
@@ -1369,7 +1368,7 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
   };
 
   return (
-    <div className={`mx-auto sm:mx-0 relative ${mini ? "w-[140px]" : "w-[220px]"} shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)]`}
+    <div className={`mx-auto sm:mx-0 relative ${mini ? "w-[140px]" : "w-[220px] scale-[0.78] sm:scale-90 lg:scale-100 origin-top -mb-16 sm:-mb-8 lg:mb-0"} shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)]`}
       style={{
         background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
       }}
@@ -1543,7 +1542,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             </span>
                             {isOwner && !videoUrl && inlineEditTest !== test.videoKey && (
                               <button
-                                className="flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 transition-colors"
+                                className="flex items-center justify-center h-8 w-8 lg:h-6 lg:w-6 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 transition-colors"
                                 aria-label={`${tt.addVideoAriaPrefix} ${testLabel}`}
                                 onClick={() => setInlineEditTest(test.videoKey)}
                               >
@@ -1552,7 +1551,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             )}
                             {videoUrl && sub?.status !== "rejected" && (
                               <button
-                                className="flex items-center justify-center h-6 w-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                                className="flex items-center justify-center h-8 w-8 lg:h-6 lg:w-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                                 aria-label={expandedTests.has(test.videoKey) ? `${tt.hideVideoAriaPrefix} ${testLabel}` : `${tt.showVideoAriaPrefix} ${testLabel}`}
                                 onClick={() => toggleTestExpanded(test.videoKey)}
                               >
@@ -1757,24 +1756,16 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
         {/* Decorative geometric shapes between the two test cards */}
         <div className="relative h-0 overflow-visible">
           <div
-            className="absolute -z-10 pointer-events-none"
+            className="absolute -z-10 pointer-events-none w-[160px] h-[160px] -top-10 right-0 lg:w-[360px] lg:h-[360px] lg:-top-[90px]"
             style={{
-              top: "-90px",
-              right: "0px",
-              width: "360px",
-              height: "360px",
               background: "#a3e635",
               clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
               opacity: 0.9,
             }}
           />
           <div
-            className="absolute -z-10 pointer-events-none"
+            className="absolute -z-10 pointer-events-none w-[110px] h-[110px] -top-4 -left-2 lg:w-[260px] lg:h-[260px] lg:-top-10 lg:-left-4"
             style={{
-              top: "-40px",
-              left: "-16px",
-              width: "260px",
-              height: "260px",
               background: "linear-gradient(135deg, #7c3aed, #a855f7)",
               clipPath: "polygon(0 0, 100% 0, 0 100%)",
               opacity: 0.9,
@@ -2008,7 +1999,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     </Popover>
                     {isOwner && !((form as any)[test.key] || (profile as any)?.[test.key]) && !editingTechnical && (
                       <button
-                        className="ml-auto flex items-center justify-center h-7 w-7 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 transition-colors"
+                        className="ml-auto flex items-center justify-center h-9 w-9 lg:h-7 lg:w-7 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 transition-colors"
                         aria-label={`${tt.addVideoAriaPrefix} ${testLabel}`}
                         onClick={() => setInlineEditTest(inlineEditTest === test.key ? null : test.key)}
                       >
@@ -2017,7 +2008,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                     )}
                     {((form as any)[test.key] || (profile as any)?.[test.key]) && getSubmissionForTest(test.key)?.status !== "rejected" && (
                       <button
-                        className="ml-auto flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                        className="ml-auto flex items-center justify-center h-9 w-9 lg:h-7 lg:w-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                         aria-label={expandedTests.has(test.key) ? `${tt.hideVideoAriaPrefix} ${testLabel}` : `${tt.showVideoAriaPrefix} ${testLabel}`}
                         onClick={() => toggleTestExpanded(test.key)}
                       >
@@ -2699,7 +2690,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
       <PlayerStats userId={userId} isOwner={!readOnly} />
 
       {/* Physical + details */}
-      <div className={`grid grid-cols-1 ${!readOnly || profile?.agent_name || profile?.agent_email || profile?.agent_phone ? "sm:grid-cols-2" : ""} gap-4`}>
+      <div className={`grid grid-cols-1 ${!readOnly || profile?.agent_name || profile?.agent_email || profile?.agent_phone ? "md:grid-cols-2" : ""} gap-4`}>
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-lg text-gray-900 uppercase">{t.dashboard.profile.physicalData}</h3>
@@ -2754,7 +2745,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
               <div><Label className="text-xs text-gray-500">{t.dashboard.profile.nationality}</Label><NationalityInput value={form.nationality || ""} onChange={(val) => updateForm("nationality", val)} gender={form.gender} className="bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900" /></div>
               <div className="border-t border-gray-200 pt-3 mt-1">
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">{t.dashboard.profile.geneticData}</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-gray-500">{t.dashboard.profile.fatherHeight} (cm)</Label>
                     <Input
@@ -2969,24 +2960,16 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
       {/* Decorative geometric shapes between the physical/agent row and career */}
       <div className="relative h-0 overflow-visible">
         <div
-          className="absolute -z-10 pointer-events-none"
+          className="absolute -z-10 pointer-events-none w-[120px] h-[120px] -top-5 right-0 lg:w-[260px] lg:h-[260px] lg:-top-10"
           style={{
-            top: "-40px",
-            right: "0px",
-            width: "260px",
-            height: "260px",
             background: "#a3e635",
             clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
             opacity: 0.9,
           }}
         />
         <div
-          className="absolute -z-10 pointer-events-none"
+          className="absolute -z-10 pointer-events-none w-[90px] h-[90px] top-0 -left-2 lg:w-[200px] lg:h-[200px] lg:-left-4"
           style={{
-            top: "0px",
-            left: "-16px",
-            width: "200px",
-            height: "200px",
             background: "linear-gradient(135deg, #7c3aed, #a855f7)",
             clipPath: "polygon(0 0, 100% 0, 0 100%)",
             opacity: 0.9,
@@ -3387,7 +3370,7 @@ function VideoSection({
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <div>
             <Label className="text-xs text-gray-500 font-body mb-2 block">{t.dashboard.profile.addVideo}</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
@@ -3395,7 +3378,7 @@ function VideoSection({
                 className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
                 onKeyDown={(e) => e.key === "Enter" && addVideoWithDescription()}
               />
-              <Button onClick={addVideoWithDescription} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
+              <Button onClick={addVideoWithDescription} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white shrink-0"><Plus className="h-4 w-4 mr-1" />{t.dashboard.profile.addBtn}</Button>
             </div>
           </div>
           <div>

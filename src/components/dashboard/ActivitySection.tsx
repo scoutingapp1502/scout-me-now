@@ -39,15 +39,12 @@ const feedDividerVariants = [
 
 const FeedDivider = ({ index }: { index: number }) => {
   const variant = feedDividerVariants[index % feedDividerVariants.length];
+  const sideClass = variant.side === "left" ? "-left-2 lg:-left-5" : "-right-2 lg:-right-5";
   return (
     <div className="relative h-0 overflow-visible">
       <div
-        className="absolute -z-10 pointer-events-none"
+        className={`absolute -z-10 pointer-events-none -top-2 lg:-top-5 w-[70px] h-[70px] lg:w-[120px] lg:h-[120px] ${sideClass}`}
         style={{
-          top: "-20px",
-          [variant.side]: "-20px",
-          width: "120px",
-          height: "120px",
           background: variant.background,
           clipPath: variant.clipPath,
           opacity: 0.9,
@@ -75,6 +72,7 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
   const [viewingProfileRole, setViewingProfileRole] = useState<string>("player");
   const [hideLikeCounts, setHideLikeCounts] = useState(false);
+  const [feedMode, setFeedMode] = useState<"following" | "mine">("following");
   const { count: followerCount } = useFollowers(currentUserId);
 
   useEffect(() => {
@@ -105,7 +103,7 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
     }
   };
 
-  const fetchPosts = async (userId: string) => {
+  const fetchPosts = async (userId: string, mode: "following" | "mine" = "following") => {
     setLoading(true);
     const [{ data: followsData }, { data: favouritesData }] = await Promise.all([
       supabase.from("follows").select("following_id, responded_at, created_at").eq("follower_id", userId).eq("status", "accepted"),
@@ -116,7 +114,7 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
     const followedSinceMap: Record<string, string> = {};
     (followsData || []).forEach((f: any) => { followedSinceMap[f.following_id] = f.responded_at || f.created_at; });
     const followedIds = Object.keys(followedSinceMap);
-    const allIds = [...new Set([userId, ...followedIds])];
+    const allIds = mode === "mine" ? [userId] : [...new Set(followedIds)];
     const favouriteIds = new Set((favouritesData || []).map((f: any) => f.favourite_user_id as string));
 
     const [postsRes, scoutPostsRes] = await Promise.all([
@@ -164,8 +162,10 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
 
   const currentUserIdRef = useRef<string | null>(null);
   currentUserIdRef.current = currentUserId;
+  const feedModeRef = useRef<"following" | "mine">("following");
+  feedModeRef.current = feedMode;
 
-  useEffect(() => { if (currentUserId) fetchPosts(currentUserId); }, [currentUserId]);
+  useEffect(() => { if (currentUserId) fetchPosts(currentUserId, feedMode); }, [currentUserId, feedMode]);
 
   useEffect(() => {
     const handleInsert = (payload: any) => {
@@ -176,7 +176,7 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
 
       // If the change was made by the current user, refresh immediately
       if (newUserId === uid) {
-        fetchPosts(uid);
+        fetchPosts(uid, feedModeRef.current);
         return;
       }
 
@@ -186,7 +186,7 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
     const handleDeleteEvent = (payload: any) => {
       const uid = currentUserIdRef.current;
       if (!uid) return;
-      if (payload.old?.user_id === uid) fetchPosts(uid);
+      if (payload.old?.user_id === uid) fetchPosts(uid, feedModeRef.current);
     };
     const channel = supabase.channel("posts-feed-" + Date.now())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, handleInsert)
@@ -208,14 +208,14 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
     // actually updated a row.
     const succeeded = (postsRes.data?.length ?? 0) > 0 || (scoutPostsRes.data?.length ?? 0) > 0;
     if (!succeeded) { toast.error(lang === "ro" ? "Eroare la ștergere" : "Failed to delete"); return; }
-    if (currentUserId) fetchPosts(currentUserId);
+    if (currentUserId) fetchPosts(currentUserId, feedMode);
   };
 
   const handleUnfollow = async (userId: string) => {
     if (!currentUserId) return;
     const { error } = await supabase.from("follows").delete().eq("follower_id", currentUserId).eq("following_id", userId);
     if (error) { toast.error(lang === "ro" ? "Eroare" : "Error"); }
-    else { toast.success(lang === "ro" ? "Nu mai urmărești acest utilizator" : "Unfollowed successfully"); fetchPosts(currentUserId); }
+    else { toast.success(lang === "ro" ? "Nu mai urmărești acest utilizator" : "Unfollowed successfully"); fetchPosts(currentUserId, feedMode); }
   };
 
   const handleViewProfile = (userId: string, role: string) => { setViewingProfileId(userId); setViewingProfileRole(role); };
@@ -294,36 +294,24 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
       {/* Decorative geometric shapes above the page content */}
       <div className="relative h-0 overflow-visible">
         <div
-          className="absolute -z-10 pointer-events-none"
+          className="absolute -z-10 pointer-events-none w-[100px] h-[100px] -top-16 right-6 lg:w-[170px] lg:h-[170px] lg:-top-[150px] lg:right-[60px]"
           style={{
-            top: "-150px",
-            right: "60px",
-            width: "170px",
-            height: "170px",
             background: "linear-gradient(135deg, #f97316, #fb923c)",
             clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
             opacity: 0.9,
           }}
         />
         <div
-          className="absolute -z-10 pointer-events-none"
+          className="absolute -z-10 pointer-events-none w-[70px] h-[70px] -top-10 -left-4 lg:w-[120px] lg:h-[120px] lg:-top-[100px] lg:-left-10"
           style={{
-            top: "-100px",
-            left: "-40px",
-            width: "120px",
-            height: "120px",
             background: "linear-gradient(135deg, #7c3aed, #a855f7)",
             clipPath: "polygon(0 0, 100% 0, 0 100%)",
             opacity: 0.9,
           }}
         />
         <div
-          className="absolute -z-10 pointer-events-none"
+          className="absolute -z-10 pointer-events-none hidden lg:block lg:w-[110px] lg:h-[110px] lg:-top-[220px] lg:left-[40%]"
           style={{
-            top: "-220px",
-            left: "40%",
-            width: "110px",
-            height: "110px",
             background: "#a3e635",
             clipPath: "polygon(0 0, 100% 0, 0 100%)",
             opacity: 0.9,
@@ -366,20 +354,40 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
         </div>
 
         {/* Center: feed */}
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-4 -mx-4 lg:mx-0 w-[calc(100%+2rem)] lg:w-auto">
+          {/* Feed mode toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-none lg:rounded-lg p-1 w-full lg:w-fit lg:mx-0">
+            <button
+              type="button"
+              onClick={() => setFeedMode("following")}
+              className={`w-1/2 lg:w-auto lg:flex-none px-4 py-2 rounded-md text-sm font-medium font-body text-center whitespace-nowrap transition-colors ${
+                feedMode === "following" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              {lang === "ro" ? "Urmăritorii mei" : "People I follow"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setFeedMode("mine")}
+              className={`w-1/2 lg:w-auto lg:flex-none px-4 py-2 rounded-md text-sm font-medium font-body text-center whitespace-nowrap transition-colors ${
+                feedMode === "mine" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              {lang === "ro" ? "Postările mele" : "My posts"}
+            </button>
+          </div>
+
           {currentUserId && (
-            <NewPostComposer currentUserId={currentUserId} myPhoto={myPhoto} onPosted={() => fetchPosts(currentUserId)} />
+            <div className="mx-4 lg:mx-0">
+              <NewPostComposer currentUserId={currentUserId} myPhoto={myPhoto} myRole={myRole} onPosted={() => fetchPosts(currentUserId, feedMode)} />
+            </div>
           )}
 
           {/* Decorative geometric shape between composer and feed */}
           <div className="relative h-0 overflow-visible">
             <div
-              className="absolute -z-10 pointer-events-none"
+              className="absolute -z-10 pointer-events-none w-[100px] h-[100px] -top-4 right-4 lg:w-[180px] lg:h-[180px] lg:-top-[30px] lg:-right-4"
               style={{
-                top: "-30px",
-                right: "-16px",
-                width: "180px",
-                height: "180px",
                 background: "linear-gradient(135deg, #f97316, #fb923c)",
                 clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
                 opacity: 0.9,
@@ -392,9 +400,9 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
             <button
               onClick={() => {
                 setNewPostsAvailable(false);
-                if (currentUserId) fetchPosts(currentUserId);
+                if (currentUserId) fetchPosts(currentUserId, feedMode);
               }}
-              className="w-full py-2.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 text-sm font-medium hover:bg-orange-100 transition-colors"
+              className="w-[calc(100%-2rem)] mx-4 lg:w-full lg:mx-0 py-2.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 text-sm font-medium hover:bg-orange-100 transition-colors"
             >
               {lang === "ro" ? "🔄 Sunt postări noi. Apasă pentru a le vedea." : "🔄 New posts available. Tap to refresh."}
             </button>
@@ -404,8 +412,10 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
           {loading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-orange-500" /></div>
           ) : posts.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">
-              {lang === "ro" ? "Nicio postare încă. Urmărește persoane sau publică ceva pentru a începe!" : "No posts yet. Follow people or share something to get started!"}
+            <div className="text-center py-16 text-gray-500 px-4 lg:px-0">
+              {feedMode === "mine"
+                ? (lang === "ro" ? "Nu ai nicio postare încă. Publică ceva pentru a începe!" : "You haven't posted anything yet. Share something to get started!")
+                : (lang === "ro" ? "Nicio postare încă. Urmărește persoane sau publică ceva pentru a începe!" : "No posts yet. Follow people or share something to get started!")}
             </div>
           ) : (
             <div className="space-y-4">
@@ -429,24 +439,16 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
           {/* Decorative geometric shapes below the feed */}
           <div className="relative h-0 overflow-visible">
             <div
-              className="absolute -z-10 pointer-events-none"
+              className="absolute -z-10 pointer-events-none w-[90px] h-[90px] -top-3 right-4 lg:w-[160px] lg:h-[160px] lg:-top-5 lg:right-0"
               style={{
-                top: "-20px",
-                right: "0px",
-                width: "160px",
-                height: "160px",
                 background: "#a3e635",
                 clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
                 opacity: 0.9,
               }}
             />
             <div
-              className="absolute -z-10 pointer-events-none"
+              className="absolute -z-10 pointer-events-none w-[75px] h-[75px] top-3 left-4 lg:w-[130px] lg:h-[130px] lg:top-5 lg:-left-4"
               style={{
-                top: "20px",
-                left: "-16px",
-                width: "130px",
-                height: "130px",
                 background: "linear-gradient(135deg, #7c3aed, #a855f7)",
                 clipPath: "polygon(0 0, 100% 0, 0 100%)",
                 opacity: 0.9,
@@ -488,48 +490,32 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
       {/* Decorative geometric shapes below the page content */}
       <div className="relative h-0 overflow-visible">
         <div
-          className="absolute -z-10 pointer-events-none"
+          className="absolute -z-10 pointer-events-none w-[90px] h-[90px] top-6 right-4 lg:w-[150px] lg:h-[150px] lg:top-10 lg:right-20"
           style={{
-            top: "40px",
-            right: "80px",
-            width: "150px",
-            height: "150px",
             background: "#a3e635",
             clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
             opacity: 0.9,
           }}
         />
         <div
-          className="absolute -z-10 pointer-events-none"
+          className="absolute -z-10 pointer-events-none w-[70px] h-[70px] top-16 left-2 lg:w-[120px] lg:h-[120px] lg:top-[100px] lg:left-10"
           style={{
-            top: "100px",
-            left: "40px",
-            width: "120px",
-            height: "120px",
             background: "linear-gradient(135deg, #f97316, #fb923c)",
             clipPath: "polygon(0 100%, 100% 100%, 0 0)",
             opacity: 0.9,
           }}
         />
         <div
-          className="absolute -z-10 pointer-events-none"
+          className="absolute -z-10 pointer-events-none hidden lg:block lg:w-[110px] lg:h-[110px] lg:top-[260px] lg:right-[260px]"
           style={{
-            top: "260px",
-            right: "260px",
-            width: "110px",
-            height: "110px",
             background: "linear-gradient(135deg, #7c3aed, #a855f7)",
             clipPath: "polygon(0 0, 100% 0, 0 100%)",
             opacity: 0.9,
           }}
         />
         <div
-          className="absolute -z-10 pointer-events-none"
+          className="absolute -z-10 pointer-events-none hidden lg:block lg:w-[100px] lg:h-[100px] lg:top-[320px] lg:left-[220px]"
           style={{
-            top: "320px",
-            left: "220px",
-            width: "100px",
-            height: "100px",
             background: "#a3e635",
             clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
             opacity: 0.9,

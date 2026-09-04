@@ -19,6 +19,7 @@ import { useFollowers } from "@/hooks/useFollowers";
 import { useAccountLock } from "@/hooks/useAccountLock";
 import FollowersList from "./FollowersList";
 import RecommendationsSection from "./RecommendationsSection";
+import PersonalAreaFooter from "./PersonalAreaFooter";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 const LazyPersonalProfile = lazy(() => import("./PersonalProfile"));
 const LazyScoutPersonalProfile = lazy(() => import("./ScoutPersonalProfile"));
@@ -31,6 +32,7 @@ interface ScoutPersonalProfileProps {
   userId: string;
   readOnly?: boolean;
   onNavigateToChat?: (userId: string) => void;
+  onNavigate?: (section: string) => void;
 }
 
 function formatExpDate(val: string | null | undefined, locale: string, presentWord: string): string {
@@ -115,7 +117,7 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
       <div className="flex items-center gap-2 mb-4">
         <FileText className="h-5 w-5 text-orange-500" />
         <h2 className="font-display text-2xl text-gray-900">
@@ -253,7 +255,7 @@ const LOCALE_BY_LANG: Record<string, string> = {
   ro: "ro-RO", en: "en-US", de: "de-DE", fr: "fr-FR", es: "es-ES", it: "it-IT",
 };
 
-const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: ScoutPersonalProfileProps) => {
+const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNavigate }: ScoutPersonalProfileProps) => {
   const { toast } = useToast();
   const { lang, t } = useLanguage();
   const ts = t.dashboard.scoutProfile;
@@ -355,6 +357,10 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
 
   const handlePostSubmit = async () => {
     if (!newPostContent.trim()) return;
+    if (!readOnly && viewerLocked) {
+      toast({ title: ts.accountPendingTitle, description: ts.accountPendingDesc, variant: "destructive" });
+      return;
+    }
     setPostingActivity(true);
     try {
       let imageUrl: string | null = null;
@@ -379,7 +385,12 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       notifyProfileUpdated();
       toast({ title: ts.postPublished });
     } catch (err: any) {
-      toast({ title: t.dashboard.tests.uploadErrorTitle, description: err.message, variant: "destructive" });
+      const isRlsError = typeof err?.message === "string" && err.message.includes("row-level security policy");
+      toast({
+        title: isRlsError ? ts.accountPendingTitle : t.dashboard.tests.uploadErrorTitle,
+        description: isRlsError ? ts.accountPendingDesc : err.message,
+        variant: "destructive",
+      });
     } finally {
       setPostingActivity(false);
     }
@@ -554,7 +565,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-3 sm:p-6">
+    <div className="space-y-4 sm:space-y-6 p-0 lg:p-6 -mx-4 lg:mx-0 w-[calc(100%+2rem)] lg:w-auto">
       {!readOnly && viewerLocked && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <Lock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
@@ -588,7 +599,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         </div>
 
         {/* Profile Info Section */}
-        <div className="relative px-6 pb-6">
+        <div className="relative px-4 sm:px-6 pb-6">
           {/* Avatar - overlapping cover */}
           <div className="relative -mt-16 sm:-mt-20 mb-4">
             <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white overflow-hidden bg-gray-100 shadow-lg">
@@ -609,7 +620,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
           </div>
 
           {/* Name & Title */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 text-center sm:text-left">
             <div className="flex-1">
               {/* Info tooltip for header */}
               {!readOnly && editingSection !== "header" && (
@@ -635,13 +646,13 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
               )}
               {editingSection === "header" ? (
                 <div className="space-y-3">
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Input value={form.first_name || ""} onChange={e => updateForm("first_name", e.target.value)} placeholder={t.dashboard.profile.firstName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-xl h-auto py-1" />
                     <Input value={form.last_name || ""} onChange={e => updateForm("last_name", e.target.value)} placeholder={t.dashboard.profile.lastName} className="bg-gray-100 border-gray-300 text-gray-900 font-display text-xl h-auto py-1" />
                   </div>
                   <Input value={form.title || ""} onChange={e => updateForm("title", e.target.value)} placeholder={ts.titlePlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm" />
                   <Input value={form.organization || ""} onChange={e => updateForm("organization", e.target.value)} placeholder={ts.organizationPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm" />
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Input value={(form as any).city || ""} onChange={e => updateForm("city" as any, e.target.value)} placeholder={ts.cityPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm flex-1" />
                     <Input value={form.country || ""} onChange={e => updateForm("country", e.target.value)} placeholder={ts.countryPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm flex-1" />
                   </div>
@@ -660,7 +671,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                     </p>
                   )}
                   {((profile as any)?.city || profile?.country) && (
-                    <p className="flex items-center gap-1 text-gray-500 text-sm font-body mt-1">
+                    <p className="flex items-center justify-center sm:justify-start gap-1 text-gray-500 text-sm font-body mt-1">
                       <MapPin className="h-4 w-4" />
                       {[(profile as any)?.city, profile?.country].filter(Boolean).join(", ")}
                     </p>
@@ -672,7 +683,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                 <div className="mt-2">
                   <button
                     onClick={() => !readOnly && setShowFollowersList(!showFollowersList)}
-                    className={`flex items-center gap-1.5 text-sm font-body ${!readOnly ? "hover:text-orange-500 cursor-pointer" : "cursor-default"} transition-colors`}
+                    className={`flex items-center justify-center sm:justify-start gap-1.5 text-sm font-body w-full sm:w-auto ${!readOnly ? "hover:text-orange-500 cursor-pointer" : "cursor-default"} transition-colors`}
                   >
                     <Users className="h-4 w-4 text-green-500" />
                     <span className="font-semibold text-gray-900">{followerCount}</span>
@@ -683,7 +694,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
             </div>
 
             {/* Right side: Edit button above Organization badge */}
-            <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col items-center sm:items-end gap-2">
               {!readOnly && editingSection !== "header" && (
                 <button
                   data-tour="profile-edit"
@@ -703,7 +714,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
             </div>
             {/* Action buttons for readOnly */}
             {readOnly && editingSection !== "header" && (
-              <div className="flex gap-2 mt-2 sm:mt-0">
+              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-2 sm:mt-0">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -761,7 +772,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
 
 
       {/* ===== DESPRE / BIO ===== */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl text-gray-900">{ts.aboutTitle}</h2>
@@ -853,7 +864,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       <RepresentedPlayersSection userId={userId} readOnly={readOnly} />
 
       {/* ===== ACTIVITATE ===== */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl text-gray-900">{ts.activityTitle}</h2>
@@ -902,6 +913,12 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         {/* New post form (only for own profile) */}
         {!readOnly && (
           <div className="mb-6 border border-gray-200 rounded-xl p-4">
+            {viewerLocked && (
+              <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mb-3">
+                <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+                <p className="text-xs text-amber-700">{ts.accountPendingDesc}</p>
+              </div>
+            )}
             <div className="flex gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                 {photoSrc ? (
@@ -918,6 +935,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                   onChange={e => setNewPostContent(e.target.value)}
                   placeholder={ts.writePostPlaceholder}
                   className="bg-transparent border-none text-gray-900 text-sm min-h-[60px] p-0 resize-none focus-visible:ring-0"
+                  disabled={viewerLocked}
                 />
                 {newPostImagePreview && (
                   <div className="relative mt-2 inline-block">
@@ -926,17 +944,17 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                   </div>
                 )}
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-                  <label className="cursor-pointer text-gray-500 hover:text-orange-500 transition-colors">
+                  <label className={`text-gray-500 transition-colors ${viewerLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:text-orange-500"}`}>
                     <Image className="h-5 w-5" />
-                    <input type="file" accept="image/*" className="hidden" onChange={handlePostImageChange} />
+                    <input type="file" accept="image/*" className="hidden" onChange={handlePostImageChange} disabled={viewerLocked} />
                   </label>
                   <Button
                     size="sm"
                     onClick={handlePostSubmit}
-                    disabled={postingActivity || !newPostContent.trim()}
+                    disabled={postingActivity || !newPostContent.trim() || viewerLocked}
                     className="bg-orange-500 hover:bg-orange-600 text-white font-body"
                   >
-                    {postingActivity ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-1" />{ts.publishBtn}</>}
+                    {postingActivity ? <Loader2 className="h-4 w-4 animate-spin" /> : viewerLocked ? <><Lock className="h-4 w-4 mr-1" />{ts.publishBtn}</> : <><Send className="h-4 w-4 mr-1" />{ts.publishBtn}</>}
                   </Button>
                 </div>
               </div>
@@ -1009,7 +1027,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
       </div>
 
       {/* ===== EXPERIENȚĂ ===== */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl text-gray-900">{ts.experienceTitle}</h2>
@@ -1076,7 +1094,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
                     </div>
                     <Input value={exp.organization || ""} onChange={e => updateExp(index, "organization", e.target.value)} placeholder={ts.organizationPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm" />
                     <Input value={exp.location || ""} onChange={e => updateExp(index, "location", e.target.value)} placeholder={ts.locationPlaceholder} className="bg-gray-100 border-gray-300 text-gray-900 text-sm" />
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <Label className="text-xs text-gray-900 font-medium">{ts.startDateLabel}</Label>
                         <Input
@@ -1155,6 +1173,8 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat }: Sc
         profileRole="scout"
         onViewProfile={(uid, role) => setRecAuthorView({ userId: uid, role })}
       />
+
+      {!readOnly && <PersonalAreaFooter onNavigate={onNavigate} />}
 
       {/* Message Dialog */}
       {readOnly && (

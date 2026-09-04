@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone } from "lucide-react";
+import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone, Menu } from "lucide-react";
 import AdminVideoReview from "@/pages/AdminVideoReview";
 import AdminScoutVerification from "@/pages/AdminScoutVerification";
 import AdminTestVideos from "@/pages/AdminTestVideos";
@@ -10,6 +10,8 @@ import AdminSupportTickets from "@/pages/AdminSupportTickets";
 import AdminClubLogos from "@/pages/AdminClubLogos";
 import AdminAnnouncements from "@/pages/AdminAnnouncements";
 import { Loader2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const adminSections = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
@@ -24,10 +26,12 @@ const adminSections = [
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("video-review");
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const check = async () => {
@@ -95,82 +99,118 @@ export default function AdminDashboard() {
     );
   }
 
+  const sidebarContent = (
+    <>
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-orange-500" />
+          <span className="font-display text-2xl text-orange-500">ADMIN</span>
+        </div>
+        <p className="text-xs text-gray-500 font-body mt-1">SportRise Admin Panel</p>
+      </div>
+
+      <nav className="flex-1 p-4 space-y-1">
+        {adminSections.map((section) => {
+          const Icon = section.icon;
+          const isActive = activeSection === section.id;
+          const badgeCount = pendingCounts[section.id] || 0;
+          return (
+            <button
+              key={section.id}
+              onClick={() => { setActiveSection(section.id); if (isMobile) setSidebarOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all relative ${
+                isActive
+                  ? "bg-orange-500 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="text-left">{section.label}</span>
+              {badgeCount > 0 && (
+                <span className="ml-auto w-5 h-5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center shrink-0">
+                  <span className="text-[10px] text-white font-bold">{badgeCount > 99 ? "99+" : badgeCount}</span>
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="p-4 border-t border-gray-200">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:text-destructive hover:bg-gray-100 font-body text-sm transition-all"
+        >
+          <LogOut className="h-5 w-5" />
+          Deconectare
+        </button>
+      </div>
+    </>
+  );
+
+  const mainContent = (
+    <>
+      {activeSection === "overview" && (
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          <h1 className="text-2xl font-heading font-bold mb-4 text-gray-900">Dashboard Admin</h1>
+          <p className="text-gray-500">Bine ai venit în panoul de administrare SportRise.</p>
+        </div>
+      )}
+      {activeSection === "video-review" && (
+        <AdminVideoReview embedded />
+      )}
+      {activeSection === "test-videos" && (
+        <AdminTestVideos embedded />
+      )}
+      {activeSection === "club-logos" && (
+        <AdminClubLogos embedded />
+      )}
+      {activeSection === "announcements" && (
+        <AdminAnnouncements embedded />
+      )}
+      {activeSection === "scout-verification" && (
+        <AdminScoutVerification />
+      )}
+      {activeSection === "support-tickets" && (
+        <AdminSupportTickets />
+      )}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-200 overflow-hidden">
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="p-0 w-64 bg-white border-gray-200 flex flex-col">
+            {sidebarContent}
+          </SheetContent>
+        </Sheet>
+        <header className="flex items-center gap-3 p-4 border-b border-gray-200 bg-white shrink-0">
+          <button onClick={() => setSidebarOpen(true)} className="text-gray-900">
+            <Menu className="h-6 w-6" />
+          </button>
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-orange-500" />
+            <span className="font-display text-lg text-orange-500">ADMIN</span>
+          </div>
+        </header>
+        <main className="flex-1 overflow-y-auto bg-gray-200">
+          {mainContent}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-gray-200 overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 min-h-screen bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-orange-500" />
-            <span className="font-display text-2xl text-orange-500">ADMIN</span>
-          </div>
-          <p className="text-xs text-gray-500 font-body mt-1">SportRise Admin Panel</p>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1">
-          {adminSections.map((section) => {
-            const Icon = section.icon;
-            const isActive = activeSection === section.id;
-            const badgeCount = pendingCounts[section.id] || 0;
-            return (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all relative ${
-                  isActive
-                    ? "bg-orange-500 text-white shadow-lg"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                <Icon className="h-5 w-5 shrink-0" />
-                <span className="text-left">{section.label}</span>
-                {badgeCount > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center shrink-0">
-                    <span className="text-[10px] text-white font-bold">{badgeCount > 99 ? "99+" : badgeCount}</span>
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:text-destructive hover:bg-gray-100 font-body text-sm transition-all"
-          >
-            <LogOut className="h-5 w-5" />
-            Deconectare
-          </button>
-        </div>
+        {sidebarContent}
       </aside>
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto bg-gray-200">
-        {activeSection === "overview" && (
-          <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-2xl font-heading font-bold mb-4 text-gray-900">Dashboard Admin</h1>
-            <p className="text-gray-500">Bine ai venit în panoul de administrare SportRise.</p>
-          </div>
-        )}
-        {activeSection === "video-review" && (
-          <AdminVideoReview embedded />
-        )}
-        {activeSection === "test-videos" && (
-          <AdminTestVideos embedded />
-        )}
-        {activeSection === "club-logos" && (
-          <AdminClubLogos embedded />
-        )}
-        {activeSection === "announcements" && (
-          <AdminAnnouncements embedded />
-        )}
-        {activeSection === "scout-verification" && (
-          <AdminScoutVerification />
-        )}
-        {activeSection === "support-tickets" && (
-          <AdminSupportTickets />
-        )}
+        {mainContent}
       </main>
     </div>
   );

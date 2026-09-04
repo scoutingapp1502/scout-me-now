@@ -31,6 +31,8 @@ import LikeShareCountsSection from "@/components/dashboard/LikeShareCountsSectio
 import LanguageSection from "@/components/dashboard/LanguageSection";
 import AboutSection from "@/components/dashboard/AboutSection";
 import HelpSection from "@/components/dashboard/HelpSection";
+import TermsSection from "@/components/dashboard/TermsSection";
+import PrivacyPolicySection from "@/components/dashboard/PrivacyPolicySection";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import WelcomeTour from "@/components/dashboard/WelcomeTour";
 import AppAssistant from "@/components/dashboard/AppAssistant";
@@ -334,8 +336,8 @@ const Dashboard = () => {
           <>
             {completionBar}
             {(userRole === "cauta_jucator")
-              ? <ScoutPersonalProfile userId={user.id} />
-              : <PersonalProfile userId={user.id} forceActiveTab={tourForceTab as any} onForceTabHandled={() => setTourForceTab(null)} />}
+              ? <ScoutPersonalProfile userId={user.id} onNavigate={navigateTo} />
+              : <PersonalProfile userId={user.id} forceActiveTab={tourForceTab as any} onForceTabHandled={() => setTourForceTab(null)} onNavigate={navigateTo} />}
           </>
         );
       case "players":
@@ -368,6 +370,8 @@ const Dashboard = () => {
       case "language": return <LanguageSection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "about": return <AboutSection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "help": return <HelpSection userId={user.id} onBack={() => setActiveSection("settings")} />;
+      case "terms": return <TermsSection onBack={() => setActiveSection("profile")} />;
+      case "privacy-policy": return <PrivacyPolicySection onBack={() => setActiveSection("profile")} />;
       case "notification-settings": return <NotificationSettingsSection onBack={() => setActiveSection("settings")} onNavigateToSleepMode={() => navigateTo("sleep-mode-settings")} />;
       case "sleep-mode-settings": return <SleepModeSection onBack={() => setActiveSection("notification-settings")} />;
       case "messages": return (
@@ -382,8 +386,8 @@ const Dashboard = () => {
           <>
             {completionBar}
             {(userRole === "cauta_jucator")
-              ? <ScoutPersonalProfile userId={user.id} />
-              : <PersonalProfile userId={user.id} forceActiveTab={tourForceTab as any} onForceTabHandled={() => setTourForceTab(null)} />}
+              ? <ScoutPersonalProfile userId={user.id} onNavigate={navigateTo} />
+              : <PersonalProfile userId={user.id} forceActiveTab={tourForceTab as any} onForceTabHandled={() => setTourForceTab(null)} onNavigate={navigateTo} />}
           </>
         );
     }
@@ -440,8 +444,8 @@ const Dashboard = () => {
             </SheetContent>
           </Sheet>
           <div className="flex-1 flex flex-col">
-            <header className="flex items-center gap-3 p-4 border-b border-border">
-              <button onClick={() => setSidebarOpen(true)} className="text-foreground">
+            <header className="flex items-center gap-3 p-4 border-b border-border bg-white">
+              <button onClick={() => setSidebarOpen(true)} className="text-gray-900">
                 <Menu className="h-6 w-6" />
               </button>
               <span className="text-lg">⚽</span>
