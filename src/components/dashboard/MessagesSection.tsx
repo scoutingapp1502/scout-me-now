@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import NewGroupChat from "./NewGroupChat";
 import AddGroupMembers from "./AddGroupMembers";
 import PostCard from "./PostCard";
+import StoryViewer from "./StoryViewer";
 
 interface ConversationItem {
   conversation_id: string;
@@ -96,6 +97,8 @@ const formatFileSize = (bytes?: number | null): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const MESSAGES_PAGE_SIZE = 30;
+
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
@@ -150,6 +153,19 @@ interface SharedPost {
   authorPhoto: string | null;
 }
 
+// A shared story that's still live (row present, not yet expired) has
+// mediaUrl/ownerName resolved from the current stories row. Once expired or
+// deleted, shared_story_id goes null (ON DELETE SET NULL) and only the
+// denormalized shared_story_owner_name survives — expired stays true so the
+// bubble can render the "story-ul lui X a expirat" fallback either way.
+interface SharedStory {
+  id: string | null;
+  mediaUrl: string | null;
+  ownerId: string | null;
+  ownerName: string;
+  expired: boolean;
+}
+
 interface Message {
   id: string;
   sender_id: string;
@@ -159,6 +175,9 @@ interface Message {
   deleted_at?: string | null;
   shared_post_id?: string | null;
   sharedPost?: SharedPost | null;
+  shared_story_id?: string | null;
+  shared_story_owner_name?: string | null;
+  sharedStory?: SharedStory | null;
   attachment_url?: string | null;
   attachment_name?: string | null;
   attachment_size?: number | null;
@@ -204,6 +223,34 @@ interface MessagesSectionProps {
   onInitialChatHandled?: () => void;
   onNavigateToChat?: (userId: string) => void;
 }
+
+const SharedStoryCard = ({ story, onClick, lang }: { story: SharedStory; onClick?: () => void; lang: string }) => {
+  if (story.expired || !story.mediaUrl) {
+    return (
+      <div className="w-56 rounded-xl border border-gray-200 bg-gray-50 px-3 py-4">
+        <p className="text-xs text-gray-500 italic">
+          {lang === "ro"
+            ? `Acest mesaj nu este disponibil - story-ul lui ${story.ownerName} a expirat`
+            : `This message is unavailable - ${story.ownerName}'s story has expired`}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div
+      onClick={onClick}
+      className={`w-40 rounded-xl overflow-hidden border-2 border-gradient bg-white ${onClick ? "cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
+      style={{ borderImage: "linear-gradient(135deg, #f97316, #a855f7) 1" }}
+    >
+      <img src={story.mediaUrl} alt="" className="w-full aspect-[9/16] object-cover" />
+      <div className="px-2 py-1.5 bg-white">
+        <span className="text-[11px] text-gray-500 font-body">
+          {lang === "ro" ? `Story de la ${story.ownerName}` : `Story from ${story.ownerName}`}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 const SharedPostCard = ({ post, onClick }: { post: SharedPost; onClick?: () => void }) => (
   <div
@@ -265,6 +312,41 @@ const resolveSharedPosts = async (postIds: string[]): Promise<Map<string, Shared
   return map;
 };
 
+// Keyed by message id (not story id) since a message whose story already
+// expired/was deleted still needs a SharedStory entry (expired: true) built
+// purely from the denormalized shared_story_owner_name snapshot — there's
+// no stories row left to look up by story id at that point.
+const resolveSharedStories = async (
+  rawMessages: { id: string; shared_story_id?: string | null; shared_story_owner_name?: string | null }[]
+): Promise<Map<string, SharedStory>> => {
+  const map = new Map<string, SharedStory>();
+  const withStoryRef = rawMessages.filter((m) => m.shared_story_owner_name);
+  if (withStoryRef.length === 0) return map;
+
+  const liveStoryIds = [...new Set(withStoryRef.filter((m) => m.shared_story_id).map((m) => m.shared_story_id as string))];
+  const storyRowMap = new Map<string, { media_url: string; user_id: string; expires_at: string }>();
+  if (liveStoryIds.length > 0) {
+    const { data: stories } = await (supabase as any)
+      .from("stories")
+      .select("id, media_url, user_id, expires_at")
+      .in("id", liveStoryIds);
+    (stories ?? []).forEach((s: any) => storyRowMap.set(s.id, s));
+  }
+
+  withStoryRef.forEach((m) => {
+    const row = m.shared_story_id ? storyRowMap.get(m.shared_story_id) : undefined;
+    const isExpired = !row || new Date(row.expires_at) <= new Date();
+    map.set(m.id, {
+      id: m.shared_story_id ?? null,
+      mediaUrl: isExpired ? null : row!.media_url,
+      ownerId: isExpired ? null : row!.user_id,
+      ownerName: m.shared_story_owner_name as string,
+      expired: isExpired,
+    });
+  });
+  return map;
+};
+
 const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateToChat }: MessagesSectionProps = {}) => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -280,6 +362,14 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [chatLoading, setChatLoading] = useState(false);
   const [chatScrollReady, setChatScrollReady] = useState(false);
   const [groupChatScrollReady, setGroupChatScrollReady] = useState(false);
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
+  const [hasMoreOlderMessages, setHasMoreOlderMessages] = useState(true);
+  const [loadingOlderGroupMessages, setLoadingOlderGroupMessages] = useState(false);
+  const [hasMoreOlderGroupMessages, setHasMoreOlderGroupMessages] = useState(true);
+  // Set right before prepending older messages so the scroll-to-bottom
+  // effects below can tell "history grew at the top" apart from "a new
+  // message arrived at the bottom" and skip re-jumping the viewport.
+  const isPrependingRef = useRef(false);
   const [deletingMessage, setDeletingMessage] = useState<{ id: string; isGroup: boolean } | null>(null);
   const [readByDialogMessageId, setReadByDialogMessageId] = useState<string | null>(null);
   const [readByNames, setReadByNames] = useState<{ name: string; photo: string | null }[]>([]);
@@ -323,6 +413,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     authorName: string; authorPhoto: string | null; authorRole: string; authorTitle: string;
   } | null>(null);
   const [loadingViewingPost, setLoadingViewingPost] = useState(false);
+
+  // Viewing a shared story (opened from a chat bubble)
+  const [viewingStory, setViewingStory] = useState<{ ownerId: string; storyId: string; ownerName: string } | null>(null);
 
   // Group states
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -626,6 +719,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     let cancelled = false;
     setChatScrollReady(false);
     scrolledConversationRef.current = null;
+    setHasMoreOlderMessages(true);
     const load = async () => {
       setChatLoading(true);
       const { data: allowed } = await supabase.rpc("can_message_user", { _other_user_id: selectedConversation.other_user_id });
@@ -646,21 +740,28 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       });
       if (cancelled) return;
       setIRestrictedOther(!!iRestrictedThem);
-      // Always load existing messages so historical conversation is visible,
-      // even when the follow relationship no longer permits sending new ones.
-      const { data: msgs } = await supabase
+      // Only the most recent page loads up front — older history loads on
+      // demand when the user scrolls to the top (loadOlderMessages below).
+      const { data: recentMsgs } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", selectedConversation.conversation_id)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(MESSAGES_PAGE_SIZE);
 
       if (cancelled) return;
-      const postIds = [...new Set((msgs ?? []).filter((m: any) => m.shared_post_id).map((m: any) => m.shared_post_id as string))];
-      const sharedPostMap = await resolveSharedPosts(postIds);
+      const msgs = (recentMsgs ?? []).slice().reverse();
+      setHasMoreOlderMessages((recentMsgs ?? []).length === MESSAGES_PAGE_SIZE);
+      const postIds = [...new Set(msgs.filter((m: any) => m.shared_post_id).map((m: any) => m.shared_post_id as string))];
+      const [sharedPostMap, sharedStoryMap] = await Promise.all([resolveSharedPosts(postIds), resolveSharedStories(msgs as any)]);
       if (cancelled) return;
-      setMessages(((msgs as Message[]) || []).map((m) => m.shared_post_id ? { ...m, sharedPost: sharedPostMap.get(m.shared_post_id) ?? null } : m));
+      setMessages((msgs as Message[]).map((m) => ({
+        ...m,
+        sharedPost: m.shared_post_id ? sharedPostMap.get(m.shared_post_id) ?? null : null,
+        sharedStory: sharedStoryMap.get(m.id) ?? null,
+      })));
 
-      if (msgs && currentUserId && !iRestrictedThem) {
+      if (msgs.length > 0 && currentUserId && !iRestrictedThem) {
         const unread = msgs.filter((m: any) => !m.read && m.sender_id !== currentUserId);
         if (unread.length > 0) {
           await supabase
@@ -678,6 +779,44 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     load();
     return () => { cancelled = true; };
   }, [selectedConversation, currentUserId]);
+
+  // Loads the next-older page of messages when the user scrolls near the
+  // top of an open DM, using the oldest currently-loaded message's
+  // created_at as a keyset cursor (stable under concurrent inserts, unlike
+  // an OFFSET). Preserves scroll position by measuring the container's
+  // scrollHeight growth and re-applying it as scrollTop after the prepend.
+  const loadOlderMessages = async () => {
+    if (loadingOlderMessages || !hasMoreOlderMessages || !selectedConversation || messages.length === 0) return;
+    setLoadingOlderMessages(true);
+    const oldest = messages[0];
+    const container = messagesScrollContainerRef.current;
+    const prevScrollHeight = container?.scrollHeight ?? 0;
+    const { data: olderMsgs } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", selectedConversation.conversation_id)
+      .lt("created_at", oldest.created_at)
+      .order("created_at", { ascending: false })
+      .limit(MESSAGES_PAGE_SIZE);
+
+    const page = (olderMsgs ?? []).slice().reverse();
+    setHasMoreOlderMessages((olderMsgs ?? []).length === MESSAGES_PAGE_SIZE);
+    if (page.length > 0) {
+      const postIds = [...new Set(page.filter((m: any) => m.shared_post_id).map((m: any) => m.shared_post_id as string))];
+      const [sharedPostMap, sharedStoryMap] = await Promise.all([resolveSharedPosts(postIds), resolveSharedStories(page as any)]);
+      const enriched = (page as Message[]).map((m) => ({
+        ...m,
+        sharedPost: m.shared_post_id ? sharedPostMap.get(m.shared_post_id) ?? null : null,
+        sharedStory: sharedStoryMap.get(m.id) ?? null,
+      }));
+      isPrependingRef.current = true;
+      setMessages((prev) => [...enriched, ...prev]);
+      requestAnimationFrame(() => {
+        if (container) container.scrollTop = container.scrollHeight - prevScrollHeight;
+      });
+    }
+    setLoadingOlderMessages(false);
+  };
 
   useEffect(() => {
     if (!selectedConversation) return;
@@ -703,6 +842,12 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             }
             return [...prev, newMsg];
           });
+          if (newMsg.shared_story_owner_name) {
+            resolveSharedStories([newMsg]).then((map) => {
+              const st = map.get(newMsg.id);
+              if (st) setMessages((prev) => prev.map((m) => m.id === newMsg.id ? { ...m, sharedStory: st } : m));
+            });
+          }
           if (newMsg.shared_post_id) {
             resolveSharedPosts([newMsg.shared_post_id]).then((map) => {
               const sp = map.get(newMsg.shared_post_id!);
@@ -740,6 +885,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   // missed/duplicate scroll can never permanently hide the conversation.
   useLayoutEffect(() => {
     if (chatLoading) return;
+    if (isPrependingRef.current) { setChatScrollReady(true); return; }
     const convId = selectedConversation?.conversation_id ?? null;
     const isFirstScrollForConversation = scrolledConversationRef.current !== convId;
     if (isFirstScrollForConversation && messagesScrollContainerRef.current) {
@@ -751,12 +897,19 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
   useEffect(() => {
     if (chatLoading) return;
+    if (isPrependingRef.current) { isPrependingRef.current = false; return; }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     chatInputRef.current?.focus();
   }, [messages]);
 
+  const handleMessagesScroll = () => {
+    const container = messagesScrollContainerRef.current;
+    if (container && container.scrollTop < 100) loadOlderMessages();
+  };
+
   useLayoutEffect(() => {
     if (groupChatLoading) return;
+    if (isPrependingRef.current) { setGroupChatScrollReady(true); return; }
     const groupId = selectedGroup?.id ?? null;
     const isFirstScrollForGroup = scrolledGroupRef.current !== groupId;
     if (isFirstScrollForGroup && groupMessagesScrollContainerRef.current) {
@@ -768,8 +921,14 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
 
   useEffect(() => {
     if (groupChatLoading) return;
+    if (isPrependingRef.current) { isPrependingRef.current = false; return; }
     groupMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [groupMessages]);
+
+  const handleGroupMessagesScroll = () => {
+    const container = groupMessagesScrollContainerRef.current;
+    if (container && container.scrollTop < 100) loadOlderGroupMessages();
+  };
 
   const handleViewPost = async (postId: string) => {
     setViewingPostId(postId);
@@ -807,6 +966,17 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     setViewingPostId(null);
     setViewingPost(null);
   };
+
+  const storyViewerDialog = viewingStory && (
+    <StoryViewer
+      open={!!viewingStory}
+      onClose={() => setViewingStory(null)}
+      userId={viewingStory.ownerId}
+      initialStoryId={viewingStory.storyId}
+      displayName={viewingStory.ownerName}
+      currentUserId={currentUserId ?? undefined}
+    />
+  );
 
   const viewPostDialog = (
     <Dialog open={!!viewingPostId} onOpenChange={(open) => { if (!open) { setViewingPostId(null); setViewingPost(null); } }}>
@@ -1066,26 +1236,33 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     }
   };
 
+  const GROUP_MESSAGE_COLUMNS = "id, group_id, sender_id, content, created_at, deleted_at, shared_post_id, attachment_url, attachment_name, attachment_size, attachment_type";
+
   const loadGroupMessages = async (group: GroupItem) => {
     setGroupChatScrollReady(false);
     scrolledGroupRef.current = null;
     setGroupChatLoading(true);
-    const [{ data: msgs }, { data: restricted }] = await Promise.all([
-      (supabase as any).from("group_messages").select("id, group_id, sender_id, content, created_at, deleted_at, shared_post_id, attachment_url, attachment_name, attachment_size, attachment_type").eq("group_id", group.id).order("created_at", { ascending: true }),
+    setHasMoreOlderGroupMessages(true);
+    // Only the most recent page loads up front — older history loads on
+    // demand when the user scrolls to the top (loadOlderGroupMessages below).
+    const [{ data: recentMsgs }, { data: restricted }] = await Promise.all([
+      (supabase as any).from("group_messages").select(GROUP_MESSAGE_COLUMNS).eq("group_id", group.id).order("created_at", { ascending: false }).limit(MESSAGES_PAGE_SIZE),
       currentUserId
         ? (supabase as any).from("group_restricted_senders").select("restricted_user_id").eq("group_id", group.id).eq("restrictor_id", currentUserId)
         : Promise.resolve({ data: [] }),
     ]);
 
+    const msgs = (recentMsgs ?? []).slice().reverse();
+    setHasMoreOlderGroupMessages((recentMsgs ?? []).length === MESSAGES_PAGE_SIZE);
     const restrictedIds = new Set((restricted ?? []).map((r: any) => r.restricted_user_id));
     const memberMap = new Map(group.members.map(m => [m.userId, m]));
-    const postIds = [...new Set((msgs ?? []).filter((m: any) => m.shared_post_id).map((m: any) => m.shared_post_id as string))];
-    const myMessageIds = (msgs ?? []).filter((m: any) => m.sender_id === currentUserId).map((m: any) => m.id as string);
+    const postIds = [...new Set(msgs.filter((m: any) => m.shared_post_id).map((m: any) => m.shared_post_id as string))];
+    const myMessageIds = msgs.filter((m: any) => m.sender_id === currentUserId).map((m: any) => m.id as string);
     const [sharedPostMap, readCountByMessageId] = await Promise.all([
       resolveSharedPosts(postIds),
       fetchGroupReadCounts(myMessageIds),
     ]);
-    setGroupMessages((msgs ?? [])
+    setGroupMessages(msgs
       .filter((m: any) => !restrictedIds.has(m.sender_id))
       .map((m: any) => ({
         ...m,
@@ -1096,8 +1273,64 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       })));
     setGroupChatLoading(false);
     if (currentUserId) {
-      (supabase as any).rpc("mark_group_messages_read", { _group_id: group.id }).catch((err: unknown) => console.error("Failed to mark group messages read:", err));
+      // Clear the inbox badge immediately rather than waiting for the next
+      // fetchGroups() (which only happens on leaving the conversation) —
+      // otherwise the unread count in the group list stays stale for the
+      // entire time the user is inside the conversation they just read.
+      setGroups(prev => prev.map(g => g.id === group.id ? { ...g, unreadCount: 0 } : g));
+      // Awaited (not fire-and-forget) so a quick enter-then-leave can't race
+      // handleLeaveGroup's/handleBack's fetchGroups() — that refetch reads
+      // unread_count fresh from get_group_message_previews, which would
+      // still see the old count and overwrite the optimistic 0 above if the
+      // read-marking insert hadn't committed yet.
+      try {
+        await (supabase as any).rpc("mark_group_messages_read", { _group_id: group.id });
+      } catch (err) {
+        console.error("Failed to mark group messages read:", err);
+      }
     }
+  };
+
+  const loadOlderGroupMessages = async () => {
+    if (loadingOlderGroupMessages || !hasMoreOlderGroupMessages || !selectedGroup || groupMessages.length === 0) return;
+    setLoadingOlderGroupMessages(true);
+    const oldest = groupMessages[0];
+    const container = groupMessagesScrollContainerRef.current;
+    const prevScrollHeight = container?.scrollHeight ?? 0;
+    const [{ data: olderMsgs }, { data: restricted }] = await Promise.all([
+      (supabase as any).from("group_messages").select(GROUP_MESSAGE_COLUMNS).eq("group_id", selectedGroup.id).lt("created_at", oldest.created_at).order("created_at", { ascending: false }).limit(MESSAGES_PAGE_SIZE),
+      currentUserId
+        ? (supabase as any).from("group_restricted_senders").select("restricted_user_id").eq("group_id", selectedGroup.id).eq("restrictor_id", currentUserId)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const page = (olderMsgs ?? []).slice().reverse();
+    setHasMoreOlderGroupMessages((olderMsgs ?? []).length === MESSAGES_PAGE_SIZE);
+    if (page.length > 0) {
+      const restrictedIds = new Set((restricted ?? []).map((r: any) => r.restricted_user_id));
+      const memberMap = new Map(selectedGroup.members.map(m => [m.userId, m]));
+      const postIds = [...new Set(page.filter((m: any) => m.shared_post_id).map((m: any) => m.shared_post_id as string))];
+      const myMessageIds = page.filter((m: any) => m.sender_id === currentUserId).map((m: any) => m.id as string);
+      const [sharedPostMap, readCountByMessageId] = await Promise.all([
+        resolveSharedPosts(postIds),
+        fetchGroupReadCounts(myMessageIds),
+      ]);
+      const enriched = page
+        .filter((m: any) => !restrictedIds.has(m.sender_id))
+        .map((m: any) => ({
+          ...m,
+          senderName: memberMap.get(m.sender_id)?.name ?? "",
+          senderPhoto: memberMap.get(m.sender_id)?.photo ?? null,
+          sharedPost: m.shared_post_id ? (sharedPostMap.get(m.shared_post_id) ?? null) : null,
+          readByCount: readCountByMessageId.get(m.id) ?? 0,
+        }));
+      isPrependingRef.current = true;
+      setGroupMessages((prev) => [...enriched, ...prev]);
+      requestAnimationFrame(() => {
+        if (container) container.scrollTop = container.scrollHeight - prevScrollHeight;
+      });
+    }
+    setLoadingOlderGroupMessages(false);
   };
 
   // Batched read-count lookup for the caller's own group messages only —
@@ -1548,6 +1781,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           )}
         </div>
         {viewPostDialog}
+        {storyViewerDialog}
       </div>
     );
   }
@@ -1843,7 +2077,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             </div>
           </button>
         </div>
-        <div ref={groupMessagesScrollContainerRef} className={`flex-1 overflow-y-auto py-4 space-y-3 min-h-0 ${!groupChatLoading && !groupChatScrollReady ? "invisible" : ""}`}>
+        <div ref={groupMessagesScrollContainerRef} onScroll={handleGroupMessagesScroll} className={`flex-1 overflow-y-auto py-4 space-y-3 min-h-0 ${!groupChatLoading && !groupChatScrollReady ? "invisible" : ""}`}>
           {/* Group info card — shown at the start of the conversation */}
           <div className="flex flex-col items-center text-center pb-6 mb-2 border-b border-gray-200">
             {stackedMembers.length > 0 ? (
@@ -1894,7 +2128,13 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           ) : groupMessages.length === 0 ? (
             <p className="text-center text-gray-500 text-sm py-8">{lang === "ro" ? "Niciun mesaj încă." : "No messages yet."}</p>
           ) : (
-            groupMessages.map((msg, idx) => {
+            <>
+            {loadingOlderGroupMessages && (
+              <div className="flex justify-center py-2">
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              </div>
+            )}
+            {groupMessages.map((msg, idx) => {
               const isMine = msg.sender_id === currentUserId;
               const otherMembersCount = selectedGroup.members.length - 1;
               const isReadByAll = isMine && otherMembersCount > 0 && (msg.readByCount ?? 0) >= otherMembersCount;
@@ -1993,7 +2233,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                 </div>
                 </div>
               );
-            })
+            })}
+            </>
           )}
           <div ref={groupMessagesEndRef} />
         </div>
@@ -2019,6 +2260,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         </div>
       </div>
       {viewPostDialog}
+        {storyViewerDialog}
       {deleteMessageDialog}
       {readByDialog}
       {imagePreviewModal}
@@ -2280,6 +2522,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           )}
         </div>
         {viewPostDialog}
+        {storyViewerDialog}
       </div>
     );
   }
@@ -2423,7 +2666,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           </div>
         </div>
 
-        <div ref={messagesScrollContainerRef} className={`flex-1 overflow-y-auto py-4 space-y-3 min-h-0 ${!chatLoading && !chatScrollReady ? "invisible" : ""}`}>
+        <div ref={messagesScrollContainerRef} onScroll={handleMessagesScroll} className={`flex-1 overflow-y-auto py-4 space-y-3 min-h-0 ${!chatLoading && !chatScrollReady ? "invisible" : ""}`}>
           {chatLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -2433,7 +2676,13 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               {lang === "ro" ? "Niciun mesaj încă. Trimite primul mesaj!" : "No messages yet. Send the first message!"}
             </p>
           ) : (
-            messages.map((msg, idx) => {
+            <>
+            {loadingOlderMessages && (
+              <div className="flex justify-center py-2">
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              </div>
+            )}
+            {messages.map((msg, idx) => {
               const isMine = msg.sender_id === currentUserId;
               const prevMsg = idx > 0 ? messages[idx - 1] : null;
               const showDaySeparator = !prevMsg || !isSameDay(new Date(prevMsg.created_at), new Date(msg.created_at));
@@ -2498,6 +2747,37 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                         {isMine && (msg.read ? <CheckCheck className="h-3.5 w-3.5 text-sky-500 shrink-0" /> : <Check className="h-3.5 w-3.5 text-gray-500 shrink-0" />)}
                       </p>
                     </div>
+                  ) : msg.sharedStory ? (
+                    <div
+                      className={`max-w-[75%] rounded-xl transition-colors duration-500 ${highlightedDmMsgId === msg.id ? "ring-2 ring-primary" : ""}`}
+                      onTouchStart={isMine ? () => handleMessagePressStart(msg.id) : undefined}
+                      onTouchEnd={isMine ? cancelMessagePress : undefined}
+                      onTouchMove={isMine ? cancelMessagePress : undefined}
+                    >
+                      <SharedStoryCard
+                        story={msg.sharedStory}
+                        lang={lang}
+                        onClick={(!msg.sharedStory.expired && msg.sharedStory.ownerId) ? () => {
+                          setViewingStory({ ownerId: msg.sharedStory!.ownerId!, storyId: msg.sharedStory!.id!, ownerName: msg.sharedStory!.ownerName });
+                        } : undefined}
+                      />
+                      {/* A story reply carries the sender's own text below
+                          the reference card — a plain share's auto-generated
+                          "Ți-am trimis un story..." blurb is redundant with
+                          the card itself, so only real reply text renders. */}
+                      {!msg.content.startsWith("📸") && (
+                        <div className={`mt-1.5 rounded-2xl px-4 py-2 text-sm ${isMine ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-md" : "bg-white border border-gray-200 text-gray-900 rounded-bl-md"}`}>
+                          <p className="whitespace-pre-wrap break-words">{msg.content.replace(/^📖[^\n]*\n/, "")}</p>
+                        </div>
+                      )}
+                      <p className={`text-[10px] mt-1 text-gray-500 flex items-center gap-1 ${isMine ? "justify-end" : ""}`}>
+                        {new Date(msg.created_at).toLocaleTimeString(lang === "ro" ? "ro-RO" : "en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {isMine && (msg.read ? <CheckCheck className="h-3.5 w-3.5 text-sky-500 shrink-0" /> : <Check className="h-3.5 w-3.5 text-gray-500 shrink-0" />)}
+                      </p>
+                    </div>
                   ) : msg.sharedPost ? (
                     <div
                       className={`max-w-[75%] rounded-xl transition-colors duration-500 ${highlightedDmMsgId === msg.id ? "ring-2 ring-primary" : ""}`}
@@ -2538,7 +2818,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                 </div>
                 </div>
               );
-            })
+            })}
+            </>
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -2605,6 +2886,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           </div>
         </div>
         {viewPostDialog}
+        {storyViewerDialog}
         {deleteMessageDialog}
       </div>
     );

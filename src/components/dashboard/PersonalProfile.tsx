@@ -47,8 +47,7 @@ import AddStoryModal from "./AddStoryModal";
 import StoryViewer from "./StoryViewer";
 import StoryArchiveModal from "./StoryArchiveModal";
 
-// Stories feature is temporarily disabled. Flip back to true to re-enable.
-const STORIES_ENABLED = false;
+const STORIES_ENABLED = true;
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -1338,6 +1337,12 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
   const photoFrameRef = useRef<HTMLDivElement>(null);
   const posX = avatarPosX ?? 50;
   const posY = avatarPosY ?? 50;
+  const [isFlipped, setIsFlipped] = useState(false);
+  const jerseyNumber = (profile as any)?.jersey_number;
+
+  useEffect(() => {
+    if (isEditingHeader) setIsFlipped(false);
+  }, [isEditingHeader]);
 
   const handlePhotoPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isEditingHeader || !onAvatarPositionChange) return;
@@ -1367,12 +1372,40 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
     dragState.current = null;
   };
 
+  // Below sm:, the card used to render at native 220px width then get
+  // shrunk with CSS `transform: scale(0.92)` — scaling happens after
+  // rasterization, so every bit of text inside got resampled through a
+  // non-integer pixel ratio and came out looking soft/foggy, especially the
+  // small uppercase stat labels. Rendering at a genuinely smaller native
+  // size (202px, sm:220px — the same ~0.92 ratio) instead means every piece
+  // of text is laid out and rasterized once, at its real size, with no
+  // post-hoc resampling — crisp on mobile/tablet exactly like on desktop.
   return (
-    <div className={`mx-auto sm:mx-0 relative ${mini ? "w-[140px]" : "w-[220px] scale-[0.78] sm:scale-90 lg:scale-100 origin-top -mb-16 sm:-mb-8 lg:mb-0"} shrink-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)]`}
-      style={{
-        background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
-      }}
+    <div
+      className={`mx-auto sm:mx-0 relative ${mini ? "w-[140px]" : "w-[202px] sm:w-[220px]"} shrink-0`}
+      style={{ perspective: "1200px" }}
     >
+      <div
+        className="relative w-full transition-transform duration-700 ease-out"
+        style={{
+          transformStyle: "preserve-3d",
+          transform: isFlipped ? "rotateY(180deg) translateZ(0.01px)" : "rotateY(0deg) translateZ(0.01px)",
+        }}
+      >
+        {/* FRONT */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => !isEditingHeader && setIsFlipped(true)}
+          onKeyDown={(e) => { if (!isEditingHeader && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setIsFlipped(true); } }}
+          className={`relative rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)] ${isEditingHeader ? "" : "cursor-pointer"}`}
+          style={{
+            background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            WebkitFontSmoothing: "antialiased",
+          }}
+        >
       <div className="absolute inset-0" style={{
         backgroundImage: `
           radial-gradient(circle at 18% 12%, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 26%),
@@ -1386,12 +1419,12 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
         backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
       }} />
       <div className="relative">
-        <div className={mini ? "flex items-start px-2 pt-2" : "flex items-start px-4 pt-4"}>
-          <div className="flex flex-col items-center">
-            <span className={`font-display text-primary-foreground leading-none drop-shadow-lg ${mini ? "text-[20px]" : "text-[42px]"}`}>{(profile as any)?.jersey_number ?? "—"}</span>
+        <div className={mini ? "flex items-start px-2 pt-2" : "flex items-start px-3.5 sm:px-4 pt-3.5 sm:pt-4"}>
+          <div className="flex flex-col items-center invisible" aria-hidden="true">
+            <span className={`font-display leading-none ${mini ? "text-[20px]" : "text-[38px] sm:text-[42px]"}`}>0</span>
           </div>
         </div>
-        <div className={mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-5"}>
+        <div className={mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-4 sm:px-5"}>
           <div className="relative group">
             {hasStory && (
               <div className="absolute inset-[-4px] rounded-[14px] z-0 overflow-hidden">
@@ -1403,8 +1436,8 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             )}
             <div
               ref={photoFrameRef}
-              className={`relative z-10 rounded-xl overflow-hidden shadow-lg ${mini ? "w-[95px] h-[95px]" : "w-[130px] h-[130px]"} ${hasStory ? "border-[3px] border-background cursor-pointer" : "border-2 border-primary-foreground/20"}`}
-              onClick={hasStory && !isEditingHeader ? onOpenStory : undefined}
+              className={`relative z-10 rounded-xl overflow-hidden shadow-lg ${mini ? "w-[95px] h-[95px]" : "w-[120px] h-[120px] sm:w-[130px] sm:h-[130px]"} ${hasStory ? "border-[3px] border-background cursor-pointer" : "border-2 border-primary-foreground/20"}`}
+              onClick={hasStory && !isEditingHeader ? (e) => { e.stopPropagation(); onOpenStory?.(); } : undefined}
             >
               {photoSrc ? (
                 <img src={photoSrc} alt="Player" className="w-full h-full object-cover" style={{ objectPosition: `${posX}% ${posY}%` }} />
@@ -1433,7 +1466,7 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             )}
             {showAddStoryButton && (
               <button
-                onClick={onAddStory}
+                onClick={(e) => { e.stopPropagation(); onAddStory?.(); }}
                 className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-primary border-2 border-background flex items-center justify-center z-20 hover:bg-primary/80 transition-colors shadow-md"
               >
                 <Plus className="h-3.5 w-3.5 text-primary-foreground" />
@@ -1441,12 +1474,12 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             )}
           </div>
         </div>
-        <div className={mini ? "text-center mt-1 pb-2 mx-2" : "text-center mt-2 pb-2 mx-4"}>
+        <div className={mini ? "text-center mt-1 pb-2 mx-2" : "text-center mt-1.5 sm:mt-2 pb-2 mx-3.5 sm:mx-4"}>
           <div className="border-t border-primary-foreground/20 pt-2">
-            <p className={`font-display text-primary-foreground uppercase tracking-[0.15em] ${mini ? "text-[10px]" : "text-sm"}`}>{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
+            <p className={`font-display text-primary-foreground uppercase tracking-[0.15em] ${mini ? "text-[10px]" : "text-[13px] sm:text-sm"}`}>{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
           </div>
         </div>
-        <div className={mini ? "grid grid-cols-2 gap-x-2 gap-y-1 px-3 pb-3" : "grid grid-cols-2 gap-x-3 gap-y-1.5 px-5 pb-4"}>
+        <div className={mini ? "grid grid-cols-2 gap-x-2 gap-y-1 px-3 pb-3" : "grid grid-cols-2 gap-x-2.5 sm:gap-x-3 gap-y-1.5 px-4 sm:px-5 pb-3.5 sm:pb-4"}>
           {[
             { label: "PLD", key: "speed_video" },
             { label: "2FVJ", key: "jumping_video" },
@@ -1457,13 +1490,48 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             const verified = sub?.status === "verified" && sub.grade !== null;
             return (
               <div key={stat.label} className="flex items-center gap-1.5">
-                <span className={`font-display text-primary-foreground leading-none ${mini ? "text-xs" : "text-lg"}`}>
+                <span className={`font-display text-primary-foreground leading-none ${mini ? "text-xs" : "text-base sm:text-lg"}`}>
                   {verified ? `${sub!.grade}${athleticTestUnits[stat.key] || ""}` : "—"}
                 </span>
-                <span className={`text-primary-foreground/60 font-body uppercase tracking-wider ${mini ? "text-[8px]" : "text-[10px]"}`}>{stat.label}</span>
+                <span
+                  className={`text-white font-body font-semibold uppercase tracking-wider ${mini ? "text-[9px]" : "text-[10px] sm:text-[11px]"}`}
+                  style={{ WebkitFontSmoothing: "antialiased", textShadow: "0 1px 1px rgba(0,0,0,0.25)" }}
+                >
+                  {stat.label}
+                </span>
               </div>
             );
           })}
+        </div>
+      </div>
+        </div>
+
+        {/* BACK */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setIsFlipped(false)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsFlipped(false); } }}
+          className="absolute inset-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)] cursor-pointer flex flex-col items-center justify-center gap-2"
+          style={{
+            background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            WebkitFontSmoothing: "antialiased",
+            transform: "rotateY(180deg)",
+          }}
+        >
+          <div className="absolute inset-0 opacity-[0.06]" style={{
+            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
+          }} />
+          <p className={`relative font-display text-primary-foreground uppercase tracking-[0.15em] text-center px-3 ${mini ? "text-xs" : "text-base sm:text-lg"}`}>
+            {profile?.first_name || ""} {profile?.last_name || "PLAYER"}
+          </p>
+          {jerseyNumber != null && (
+            <span className={`relative font-display text-primary-foreground leading-none drop-shadow-lg ${mini ? "text-3xl" : "text-5xl sm:text-6xl"}`}>
+              {jerseyNumber}
+            </span>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, useRef } from "react";
+import { Fragment, useCallback, useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useFollowers } from "@/hooks/useFollowers";
@@ -27,6 +27,7 @@ interface Post {
   author_photo: string | null;
   author_role: string;
   author_title: string;
+  comments_disabled?: boolean;
 }
 
 // Decorative geometric accents scattered between feed cards, alternating
@@ -54,10 +55,16 @@ const FeedDivider = ({ index }: { index: number }) => {
   );
 };
 
+const FEED_PAGE_SIZE = 20;
+const OWN_POST_PIN_DURATION_MS = 10 * 60 * 1000;
+
 const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigateToChat?: (userId: string) => void; onNavigateToProfile?: () => void }) => {
   const { lang } = useLanguage();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [viewingSinglePostId, setViewingSinglePostId] = useState<string | null>(null);
   const [singlePost, setSinglePost] = useState<Post | null>(null);
@@ -72,8 +79,37 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
   const [viewingProfileRole, setViewingProfileRole] = useState<string>("player");
   const [hideLikeCounts, setHideLikeCounts] = useState(false);
-  const [feedMode, setFeedMode] = useState<"following" | "mine">("following");
   const { count: followerCount } = useFollowers(currentUserId);
+  // The feed permanently excludes the viewer's own posts server-side, but
+  // right after posting we still want a brief "yes, it went through"
+  // confirmation — so a just-created own post is pinned to the top for
+  // OWN_POST_PIN_DURATION_MS, tracked purely client-side (never sent to the
+  // RPC), then dropped from view entirely (it remains visible on the
+  // profile's own Posts tab regardless). Persisted to localStorage (keyed
+  // per user) because ActivitySection unmounts on navigation — plain
+  // useState would silently lose the pin the moment the user left and came
+  // back to Activity within the 10-minute window.
+  const [myRecentPost, setMyRecentPost] = useState<Post | null>(null);
+  const myRecentPostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const RECENT_POST_STORAGE_KEY = (uid: string) => `activity-recent-own-post-${uid}`;
+
+  const persistRecentPost = (uid: string, post: Post | null) => {
+    try {
+      if (post) localStorage.setItem(RECENT_POST_STORAGE_KEY(uid), JSON.stringify({ post, expiresAt: Date.now() + OWN_POST_PIN_DURATION_MS }));
+      else localStorage.removeItem(RECENT_POST_STORAGE_KEY(uid));
+    } catch (err) {
+      console.error("Failed to persist recent own post:", err);
+    }
+  };
+
+  const scheduleRecentPostClear = (uid: string, msRemaining: number) => {
+    if (myRecentPostTimerRef.current) clearTimeout(myRecentPostTimerRef.current);
+    myRecentPostTimerRef.current = setTimeout(() => {
+      setMyRecentPost(null);
+      persistRecentPost(uid, null);
+    }, msRemaining);
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -83,6 +119,22 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
         (supabase as any).from("user_privacy_settings").select("hide_like_share_counts").eq("user_id", user.id).maybeSingle()
           .then(({ data }: any) => { if (data) setHideLikeCounts(data.hide_like_share_counts ?? false); })
           .catch((err: unknown) => console.error("Failed to load privacy settings:", err));
+
+        try {
+          const raw = localStorage.getItem(RECENT_POST_STORAGE_KEY(user.id));
+          if (raw) {
+            const { post, expiresAt } = JSON.parse(raw);
+            const msRemaining = expiresAt - Date.now();
+            if (msRemaining > 0) {
+              setMyRecentPost(post);
+              scheduleRecentPostClear(user.id, msRemaining);
+            } else {
+              localStorage.removeItem(RECENT_POST_STORAGE_KEY(user.id));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to restore recent own post:", err);
+        }
       }
     }).catch((err) => console.error("Failed to get current user:", err));
   }, []);
@@ -103,69 +155,89 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
     }
   };
 
-  const fetchPosts = async (userId: string, mode: "following" | "mine" = "following") => {
-    setLoading(true);
-    const [{ data: followsData }, { data: favouritesData }] = await Promise.all([
-      supabase.from("follows").select("following_id, responded_at, created_at").eq("follower_id", userId).eq("status", "accepted"),
-      (supabase as any).from("user_favourites").select("favourite_user_id").eq("user_id", userId),
-    ]);
-    // Only show a followed user's posts from after they accepted the follow —
-    // otherwise a fresh accept floods the feed with their whole back-catalog.
-    const followedSinceMap: Record<string, string> = {};
-    (followsData || []).forEach((f: any) => { followedSinceMap[f.following_id] = f.responded_at || f.created_at; });
-    const followedIds = Object.keys(followedSinceMap);
-    const allIds = mode === "mine" ? [userId] : [...new Set(followedIds)];
-    const favouriteIds = new Set((favouritesData || []).map((f: any) => f.favourite_user_id as string));
+  const fetchSportrisePosts = async (): Promise<Post[]> => {
+    const { data } = await (supabase as any).from("sportrise_posts").select("*").is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }).limit(20);
+    return (data || []).map((p: any) => ({
+      id: p.id,
+      user_id: "sportrise",
+      content: p.content,
+      image_url: p.image_url,
+      post_type: "sportrise",
+      created_at: p.created_at,
+      author_name: "SportRise",
+      author_photo: null,
+      author_role: "sportrise",
+      author_title: "",
+      comments_disabled: p.comments_disabled,
+    }));
+  };
 
-    const [postsRes, scoutPostsRes] = await Promise.all([
-      (supabase as any).from("posts").select("*").in("user_id", allIds).is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }).limit(50),
-      (supabase as any).from("scout_posts").select("*").in("user_id", allIds).is("deleted_at", null).eq("is_archived", false).order("created_at", { ascending: false }).limit(50),
-    ]);
-    // Favourites' posts surface first (per "Postările noi de la favoriții
-    // tăi vor apărea mai sus în feed"), each group still newest-first.
-    const rawPosts = [
-      ...(postsRes.data || []),
-      ...(scoutPostsRes.data || []).map((p: any) => ({ ...p, post_type: "scout", video_url: null })),
-    ].filter((p: any) => {
-      if (p.user_id === userId) return true;
-      const followedSince = followedSinceMap[p.user_id];
-      return followedSince && new Date(p.created_at) >= new Date(followedSince);
-    }).sort((a, b) => {
-      const aFav = favouriteIds.has(a.user_id);
-      const bFav = favouriteIds.has(b.user_id);
-      if (aFav !== bFav) return aFav ? -1 : 1;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    }).slice(0, 50);
-    if (rawPosts.length === 0) { setPosts([]); setLoading(false); return; }
-
-    const userIds = Array.from(new Set<string>(rawPosts.map((p: any) => p.user_id)));
-    const [playerRes, scoutRes, roleRes] = await Promise.all([
-      supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url, position, current_team").in("user_id", userIds),
-      supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url, title, organization").in("user_id", userIds),
-      supabase.from("user_roles").select("user_id, role").in("user_id", userIds),
-    ]);
-
-    const roleMap = new Map<string, string>();
-    (roleRes.data || []).forEach(r => roleMap.set(r.user_id, r.role));
-    const profileMap = new Map<string, { name: string; photo: string | null; title: string }>();
-    (playerRes.data || []).forEach(p => profileMap.set(p.user_id, { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url, title: [p.position, p.current_team].filter(Boolean).join(" · ") }));
-    (scoutRes.data || []).forEach(s => { if (!profileMap.has(s.user_id)) profileMap.set(s.user_id, { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url, title: [s.title, s.organization].filter(Boolean).join(" | ") }); });
-
-    const enriched: Post[] = rawPosts.map(p => {
-      const profile = profileMap.get(p.user_id);
-      const role = roleMap.get(p.user_id) || "player";
-      return { ...p, author_name: profile?.name || (lang === "ro" ? "Utilizator" : "User"), author_photo: profile?.photo || null, author_role: role, author_title: profile?.title || "" };
+  const fetchFeedPage = async (userId: string, offset: number): Promise<Post[]> => {
+    const { data, error } = await (supabase as any).rpc("get_activity_feed", {
+      p_user_id: userId,
+      p_limit: FEED_PAGE_SIZE,
+      p_offset: offset,
     });
-    setPosts(enriched);
+    if (error) { console.error("Failed to load activity feed:", error); return []; }
+    return (data || []).map((p: any) => ({
+      id: p.id,
+      user_id: p.user_id,
+      content: p.content,
+      image_url: p.image_url,
+      video_url: p.video_url,
+      post_type: p.post_type,
+      created_at: p.created_at,
+      author_name: p.author_name || (lang === "ro" ? "Utilizator" : "User"),
+      author_photo: p.author_photo,
+      author_role: p.author_role,
+      author_title: p.author_title || "",
+      comments_disabled: p.comments_disabled,
+    }));
+  };
+
+  const fetchPosts = async (userId: string) => {
+    setLoading(true);
+    setHasMore(true);
+    const [sportrisePosts, feedPage] = await Promise.all([
+      fetchSportrisePosts(),
+      fetchFeedPage(userId, 0),
+    ]);
+    setPosts([...sportrisePosts, ...feedPage]);
+    setHasMore(feedPage.length === FEED_PAGE_SIZE);
     setLoading(false);
   };
 
+  const loadMorePosts = useCallback(async () => {
+    if (loadingMore || !hasMore || loading || !currentUserId) return;
+    setLoadingMore(true);
+    // Only posts/scout_posts are paginated — sportrise_posts were already
+    // fetched in full (capped at 20) on the initial load, so the offset only
+    // needs to count the paginated portion of what's currently shown.
+    const paginatedCount = posts.filter(p => p.author_role !== "sportrise").length;
+    const nextPage = await fetchFeedPage(currentUserId, paginatedCount);
+    setPosts(prev => [...prev, ...nextPage]);
+    setHasMore(nextPage.length === FEED_PAGE_SIZE);
+    setLoadingMore(false);
+  }, [loadingMore, hasMore, loading, currentUserId, posts]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadMorePosts();
+    }, { rootMargin: "400px" });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMorePosts]);
+
   const currentUserIdRef = useRef<string | null>(null);
   currentUserIdRef.current = currentUserId;
-  const feedModeRef = useRef<"following" | "mine">("following");
-  feedModeRef.current = feedMode;
 
-  useEffect(() => { if (currentUserId) fetchPosts(currentUserId, feedMode); }, [currentUserId, feedMode]);
+  useEffect(() => { if (currentUserId) fetchPosts(currentUserId); }, [currentUserId]);
+
+  useEffect(() => {
+    return () => { if (myRecentPostTimerRef.current) clearTimeout(myRecentPostTimerRef.current); };
+  }, []);
 
   useEffect(() => {
     const handleInsert = (payload: any) => {
@@ -174,25 +246,23 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
 
       const newUserId = payload.new?.user_id;
 
-      // If the change was made by the current user, refresh immediately
-      if (newUserId === uid) {
-        fetchPosts(uid, feedModeRef.current);
-        return;
-      }
-
-      // For others' posts, show a refresh hint instantly
+      // If the change was made by the current user, it's excluded from this
+      // feed anyway (only other people's posts show here) — just show the
+      // refresh hint for any new post, same as anyone else's.
       setNewPostsAvailable(true);
     };
     const handleDeleteEvent = (payload: any) => {
       const uid = currentUserIdRef.current;
       if (!uid) return;
-      if (payload.old?.user_id === uid) fetchPosts(uid, feedModeRef.current);
+      fetchPosts(uid);
     };
     const channel = supabase.channel("posts-feed-" + Date.now())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, handleInsert)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "scout_posts" }, handleInsert)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "sportrise_posts" }, handleInsert)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts" }, handleDeleteEvent)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "scout_posts" }, handleDeleteEvent)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "sportrise_posts" }, handleDeleteEvent)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -208,14 +278,19 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
     // actually updated a row.
     const succeeded = (postsRes.data?.length ?? 0) > 0 || (scoutPostsRes.data?.length ?? 0) > 0;
     if (!succeeded) { toast.error(lang === "ro" ? "Eroare la ștergere" : "Failed to delete"); return; }
-    if (currentUserId) fetchPosts(currentUserId, feedMode);
+    if (myRecentPost?.id === postId) {
+      if (myRecentPostTimerRef.current) clearTimeout(myRecentPostTimerRef.current);
+      setMyRecentPost(null);
+      if (currentUserId) persistRecentPost(currentUserId, null);
+    }
+    if (currentUserId) fetchPosts(currentUserId);
   };
 
   const handleUnfollow = async (userId: string) => {
     if (!currentUserId) return;
     const { error } = await supabase.from("follows").delete().eq("follower_id", currentUserId).eq("following_id", userId);
     if (error) { toast.error(lang === "ro" ? "Eroare" : "Error"); }
-    else { toast.success(lang === "ro" ? "Nu mai urmărești acest utilizator" : "Unfollowed successfully"); fetchPosts(currentUserId, feedMode); }
+    else { toast.success(lang === "ro" ? "Nu mai urmărești acest utilizator" : "Unfollowed successfully"); fetchPosts(currentUserId); }
   };
 
   const handleViewProfile = (userId: string, role: string) => { setViewingProfileId(userId); setViewingProfileRole(role); };
@@ -272,9 +347,9 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
         )}
 
         <Dialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)}>
-          <DialogContent className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-white border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%]" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+          <DialogContent className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-white border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%] overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
             <DialogTitle className="sr-only">{lang === "ro" ? "Profil" : "Profile"}</DialogTitle>
-            <div className="overflow-y-auto h-full sm:max-h-[90vh]">
+            <div className="overflow-y-auto overflow-x-hidden h-full sm:max-h-[90vh] p-4 lg:p-8">
               {viewingProfileId && (
                 viewingProfileRole === "player"
                   ? <PersonalProfile userId={viewingProfileId} readOnly onNavigateToChat={onNavigateToChat} />
@@ -355,31 +430,32 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
 
         {/* Center: feed */}
         <div className="min-w-0 space-y-4 -mx-4 lg:mx-0 w-[calc(100%+2rem)] lg:w-auto">
-          {/* Feed mode toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-none lg:rounded-lg p-1 w-full lg:w-fit lg:mx-0">
-            <button
-              type="button"
-              onClick={() => setFeedMode("following")}
-              className={`w-1/2 lg:w-auto lg:flex-none px-4 py-2 rounded-md text-sm font-medium font-body text-center whitespace-nowrap transition-colors ${
-                feedMode === "following" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
-              }`}
-            >
-              {lang === "ro" ? "Urmăritorii mei" : "People I follow"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setFeedMode("mine")}
-              className={`w-1/2 lg:w-auto lg:flex-none px-4 py-2 rounded-md text-sm font-medium font-body text-center whitespace-nowrap transition-colors ${
-                feedMode === "mine" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
-              }`}
-            >
-              {lang === "ro" ? "Postările mele" : "My posts"}
-            </button>
-          </div>
-
           {currentUserId && (
             <div className="mx-4 lg:mx-0">
-              <NewPostComposer currentUserId={currentUserId} myPhoto={myPhoto} myRole={myRole} onPosted={() => fetchPosts(currentUserId, feedMode)} />
+              <NewPostComposer
+                currentUserId={currentUserId}
+                myPhoto={myPhoto}
+                myRole={myRole}
+                onPosted={(post) => {
+                  fetchPosts(currentUserId);
+                  if (!post) return;
+                  const recentPost: Post = {
+                    id: post.id,
+                    user_id: currentUserId,
+                    content: post.content,
+                    image_url: post.image_url,
+                    post_type: post.post_type,
+                    created_at: post.created_at,
+                    author_name: myName || (lang === "ro" ? "Tu" : "You"),
+                    author_photo: myPhoto,
+                    author_role: myRole || "player",
+                    author_title: myRole === "player" ? [myProfile?.position, myProfile?.current_team].filter(Boolean).join(" · ") : myTitle,
+                  };
+                  setMyRecentPost(recentPost);
+                  persistRecentPost(currentUserId, recentPost);
+                  scheduleRecentPostClear(currentUserId, OWN_POST_PIN_DURATION_MS);
+                }}
+              />
             </div>
           )}
 
@@ -400,7 +476,7 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
             <button
               onClick={() => {
                 setNewPostsAvailable(false);
-                if (currentUserId) fetchPosts(currentUserId, feedMode);
+                if (currentUserId) fetchPosts(currentUserId);
               }}
               className="w-[calc(100%-2rem)] mx-4 lg:w-full lg:mx-0 py-2.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 text-sm font-medium hover:bg-orange-100 transition-colors"
             >
@@ -411,14 +487,26 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
           {/* Feed */}
           {loading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-orange-500" /></div>
-          ) : posts.length === 0 ? (
+          ) : posts.length === 0 && !myRecentPost ? (
             <div className="text-center py-16 text-gray-500 px-4 lg:px-0">
-              {feedMode === "mine"
-                ? (lang === "ro" ? "Nu ai nicio postare încă. Publică ceva pentru a începe!" : "You haven't posted anything yet. Share something to get started!")
-                : (lang === "ro" ? "Nicio postare încă. Urmărește persoane sau publică ceva pentru a începe!" : "No posts yet. Follow people or share something to get started!")}
+              {lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor aici!" : "No posts yet. Follow people to see their activity here!"}
             </div>
           ) : (
             <div className="space-y-4">
+              {myRecentPost && (
+                <Fragment key={myRecentPost.id}>
+                  <PostCard
+                    post={{ id: myRecentPost.id, user_id: myRecentPost.user_id, content: myRecentPost.content, image_url: myRecentPost.image_url, video_url: (myRecentPost as any).video_url || null, post_type: myRecentPost.post_type, created_at: myRecentPost.created_at, comments_disabled: false }}
+                    author={{ user_id: myRecentPost.user_id, name: myRecentPost.author_name, photo: myRecentPost.author_photo, role: myRecentPost.author_role, title: myRecentPost.author_title }}
+                    currentUserId={currentUserId}
+                    onDelete={handleDelete}
+                    onViewProfile={handleViewProfile}
+                    hideLikeCounts={hideLikeCounts}
+                    simplifiedMenu
+                  />
+                  {posts.length > 0 && <FeedDivider index={0} />}
+                </Fragment>
+              )}
               {posts.map((post, idx) => (
                 <Fragment key={post.id}>
                   <PostCard
@@ -433,6 +521,12 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
                   {idx < posts.length - 1 && <FeedDivider index={idx} />}
                 </Fragment>
               ))}
+              <div ref={sentinelRef} className="h-1" />
+              {loadingMore && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                </div>
+              )}
             </div>
           )}
 
@@ -525,9 +619,9 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
 
       {/* Profile View Dialog */}
       <Dialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)}>
-        <DialogContent className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-white border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%]" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className="max-w-[100vw] sm:max-w-4xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-white border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%] overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
           <DialogTitle className="sr-only">{lang === "ro" ? "Profil" : "Profile"}</DialogTitle>
-          <div className="overflow-y-auto h-full sm:max-h-[90vh]">
+          <div className="overflow-y-auto overflow-x-hidden h-full sm:max-h-[90vh] p-4 lg:p-8">
             {viewingProfileId && (
               viewingProfileRole === "player"
                 ? <PersonalProfile userId={viewingProfileId} readOnly onNavigateToChat={onNavigateToChat} />

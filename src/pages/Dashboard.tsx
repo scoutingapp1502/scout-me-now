@@ -35,7 +35,6 @@ import TermsSection from "@/components/dashboard/TermsSection";
 import PrivacyPolicySection from "@/components/dashboard/PrivacyPolicySection";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import WelcomeTour from "@/components/dashboard/WelcomeTour";
-import AppAssistant from "@/components/dashboard/AppAssistant";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotifications";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -443,7 +442,7 @@ const Dashboard = () => {
               />
             </SheetContent>
           </Sheet>
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 min-w-0 flex flex-col">
             <header className="flex items-center gap-3 p-4 border-b border-border bg-white">
               <button onClick={() => setSidebarOpen(true)} className="text-gray-900">
                 <Menu className="h-6 w-6" />
@@ -451,7 +450,7 @@ const Dashboard = () => {
               <span className="text-lg">⚽</span>
               <SportriseWordmark className="text-lg" />
             </header>
-            <main className={`flex-1 p-4 overflow-y-auto ${showLightMain ? "bg-gray-200" : "bg-background"}`}>
+            <main className={`flex-1 min-w-0 p-4 overflow-y-auto overflow-x-hidden ${showLightMain ? "bg-gray-200" : "bg-background"}`}>
               {renderSection()}
             </main>
           </div>
@@ -472,7 +471,6 @@ const Dashboard = () => {
           </main>
         </>
       )}
-      {!showTour && !showWizard && !showStreakModal && <AppAssistant />}
     </div>
   );
 };

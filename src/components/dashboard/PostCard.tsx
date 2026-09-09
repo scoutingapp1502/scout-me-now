@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send, Forward, Loader2, Bookmark, Instagram, TrendingUp, RefreshCw, Archive, Eye, EyeOff, Film, Pencil, Crop, Pin, MessageSquare, Users, Search } from "lucide-react";
+import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send, Forward, Loader2, Bookmark, Instagram, TrendingUp, RefreshCw, Archive, Eye, EyeOff, Film, Pencil, Crop, Pin, MessageSquare, Users, Search, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -537,9 +537,11 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   };
 
   const getRoleLabel = (role: string) => {
+    if (role === "sportrise") return "SportRise";
     if (role === "cauta_jucator") return lang === "ro" ? "Descoperitor" : "Discoverer";
     return lang === "ro" ? "Jucător" : "Player";
   };
+  const isSportriseAuthor = author.role === "sportrise";
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
@@ -762,25 +764,35 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         {/* Header */}
         <div className={`flex items-start justify-between ${reserveCloseButtonSpace ? "pr-10" : ""}`}>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => onViewProfile(author.user_id, author.role)}
-              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-            >
-              {author.photo ? (
-                <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
-              ) : (
-                <User className="h-5 w-5 text-gray-500" />
-              )}
-            </button>
+            {isSportriseAuthor ? (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center overflow-hidden shrink-0">
+                <Rocket className="h-5 w-5 text-white" />
+              </div>
+            ) : (
+              <button
+                onClick={() => onViewProfile(author.user_id, author.role)}
+                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+              >
+                {author.photo ? (
+                  <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
+                ) : (
+                  <User className="h-5 w-5 text-gray-500" />
+                )}
+              </button>
+            )}
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onViewProfile(author.user_id, author.role)}
-                  className="font-display text-sm text-gray-900 truncate hover:underline cursor-pointer"
-                >
-                  {author.name}
-                </button>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium shrink-0">
+                {isSportriseAuthor ? (
+                  <span className="font-display text-sm text-gray-900 truncate">{author.name}</span>
+                ) : (
+                  <button
+                    onClick={() => onViewProfile(author.user_id, author.role)}
+                    className="font-display text-sm text-gray-900 truncate hover:underline cursor-pointer"
+                  >
+                    {author.name}
+                  </button>
+                )}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${isSportriseAuthor ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white" : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white"}`}>
                   {getRoleLabel(author.role)}
                 </span>
               </div>
