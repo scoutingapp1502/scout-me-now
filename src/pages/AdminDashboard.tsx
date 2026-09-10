@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone, Menu, Rocket } from "lucide-react";
+import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone, Menu, Rocket, Wrench } from "lucide-react";
 import AdminVideoReview from "@/pages/AdminVideoReview";
 import AdminScoutVerification from "@/pages/AdminScoutVerification";
 import AdminTestVideos from "@/pages/AdminTestVideos";
@@ -10,6 +10,7 @@ import AdminSupportTickets from "@/pages/AdminSupportTickets";
 import AdminClubLogos from "@/pages/AdminClubLogos";
 import AdminAnnouncements from "@/pages/AdminAnnouncements";
 import AdminSportrisePosts from "@/pages/AdminSportrisePosts";
+import AdminMaintenanceMode from "@/pages/AdminMaintenanceMode";
 import { Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -21,6 +22,7 @@ const adminSections = [
   { id: "club-logos", label: "Logo-uri Cluburi", icon: Image },
   { id: "announcements", label: "Știri și Anunțuri", icon: Megaphone },
   { id: "sportrise-posts", label: "Postări SportRise", icon: Rocket },
+  { id: "maintenance-mode", label: "Mentenanță", icon: Wrench },
   { id: "scout-verification", label: "Verificare Documente Înregistrate", icon: UserCheck },
   { id: "support-tickets", label: "Rapoarte Utilizatori", icon: MessageSquareWarning },
 ];
@@ -172,6 +174,9 @@ export default function AdminDashboard() {
       )}
       {activeSection === "sportrise-posts" && (
         <AdminSportrisePosts embedded />
+      )}
+      {activeSection === "maintenance-mode" && (
+        <AdminMaintenanceMode embedded />
       )}
       {activeSection === "scout-verification" && (
         <AdminScoutVerification />

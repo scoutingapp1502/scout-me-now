@@ -32,6 +32,7 @@ interface ConversationItem {
   last_message_sender_id: string | null;
   last_message_read: boolean;
   unread_count: number;
+  has_active_story?: boolean;
 }
 
 const getRoleLabel = (role: string | null, lang: string) => {
@@ -415,7 +416,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [loadingViewingPost, setLoadingViewingPost] = useState(false);
 
   // Viewing a shared story (opened from a chat bubble)
-  const [viewingStory, setViewingStory] = useState<{ ownerId: string; storyId: string; ownerName: string } | null>(null);
+  const [viewingStory, setViewingStory] = useState<{ ownerId: string; storyId?: string; ownerName: string } | null>(null);
 
   // Group states
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -496,6 +497,16 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     });
     const previewMap = new Map<string, any>((previews || []).map((p: any) => [p.conversation_id, p]));
 
+    // Batched active-story lookup for every conversation partner at once —
+    // avoids one query per row, same pattern as the profile/role lookups
+    // above. Used to show an Instagram-style story ring around the avatar.
+    const { data: activeStories } = await (supabase as any)
+      .from("stories")
+      .select("user_id")
+      .in("user_id", otherUserIds)
+      .gt("expires_at", new Date().toISOString());
+    const activeStoryUserIds = new Set((activeStories || []).map((s: any) => s.user_id as string));
+
     const items: ConversationItem[] = [];
     for (const conv of convs) {
       const otherUserId = conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
@@ -515,6 +526,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           last_message_sender_id: draft ? null : preview.last_sender_id,
           last_message_read: preview.last_read,
           unread_count: preview.unread_count || 0,
+          has_active_story: activeStoryUserIds.has(otherUserId),
         });
       } else {
         // Empty conversation — show if created within 24h or has draft
@@ -532,6 +544,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             last_message_sender_id: null,
             last_message_read: false,
             unread_count: 0,
+            has_active_story: activeStoryUserIds.has(otherUserId),
           });
         }
       }
@@ -2990,13 +3003,27 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               onClick={() => setSelectedConversation(conv)}
               className="flex items-center gap-3 pt-3 px-1 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
             >
-              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                {conv.other_photo ? (
-                  <img src={conv.other_photo} alt={conv.other_name} className="w-full h-full object-cover" />
-                ) : (
-                  <User className="h-6 w-6 text-gray-500" />
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (conv.has_active_story) {
+                    setViewingStory({ ownerId: conv.other_user_id, ownerName: conv.other_name });
+                  } else if (conv.other_photo) {
+                    setPhotoModal({ url: conv.other_photo, name: conv.other_name });
+                  }
+                }}
+                className={`relative w-12 h-12 rounded-full shrink-0 ${conv.has_active_story ? "p-[2px]" : ""}`}
+                style={conv.has_active_story ? { background: "conic-gradient(from 0deg, #22c55e, #4ade80, #86efac, #22c55e)" } : undefined}
+              >
+                <div className={`w-full h-full rounded-full bg-gray-100 flex items-center justify-center overflow-hidden ${conv.has_active_story ? "border-2 border-white" : ""}`}>
+                  {conv.other_photo ? (
+                    <img src={conv.other_photo} alt={conv.other_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="h-6 w-6 text-gray-500" />
+                  )}
+                </div>
+              </button>
               <div className="flex-1 min-w-0 border-b border-gray-300 pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
@@ -3038,6 +3065,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           ))}
         </div>
       )}
+      {storyViewerDialog}
+      {imagePreviewModal}
     </div>
   );
 };

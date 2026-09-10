@@ -45,6 +45,31 @@ import { useTestUnlocks } from "@/hooks/useTestUnlocks";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
 import { getTechnicalTestsBySport, getTestLabelByKey } from "@/components/dashboard/PersonalProfile";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useMaintenanceMode } from "@/hooks/useMaintenanceMode";
+import MaintenancePage from "@/pages/MaintenancePage";
+import { Wrench, X } from "lucide-react";
+
+function maintenanceBannerText(maintenance: ReturnType<typeof useMaintenanceMode>, lang: string, compact: boolean): string {
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleString(lang === "ro" ? "ro-RO" : "en-US", compact
+      ? { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }
+      : { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  if (maintenance.message) return maintenance.message;
+  const suffix = compact ? "" : (lang === "ro" ? " Aplicația va fi temporar indisponibilă." : " The app will be temporarily unavailable.");
+  if (maintenance.scheduledStart && maintenance.scheduledEnd) {
+    return (lang === "ro"
+      ? `Mentenanță programată: ${fmt(maintenance.scheduledStart)} – ${fmt(maintenance.scheduledEnd)}.`
+      : `Scheduled maintenance: ${fmt(maintenance.scheduledStart)} – ${fmt(maintenance.scheduledEnd)}.`) + suffix;
+  }
+  if (maintenance.scheduledStart) {
+    return (lang === "ro"
+      ? `Mentenanță programată începând cu ${fmt(maintenance.scheduledStart)}.`
+      : `Scheduled maintenance starting ${fmt(maintenance.scheduledStart)}.`) + suffix;
+  }
+  return (lang === "ro"
+    ? "Mentenanță programată în curând."
+    : "Scheduled maintenance coming up.") + suffix;
+}
 
 const Dashboard = () => {
   const { lang } = useLanguage();
@@ -73,6 +98,8 @@ const Dashboard = () => {
   const isMobile = useIsMobile();
   const { sections, percentage, loading: completionLoading } = useProfileCompletion(user?.id ?? null, userRole);
   useTimeTracking(user?.id ?? null);
+  const maintenance = useMaintenanceMode();
+  const [maintenanceBannerDismissed, setMaintenanceBannerDismissed] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -316,6 +343,13 @@ const Dashboard = () => {
     );
   }
 
+  // Full block for everyone reaching Dashboard.tsx — admins never render
+  // this component at all (redirected to /admin in ensureRoleAndProfile
+  // above), so no separate role check is needed here.
+  if (maintenance.isActive) {
+    return <MaintenancePage maintenance={maintenance} />;
+  }
+
   const handleSectionChange = (section: string) => {
     if (section === "activity" && user?.id) {
       markFollowingSeen(user.id);
@@ -402,10 +436,34 @@ const Dashboard = () => {
   ];
   const showLightMain = activeSection === "profile" || activeSection === "messages" || activeSection === "notifications" || activeSection === "activity" || activeSection === "player-notes" || communitySections.includes(activeSection) || settingsSections.includes(activeSection);
 
+  const showMaintenanceBanner = maintenance.isScheduled && !maintenance.isActive && !maintenance.windowPassed && !maintenanceBannerDismissed;
+
   return (
-    <div className="flex h-screen bg-background dark overflow-hidden">
+    <div className="flex flex-col h-screen bg-background dark overflow-hidden">
+      {showMaintenanceBanner && (
+        <div className="shrink-0 flex items-start gap-2 px-3 sm:px-4 py-1.5 bg-amber-50 border-b border-amber-200 text-amber-800 text-xs sm:text-sm font-body">
+          <Wrench className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <span className="flex-1 min-w-0 leading-snug">
+            {maintenanceBannerText(maintenance, lang, isMobile)}
+          </span>
+          <button
+            onClick={() => setMaintenanceBannerDismissed(true)}
+            aria-label={lang === "ro" ? "Închide" : "Dismiss"}
+            className="shrink-0 text-amber-700 hover:text-amber-900 transition-colors mt-0.5"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
       {showTour && userRole && (
-        <WelcomeTour role={userRole} onNavigate={handleTourNavigate} onFinish={handleTourFinish} />
+        <WelcomeTour
+          role={userRole}
+          onNavigate={handleTourNavigate}
+          onFinish={handleTourFinish}
+          isMobile={isMobile}
+          onSetMobileSidebarOpen={setSidebarOpen}
+        />
       )}
       {showWizard && userRole && !showTour && (
         <OnboardingWizard
@@ -471,6 +529,7 @@ const Dashboard = () => {
           </main>
         </>
       )}
+      </div>
     </div>
   );
 };

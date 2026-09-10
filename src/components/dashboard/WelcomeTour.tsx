@@ -7,6 +7,12 @@ interface WelcomeTourProps {
   role: "player" | "cauta_jucator";
   onNavigate: (sectionId: string, tabId?: string) => void;
   onFinish: () => void;
+  // On mobile, nav-* targets (Messages, Notifications, Activity, Community,
+  // Player Notes) live inside the collapsible sidebar Sheet, which is
+  // unmounted-looking (off-screen/hidden) until opened — the tour needs to
+  // open it itself before it can find and spotlight those elements.
+  isMobile?: boolean;
+  onSetMobileSidebarOpen?: (open: boolean) => void;
 }
 
 interface TourStep {
@@ -165,7 +171,7 @@ const scoutSteps: TourStep[] = [
 
 const PAD = 8;
 
-const WelcomeTour = ({ role, onNavigate, onFinish }: WelcomeTourProps) => {
+const WelcomeTour = ({ role, onNavigate, onFinish, isMobile, onSetMobileSidebarOpen }: WelcomeTourProps) => {
   const { lang } = useLanguage();
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -182,12 +188,24 @@ const WelcomeTour = ({ role, onNavigate, onFinish }: WelcomeTourProps) => {
     setRect(null);
     setCardPos(null);
     if (current.sectionId) onNavigate(current.sectionId, current.tabId);
+
+    // nav-* targets (Messages, Notifications, Activity, Community, Player
+    // Notes) live inside the mobile sidebar Sheet — closed by default, so
+    // the element sits off-screen until opened. Open it for these steps,
+    // close it for every other step (including the centered intro/outro
+    // ones with no target at all).
+    const isNavTarget = !!current.target?.startsWith("nav-");
+    if (isMobile && onSetMobileSidebarOpen) onSetMobileSidebarOpen(isNavTarget);
+
     if (!current.target) return;
 
     setSearching(true);
     let cancelled = false;
     let attempts = 0;
     const maxAttempts = 40; // ~6s at 150ms
+    // The Sheet slides in over ~200-300ms — give it a head start on the
+    // first poll so getBoundingClientRect() isn't read mid-animation.
+    const initialDelay = isMobile && isNavTarget ? 350 : 0;
 
     const poll = () => {
       if (cancelled) return;
@@ -205,7 +223,7 @@ const WelcomeTour = ({ role, onNavigate, onFinish }: WelcomeTourProps) => {
       if (attempts >= maxAttempts) { setSearching(false); return; }
       setTimeout(poll, 150);
     };
-    poll();
+    setTimeout(poll, initialDelay);
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
@@ -245,6 +263,14 @@ const WelcomeTour = ({ role, onNavigate, onFinish }: WelcomeTourProps) => {
 
     setCardPos({ top, left });
   }, [rect]);
+
+  // Whenever the tour unmounts (finished, skipped, or closed via X), make
+  // sure the mobile sidebar Sheet doesn't stay stuck open just because the
+  // last-visited step happened to need it.
+  useEffect(() => {
+    return () => { if (isMobile && onSetMobileSidebarOpen) onSetMobileSidebarOpen(false); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const goNext = () => (isLast ? onFinish() : setStep((s) => s + 1));
   const goBack = () => setStep((s) => Math.max(0, s - 1));

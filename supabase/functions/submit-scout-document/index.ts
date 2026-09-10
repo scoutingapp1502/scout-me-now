@@ -11,11 +11,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { userId, fileName, fileBase64, mimeType } = await req.json();
-
-    if (!userId || !fileName || !fileBase64 || !mimeType) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // The caller's own JWT is the only trustworthy source of identity here —
+    // previously userId came straight from the request body, so anyone who
+    // knew (or guessed) another user's UUID could overwrite that user's
+    // verification document and reset their status to "pending" with no
+    // authentication at all. Uploads now always act on the authenticated
+    // caller, never on an ID the client supplies.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No auth" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -23,11 +28,21 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    // Verify user exists
-    const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId);
-    if (userError || !userData.user) {
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const { data: { user: caller }, error: authError } = await adminClient.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (authError || !caller) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = caller.id;
+
+    const { fileName, fileBase64, mimeType } = await req.json();
+
+    if (!fileName || !fileBase64 || !mimeType) {
+      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 

@@ -305,38 +305,44 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
                 </button>
               )}
 
-              {/* Bottom bar */}
+              {/* Bottom bar — replying to and liking your own story doesn't
+                  make sense (there's no one to message, and self-likes would
+                  just inflate your own count), so owners only get Share. */}
               <div className="flex items-center gap-2 px-3 py-3 shrink-0">
-                <div className="flex-1 flex items-center bg-transparent border border-white/40 rounded-full px-4 py-2 gap-2">
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onFocus={() => setPaused(true)}
-                    onBlur={() => setPaused(false)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    placeholder={lang === "ro" ? "Trimite mesaj..." : "Send message..."}
-                    disabled={sendingReply}
-                    className="flex-1 bg-transparent text-white text-sm placeholder:text-white/50 outline-none border-none font-body disabled:opacity-50"
-                  />
-                  {message.trim() && (
-                    <button onClick={handleSend} disabled={sendingReply} className="text-white/80 hover:text-white shrink-0 disabled:opacity-50">
-                      <Send className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
+                {!isOwnStory && (
+                  <div className="flex-1 flex items-center bg-transparent border border-white/40 rounded-full px-4 py-2 gap-2">
+                    <input
+                      type="text"
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      onFocus={() => setPaused(true)}
+                      onBlur={() => setPaused(false)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                      placeholder={lang === "ro" ? "Trimite mesaj..." : "Send message..."}
+                      disabled={sendingReply}
+                      className="flex-1 bg-transparent text-white text-sm placeholder:text-white/50 outline-none border-none font-body disabled:opacity-50"
+                    />
+                    {message.trim() && (
+                      <button onClick={handleSend} disabled={sendingReply} className="text-white/80 hover:text-white shrink-0 disabled:opacity-50">
+                        <Send className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
 
-                {/* Like */}
-                <button onClick={toggleLike} className="p-2 transition-transform active:scale-125">
-                  <Heart
-                    className="h-6 w-6 transition-colors"
-                    style={{ color: liked ? "#ef4444" : "rgba(255,255,255,0.8)", fill: liked ? "#ef4444" : "none" }}
-                  />
-                </button>
+                {!isOwnStory && (
+                  <button onClick={toggleLike} className="p-2 transition-transform active:scale-125">
+                    <Heart
+                      className="h-6 w-6 transition-colors"
+                      style={{ color: liked ? "#ef4444" : "rgba(255,255,255,0.8)", fill: liked ? "#ef4444" : "none" }}
+                    />
+                  </button>
+                )}
 
                 {/* Share */}
-                <button onClick={() => { setShowShare(true); setPaused(true); }} className="p-2">
+                <button onClick={() => { setShowShare(true); setPaused(true); }} className={`p-2 ${isOwnStory ? "flex-1 flex items-center justify-center gap-2" : ""}`}>
                   <Forward className="h-6 w-6 text-white/80" />
+                  {isOwnStory && <span className="text-white/80 text-sm font-body">{lang === "ro" ? "Distribuie" : "Share"}</span>}
                 </button>
               </div>
             </>

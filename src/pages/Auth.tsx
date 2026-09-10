@@ -109,7 +109,6 @@ const Auth = () => {
             const fileBase64 = await toBase64(scoutDocument);
             const { error: fnError } = await supabase.functions.invoke("submit-scout-document", {
               body: {
-                userId: data.user.id,
                 fileName: scoutDocument.name,
                 fileBase64,
                 mimeType: scoutDocument.type,
