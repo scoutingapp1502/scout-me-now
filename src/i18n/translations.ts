@@ -7,7 +7,7 @@ export const translations = {
     },
     // Hero
     hero: {
-      badge: "⚡ Platforma #1 pentru talente sportive",
+      badge: "Fii printre primii membri",
       title1: "ARATĂ-ȚI",
       titleHighlight: "TALENTUL",
       title2: "LUMII ÎNTREGI",
@@ -17,22 +17,21 @@ export const translations = {
     },
     // How it works
     howItWorks: {
-      title: "CUM FUNCȚIONEAZĂ",
-      players: "Jucători",
-      scouts: "Scouteri",
-      transfers: "Transferuri Reușite",
-      step1: "Jucători",
-      step1Desc: "Înscriși pe platformă",
-      step2: "Scouteri",
-      step2Desc: "Activi din ligi de top",
-      step3: "Transferuri",
-      step3Desc: "Realizate cu succes",
+      title: "DOSARUL DE SCOUTING PE CARE TOȚI ÎL POT FOLOSI.",
+      subtitle: "SportRise adună rapoarte de joc, date fizice și teste validate într-un singur profil — vizibil diferit pentru jucători și descoperitori.",
+    },
+    // Notes/reports preview mockup
+    notesPreview: {
+      noteBadge: "Exemplu notiță scouter",
+      reportBadge: "Exemplu raport meci",
+      priority: "Prioritate: Ridicată",
+      quote: "Control bun al mingii, decizii rapide în ultima treime a terenului...",
     },
     // Top Scouts
     topScouts: {
-      title: "SCOUTERI DE TOP DIN TOATE",
-      titleHighlight: "SPORTURILE",
-      subtitle: "scouteri activi din ligi de top la nivel global",
+      title: "EȘTI DEJA PE",
+      titleHighlight: "RADARUL LOR",
+      subtitle: "Scouteri profesioniști de fotbal și baschet verifică zilnic profiluri noi — al tău poate fi următorul remarcat.",
       sports: {
         football: "Football",
         basketball: "Basketball",
@@ -40,6 +39,8 @@ export const translations = {
         volleyball: "Volleyball",
         other: "Altele",
       },
+      moreSports: "Mai multe?",
+      moreSportsHint: "Lucrăm la extinderea platformei către noi sporturi. Rămâi pe fază! 👀",
     },
     // Top Talents
     topTalents: {
@@ -74,14 +75,19 @@ export const translations = {
       network: "Rețea Profesională",
       networkDesc: "Conectează-te cu profesioniști din industria sportului.",
     },
-    // Testimonials
-    testimonials: {
-      title: "POVEȘTI DE",
-      titleHighlight: "SUCCES",
-      subtitle: "Hai să-ți transformăm visul în realitate.",
-      t1: { name: "Andrei Popescu", role: "Atacant, 22 ani", text: "Datorită SportRise, am fost contactat de 3 cluburi în prima lună!" },
-      t2: { name: "Maria P.", role: "Scouter, Liga 1", text: "Platforma ideală pentru a descoperi talente tinere din toată România." },
-      t3: { name: "Cosmin D.", role: "Mijlocaș, 19 ani", text: "Profilul meu video a fost vizualizat de peste 50 de scouteri." },
+    // Compare
+    compare: {
+      title: "COMPARĂ-TE",
+      titleHighlight: "CU CEILALȚI",
+      subtitle: "Fiecare statistică pe care o adaugi te plasează automat într-un clasament, pe sport, poziție și vârstă.",
+      badge: "EXEMPLU DE TESTE",
+      you: "TU",
+      metric: "Scor Atletic",
+      statSpeed: "Viteză",
+      statPrecision: "Precizie",
+      sectionAthletic: "Teste Atletice",
+      sectionSpecific: "Teste Specifice",
+      unlockHint: "+ deblochează cu profil",
     },
     // CTA
     cta: {
@@ -786,7 +792,7 @@ export const translations = {
       register: "Sign Up",
     },
     hero: {
-      badge: "⚡ The #1 Platform for Sports Talent",
+      badge: "Be among the first members",
       title1: "SHOW YOUR",
       titleHighlight: "TALENT",
       title2: "TO THE WORLD",
@@ -795,21 +801,19 @@ export const translations = {
       ctaScout: "Become a Discoverer",
     },
     howItWorks: {
-      title: "HOW IT WORKS",
-      players: "Players",
-      scouts: "Scouts",
-      transfers: "Successful Transfers",
-      step1: "Players",
-      step1Desc: "Registered on the platform",
-      step2: "Scouts",
-      step2Desc: "Active from top leagues",
-      step3: "Transfers",
-      step3Desc: "Successfully completed",
+      title: "THE SCOUTING FILE EVERYONE CAN USE.",
+      subtitle: "SportRise brings match reports, physical data and validated tests together in one profile — shown differently to players and scouts.",
+    },
+    notesPreview: {
+      noteBadge: "Sample scout note",
+      reportBadge: "Sample match report",
+      priority: "Priority: High",
+      quote: "Good ball control, quick decisions in the final third...",
     },
     topScouts: {
-      title: "TOP SCOUTS FROM ALL",
-      titleHighlight: "SPORTS",
-      subtitle: "active scouts from top leagues worldwide",
+      title: "YOU'RE ALREADY ON",
+      titleHighlight: "THEIR RADAR",
+      subtitle: "Professional football and basketball scouts review new profiles every day — yours could be the next one they notice.",
       sports: {
         football: "Football",
         basketball: "Basketball",
@@ -817,6 +821,8 @@ export const translations = {
         volleyball: "Volleyball",
         other: "Other",
       },
+      moreSports: "More?",
+      moreSportsHint: "We're working on bringing new sports to the platform. Stay tuned! 👀",
     },
     topTalents: {
       title: "MOST SOUGHT",
@@ -848,13 +854,18 @@ export const translations = {
       network: "Professional Network",
       networkDesc: "Connect with professionals in the sports industry.",
     },
-    testimonials: {
-      title: "SUCCESS",
-      titleHighlight: "STORIES",
-      subtitle: "Let us turn your dream into reality.",
-      t1: { name: "Andrei Popescu", role: "Striker, 22 years", text: "Thanks to SportRise, I was contacted by 3 clubs in the first month!" },
-      t2: { name: "Maria P.", role: "Scout, Liga 1", text: "The ideal platform for discovering young talent from all over Romania." },
-      t3: { name: "Cosmin D.", role: "Midfielder, 19 years", text: "My video profile was viewed by over 50 scouts." },
+    compare: {
+      title: "COMPARE YOURSELF",
+      titleHighlight: "TO OTHERS",
+      subtitle: "Every stat you add places you automatically in a live ranking, by sport, position and age group.",
+      badge: "SAMPLE TESTS",
+      you: "YOU",
+      metric: "Athletic Score",
+      statSpeed: "Speed",
+      statPrecision: "Precision",
+      sectionAthletic: "Athletic Tests",
+      sectionSpecific: "Sport-Specific Tests",
+      unlockHint: "+ unlock with a profile",
     },
     cta: {
       title: "READY TO START?",
@@ -1552,13 +1563,14 @@ export const translations = {
 
 const de = {
   nav: { auth: "Anmelden", register: "Registrieren" },
-  hero: { badge: "⚡ Die #1 Plattform für Sporttalente", title1: "ZEIG DEIN", titleHighlight: "TALENT", title2: "DER GANZEN WELT", subtitle: "Erstelle dein vollständiges Profil, füge Statistiken und Video-Highlights hinzu und werde von Scouts aus aller Welt entdeckt.", cta: "Kostenloses Profil erstellen", ctaScout: "Spielersuche" },
-  howItWorks: { title: "WIE ES FUNKTIONIERT", players: "Spieler", scouts: "Scouts", transfers: "Erfolgreiche Transfers", step1: "Spieler", step1Desc: "Auf der Plattform registriert", step2: "Scouts", step2Desc: "Aktiv aus Top-Ligen", step3: "Transfers", step3Desc: "Erfolgreich abgeschlossen" },
-  topScouts: { title: "TOP SCOUTS AUS ALLEN", titleHighlight: "SPORTARTEN", subtitle: "aktive Scouts aus Top-Ligen weltweit", sports: { football: "Fußball", basketball: "Basketball", boxing: "Boxen", volleyball: "Volleyball", other: "Andere" } },
+  hero: { badge: "Sei eines der ersten Mitglieder", title1: "ZEIG DEIN", titleHighlight: "TALENT", title2: "DER GANZEN WELT", subtitle: "Erstelle dein vollständiges Profil, füge Statistiken und Video-Highlights hinzu und werde von Scouts aus aller Welt entdeckt.", cta: "Kostenloses Profil erstellen", ctaScout: "Spielersuche" },
+  howItWorks: { title: "DIE SCOUTING-AKTE, DIE JEDER NUTZEN KANN.", subtitle: "SportRise bündelt Spielberichte, körperliche Daten und geprüfte Tests in einem Profil — unterschiedlich dargestellt für Spieler und Scouts." },
+  notesPreview: { noteBadge: "Beispiel-Scout-Notiz", reportBadge: "Beispiel-Spielbericht", priority: "Priorität: Hoch", quote: "Gute Ballkontrolle, schnelle Entscheidungen im letzten Drittel..." },
+  topScouts: { title: "DU BIST BEREITS AUF", titleHighlight: "IHREM RADAR", subtitle: "Professionelle Fußball- und Basketball-Scouts prüfen täglich neue Profile — deins könnte das nächste sein, das auffällt.", sports: { football: "Fußball", basketball: "Basketball", boxing: "Boxen", volleyball: "Volleyball", other: "Andere" }, moreSports: "Mehr?", moreSportsHint: "Wir arbeiten daran, neue Sportarten auf die Plattform zu bringen. Bleib dran! 👀" },
   topTalents: { title: "MEISTGESUCHTE", titleHighlight: "TALENTE", viewProfile: "Profil ansehen", goals: "TORE", assists: "VORLAGEN", speed: "TEMPO", rating: "BEWERTUNG", matches: "SPIELE", height: "GRÖßE" },
   stats: { players: "Registrierte Spieler", scouts: "Aktive Scouts", transfers: "Erfolgreiche Transfers", countries: "Abgedeckte Länder" },
   benefits: { title: "WARUM", titleHighlight: "SPORTRISE", subtitle: "Alles, was du brauchst, um deine Sportkarriere aufzubauen, an einem Ort.", visibility: "Maximale Sichtbarkeit", visibilityDesc: "Dein Profil ist für Hunderte von Scouts aus aller Welt sichtbar.", contact: "Direktkontakt", contactDesc: "Scouts können dich direkt über die Plattform kontaktieren.", palmares: "Vollständige Bilanz", palmaresDesc: "Präsentiere deine Statistiken, Video-Highlights und Erfolge an einem Ort.", network: "Professionelles Netzwerk", networkDesc: "Verbinde dich mit Profis aus der Sportbranche." },
-  testimonials: { title: "ERFOLGS-", titleHighlight: "GESCHICHTEN", subtitle: "Lass uns deinen Traum Wirklichkeit werden.", t1: { name: "Andrei Popescu", role: "Stürmer, 22 Jahre", text: "Dank SportRise wurde ich im ersten Monat von 3 Vereinen kontaktiert!" }, t2: { name: "Maria P.", role: "Scout, Liga 1", text: "Die ideale Plattform, um junge Talente aus ganz Rumänien zu entdecken." }, t3: { name: "Cosmin D.", role: "Mittelfeldspieler, 19 Jahre", text: "Mein Video-Profil wurde von über 50 Scouts aufgerufen." } },
+  compare: { title: "VERGLEICHE DICH", titleHighlight: "MIT ANDEREN", subtitle: "Jede Statistik, die du hinzufügst, platziert dich automatisch in einer Rangliste nach Sportart, Position und Altersgruppe.", badge: "BEISPIELTESTS", you: "DU", metric: "Sportliche Bewertung", statSpeed: "Geschwindigkeit", statPrecision: "Präzision", sectionAthletic: "Athletische Tests", sectionSpecific: "Sportspezifische Tests", unlockHint: "+ mit Profil freischalten" },
   cta: { title: "BEREIT ANZUFANGEN?", subtitle: "Erstelle dein kostenloses Konto und werde für Scouts aus aller Welt sichtbar." },
   footer: { home: "Startseite", register: "Registrieren", auth: "Anmelden", rights: "© 2026 SportRise. Alle Rechte vorbehalten." },
   auth: { back: "Zurück zur Startseite", createAccount: "KONTO ERSTELLEN", login: "ANMELDEN", registerDesc: "Registriere dich, um dein Profil zu erstellen", loginDesc: "Melde dich bei deinem SportRise-Konto an", tabRegister: "Registrieren", tabLogin: "Anmelden", accountType: "Kontotyp", selectAccountType: "Kontotyp auswählen", player: "🏃 Spieler", playerDesc: "Profil erstellen", scout: "🔍 Scout", scoutDesc: "Talente entdecken", agent: "📋 Agent", agentDesc: "Spieler vertreten", clubRep: "🏟️ Vereinsvertreter", clubRepDesc: "Verein vertreten", cautaJucator: "🔎 Spielersuche", cautaJucatorDesc: "Neue Talente finden", clubName: "Vereinsname", clubNamePlaceholder: "z.B.: FC Bayern München", sport: "Sport", selectSport: "Sport auswählen", sportFootball: "Fußball", sportBasketball: "Basketball", sportTennis: "Tennis", sportHandball: "Handball", sportVolleyball: "Volleyball", sportRugby: "Rugby", sportSwimming: "Schwimmen", sportAthletics: "Leichtathletik", sportOther: "Andere", fullName: "Vollständiger Name", fullNamePlaceholder: "z.B.: Max Mustermann", email: "E-Mail", emailPlaceholder: "email@beispiel.de", password: "Passwort", passwordPlaceholder: "Mindestens 6 Zeichen", processing: "Wird verarbeitet...", createBtn: "Konto erstellen", loginBtn: "Anmelden", hasAccount: "Bereits ein Konto?", noAccount: "Kein Konto?", loginLink: "Anmelden", registerLink: "Registrieren", successTitle: "Konto erfolgreich erstellt!", successDesc: "Überprüfe deine E-Mail, um dein Konto zu bestätigen.", errorRegister: "Registrierungsfehler", errorLogin: "Anmeldefehler", forgotPassword: "Passwort vergessen?", forgotPasswordTitle: "PASSWORT ZURÜCKSETZEN", forgotPasswordDesc: "Gib deine E-Mail-Adresse ein, um einen Reset-Link zu erhalten.", sendResetLink: "Reset-Link senden", resetSent: "Link gesendet!", resetSentDesc: "Überprüfe deine E-Mail für den Passwort-Reset-Link.", resetPasswordTitle: "NEUES PASSWORT", resetPasswordDesc: "Gib dein neues Passwort ein.", newPassword: "Neues Passwort", confirmPassword: "Passwort bestätigen", passwordsMismatch: "Passwörter stimmen nicht überein.", resetPassword: "Passwort zurücksetzen", passwordResetSuccess: "Passwort geändert!", passwordResetSuccessDesc: "Dein Passwort wurde erfolgreich aktualisiert.", passwordResetError: "Fehler beim Zurücksetzen", backToLogin: "Zurück zur Anmeldung", gender: "Geschlecht", selectGender: "Geschlecht auswählen", genderMale: "Männlich", genderFemale: "Weiblich", genderPreferNotToSay: "Keine Angabe", sportsInterest: "Interessante Sportarten", selectSports: "Sportarten auswählen", sportsSelected: "Sportarten ausgewählt" },
@@ -1568,13 +1580,14 @@ const de = {
 
 const fr = {
   nav: { auth: "Se connecter", register: "S'inscrire" },
-  hero: { badge: "⚡ La plateforme #1 pour les talents sportifs", title1: "MONTRE TON", titleHighlight: "TALENT", title2: "AU MONDE ENTIER", subtitle: "Crée ton profil complet, ajoute des statistiques et des vidéos, et sois découvert par des scouts du monde entier.", cta: "Créer un profil gratuit", ctaScout: "Chercher un joueur" },
-  howItWorks: { title: "COMMENT ÇA MARCHE", players: "Joueurs", scouts: "Scouts", transfers: "Transferts réussis", step1: "Joueurs", step1Desc: "Inscrits sur la plateforme", step2: "Scouts", step2Desc: "Actifs dans les meilleures ligues", step3: "Transferts", step3Desc: "Réalisés avec succès" },
-  topScouts: { title: "TOP SCOUTS DE TOUS", titleHighlight: "LES SPORTS", subtitle: "scouts actifs des meilleures ligues mondiales", sports: { football: "Football", basketball: "Basketball", boxing: "Boxe", volleyball: "Volleyball", other: "Autres" } },
+  hero: { badge: "Fais partie des premiers membres", title1: "MONTRE TON", titleHighlight: "TALENT", title2: "AU MONDE ENTIER", subtitle: "Crée ton profil complet, ajoute des statistiques et des vidéos, et sois découvert par des scouts du monde entier.", cta: "Créer un profil gratuit", ctaScout: "Chercher un joueur" },
+  howItWorks: { title: "LE DOSSIER DE SCOUTING QUE TOUT LE MONDE PEUT UTILISER.", subtitle: "SportRise réunit rapports de match, données physiques et tests validés dans un seul profil — affiché différemment pour les joueurs et les scouts." },
+  notesPreview: { noteBadge: "Exemple de note scout", reportBadge: "Exemple de rapport de match", priority: "Priorité : Élevée", quote: "Bon contrôle de balle, décisions rapides dans le dernier tiers..." },
+  topScouts: { title: "TU ES DÉJÀ SUR", titleHighlight: "LEUR RADAR", subtitle: "Des scouts professionnels de football et de basket-ball examinent chaque jour de nouveaux profils — le tien pourrait être le prochain remarqué.", sports: { football: "Football", basketball: "Basketball", boxing: "Boxe", volleyball: "Volleyball", other: "Autres" }, moreSports: "Plus ?", moreSportsHint: "Nous travaillons à l'ajout de nouveaux sports sur la plateforme. Reste à l'écoute ! 👀" },
   topTalents: { title: "LES TALENTS LES PLUS", titleHighlight: "RECHERCHÉS", viewProfile: "Voir le profil", goals: "BUTS", assists: "PASSES DÉC.", speed: "VITESSE", rating: "NOTE", matches: "MATCHS", height: "TAILLE" },
   stats: { players: "Joueurs inscrits", scouts: "Scouts actifs", transfers: "Transferts réussis", countries: "Pays couverts" },
   benefits: { title: "POURQUOI", titleHighlight: "SPORTRISE", subtitle: "Tout ce dont tu as besoin pour construire ta carrière sportive, en un seul endroit.", visibility: "Visibilité maximale", visibilityDesc: "Ton profil sera visible pour des centaines de scouts du monde entier.", contact: "Contact direct", contactDesc: "Les scouts peuvent te contacter directement via la plateforme.", palmares: "Palmarès complet", palmaresDesc: "Présente tes statistiques, vidéos et réalisations en un seul endroit.", network: "Réseau professionnel", networkDesc: "Connecte-toi avec des professionnels du sport." },
-  testimonials: { title: "HISTOIRES DE", titleHighlight: "SUCCÈS", subtitle: "Transformons ton rêve en réalité.", t1: { name: "Andrei Popescu", role: "Attaquant, 22 ans", text: "Grâce à SportRise, j'ai été contacté par 3 clubs dès le premier mois !" }, t2: { name: "Maria P.", role: "Scout, Liga 1", text: "La plateforme idéale pour découvrir les jeunes talents." }, t3: { name: "Cosmin D.", role: "Milieu, 19 ans", text: "Mon profil vidéo a été consulté par plus de 50 scouts." } },
+  compare: { title: "COMPARE-TOI", titleHighlight: "AUX AUTRES", subtitle: "Chaque statistique que tu ajoutes te place automatiquement dans un classement, par sport, poste et âge.", badge: "EXEMPLES DE TESTS", you: "TOI", metric: "Score Athlétique", statSpeed: "Vitesse", statPrecision: "Précision", sectionAthletic: "Tests athlétiques", sectionSpecific: "Tests spécifiques au sport", unlockHint: "+ débloquer avec un profil" },
   cta: { title: "PRÊT À COMMENCER ?", subtitle: "Crée ton compte gratuit et commence à être visible pour les scouts du monde entier." },
   footer: { home: "Accueil", register: "S'inscrire", auth: "Se connecter", rights: "© 2026 SportRise. Tous droits réservés." },
   auth: { back: "Retour à la page d'accueil", createAccount: "CRÉER UN COMPTE", login: "SE CONNECTER", registerDesc: "Inscris-toi pour créer ton profil", loginDesc: "Connecte-toi à ton compte SportRise", tabRegister: "Inscription", tabLogin: "Connexion", accountType: "Type de compte", selectAccountType: "Sélectionne le type de compte", player: "🏃 Joueur", playerDesc: "Créer ton profil", scout: "🔍 Scout", scoutDesc: "Découvrir des talents", agent: "📋 Agent", agentDesc: "Représenter des joueurs", clubRep: "🏟️ Représentant de club", clubRepDesc: "Représenter un club", cautaJucator: "🔎 Chercher un joueur", cautaJucatorDesc: "Découvrir de nouveaux talents", clubName: "Nom du club", clubNamePlaceholder: "Ex : Paris Saint-Germain", sport: "Sport", selectSport: "Sélectionner le sport", sportFootball: "Football", sportBasketball: "Basketball", sportTennis: "Tennis", sportHandball: "Handball", sportVolleyball: "Volleyball", sportRugby: "Rugby", sportSwimming: "Natation", sportAthletics: "Athlétisme", sportOther: "Autre", fullName: "Nom complet", fullNamePlaceholder: "Ex : Jean Dupont", email: "Email", emailPlaceholder: "email@exemple.fr", password: "Mot de passe", passwordPlaceholder: "Minimum 6 caractères", processing: "Traitement en cours...", createBtn: "Créer le compte", loginBtn: "Se connecter", hasAccount: "Déjà un compte ?", noAccount: "Pas de compte ?", loginLink: "Se connecter", registerLink: "S'inscrire", successTitle: "Compte créé avec succès !", successDesc: "Vérifie ton email pour confirmer ton compte.", errorRegister: "Erreur d'inscription", errorLogin: "Erreur de connexion", forgotPassword: "Mot de passe oublié ?", forgotPasswordTitle: "RÉINITIALISER LE MOT DE PASSE", forgotPasswordDesc: "Entre ton email pour recevoir un lien de réinitialisation.", sendResetLink: "Envoyer le lien", resetSent: "Lien envoyé !", resetSentDesc: "Vérifie ton email pour le lien de réinitialisation.", resetPasswordTitle: "NOUVEAU MOT DE PASSE", resetPasswordDesc: "Entre ton nouveau mot de passe.", newPassword: "Nouveau mot de passe", confirmPassword: "Confirmer le mot de passe", passwordsMismatch: "Les mots de passe ne correspondent pas.", resetPassword: "Réinitialiser le mot de passe", passwordResetSuccess: "Mot de passe modifié !", passwordResetSuccessDesc: "Ton mot de passe a été mis à jour avec succès.", passwordResetError: "Erreur de réinitialisation", backToLogin: "Retour à la connexion", gender: "Genre", selectGender: "Sélectionner le genre", genderMale: "Masculin", genderFemale: "Féminin", genderPreferNotToSay: "Préfère ne pas préciser", sportsInterest: "Sports d'intérêt", selectSports: "Sélectionner les sports", sportsSelected: "sports sélectionnés" },
@@ -1584,13 +1597,14 @@ const fr = {
 
 const es = {
   nav: { auth: "Iniciar sesión", register: "Registrarse" },
-  hero: { badge: "⚡ La plataforma #1 para talentos deportivos", title1: "MUESTRA TU", titleHighlight: "TALENTO", title2: "AL MUNDO ENTERO", subtitle: "Crea tu perfil completo, añade estadísticas y vídeos destacados y sé descubierto por cazatalentos de todo el mundo.", cta: "Crear perfil gratuito", ctaScout: "Buscar Jugador" },
-  howItWorks: { title: "CÓMO FUNCIONA", players: "Jugadores", scouts: "Cazatalentos", transfers: "Transferencias exitosas", step1: "Jugadores", step1Desc: "Registrados en la plataforma", step2: "Cazatalentos", step2Desc: "Activos en las mejores ligas", step3: "Transferencias", step3Desc: "Completadas con éxito" },
-  topScouts: { title: "MEJORES CAZATALENTOS DE TODOS", titleHighlight: "LOS DEPORTES", subtitle: "cazatalentos activos de las mejores ligas mundiales", sports: { football: "Fútbol", basketball: "Baloncesto", boxing: "Boxeo", volleyball: "Voleibol", other: "Otros" } },
+  hero: { badge: "Sé uno de los primeros miembros", title1: "MUESTRA TU", titleHighlight: "TALENTO", title2: "AL MUNDO ENTERO", subtitle: "Crea tu perfil completo, añade estadísticas y vídeos destacados y sé descubierto por cazatalentos de todo el mundo.", cta: "Crear perfil gratuito", ctaScout: "Buscar Jugador" },
+  howItWorks: { title: "EL EXPEDIENTE DE SCOUTING QUE TODOS PUEDEN USAR.", subtitle: "SportRise reúne informes de partidos, datos físicos y pruebas validadas en un solo perfil — mostrado de forma distinta a jugadores y cazatalentos." },
+  notesPreview: { noteBadge: "Ejemplo de nota del cazatalentos", reportBadge: "Ejemplo de informe de partido", priority: "Prioridad: Alta", quote: "Buen control del balón, decisiones rápidas en el último tercio..." },
+  topScouts: { title: "YA ESTÁS EN SU", titleHighlight: "RADAR", subtitle: "Cazatalentos profesionales de fútbol y baloncesto revisan nuevos perfiles cada día — el tuyo podría ser el próximo en destacar.", sports: { football: "Fútbol", basketball: "Baloncesto", boxing: "Boxeo", volleyball: "Voleibol", other: "Otros" }, moreSports: "¿Más?", moreSportsHint: "Estamos trabajando para incorporar nuevos deportes a la plataforma. ¡Mantente atento! 👀" },
   topTalents: { title: "LOS TALENTOS MÁS", titleHighlight: "BUSCADOS", viewProfile: "Ver perfil", goals: "GOLES", assists: "ASISTENCIAS", speed: "VELOCIDAD", rating: "VALORACIÓN", matches: "PARTIDOS", height: "ALTURA" },
   stats: { players: "Jugadores registrados", scouts: "Cazatalentos activos", transfers: "Transferencias exitosas", countries: "Países cubiertos" },
   benefits: { title: "POR QUÉ", titleHighlight: "SPORTRISE", subtitle: "Todo lo que necesitas para construir tu carrera deportiva, en un solo lugar.", visibility: "Máxima visibilidad", visibilityDesc: "Tu perfil será visible para cientos de cazatalentos de todo el mundo.", contact: "Contacto directo", contactDesc: "Los cazatalentos pueden contactarte directamente a través de la plataforma.", palmares: "Historial completo", palmaresDesc: "Presenta tus estadísticas, vídeos y logros en un solo lugar.", network: "Red profesional", networkDesc: "Conéctate con profesionales del deporte." },
-  testimonials: { title: "HISTORIAS DE", titleHighlight: "ÉXITO", subtitle: "Convirtamos tu sueño en realidad.", t1: { name: "Andrei Popescu", role: "Delantero, 22 años", text: "¡Gracias a SportRise, fui contactado por 3 clubes en el primer mes!" }, t2: { name: "Maria P.", role: "Cazatalentos, Liga 1", text: "La plataforma ideal para descubrir jóvenes talentos." }, t3: { name: "Cosmin D.", role: "Centrocampista, 19 años", text: "Mi perfil de vídeo fue visto por más de 50 cazatalentos." } },
+  compare: { title: "COMPÁRATE", titleHighlight: "CON LOS DEMÁS", subtitle: "Cada estadística que añades te coloca automáticamente en una clasificación, por deporte, posición y edad.", badge: "PRUEBAS DE EJEMPLO", you: "TÚ", metric: "Puntuación Atlética", statSpeed: "Velocidad", statPrecision: "Precisión", sectionAthletic: "Pruebas atléticas", sectionSpecific: "Pruebas específicas del deporte", unlockHint: "+ desbloquea con un perfil" },
   cta: { title: "¿LISTO PARA EMPEZAR?", subtitle: "Crea tu cuenta gratuita y empieza a ser visible para los cazatalentos de todo el mundo." },
   footer: { home: "Inicio", register: "Registrarse", auth: "Iniciar sesión", rights: "© 2026 SportRise. Todos los derechos reservados." },
   auth: { back: "Volver a la página principal", createAccount: "CREAR CUENTA", login: "INICIAR SESIÓN", registerDesc: "Regístrate para crear tu perfil", loginDesc: "Inicia sesión en tu cuenta SportRise", tabRegister: "Registro", tabLogin: "Iniciar sesión", accountType: "Tipo de cuenta", selectAccountType: "Selecciona el tipo de cuenta", player: "🏃 Jugador", playerDesc: "Crear perfil", scout: "🔍 Cazatalentos", scoutDesc: "Descubrir talentos", agent: "📋 Agente", agentDesc: "Representar jugadores", clubRep: "🏟️ Representante de club", clubRepDesc: "Representar un club", cautaJucator: "🔎 Buscar Jugador", cautaJucatorDesc: "Encontrar nuevos talentos", clubName: "Nombre del club", clubNamePlaceholder: "Ej.: Real Madrid CF", sport: "Deporte", selectSport: "Seleccionar deporte", sportFootball: "Fútbol", sportBasketball: "Baloncesto", sportTennis: "Tenis", sportHandball: "Balonmano", sportVolleyball: "Voleibol", sportRugby: "Rugby", sportSwimming: "Natación", sportAthletics: "Atletismo", sportOther: "Otro", fullName: "Nombre completo", fullNamePlaceholder: "Ej.: Juan García", email: "Correo electrónico", emailPlaceholder: "email@ejemplo.com", password: "Contraseña", passwordPlaceholder: "Mínimo 6 caracteres", processing: "Procesando...", createBtn: "Crear cuenta", loginBtn: "Iniciar sesión", hasAccount: "¿Ya tienes cuenta?", noAccount: "¿No tienes cuenta?", loginLink: "Iniciar sesión", registerLink: "Registrarse", successTitle: "¡Cuenta creada con éxito!", successDesc: "Comprueba tu correo para confirmar tu cuenta.", errorRegister: "Error de registro", errorLogin: "Error de autenticación", forgotPassword: "¿Olvidaste tu contraseña?", forgotPasswordTitle: "RESTABLECER CONTRASEÑA", forgotPasswordDesc: "Introduce tu correo para recibir un enlace de restablecimiento.", sendResetLink: "Enviar enlace", resetSent: "¡Enlace enviado!", resetSentDesc: "Comprueba tu correo para el enlace de restablecimiento.", resetPasswordTitle: "NUEVA CONTRASEÑA", resetPasswordDesc: "Introduce tu nueva contraseña.", newPassword: "Nueva contraseña", confirmPassword: "Confirmar contraseña", passwordsMismatch: "Las contraseñas no coinciden.", resetPassword: "Restablecer contraseña", passwordResetSuccess: "¡Contraseña cambiada!", passwordResetSuccessDesc: "Tu contraseña ha sido actualizada con éxito.", passwordResetError: "Error al restablecer", backToLogin: "Volver al inicio de sesión", gender: "Género", selectGender: "Seleccionar género", genderMale: "Masculino", genderFemale: "Femenino", genderPreferNotToSay: "Prefiero no decirlo", sportsInterest: "Deportes de interés", selectSports: "Seleccionar deportes", sportsSelected: "deportes seleccionados" },
@@ -1600,13 +1614,14 @@ const es = {
 
 const it = {
   nav: { auth: "Accedi", register: "Registrati" },
-  hero: { badge: "⚡ La piattaforma #1 per i talenti sportivi", title1: "MOSTRA IL TUO", titleHighlight: "TALENTO", title2: "AL MONDO INTERO", subtitle: "Crea il tuo profilo completo, aggiungi statistiche e video highlights, e fatti scoprire da scout di tutto il mondo.", cta: "Crea profilo gratuito", ctaScout: "Cerca Giocatore" },
-  howItWorks: { title: "COME FUNZIONA", players: "Giocatori", scouts: "Scout", transfers: "Trasferimenti riusciti", step1: "Giocatori", step1Desc: "Iscritti sulla piattaforma", step2: "Scout", step2Desc: "Attivi nei migliori campionati", step3: "Trasferimenti", step3Desc: "Completati con successo" },
-  topScouts: { title: "TOP SCOUT DI TUTTI", titleHighlight: "GLI SPORT", subtitle: "scout attivi nei migliori campionati mondiali", sports: { football: "Calcio", basketball: "Basket", boxing: "Boxe", volleyball: "Pallavolo", other: "Altri" } },
+  hero: { badge: "Sii tra i primi membri", title1: "MOSTRA IL TUO", titleHighlight: "TALENTO", title2: "AL MONDO INTERO", subtitle: "Crea il tuo profilo completo, aggiungi statistiche e video highlights, e fatti scoprire da scout di tutto il mondo.", cta: "Crea profilo gratuito", ctaScout: "Cerca Giocatore" },
+  howItWorks: { title: "IL DOSSIER DI SCOUTING CHE TUTTI POSSONO USARE.", subtitle: "SportRise riunisce report di gara, dati fisici e test convalidati in un unico profilo — mostrato in modo diverso a giocatori e scout." },
+  notesPreview: { noteBadge: "Esempio di nota scout", reportBadge: "Esempio di report partita", priority: "Priorità: Alta", quote: "Buon controllo palla, decisioni rapide nell'ultimo terzo di campo..." },
+  topScouts: { title: "SEI GIÀ SUL LORO", titleHighlight: "RADAR", subtitle: "Scout professionisti di calcio e basket esaminano ogni giorno nuovi profili — il tuo potrebbe essere il prossimo a farsi notare.", sports: { football: "Calcio", basketball: "Basket", boxing: "Boxe", volleyball: "Pallavolo", other: "Altri" }, moreSports: "Altro?", moreSportsHint: "Stiamo lavorando per aggiungere nuovi sport alla piattaforma. Resta sintonizzato! 👀" },
   topTalents: { title: "I TALENTI PIÙ", titleHighlight: "RICERCATI", viewProfile: "Vedi profilo", goals: "GOL", assists: "ASSIST", speed: "VELOCITÀ", rating: "VALUTAZIONE", matches: "PARTITE", height: "ALTEZZA" },
   stats: { players: "Giocatori registrati", scouts: "Scout attivi", transfers: "Trasferimenti riusciti", countries: "Paesi coperti" },
   benefits: { title: "PERCHÉ", titleHighlight: "SPORTRISE", subtitle: "Tutto ciò di cui hai bisogno per costruire la tua carriera sportiva, in un unico posto.", visibility: "Massima visibilità", visibilityDesc: "Il tuo profilo sarà visibile a centinaia di scout di tutto il mondo.", contact: "Contatto diretto", contactDesc: "Gli scout possono contattarti direttamente tramite la piattaforma.", palmares: "Palmarès completo", palmaresDesc: "Presenta le tue statistiche, video e risultati in un unico posto.", network: "Rete professionale", networkDesc: "Connettiti con professionisti del settore sportivo." },
-  testimonials: { title: "STORIE DI", titleHighlight: "SUCCESSO", subtitle: "Trasformiamo il tuo sogno in realtà.", t1: { name: "Andrei Popescu", role: "Attaccante, 22 anni", text: "Grazie a SportRise, sono stato contattato da 3 club nel primo mese!" }, t2: { name: "Maria P.", role: "Scout, Liga 1", text: "La piattaforma ideale per scoprire giovani talenti." }, t3: { name: "Cosmin D.", role: "Centrocampista, 19 anni", text: "Il mio profilo video è stato visualizzato da oltre 50 scout." } },
+  compare: { title: "CONFRONTATI", titleHighlight: "CON GLI ALTRI", subtitle: "Ogni statistica che aggiungi ti posiziona automaticamente in una classifica, per sport, ruolo ed età.", badge: "TEST DI ESEMPIO", you: "TU", metric: "Punteggio Atletico", statSpeed: "Velocità", statPrecision: "Precisione", sectionAthletic: "Test atletici", sectionSpecific: "Test specifici per sport", unlockHint: "+ sblocca con un profilo" },
   cta: { title: "PRONTO A INIZIARE?", subtitle: "Crea il tuo account gratuito e inizia ad essere visibile per gli scout di tutto il mondo." },
   footer: { home: "Home", register: "Registrati", auth: "Accedi", rights: "© 2026 SportRise. Tutti i diritti riservati." },
   auth: { back: "Torna alla pagina principale", createAccount: "CREA ACCOUNT", login: "ACCEDI", registerDesc: "Registrati per creare il tuo profilo", loginDesc: "Accedi al tuo account SportRise", tabRegister: "Registrazione", tabLogin: "Accesso", accountType: "Tipo di account", selectAccountType: "Seleziona il tipo di account", player: "🏃 Giocatore", playerDesc: "Crea profilo", scout: "🔍 Scout", scoutDesc: "Scopri talenti", agent: "📋 Agente", agentDesc: "Rappresenta giocatori", clubRep: "🏟️ Rappresentante club", clubRepDesc: "Rappresenta un club", cautaJucator: "🔎 Cerca Giocatore", cautaJucatorDesc: "Scopri nuovi talenti", clubName: "Nome del club", clubNamePlaceholder: "Es.: Juventus FC", sport: "Sport", selectSport: "Seleziona sport", sportFootball: "Calcio", sportBasketball: "Basket", sportTennis: "Tennis", sportHandball: "Pallamano", sportVolleyball: "Pallavolo", sportRugby: "Rugby", sportSwimming: "Nuoto", sportAthletics: "Atletica", sportOther: "Altro", fullName: "Nome completo", fullNamePlaceholder: "Es.: Mario Rossi", email: "Email", emailPlaceholder: "email@esempio.it", password: "Password", passwordPlaceholder: "Minimo 6 caratteri", processing: "Elaborazione...", createBtn: "Crea account", loginBtn: "Accedi", hasAccount: "Hai già un account?", noAccount: "Non hai un account?", loginLink: "Accedi", registerLink: "Registrati", successTitle: "Account creato con successo!", successDesc: "Controlla la tua email per confermare l'account.", errorRegister: "Errore di registrazione", errorLogin: "Errore di autenticazione", forgotPassword: "Password dimenticata?", forgotPasswordTitle: "REIMPOSTA PASSWORD", forgotPasswordDesc: "Inserisci la tua email per ricevere un link di reimpostazione.", sendResetLink: "Invia link", resetSent: "Link inviato!", resetSentDesc: "Controlla la tua email per il link di reimpostazione.", resetPasswordTitle: "NUOVA PASSWORD", resetPasswordDesc: "Inserisci la tua nuova password.", newPassword: "Nuova password", confirmPassword: "Conferma password", passwordsMismatch: "Le password non corrispondono.", resetPassword: "Reimposta password", passwordResetSuccess: "Password cambiata!", passwordResetSuccessDesc: "La tua password è stata aggiornata con successo.", passwordResetError: "Errore di reimpostazione", backToLogin: "Torna al login", gender: "Genere", selectGender: "Seleziona genere", genderMale: "Maschile", genderFemale: "Femminile", genderPreferNotToSay: "Preferisco non specificare", sportsInterest: "Sport di interesse", selectSports: "Seleziona sport", sportsSelected: "sport selezionati" },

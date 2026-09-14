@@ -1,23 +1,22 @@
-import { useState } from "react";
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import BenefitsSection from "@/components/landing/BenefitsSection";
 import TopScoutsSection from "@/components/landing/TopScoutsSection";
-import TopTalentsSection from "@/components/landing/TopTalentsSection";
-import SuccessStoriesSection from "@/components/landing/SuccessStoriesSection";
+import CompareSection from "@/components/landing/CompareSection";
+import FinalCtaSection from "@/components/landing/FinalCtaSection";
 import FooterSection from "@/components/landing/FooterSection";
 
 const Index = () => {
-  const [selectedSport, setSelectedSport] = useState("football");
-
   return (
-    <div className="min-h-screen bg-pitch">
+    <div className="min-h-screen bg-white">
       <Navbar />
       <HeroSection />
       <HowItWorksSection />
-      <TopScoutsSection selectedSport={selectedSport} onSelectSport={setSelectedSport} />
-      <TopTalentsSection selectedSport={selectedSport} />
-      <SuccessStoriesSection />
+      <BenefitsSection />
+      <TopScoutsSection />
+      <CompareSection />
+      <FinalCtaSection />
       <FooterSection />
     </div>
   );

@@ -14,6 +14,8 @@ import { SlalomVideo } from "./SlalomVideo";
 import { PrecisionVideo } from "./PrecisionVideo";
 import { CoordinationVideo } from "./CoordinationVideo";
 import { LongPassVideo } from "./LongPassVideo";
+import { StraightLineSpeedFootballVideo } from "./StraightLineSpeedFootballVideo";
+import { StraightLineSpeedBasketballVideo } from "./StraightLineSpeedBasketballVideo";
 
 const base = { fps: 30, width: 640, height: 480 };
 
@@ -34,5 +36,7 @@ export const RemotionRoot = () => (
     <Composition id="precision" component={PrecisionVideo} durationInFrames={305} {...base} />
     <Composition id="coordination" component={CoordinationVideo} durationInFrames={285} {...base} />
     <Composition id="long-pass" component={LongPassVideo} durationInFrames={325} {...base} />
+    <Composition id="straight-line-speed-football" component={StraightLineSpeedFootballVideo} durationInFrames={285} {...base} />
+    <Composition id="straight-line-speed-basketball" component={StraightLineSpeedBasketballVideo} durationInFrames={285} {...base} />
   </>
 );

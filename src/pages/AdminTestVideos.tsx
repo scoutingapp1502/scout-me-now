@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTestReferenceVideos } from "@/hooks/useTestReferenceVideos";
-import { athleticTests, getTechnicalTestsBySport, getTestRefKey, TechnicalTest } from "@/components/dashboard/PersonalProfile";
+import { athleticTests, getTechnicalTestsBySport, getSportAwareTestRefKey, TechnicalTest } from "@/components/dashboard/PersonalProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -67,12 +67,19 @@ export default function AdminTestVideos({ embedded }: { embedded?: boolean } = {
   };
 
   const renderTestRow = (test: TechnicalTest) => {
-    const refKey = getTestRefKey(test);
+    const refKey = getSportAwareTestRefKey(test, sport);
     const videoUrl = videos[refKey];
     return (
       <div key={refKey} className="border border-gray-200 rounded-lg p-4 bg-white space-y-3">
         <div>
-          <p className="font-semibold text-sm">{test.icon} {test.label}</p>
+          <p className="font-semibold text-sm">
+            {test.icon} {test.label}
+            {(test as any).sportSpecificVideo && (
+              <span className="ml-2 text-[10px] font-normal uppercase tracking-wide text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 align-middle">
+                Video separat — {SPORTS.find((s) => s.key === sport)?.label}
+              </span>
+            )}
+          </p>
           <p className="text-xs text-gray-500 whitespace-pre-line mt-1">{test.description}</p>
         </div>
 

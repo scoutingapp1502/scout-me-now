@@ -181,6 +181,8 @@ export interface TechnicalTest {
 
 export interface AthleticTest extends TechnicalTest {
   videoKey: string;
+  /** When true, the admin example/reference video differs per sport (football vs basketball court markings) even though the test itself is shared. */
+  sportSpecificVideo?: boolean;
 }
 
 export const athleticTests: AthleticTest[] = [
@@ -188,6 +190,7 @@ export const athleticTests: AthleticTest[] = [
   { key: "jumping", label: "2 Foots Vertical Jump", icon: "🦘", description: "Configurare: Sportivul se poziționează cu picioarele apropiate, lângă un perete sau un dispozitiv de măsurare a săriturii.\n\nExercițiu: Din poziție statică, cu ambele picioare, sportivul sare pe verticală cât mai sus posibil. Se măsoară înălțimea săriturii.", videoKey: "jumping_video", inputKey: "_jumping_video_input", uploadId: "jumping-video-upload", storagePath: "vertical-jump" },
   { key: "endurance", label: "Shuttle Run", icon: "💪", description: "Configurare: Două linii marcate la o distanță de 10 metri una de cealaltă.\n\nExercițiu: Sportivul aleargă dus-întors între cele două linii de mai multe ori, la viteză maximă, schimbând direcția la fiecare linie. Se cronometrează timpul total.", videoKey: "endurance_video", inputKey: "_endurance_video_input", uploadId: "endurance-video-upload", storagePath: "shuttle-run" },
   { key: "acceleration", label: "2 Foots Vertical Jump in action", icon: "🚀", description: "Configurare: Similar cu săritura pe verticală, dar precedată de o alergare scurtă de acumulare (3-5 metri).\n\nExercițiu: Sportivul realizează o cursă scurtă de elan, apoi sare pe verticală cu ambele picioare cât mai sus posibil. Se măsoară înălțimea săriturii din mișcare.", videoKey: "acceleration_video", inputKey: "_acceleration_video_input", uploadId: "acceleration-video-upload", storagePath: "vertical-jump-action" },
+  { key: "straight_line_speed", label: "Straight Line Speed", icon: "🏁", description: "Configurare: Distanța standard este de 22 de metri — pe terenul de baschet, aceasta reprezintă traseul de la linia de fund (baseline) până la linia de aruncări libere aflată la capătul opus al terenului.\n\nPentru fotbal, terenul nu are o linie fixă la exact 22 m (dimensiunile terenurilor variază), dar distanța poate fi reconstituită credibil din două repere oficiale, fixe pe orice teren: marginea careului mare (16,5 m de linia porții) + adâncimea careului mic (5,5 m) = 22 m exact. Jalonul de start se pune la marginea careului mare, iar cel de finish la 5,5 m dincolo de el (aceeași distanță ca adâncimea careului mic, vizibilă pe teren ca reper).\n\nExercițiu: Sportivul pleacă din poziție statică și aleargă în sprint maxim, în linie dreaptă, până la linia de sosire. Se cronometrează timpul de execuție pentru a evalua viteza de sprint pe distanță lungă.", videoKey: "straight_line_speed_video", inputKey: "_straight_line_speed_video_input", uploadId: "straight-line-speed-video-upload", storagePath: "straight-line-speed", sportSpecificVideo: true },
 ];
 
 const athleticTestUnits: Record<string, string> = {
@@ -195,6 +198,7 @@ const athleticTestUnits: Record<string, string> = {
   jumping_video: "cm",
   endurance_video: "s",
   acceleration_video: "cm",
+  straight_line_speed_video: "s",
 };
 
 const basketballTests: TechnicalTest[] = [
@@ -227,6 +231,13 @@ export const getTestLabelByKey = (sport: string | null | undefined, key: string,
 };
 
 export const getTestRefKey = (test: TechnicalTest): string => (test as AthleticTest).videoKey || test.key;
+
+/** Reference/example video key, sport-aware for tests whose demo clip differs by sport (e.g. Straight Line Speed: football pitch vs basketball court). */
+export const getSportAwareTestRefKey = (test: TechnicalTest, sport: string | null | undefined): string => {
+  const base = getTestRefKey(test);
+  const resolvedSport = sport === "basketball" ? "basketball" : "football";
+  return (test as AthleticTest).sportSpecificVideo ? `${base}_${resolvedSport}` : base;
+};
 
 const TestInfoContent = ({ test, referenceVideoUrl }: { test: TechnicalTest; referenceVideoUrl?: string | null }) => {
   const { lang, t } = useLanguage();
@@ -1476,22 +1487,24 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             <p className={`font-display text-primary-foreground uppercase tracking-[0.15em] ${mini ? "text-[10px]" : "text-[13px] sm:text-sm"}`}>{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
           </div>
         </div>
-        <div className={mini ? "grid grid-cols-2 gap-x-2 gap-y-1 px-3 pb-3" : "grid grid-cols-2 gap-x-2.5 sm:gap-x-3 gap-y-1.5 px-4 sm:px-5 pb-3.5 sm:pb-4"}>
+        <div className={mini ? "grid grid-cols-6 gap-x-1 gap-y-1.5 px-3 pb-3" : "grid grid-cols-6 gap-x-1.5 sm:gap-x-2 gap-y-2 px-4 sm:px-5 pb-3.5 sm:pb-4"}>
           {[
             { label: "PLD", key: "speed_video" },
             { label: "2FVJ", key: "jumping_video" },
             { label: "SHR", key: "endurance_video" },
             { label: "2FVJA", key: "acceleration_video" },
-          ].map((stat) => {
+            { label: "SLS", key: "straight_line_speed_video" },
+          ].map((stat, i) => {
             const sub = getSubmissionForTest(stat.key);
             const verified = sub?.status === "verified" && sub.grade !== null;
+            const colClass = i < 3 ? "col-span-2" : i === 3 ? "col-start-2 col-span-2" : "col-start-4 col-span-2";
             return (
-              <div key={stat.label} className="flex items-center gap-1.5">
-                <span className={`font-display text-primary-foreground leading-none ${mini ? "text-xs" : "text-base sm:text-lg"}`}>
+              <div key={stat.label} className={`flex flex-col items-center ${colClass}`}>
+                <span className={`font-display text-primary-foreground leading-none ${mini ? "text-[11px]" : "text-sm sm:text-base"}`}>
                   {verified ? `${sub!.grade}${athleticTestUnits[stat.key] || ""}` : "—"}
                 </span>
                 <span
-                  className={`text-white font-body font-semibold uppercase tracking-wider ${mini ? "text-[9px]" : "text-[10px] sm:text-[11px]"}`}
+                  className={`text-white font-body font-semibold uppercase tracking-wider mt-0.5 ${mini ? "text-[7px]" : "text-[8px] sm:text-[9px]"}`}
                   style={{ WebkitFontSmoothing: "antialiased", textShadow: "0 1px 1px rgba(0,0,0,0.25)" }}
                 >
                   {stat.label}
@@ -1595,7 +1608,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent className="text-sm font-body w-80 bg-white border-gray-200 text-gray-900" side="top">
-                                <TestInfoContent test={test} referenceVideoUrl={testReferenceVideos[test.videoKey]} />
+                                <TestInfoContent test={test} referenceVideoUrl={testReferenceVideos[getSportAwareTestRefKey(test, currentSport)]} />
                               </PopoverContent>
                             </Popover>
                           </div>
