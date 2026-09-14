@@ -11,11 +11,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { userId, decision, reviewerNotes } = await req.json();
-
-    if (!userId || !decision) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Only an admin may trigger an approval/rejection notification for
+    // someone else's account — previously userId/decision came straight
+    // from the request body with no check on who was calling, so anyone
+    // could make this function email an arbitrary user an "approved" or
+    // "rejected" notice by UUID, with no authentication at all.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No auth" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -25,6 +29,35 @@ Deno.serve(async (req) => {
     const appUrl = (Deno.env.get("PUBLIC_APP_URL") ?? "").replace(/\/$/, "");
 
     const adminClient = createClient(supabaseUrl, serviceKey);
+
+    const { data: { user: caller }, error: authError } = await adminClient.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (authError || !caller) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: callerRole } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", caller.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!callerRole) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { userId, decision, reviewerNotes } = await req.json();
+
+    if (!userId || !decision) {
+      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Get user email
     const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId);

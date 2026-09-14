@@ -92,8 +92,8 @@ function MultiSelectFilter({ label, options, selected, onChange }: {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full justify-between font-normal text-sm font-body h-10 px-3">
-          <span className="truncate">{selected.length > 0 ? `${label} (${selected.length})` : label}</span>
+        <Button variant="outline" className="w-full h-auto min-h-10 justify-between font-normal text-sm font-body px-3 py-2">
+          <span className="whitespace-normal text-left leading-snug">{selected.length > 0 ? `${label} (${selected.length})` : label}</span>
           <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
         </Button>
       </PopoverTrigger>

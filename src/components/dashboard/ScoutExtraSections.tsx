@@ -222,7 +222,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+              <PopoverContent align="start" collisionPadding={16} className="w-[calc(100vw-32px)] max-w-80 text-sm bg-white border-gray-200">
                 <p className="font-semibold text-gray-900 mb-2">{te.certTipsTitle}</p>
                 <ul className="list-disc pl-4 space-y-1 text-gray-500">
                   <li>{te.certTip1}</li>
@@ -296,7 +296,7 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+              <PopoverContent align="start" collisionPadding={16} className="w-[calc(100vw-32px)] max-w-80 text-sm bg-white border-gray-200">
                 <p className="font-semibold text-gray-900 mb-2">{te.langTipsTitle}</p>
                 <ul className="list-disc pl-4 space-y-1 text-gray-500">
                   <li>{te.langTip1}</li>

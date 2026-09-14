@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, User, ArrowLeft, SlidersHorizontal, ChevronDown, X, CalendarIcon } from "lucide-react";
+import { Search, User, ArrowLeft, SlidersHorizontal, ChevronDown, X, CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { trackAnalyticsEvent } from "@/components/dashboard/ScoutStats";
-import { calcPlayerCompletion, calcScoutCompletion, calcAgentCompletion, calcClubRepCompletion } from "@/lib/profileCompletion";
 import { getDisplayNationality } from "@/components/ui/nationality-input";
 import { translatePosition, translateFootHandValue } from "@/lib/positionTranslations";
 import PersonalProfile from "@/components/dashboard/PersonalProfile";
@@ -41,6 +40,8 @@ interface CommunityCard {
   languages?: string[] | null;
 }
 
+const PAGE_SIZE = 24;
+
 const ROLE_COLOR: Record<RoleKey, string> = {
   player: "bg-red-400",
   cauta_jucator: "bg-teal-600",
@@ -60,10 +61,19 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
   const { getLogoForTeam } = useClubLogos();
   const [items, setItems] = useState<CommunityCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [counts, setCounts] = useState({ player: 0, cauta_jucator: 0 });
+  const [filterOptions, setFilterOptions] = useState<{
+    sports: string[]; positions: string[]; nationalities: string[];
+    organizations: string[]; activityCountries: string[]; sportSpecs: string[]; languages: string[];
+  }>({ sports: [], positions: [], nationalities: [], organizations: [], activityCountries: [], sportSpecs: [], languages: [] });
   const [activeTab, setActiveTab] = useState<RoleKey>("player");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [selected, setSelected] = useState<{ id: string; role: RoleKey } | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Filters - generic (all tab)
   const [filterSport, setFilterSport] = useState("all");
@@ -140,156 +150,11 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     roleLabel: { player: "Player", cauta_jucator: "Discoverer" } as Record<RoleKey, string>,
   };
 
+  // Debounce search input so it doesn't refetch on every keystroke.
   useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true);
-
-      const [
-        rolesRes,
-        playersRes,
-        playerCareerRes,
-        scoutsRes,
-        scoutExpRes,
-        scoutPostsRes,
-        scoutEduRes,
-        scoutCertRes,
-      ] = await Promise.all([
-        supabase.from("user_roles").select("user_id, role"),
-        supabase
-          .from("player_profiles")
-          .select("user_id, first_name, last_name, photo_url, current_team, position, nationality, sport, date_of_birth, height_cm, weight_kg, preferred_foot, speed, jumping, endurance, acceleration, defense, career_description, video_highlights, instagram_url, tiktok_url, twitter_url")
-          .limit(1000),
-        supabase.from("player_career_entries").select("user_id"),
-        supabase
-          .from("scout_profiles")
-          .select("user_id, first_name, last_name, photo_url, organization, title, country, bio, cover_photo_url, skills, languages, sports")
-          .limit(1000),
-        supabase.from("scout_experiences").select("user_id, location"),
-        supabase.from("scout_posts").select("user_id"),
-        supabase.from("scout_education").select("user_id"),
-        supabase.from("scout_certifications").select("user_id"),
-      ]);
-
-      const roleMap = new Map<string, RoleKey>();
-      (rolesRes.data || []).forEach((r: any) => roleMap.set(r.user_id, r.role as RoleKey));
-
-      const cautaJucatorIds = (scoutsRes.data || [])
-        .map((s: any) => s.user_id)
-        .filter((id: string) => roleMap.get(id) === "cauta_jucator");
-      let approvedIds = new Set<string>();
-      if (cautaJucatorIds.length > 0) {
-        const { data: approvedData } = await (supabase as any).rpc("get_approved_verification_ids", { _user_ids: cautaJucatorIds });
-        approvedIds = new Set((approvedData || []).map((r: any) => r.user_id));
-      }
-
-      const careerIds = new Set((playerCareerRes.data || []).map((e: any) => e.user_id));
-      const expIds = new Set((scoutExpRes.data || []).map((e: any) => e.user_id));
-      const postIds = new Set((scoutPostsRes.data || []).map((p: any) => p.user_id));
-      const eduIds = new Set((scoutEduRes.data || []).map((e: any) => e.user_id));
-      const certIds = new Set((scoutCertRes.data || []).map((c: any) => c.user_id));
-
-      const cards: CommunityCard[] = [];
-
-      (playersRes.data || []).forEach((p: any) => {
-        if (calcPlayerCompletion(p, careerIds.has(p.user_id)) < 55) return;
-        cards.push({
-          user_id: p.user_id,
-          role: "player",
-          first_name: p.first_name,
-          last_name: p.last_name,
-          photo_url: p.photo_url,
-          sport: p.sport,
-          position: p.position,
-          current_team: p.current_team,
-          nationality: p.nationality,
-          date_of_birth: p.date_of_birth,
-          height_cm: p.height_cm,
-          preferred_foot: p.preferred_foot,
-        });
-      });
-
-      (scoutsRes.data || []).forEach((s: any) => {
-        const role = roleMap.get(s.user_id);
-        if (role !== "cauta_jucator") return;
-        const visible = calcScoutCompletion(s, expIds.has(s.user_id), postIds.has(s.user_id), eduIds.has(s.user_id), certIds.has(s.user_id)) >= 55
-          && approvedIds.has(s.user_id);
-        if (!visible) return;
-        cards.push({
-          user_id: s.user_id,
-          role,
-          first_name: s.first_name,
-          last_name: s.last_name,
-          photo_url: s.photo_url,
-          organization: s.organization,
-          title: s.title,
-          country: s.country,
-          sports: s.sports,
-          languages: s.languages,
-        });
-      });
-
-      cards.sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
-      setItems(cards);
-      setLoading(false);
-    };
-    fetchAll();
-  }, []);
-
-  const calcAge = (dob?: string | null): number | null => {
-    if (!dob) return null;
-    const d = new Date(dob);
-    const now = new Date();
-    let age = now.getFullYear() - d.getFullYear();
-    const m = now.getMonth() - d.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
-    return age;
-  };
-
-  const uniqueSports = useMemo(
-    () => [...new Set(items.filter(i => i.role === "player").map(i => i.sport).filter(Boolean) as string[])].sort(),
-    [items]
-  );
-  const uniqueCountries = useMemo(
-    () => [...new Set(items.map(i => i.country || i.nationality).filter(Boolean) as string[])].sort(),
-    [items]
-  );
-  const uniquePositions = useMemo(() => {
-    const set = new Set<string>();
-    items.forEach(i => {
-      if (i.role === "player" && i.position) {
-        if (filterSport === "all" || i.sport === filterSport) set.add(i.position);
-      }
-    });
-    return [...set].sort();
-  }, [items, filterSport]);
-  const uniquePlayerNationalities = useMemo(
-    () => [...new Set(items.filter(i => i.role === "player" && i.nationality).map(i => i.nationality) as string[])].sort(),
-    [items]
-  );
-  const uniqueOrganizations = useMemo(
-    () => [...new Set(items.filter(i => i.role !== "player" && i.organization).map(i => i.organization) as string[])].sort(),
-    [items]
-  );
-  const uniqueActivityCountries = useMemo(
-    () => [...new Set(items.filter(i => i.role !== "player" && i.country).map(i => i.country) as string[])].sort(),
-    [items]
-  );
-  const uniqueSportSpecs = useMemo(() => {
-    const set = new Set<string>();
-    items.forEach(i => { if (i.role !== "player") i.sports?.forEach(s => set.add(s)); });
-    return [...set].sort();
-  }, [items]);
-  const uniqueLanguages = useMemo(() => {
-    const set = new Set<string>();
-    items.forEach(i => { if (i.role === "cauta_jucator") i.languages?.forEach(l => set.add(l)); });
-    return [...set].sort();
-  }, [items]);
-
-  const counts = useMemo(() => {
-    const c = { all: items.length, player: 0, cauta_jucator: 0 } as Record<string, number>;
-    items.forEach(i => { c[i.role]++; });
-    return c;
-  }, [items]);
+    const timer = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const activeFilterCount = useMemo(() => {
     let n = 0;
@@ -307,37 +172,92 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
     return n;
   }, [filterSport, filterPosition, filterPlayerNationality, filterDobFrom, filterDobTo, filterHeight, filterPreferredFoot, filterSportSpec, filterOrganization, filterActivityCountry, filterLanguage]);
 
-  const filtered = useMemo(() => {
-    return items.filter(i => {
-      if (i.role !== activeTab) return false;
-      const name = `${i.first_name} ${i.last_name}`.toLowerCase();
-      if (search && !name.includes(search.toLowerCase())) return false;
-
-      if (i.role === "player") {
-        if (filterSport !== "all" && i.sport !== filterSport) return false;
-        if (filterPosition !== "all" && i.position !== filterPosition) return false;
-        if (filterPlayerNationality !== "all" && i.nationality !== filterPlayerNationality) return false;
-        if (filterDobFrom || filterDobTo) {
-          if (!i.date_of_birth) return false;
-          const dob = new Date(i.date_of_birth);
-          if (filterDobFrom && dob < filterDobFrom) return false;
-          if (filterDobTo && dob > filterDobTo) return false;
-        }
-        if (filterHeight) {
-          const minH = parseInt(filterHeight);
-          if (!i.height_cm || i.height_cm < minH) return false;
-        }
-        if (filterPreferredFoot !== "all" && i.preferred_foot !== filterPreferredFoot) return false;
-      } else if (i.role === "cauta_jucator") {
-        if (filterSportSpec !== "all" && !i.sports?.includes(filterSportSpec)) return false;
-        if (filterOrganization !== "all" && i.organization !== filterOrganization) return false;
-        if (filterActivityCountry !== "all" && i.country !== filterActivityCountry) return false;
-        if (filterLanguage !== "all" && !i.languages?.includes(filterLanguage)) return false;
-      }
-
-      return true;
+  const fetchPage = useCallback(async (offset: number) => {
+    const { data, error } = await (supabase as any).rpc("get_community_cards", {
+      p_role: activeTab,
+      p_search: debouncedSearch || null,
+      p_sport: activeTab === "player" ? filterSport : null,
+      p_position: activeTab === "player" ? filterPosition : null,
+      p_nationality: activeTab === "player" ? filterPlayerNationality : null,
+      p_dob_from: activeTab === "player" && filterDobFrom ? filterDobFrom.toISOString().slice(0, 10) : null,
+      p_dob_to: activeTab === "player" && filterDobTo ? filterDobTo.toISOString().slice(0, 10) : null,
+      p_min_height: activeTab === "player" && filterHeight ? parseInt(filterHeight, 10) : null,
+      p_preferred_foot: activeTab === "player" ? filterPreferredFoot : null,
+      p_sport_spec: activeTab === "cauta_jucator" ? filterSportSpec : null,
+      p_organization: activeTab === "cauta_jucator" ? filterOrganization : null,
+      p_activity_country: activeTab === "cauta_jucator" ? filterActivityCountry : null,
+      p_language: activeTab === "cauta_jucator" ? filterLanguage : null,
+      p_limit: PAGE_SIZE,
+      p_offset: offset,
     });
-  }, [items, activeTab, search, filterSport, filterPosition, filterPlayerNationality, filterDobFrom, filterDobTo, filterHeight, filterPreferredFoot, filterSportSpec, filterOrganization, filterActivityCountry, filterLanguage]);
+    if (error) { console.error("Failed to load community page:", error); return []; }
+    return (data || []) as CommunityCard[];
+  }, [activeTab, debouncedSearch, filterSport, filterPosition, filterPlayerNationality, filterDobFrom, filterDobTo, filterHeight, filterPreferredFoot, filterSportSpec, filterOrganization, filterActivityCountry, filterLanguage]);
+
+  // Reset + fetch first page whenever the tab, search or any filter changes.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setHasMore(true);
+    fetchPage(0).then((page) => {
+      if (cancelled) return;
+      setItems(page);
+      setHasMore(page.length === PAGE_SIZE);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [fetchPage]);
+
+  // Tab counts — fetched once on mount, refreshed when switching tabs (cheap
+  // COUNT-only query, not tied to the page-fetch effect above).
+  useEffect(() => {
+    (supabase as any).rpc("get_community_counts").then(({ data, error }: any) => {
+      if (error) { console.error("Failed to load community counts:", error); return; }
+      const row = data?.[0];
+      if (row) setCounts({ player: Number(row.player_count) || 0, cauta_jucator: Number(row.cauta_jucator_count) || 0 });
+    });
+  }, [activeTab]);
+
+  // Filter dropdown options — depend only on the active tab, not on the
+  // filters/search currently applied (so changing one filter doesn't shrink
+  // the others' available options out from under the user).
+  useEffect(() => {
+    (supabase as any).rpc("get_community_filter_options", { p_role: activeTab }).then(({ data, error }: any) => {
+      if (error) { console.error("Failed to load filter options:", error); return; }
+      const row = data?.[0] || {};
+      setFilterOptions({
+        sports: row.sports || [],
+        positions: row.positions || [],
+        nationalities: row.nationalities || [],
+        organizations: row.organizations || [],
+        activityCountries: row.activity_countries || [],
+        sportSpecs: row.sport_specs || [],
+        languages: row.languages || [],
+      });
+    });
+  }, [activeTab]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || loading) return;
+    setLoadingMore(true);
+    const page = await fetchPage(items.length);
+    setItems((prev) => [...prev, ...page]);
+    setHasMore(page.length === PAGE_SIZE);
+    setLoadingMore(false);
+  }, [fetchPage, items.length, loadingMore, hasMore, loading]);
+
+  // Infinite scroll: the page/<main> element scrolls (not a local
+  // container), so observe a sentinel div at the bottom of the grid instead
+  // of attaching an onScroll handler.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadMore();
+    }, { rootMargin: "400px" });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   const clearFilters = () => {
     setFilterSport("all");
@@ -445,23 +365,23 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2">
-        {tabs.map(t => {
-          const isActive = activeTab === t.key;
+        {tabs.map(tItem => {
+          const isActive = activeTab === tItem.key;
           return (
             <button
-              key={t.key}
-              onClick={() => { setActiveTab(t.key); clearFilters(); }}
+              key={tItem.key}
+              onClick={() => { setActiveTab(tItem.key); clearFilters(); }}
               className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-body transition-colors ${
                 isActive
                   ? "bg-orange-500 text-white"
                   : "bg-white text-gray-500 hover:text-gray-900 border border-gray-200"
               }`}
             >
-              {t.label}
+              {tItem.label}
               <span className={`flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-bold ${
                 isActive ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
               }`}>
-                {t.count}
+                {tItem.count}
               </span>
             </button>
           );
@@ -481,7 +401,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
-                    {uniqueSports.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                    {filterOptions.sports.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -491,7 +411,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
-                    {uniquePositions.map(p => <SelectItem key={p} value={p}>{translatePosition(p, lang)}</SelectItem>)}
+                    {filterOptions.positions.map(p => <SelectItem key={p} value={p}>{translatePosition(p, lang)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -501,7 +421,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
-                    {uniquePlayerNationalities.map(n => <SelectItem key={n} value={n}>{getDisplayNationality(n, lang)}</SelectItem>)}
+                    {filterOptions.nationalities.map(n => <SelectItem key={n} value={n}>{getDisplayNationality(n, lang)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -567,7 +487,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
-                    {uniqueSportSpecs.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                    {filterOptions.sportSpecs.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -577,7 +497,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
-                    {uniqueOrganizations.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    {filterOptions.organizations.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -587,7 +507,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
-                    {uniqueActivityCountries.map(c => <SelectItem key={c} value={c}>{getDisplayNationality(c, lang)}</SelectItem>)}
+                    {filterOptions.activityCountries.map(c => <SelectItem key={c} value={c}>{getDisplayNationality(c, lang)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -597,7 +517,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
                   <SelectTrigger className="rounded-lg h-10 bg-white border-gray-200 font-body text-sm text-gray-900"><SelectValue placeholder={tr.allOpt} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{tr.allOpt}</SelectItem>
-                    {uniqueLanguages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                    {filterOptions.languages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -617,7 +537,7 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
 
       {/* Results count */}
       <p className="text-xs text-gray-500 font-body">
-        {filtered.length} {tr.results}
+        {items.length} {tr.results}
       </p>
 
       {/* Cards grid */}
@@ -627,69 +547,79 @@ const CommunitySection = ({ onNavigateToChat }: Props) => {
             <div key={i} className="h-[107px] rounded-md bg-gray-100 animate-pulse" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : items.length === 0 ? (
         <p className="text-center text-gray-500 py-12 font-body">{tr.none}</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {filtered.map(item => {
-            const initials = `${item.first_name?.[0] ?? ""}${item.last_name?.[0] ?? ""}`.toUpperCase();
-            const subtitle = item.role === "player"
-              ? [translatePosition(item.position, lang), item.current_team].filter(Boolean).join(" · ")
-              : [item.title, item.organization].filter(Boolean).join(" · ");
-            const clubLogo = item.role === "player" ? getLogoForTeam(item.current_team, item.sport) : null;
-            return (
-              <div
-                key={`${item.role}-${item.user_id}`}
-                onClick={() => {
-                  setSelected({ id: item.user_id, role: item.role });
-                  supabase.auth.getUser().then(({ data }) => {
-                    if (data.user && data.user.id !== item.user_id) {
-                      trackAnalyticsEvent(item.user_id, "profile_view", data.user.id);
-                    }
-                  }).catch((err) => console.error("Failed to track profile view:", err));
-                }}
-                className="bg-white border border-gray-200 rounded-md overflow-hidden cursor-pointer hover:border-orange-300 hover:shadow-sm transition-all flex items-stretch h-[107px]"
-              >
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {items.map(item => {
+              const initials = `${item.first_name?.[0] ?? ""}${item.last_name?.[0] ?? ""}`.toUpperCase();
+              const subtitle = item.role === "player"
+                ? [translatePosition(item.position, lang), item.current_team].filter(Boolean).join(" · ")
+                : [item.title, item.organization].filter(Boolean).join(" · ");
+              const clubLogo = item.role === "player" ? getLogoForTeam(item.current_team, item.sport) : null;
+              return (
                 <div
-                  className={`relative w-24 shrink-0 ${ROLE_COLOR[item.role]} flex items-center justify-center overflow-hidden`}
-                  style={{ clipPath: "polygon(0 0, 100% 0, 72% 100%, 0% 100%)" }}
+                  key={`${item.role}-${item.user_id}`}
+                  onClick={() => {
+                    setSelected({ id: item.user_id, role: item.role });
+                    supabase.auth.getUser().then(({ data }) => {
+                      if (data.user && data.user.id !== item.user_id) {
+                        trackAnalyticsEvent(item.user_id, "profile_view", data.user.id);
+                      }
+                    }).catch((err) => console.error("Failed to track profile view:", err));
+                  }}
+                  className="bg-white border border-gray-200 rounded-md overflow-hidden cursor-pointer hover:border-orange-300 hover:shadow-sm transition-all flex items-stretch h-[107px]"
                 >
-                  {item.photo_url ? (
-                    <img src={item.photo_url} alt={`${item.first_name} ${item.last_name}`} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="font-display text-2xl text-white/90">{initials || <User className="h-8 w-8" />}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 flex items-center justify-between gap-2 px-4">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-body text-gray-500 uppercase tracking-wide truncate">
-                      {item.first_name?.toUpperCase()}
-                    </p>
-                    <p className="font-display text-sm sm:text-base text-gray-900 uppercase truncate leading-tight">
-                      {item.last_name?.toUpperCase()}
-                    </p>
-                    {subtitle && (
-                      <p className="text-[11px] text-gray-400 font-body truncate mt-0.5">{subtitle}</p>
+                  <div
+                    className={`relative w-24 shrink-0 ${ROLE_COLOR[item.role]} flex items-center justify-center overflow-hidden`}
+                    style={{ clipPath: "polygon(0 0, 100% 0, 72% 100%, 0% 100%)" }}
+                  >
+                    {item.photo_url ? (
+                      <img src={item.photo_url} alt={`${item.first_name} ${item.last_name}`} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="font-display text-2xl text-white/90">{initials || <User className="h-8 w-8" />}</span>
                     )}
-                    {item.role === "player" && (
-                      <span className="inline-block mt-0.5 text-[9px] font-body px-1.5 py-0.5 rounded bg-gradient-to-r from-indigo-600 to-purple-600 text-white whitespace-nowrap">
-                        {tr.roleLabel.player}
+                  </div>
+                  <div className="flex-1 min-w-0 flex items-center justify-between gap-2 px-4">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-body text-gray-500 uppercase tracking-wide truncate">
+                        {item.first_name?.toUpperCase()}
+                      </p>
+                      <p className="font-display text-sm sm:text-base text-gray-900 uppercase truncate leading-tight">
+                        {item.last_name?.toUpperCase()}
+                      </p>
+                      {subtitle && (
+                        <p className="text-[11px] text-gray-400 font-body truncate mt-0.5">{subtitle}</p>
+                      )}
+                      {item.role === "player" && (
+                        <span className="inline-block mt-0.5 text-[9px] font-body px-1.5 py-0.5 rounded bg-gradient-to-r from-indigo-600 to-purple-600 text-white whitespace-nowrap">
+                          {tr.roleLabel.player}
+                        </span>
+                      )}
+                    </div>
+                    {clubLogo && (
+                      <img src={clubLogo} alt={item.current_team || ""} className="shrink-0 w-11 h-11 object-contain" />
+                    )}
+                    {item.role !== "player" && (
+                      <span className={`shrink-0 text-[9px] font-body px-1.5 py-0.5 rounded border whitespace-nowrap ${ROLE_BADGE[item.role]}`}>
+                        {tr.roleLabel[item.role]}
                       </span>
                     )}
                   </div>
-                  {clubLogo && (
-                    <img src={clubLogo} alt={item.current_team || ""} className="shrink-0 w-11 h-11 object-contain" />
-                  )}
-                  {item.role !== "player" && (
-                    <span className={`shrink-0 text-[9px] font-body px-1.5 py-0.5 rounded border whitespace-nowrap ${ROLE_BADGE[item.role]}`}>
-                      {tr.roleLabel[item.role]}
-                    </span>
-                  )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          {/* Infinite scroll sentinel + loading indicator */}
+          <div ref={sentinelRef} className="h-1" />
+          {loadingMore && (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+            </div>
+          )}
+        </>
       )}
 
       {/* Decorative geometric shapes below the results */}

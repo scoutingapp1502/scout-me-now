@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Search, User, Link, Loader2, MessageCircle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ interface FollowingUser {
 interface StoryShareSheetProps {
   open: boolean;
   onClose: () => void;
+  storyId?: string;
   storyOwnerId?: string;
   storyOwnerName?: string;
   storyMediaUrl?: string;
@@ -54,7 +56,7 @@ const EXTERNAL_ACTIONS = [
   },
 ];
 
-export default function StoryShareSheet({ open, onClose, storyOwnerId, storyOwnerName, storyMediaUrl, currentUserId }: StoryShareSheetProps) {
+export default function StoryShareSheet({ open, onClose, storyId, storyOwnerId, storyOwnerName, storyMediaUrl, currentUserId }: StoryShareSheetProps) {
   const { toast } = useToast();
   const { lang } = useLanguage();
 
@@ -109,7 +111,7 @@ export default function StoryShareSheet({ open, onClose, storyOwnerId, storyOwne
 
   const handleSendTo = async (user: FollowingUser) => {
     if (sent.has(user.userId)) return;
-    if (!storySharesAllowed || !storyOwnerId) {
+    if (!storySharesAllowed || !storyOwnerId || !storyId) {
       toast({ title: lang === "ro" ? "Această persoană nu permite distribuirea story-urilor sale." : "This person doesn't allow their stories to be shared.", variant: "destructive" });
       return;
     }
@@ -119,6 +121,7 @@ export default function StoryShareSheet({ open, onClose, storyOwnerId, storyOwne
         ? `📸 ${lang === "ro" ? "Ți-am trimis un story de la" : "Sent you a story from"} ${storyOwnerName}`
         : `📸 ${lang === "ro" ? "Ți-am trimis un story" : "Sent you a story"}`;
       const { error } = await (supabase as any).rpc("share_story_to_conversation", {
+        _story_id: storyId,
         _story_owner_id: storyOwnerId,
         _recipient_id: user.userId,
         _content: text,
@@ -158,13 +161,21 @@ export default function StoryShareSheet({ open, onClose, storyOwnerId, storyOwne
 
   if (!open) return null;
 
-  return (
+  // Rendered via a portal straight to <body> — StoryViewer nests this inside
+  // its own tree, and depending on where that tree sits (e.g. inside
+  // PersonalProfile's layout), an ancestor can create its own stacking
+  // context that traps this sheet's z-index below Radix's Dialog portal
+  // (also attached to <body>, but as a stacking-context sibling instead of
+  // a descendant), making the whole sheet visible but unclickable/behind
+  // the story. Portaling to <body> directly guarantees it's a true sibling
+  // of Radix's portal, so z-index actually applies.
+  return createPortal(
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-[60] bg-black/60" onClick={(e) => { e.stopPropagation(); onClose(); }} />
+      <div className="fixed inset-0 z-[100] bg-black/60" onClick={(e) => { e.stopPropagation(); onClose(); }} />
 
       {/* Sheet */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[61] w-full max-w-sm bg-background rounded-t-2xl shadow-2xl flex flex-col max-h-[70vh]">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[101] w-full max-w-sm bg-background rounded-t-2xl shadow-2xl flex flex-col max-h-[70vh]">
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-border" />
@@ -249,6 +260,7 @@ export default function StoryShareSheet({ open, onClose, storyOwnerId, storyOwne
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

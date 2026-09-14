@@ -1,0 +1,709 @@
+<title>SportRise Launch Runbook</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface-sunken: #f0eee8;
+    --border: #ddd8cd;
+    --border-strong: #c7c0b0;
+    --ink: #24231f;
+    --ink-soft: #5a5648;
+    --ink-faint: #8a8574;
+    --accent: #b4562c;
+    --accent-ink: #ffffff;
+    --accent-wash: #fbe9de;
+    --ok: #3f7a53;
+    --ok-wash: #e5f2e8;
+    --warn: #a9781f;
+    --warn-wash: #faf0da;
+    --crit: #a4342a;
+    --crit-wash: #fbe6e3;
+    --code-bg: #1f1d18;
+    --code-ink: #eee7d8;
+    --code-accent: #e8a26a;
+    --focus: #7a4a2a;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #18160f;
+      --surface: #211f18;
+      --surface-sunken: #1b1912;
+      --border: #3a3527;
+      --border-strong: #4c4632;
+      --ink: #ece6d6;
+      --ink-soft: #b8b09b;
+      --ink-faint: #837c69;
+      --accent: #e08a54;
+      --accent-ink: #1c1206;
+      --accent-wash: #3a2519;
+      --ok: #7cbd8f;
+      --ok-wash: #1c2d20;
+      --warn: #dcb35c;
+      --warn-wash: #332a15;
+      --crit: #e2776b;
+      --crit-wash: #3a1e1b;
+      --code-bg: #0f0e0a;
+      --code-ink: #ece6d6;
+      --code-accent: #e8a26a;
+      --focus: #e08a54;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #18160f;
+    --surface: #211f18;
+    --surface-sunken: #1b1912;
+    --border: #3a3527;
+    --border-strong: #4c4632;
+    --ink: #ece6d6;
+    --ink-soft: #b8b09b;
+    --ink-faint: #837c69;
+    --accent: #e08a54;
+    --accent-ink: #1c1206;
+    --accent-wash: #3a2519;
+    --ok: #7cbd8f;
+    --ok-wash: #1c2d20;
+    --warn: #dcb35c;
+    --warn-wash: #332a15;
+    --crit: #e2776b;
+    --crit-wash: #3a1e1b;
+    --code-bg: #0f0e0a;
+    --code-ink: #ece6d6;
+    --code-accent: #e8a26a;
+    --focus: #e08a54;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 56px 28px 120px;
+  }
+
+  header.masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 20px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .masthead-title h1 {
+    font-family: "Fraunces", "Source Serif 4", serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: clamp(2rem, 4vw, 2.7rem);
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .masthead-title .kicker {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+
+  .masthead-meta {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    text-align: right;
+    line-height: 1.7;
+    white-space: nowrap;
+  }
+
+  .masthead-meta strong { color: var(--ink-soft); font-weight: 600; }
+
+  .lede {
+    font-size: 1.08rem;
+    color: var(--ink-soft);
+    max-width: 65ch;
+    margin: 22px 0 40px;
+  }
+
+  nav.toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 22px;
+    margin-bottom: 48px;
+  }
+
+  nav.toc .toc-label {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    margin: 0 0 10px;
+  }
+
+  nav.toc ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 6px 24px;
+    counter-reset: toc;
+  }
+
+  nav.toc li { counter-increment: toc; }
+
+  nav.toc a {
+    display: flex;
+    gap: 10px;
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 0.92rem;
+    padding: 3px 0;
+    border-bottom: 1px dotted transparent;
+  }
+
+  nav.toc a:hover, nav.toc a:focus-visible { border-bottom-color: var(--accent); color: var(--accent); }
+
+  nav.toc a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    color: var(--accent);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  section.block { margin-bottom: 56px; scroll-margin-top: 20px; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-bottom: 1px solid var(--border-strong);
+    padding-bottom: 10px;
+    margin-bottom: 22px;
+  }
+
+  .section-num {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .section-head h2 {
+    font-family: "Fraunces", serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin: 0;
+    letter-spacing: -0.005em;
+  }
+
+  .section-sub {
+    color: var(--ink-faint);
+    font-size: 0.88rem;
+    margin-left: auto;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    white-space: nowrap;
+  }
+
+  p { max-width: 68ch; }
+  section.block > p:first-of-type { margin-top: 0; }
+
+  .step-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: step;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step-list > li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+    padding: 18px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .step-list > li:first-child { border-top: none; padding-top: 4px; }
+
+  .step-list > li::before {
+    content: counter(step);
+    font-family: "Fraunces", serif;
+    font-weight: 600;
+    font-size: 1.3rem;
+    color: var(--accent);
+    line-height: 1.5;
+  }
+
+  .step-body h3 {
+    font-family: "Source Serif 4", serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+
+  .step-body p { margin: 0 0 10px; color: var(--ink-soft); font-size: 0.96rem; }
+  .step-body p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1em 0.4em;
+    font-size: 0.87em;
+    color: var(--focus);
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.83rem;
+    line-height: 1.65;
+    margin: 10px 0 0;
+  }
+
+  pre code { background: none; border: none; padding: 0; color: inherit; }
+  .comment { color: #8f8874; }
+  .tok-key { color: var(--code-accent); }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-wash);
+    padding: 12px 16px;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.92rem;
+    margin-top: 10px;
+    color: var(--ink);
+  }
+  .callout strong { color: var(--accent); }
+
+  .env-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .env-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 14px 16px;
+  }
+
+  .env-card .env-name {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--focus);
+    display: block;
+    margin-bottom: 4px;
+    word-break: break-all;
+  }
+
+  .env-card .env-desc { font-size: 0.85rem; color: var(--ink-faint); margin: 0; }
+
+  .branch-diagram {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 16px;
+  }
+
+  .branch-col {
+    flex: 1;
+    padding: 16px 18px;
+  }
+
+  .branch-col + .branch-col { border-left: 1px solid var(--border); }
+
+  .branch-col.active { background: var(--ok-wash); }
+  .branch-col.archive { background: var(--surface-sunken); }
+
+  .branch-tag {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  .branch-col.active .branch-tag { background: var(--ok); color: #fff; }
+  .branch-col.archive .branch-tag { background: var(--ink-faint); color: var(--surface); }
+
+  .branch-col h4 { margin: 0 0 6px; font-family: "Fraunces", serif; font-size: 1.05rem; }
+  .branch-col p { margin: 0; font-size: 0.87rem; color: var(--ink-soft); }
+
+  .check-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.92rem; }
+  .check-table th {
+    text-align: left;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    padding: 0 10px 10px;
+    border-bottom: 1px solid var(--border-strong);
+  }
+  .check-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .check-table tr:last-child td { border-bottom: none; }
+  .check-table td:first-child { width: 30px; }
+
+  .status-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block; margin-top: 5px;
+  }
+  .status-dot.done { background: var(--ok); }
+  .status-dot.todo { background: var(--warn); }
+
+  .risk-card {
+    display: grid;
+    grid-template-columns: 108px 1fr;
+    gap: 18px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 0 5px 5px 0;
+    margin-bottom: 14px;
+    background: var(--surface);
+  }
+  .risk-card.fixed { border-left-color: var(--ok); }
+  .risk-card.watch { border-left-color: var(--warn); }
+
+  .risk-sev {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    height: fit-content;
+    padding: 4px 0;
+  }
+  .risk-card.fixed .risk-sev { color: var(--ok); }
+  .risk-card.watch .risk-sev { color: var(--warn); }
+
+  .risk-body h4 { margin: 0 0 6px; font-size: 1rem; font-family: "Source Serif 4", serif; font-weight: 600; }
+  .risk-body p { margin: 0; font-size: 0.9rem; color: var(--ink-soft); }
+  .risk-body .risk-file { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.78rem; color: var(--ink-faint); display: block; margin-top: 6px; }
+
+  .pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .pill {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    color: var(--ink-soft);
+  }
+
+  footer.colophon {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  a { color: var(--focus); }
+
+  ::selection { background: var(--accent-wash); color: var(--ink); }
+
+  @media (max-width: 640px) {
+    .masthead { flex-direction: column; align-items: flex-start; }
+    .masthead-meta { text-align: left; }
+    .branch-diagram { flex-direction: column; }
+    .branch-col + .branch-col { border-left: none; border-top: 1px solid var(--border); }
+    .step-list > li { grid-template-columns: 28px 1fr; }
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="masthead-title">
+      <p class="kicker">Deploy &amp; hardening runbook</p>
+      <h1>SportRise Launch Runbook</h1>
+    </div>
+    <div class="masthead-meta">
+      repo <strong>scout-me-now</strong> · branch <strong>master</strong><br>
+      stack Vite + React + Supabase<br>
+      prepared 11 Sept 2026
+    </div>
+  </header>
+
+  <p class="lede">Two things this document settles: how to get the current <code>master</code> branch live on the internet without the <code>main</code>/<code>master</code> split causing a wrong deploy, and what to lock down first so a database breach — or just a curious visitor — can't do more damage than it should.</p>
+
+  <nav class="toc">
+    <p class="toc-label">Contents</p>
+    <ol>
+      <li><a href="#branches">The main / master split</a></li>
+      <li><a href="#deploy">Hosting, step by step</a></li>
+      <li><a href="#envvars">Environment variables</a></li>
+      <li><a href="#dbharden">Hardening the database</a></li>
+      <li><a href="#findings">Audit findings</a></li>
+      <li><a href="#ongoing">Staying safe going forward</a></li>
+    </ol>
+  </nav>
+
+  <section class="block" id="branches">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2>The main / master split</h2>
+      <span class="section-sub">git rev-list: 1287 vs 28 unique commits</span>
+    </div>
+    <p><code>origin/main</code> and <code>origin/master</code> have diverged almost completely — <code>main</code>'s recent history includes a commit literally titled <em>"Elimat autentificarea"</em> ("removed authentication"), which places it as an old, pre-auth line of work. <code>master</code> is where every session of work in this project has actually landed, including the pagination, story-sharing, and maintenance-mode features built most recently.</p>
+    <p>Most hosts (Vercel, Netlify, Cloudflare Pages) deploy from <code>main</code> by default. Left alone, that default would quietly serve the old, authentication-less <code>main</code> branch instead of the real app. The fix isn't to merge them — it's to tell the host explicitly which branch is truth.</p>
+
+    <div class="branch-diagram">
+      <div class="branch-col active">
+        <span class="branch-tag">Deploy from this one</span>
+        <h4>master</h4>
+        <p>Live, current. Every feature discussed in this project lives here. Point hosting at this branch explicitly in step 2 below.</p>
+      </div>
+      <div class="branch-col archive">
+        <span class="branch-tag">Leave untouched</span>
+        <h4>main</h4>
+        <p>Old/abandoned line, pre-dates real authentication. Don't merge, don't delete yet — just make sure nothing deploys from it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="deploy">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2>Hosting, step by step</h2>
+      <span class="section-sub">Vercel or Netlify — both work the same way here</span>
+    </div>
+    <p>This is a static Vite build — no server runtime to provision. Any static host that builds from GitHub will do; Vercel and Netlify are the two with the least setup.</p>
+
+    <ol class="step-list">
+      <li>
+        <div class="step-body">
+          <h3>Push the current work to <code>master</code> on GitHub</h3>
+          <p>Commit what's outstanding and push to <code>origin master</code> the normal way. Nothing special needed here — this is the branch the rest of the steps point at.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Create the project on the host, from GitHub</h3>
+          <p>On Vercel: <strong>Add New → Project → Import Git Repository</strong>, pick <code>scoutingapp1502/scout-me-now</code>. On Netlify: <strong>Add new site → Import an existing project → Deploy with GitHub</strong>, same repo. Either will ask GitHub for permission the first time — that's a GitHub App install, not the token from your git remote.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Set the production branch to <code>master</code></h3>
+          <p>This is the step that fixes the main/master problem. On Vercel: <strong>Project Settings → Git → Production Branch</strong>, change it from <code>main</code> to <code>master</code>. On Netlify: <strong>Site settings → Build &amp; deploy → Branches → Production branch</strong>, same change.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Confirm the build command and output folder</h3>
+          <p>Both hosts auto-detect Vite, but verify: build command <code>npm run build</code>, publish/output directory <code>dist</code>. This matches <code>package.json</code> as-is — nothing to change there.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Add the environment variables</h3>
+          <p>Before the first deploy, add the two <code>VITE_</code> variables listed in the next section, in the host's dashboard — not in a committed file. See §3 for exactly which ones and why they're safe to expose.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Deploy, then verify against <code>master</code></h3>
+          <p>Trigger the first deploy. Once it's live, check the deployed commit hash shown in the host's dashboard against <code>git log -1 origin/master</code> locally — confirms it built from the intended branch, not <code>main</code>.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Point the domain, if you have one</h3>
+          <p>Add the custom domain under the host's Domains settings; both Vercel and Netlify issue and renew the TLS certificate automatically once DNS resolves to them. Until then the host's own <code>*.vercel.app</code> / <code>*.netlify.app</code> URL works and is already HTTPS.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="block" id="envvars">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2>Environment variables</h2>
+      <span class="section-sub">set in the host dashboard, not in git</span>
+    </div>
+    <p>Both of these already live in your local <code>.env</code> (gitignored). Copy the same values into the host's environment variable settings — they're meant to ship inside the built JavaScript bundle, so there's nothing to hide about them once deployed.</p>
+    <div class="env-grid">
+      <div class="env-card">
+        <span class="env-name">VITE_SUPABASE_URL</span>
+        <p class="env-desc">Your project's API endpoint. Public by nature — it's the address the browser talks to.</p>
+      </div>
+      <div class="env-card">
+        <span class="env-name">VITE_SUPABASE_PUBLISHABLE_KEY</span>
+        <p class="env-desc">The <em>anon</em> key. Designed to be public — every Supabase frontend ships it. Row Level Security, not this key's secrecy, is what actually protects data (§4).</p>
+      </div>
+    </div>
+    <div class="callout">
+      <strong>Never add this one:</strong> the <code>service_role</code> key. It bypasses every RLS policy in the database. It belongs only in Supabase Edge Function secrets (already the case in this repo's <code>supabase/functions/</code>) — never in a <code>VITE_</code> variable, which the browser can read.
+    </div>
+  </section>
+
+  <section class="block" id="dbharden">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2>Hardening the database</h2>
+      <span class="section-sub">what actually limits blast radius on a breach</span>
+    </div>
+    <p>"Encrypting the database" isn't the lever most breaches turn on for a Supabase app — Supabase already encrypts data at rest and in transit. The real perimeter is <strong>Row Level Security (RLS)</strong>: even if someone obtains the public anon key (trivial — it's in every page load) or finds a way to query the database directly, RLS decides row-by-row what they're allowed to read or write. This is the checklist for that perimeter, ordered by how much it moves the needle.</p>
+
+    <table class="check-table">
+      <thead><tr><th></th><th>Control</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="status-dot done"></span></td>
+          <td><strong>RLS enabled on every table</strong> — confirmed across the migration set; nothing found open by default.</td>
+          <td>Done</td>
+        </tr>
+        <tr>
+          <td><span class="status-dot done"></span></td>
+          <td><strong>Admin role can't be self-granted</strong> — <code>user_roles</code> INSERT policy blocks <code>role = 'admin'</code>, and no UPDATE/DELETE policy exists on that table at all.</td>
+          <td>Done</td>
+        </tr>
+        <tr>
+          <td><span class="status-dot done"></span></td>
+          <td><strong>Edge Functions verify the caller's JWT</strong> before using the service-role key, rather than trusting a client-supplied user ID.</td>
+          <td>Fixed this session</td>
+        </tr>
+        <tr>
+          <td><span class="status-dot todo"></span></td>
+          <td><strong>Rotate the GitHub personal access token</strong> currently embedded in <code>.git/config</code>'s remote URL — revoke it in GitHub → Settings → Developer settings, generate a new one, and re-set the remote without embedding it in the URL (use a credential manager or SSH instead).</td>
+          <td>Your call — flagged, not yet actioned</td>
+        </tr>
+        <tr>
+          <td><span class="status-dot todo"></span></td>
+          <td><strong>Turn on 2FA on the Supabase account</strong> that owns this project — Account → Security. This is what actually stops "someone steals my admin password" from becoming "someone owns the database."</td>
+          <td>To do</td>
+        </tr>
+        <tr>
+          <td><span class="status-dot todo"></span></td>
+          <td><strong>Never store a raw <code>.sql</code> export unencrypted</strong> — if you ever pull a manual backup, put it straight into a password-protected archive or delete it after use.</td>
+          <td>Process habit</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top: 28px;">Where an admin role check matters, this is the pattern already used consistently in the schema — every admin-gated table checks the caller's role server-side, not just in the UI:</p>
+    <pre><code><span class="comment">-- Standard shape used throughout supabase/migrations/</span>
+<span class="tok-key">CREATE POLICY</span> "Admins can update X" <span class="tok-key">ON</span> public.some_table
+  <span class="tok-key">FOR UPDATE</span> <span class="tok-key">TO</span> authenticated
+  <span class="tok-key">USING</span> (public.has_role(auth.uid(), <span class="tok-key">'admin'</span>::app_role))
+  <span class="tok-key">WITH CHECK</span> (public.has_role(auth.uid(), <span class="tok-key">'admin'</span>::app_role));</code></pre>
+  </section>
+
+  <section class="block" id="findings">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <h2>Audit findings, this session</h2>
+      <span class="section-sub">full pass across migrations, storage policies, edge functions</span>
+    </div>
+    <p>Two exploitable holes were found and fixed directly in code during this session. Two more are worth a look when there's time, but neither is an open door today.</p>
+
+    <div class="risk-card fixed">
+      <div class="risk-sev">Fixed · was critical</div>
+      <div class="risk-body">
+        <h4>Scout document upload trusted a client-supplied user ID</h4>
+        <p>Anyone who knew another user's UUID could overwrite that user's verification document and reset their approval status to pending — no login required. Fixed by deriving the user strictly from their own auth token instead of the request body.</p>
+        <span class="risk-file">supabase/functions/submit-scout-document/index.ts</span>
+      </div>
+    </div>
+
+    <div class="risk-card fixed">
+      <div class="risk-sev">Fixed · was high</div>
+      <div class="risk-body">
+        <h4>Verification-decision emails had no caller check</h4>
+        <p>The same missing-identity pattern let anyone trigger an "approved" or "rejected" notification email to an arbitrary user by UUID. Fixed by requiring the caller to hold the admin role before the function will act.</p>
+        <span class="risk-file">supabase/functions/notify-scout-verification/index.ts</span>
+      </div>
+    </div>
+
+    <div class="risk-card watch">
+      <div class="risk-sev">Worth a look · medium</div>
+      <div class="risk-body">
+        <h4>Chat attachment links don't expire on their own</h4>
+        <p>Message and group attachment buckets are public storage with no per-viewer signature — anyone holding a specific attachment URL keeps access even after leaving the conversation. Paths are UUID-based, so not guessable, but not revocable either.</p>
+        <span class="risk-file">supabase/migrations/20260826110000_dm_message_attachments.sql</span>
+      </div>
+    </div>
+
+    <div class="risk-card watch">
+      <div class="risk-sev">Worth a look · low</div>
+      <div class="risk-body">
+        <h4>Invite-credit table has no ownership check on insert</h4>
+        <p>A user can name themselves as inviter for any existing profile, fabricating invite credit that unlocks gated athletic tests. A business-logic integrity gap, not a data leak.</p>
+        <span class="risk-file">supabase/migrations/20260513120000_invite_system.sql</span>
+      </div>
+    </div>
+
+    <div class="pill-row">
+      <span class="pill">also checked: SECURITY DEFINER search_path</span>
+      <span class="pill">storage bucket policies</span>
+      <span class="pill">admin panel server-side gating</span>
+      <span class="pill">client-trusted role props</span>
+    </div>
+  </section>
+
+  <section class="block" id="ongoing">
+    <div class="section-head">
+      <span class="section-num">06</span>
+      <h2>Staying safe going forward</h2>
+      <span class="section-sub">habits, not one-time fixes</span>
+    </div>
+    <p>The pattern behind both fixed findings is the same one to watch for in any new feature: <strong>an ID arriving from the client is a claim, not a fact.</strong> Any new Edge Function or RPC that acts on a <code>userId</code> should pull that ID from the caller's own JWT, never from the request body — the same discipline already applied everywhere else in this schema via <code>auth.uid()</code> inside RLS policies.</p>
+    <p>Before adding a table that any signed-in user can write to, ask what a signed-in-but-unrelated user could do with it if the UI simply weren't there — RLS is the only thing actually enforcing the answer.</p>
+  </section>
+
+  <footer class="colophon">
+    <span>SportRise · internal runbook</span>
+    <span>next review: after the first production deploy</span>
+  </footer>
+
+</div>

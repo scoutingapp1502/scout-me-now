@@ -19,7 +19,7 @@ interface NewPostComposerProps {
   currentUserId: string;
   myPhoto?: string | null;
   myRole?: "player" | "cauta_jucator" | null;
-  onPosted: () => void;
+  onPosted: (post?: { id: string; content: string; image_url: string | null; video_url: string | null; post_type: string; created_at: string }) => void;
 }
 
 const NewPostComposer = ({ currentUserId, myPhoto, myRole, onPosted }: NewPostComposerProps) => {
@@ -110,7 +110,7 @@ const NewPostComposer = ({ currentUserId, myPhoto, myRole, onPosted }: NewPostCo
       const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
       videoUrl = urlData.publicUrl;
     }
-    const { error } = myRole === "cauta_jucator"
+    const { data, error } = myRole === "cauta_jucator"
       ? await supabase
           .from("scout_posts")
           .insert({ user_id: currentUserId, content: newContent.trim(), image_url: imageUrl } as any)
@@ -128,7 +128,14 @@ const NewPostComposer = ({ currentUserId, myPhoto, myRole, onPosted }: NewPostCo
       setNewType("general");
       removeImage();
       removeVideo();
-      onPosted();
+      onPosted(data ? {
+        id: (data as any).id,
+        content: (data as any).content,
+        image_url: (data as any).image_url,
+        video_url: (data as any).video_url ?? null,
+        post_type: (data as any).post_type ?? (myRole === "cauta_jucator" ? "scout" : newType),
+        created_at: (data as any).created_at,
+      } : undefined);
     }
     setPosting(false);
   };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight, User, Heart, Send, Forward } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -21,11 +21,14 @@ interface StoryViewerProps {
   displayName?: string;
   avatarUrl?: string | null;
   currentUserId?: string;
+  // Opens directly at this specific story instead of the owner's oldest
+  // active one — used when jumping in from a shared-story chat bubble.
+  initialStoryId?: string;
 }
 
 const STORY_DURATION = 5000;
 
-export default function StoryViewer({ userId, open, onClose, displayName, avatarUrl, currentUserId }: StoryViewerProps) {
+export default function StoryViewer({ userId, open, onClose, displayName, avatarUrl, currentUserId, initialStoryId }: StoryViewerProps) {
   const { toast } = useToast();
   const { lang } = useLanguage();
 
@@ -38,6 +41,10 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
   const [paused, setPaused] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [viewerId, setViewerId] = useState<string>("");
+  // Distinguishes "owner has no active stories" from "blocked by their
+  // account_visibility privacy setting" — both look like zero rows through
+  // the stories RLS policy, so a separate check is needed for correct copy.
+  const [viewBlocked, setViewBlocked] = useState(false);
 
   // Resolve currentUserId (prop or session)
   useEffect(() => {
@@ -47,20 +54,27 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
   }, [currentUserId]);
 
   useEffect(() => {
-    if (!open) { setIndex(0); setProgress(0); setMessage(""); setLiked(false); setShowShare(false); setPaused(false); return; }
+    if (!open) { setIndex(0); setProgress(0); setMessage(""); setLiked(false); setShowShare(false); setPaused(false); setViewBlocked(false); return; }
     const fetch = async () => {
       setLoading(true);
+      setViewBlocked(false);
+      const { data: allowed } = await (supabase as any).rpc("can_view_story", { _story_owner_id: userId });
+      if (!allowed) { setViewBlocked(true); setStories([]); setLoading(false); return; }
       const { data } = await (supabase as any)
         .from("stories")
         .select("id, media_url, caption, overlay_text, created_at")
         .eq("user_id", userId)
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: true });
-      setStories(data || []);
+      const list: Story[] = data || [];
+      setStories(list);
+      // Jump straight to the shared story instead of the owner's oldest one.
+      const initialIdx = initialStoryId ? list.findIndex(s => s.id === initialStoryId) : -1;
+      setIndex(initialIdx >= 0 ? initialIdx : 0);
       setLoading(false);
     };
     fetch();
-  }, [open, userId]);
+  }, [open, userId, initialStoryId]);
 
   // Load/track whether the viewer already liked the current story.
   useEffect(() => {
@@ -77,6 +91,24 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
         (err: unknown) => console.error("Failed to check story like:", err)
       );
   }, [stories, index, viewerId]);
+
+  // Like count + who-liked is only meaningful (and only ever returned by
+  // get_story_like_details) when the viewer is the story's own owner —
+  // other viewers of the same story never see this, server-enforced.
+  const [likeDetails, setLikeDetails] = useState<{ liker_user_id: string; liker_name: string; liker_photo: string | null }[]>([]);
+  const [showLikeDetails, setShowLikeDetails] = useState(false);
+  const isOwnStory = !!viewerId && viewerId === userId;
+
+  useEffect(() => {
+    const current = stories[index];
+    if (!current || !isOwnStory) { setLikeDetails([]); return; }
+    (supabase as any)
+      .rpc("get_story_like_details", { _story_id: current.id })
+      .then(
+        ({ data }: any) => setLikeDetails(data || []),
+        (err: unknown) => console.error("Failed to load story like details:", err)
+      );
+  }, [stories, index, isOwnStory]);
 
   const toggleLike = async () => {
     const current = stories[index];
@@ -116,12 +148,14 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
   const [sendingReply, setSendingReply] = useState(false);
 
   const handleSend = async () => {
-    if (!message.trim() || !viewerId || sendingReply) return;
+    const storyId = stories[index]?.id;
+    if (!message.trim() || !viewerId || sendingReply || !storyId) return;
     const text = message.trim();
     setSendingReply(true);
     try {
       const tag = lang === "ro" ? "Răspuns la story" : "Reply to story";
       const { error } = await (supabase as any).rpc("reply_to_story", {
+        _story_id: storyId,
         _story_owner_id: userId,
         _content: `📖 ${tag}:\n${text}`,
       });
@@ -152,11 +186,27 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      {/* modal={false} while the share sheet is open — Radix's Dialog focus
+          trap otherwise swallows every pointer event outside its own
+          portaled content, including clicks on StoryShareSheet's plain
+          fixed-position div (rendered as a sibling, not a Dialog child), so
+          its buttons would be visible but completely unclickable. */}
+      <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }} modal={!showShare}>
         <DialogContent className="max-w-sm w-full p-0 bg-black border-0 overflow-hidden h-[90vh] flex flex-col gap-0" hideClose={true}>
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            </div>
+          ) : viewBlocked ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-white/60 text-sm gap-3 px-6 text-center">
+              <span>
+                {lang === "ro"
+                  ? "Nu poți vedea story-urile acestei persoane din cauza setărilor sale de confidențialitate."
+                  : "You can't view this person's stories due to their privacy settings."}
+              </span>
+              <button onClick={onClose} className="text-white/80 text-xs underline underline-offset-2">
+                {lang === "ro" ? "Închide" : "Close"}
+              </button>
             </div>
           ) : stories.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-white/60 text-sm">
@@ -242,38 +292,57 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
                 </div>
               )}
 
-              {/* Bottom bar */}
-              <div className="flex items-center gap-2 px-3 py-3 shrink-0">
-                <div className="flex-1 flex items-center bg-transparent border border-white/40 rounded-full px-4 py-2 gap-2">
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onFocus={() => setPaused(true)}
-                    onBlur={() => setPaused(false)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    placeholder={lang === "ro" ? "Trimite mesaj..." : "Send message..."}
-                    disabled={sendingReply}
-                    className="flex-1 bg-transparent text-white text-sm placeholder:text-white/50 outline-none border-none font-body disabled:opacity-50"
-                  />
-                  {message.trim() && (
-                    <button onClick={handleSend} disabled={sendingReply} className="text-white/80 hover:text-white shrink-0 disabled:opacity-50">
-                      <Send className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Like */}
-                <button onClick={toggleLike} className="p-2 transition-transform active:scale-125">
-                  <Heart
-                    className="h-6 w-6 transition-colors"
-                    style={{ color: liked ? "#ef4444" : "rgba(255,255,255,0.8)", fill: liked ? "#ef4444" : "none" }}
-                  />
+              {/* Like count — owner-only, never shown to other viewers */}
+              {isOwnStory && likeDetails.length > 0 && (
+                <button
+                  onClick={() => { setShowLikeDetails(true); setPaused(true); }}
+                  className="flex items-center gap-1.5 px-4 py-1 shrink-0 text-white/80 hover:text-white"
+                >
+                  <Heart className="h-3.5 w-3.5 fill-current text-red-500" />
+                  <span className="text-xs font-body">
+                    {likeDetails.length} {lang === "ro" ? (likeDetails.length === 1 ? "apreciere" : "aprecieri") : (likeDetails.length === 1 ? "like" : "likes")}
+                  </span>
                 </button>
+              )}
+
+              {/* Bottom bar — replying to and liking your own story doesn't
+                  make sense (there's no one to message, and self-likes would
+                  just inflate your own count), so owners only get Share. */}
+              <div className="flex items-center gap-2 px-3 py-3 shrink-0">
+                {!isOwnStory && (
+                  <div className="flex-1 flex items-center bg-transparent border border-white/40 rounded-full px-4 py-2 gap-2">
+                    <input
+                      type="text"
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      onFocus={() => setPaused(true)}
+                      onBlur={() => setPaused(false)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                      placeholder={lang === "ro" ? "Trimite mesaj..." : "Send message..."}
+                      disabled={sendingReply}
+                      className="flex-1 bg-transparent text-white text-sm placeholder:text-white/50 outline-none border-none font-body disabled:opacity-50"
+                    />
+                    {message.trim() && (
+                      <button onClick={handleSend} disabled={sendingReply} className="text-white/80 hover:text-white shrink-0 disabled:opacity-50">
+                        <Send className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {!isOwnStory && (
+                  <button onClick={toggleLike} className="p-2 transition-transform active:scale-125">
+                    <Heart
+                      className="h-6 w-6 transition-colors"
+                      style={{ color: liked ? "#ef4444" : "rgba(255,255,255,0.8)", fill: liked ? "#ef4444" : "none" }}
+                    />
+                  </button>
+                )}
 
                 {/* Share */}
-                <button onClick={() => { setShowShare(true); setPaused(true); }} className="p-2">
+                <button onClick={() => { setShowShare(true); setPaused(true); }} className={`p-2 ${isOwnStory ? "flex-1 flex items-center justify-center gap-2" : ""}`}>
                   <Forward className="h-6 w-6 text-white/80" />
+                  {isOwnStory && <span className="text-white/80 text-sm font-body">{lang === "ro" ? "Distribuie" : "Share"}</span>}
                 </button>
               </div>
             </>
@@ -285,11 +354,37 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
       <StoryShareSheet
         open={showShare}
         onClose={() => { setShowShare(false); setPaused(false); }}
+        storyId={current?.id}
         storyOwnerId={userId}
         storyOwnerName={displayName}
         storyMediaUrl={current?.media_url}
         currentUserId={viewerId}
       />
+
+      {/* Who-liked list — owner-only, nested Dialog needs modal=false on the
+          parent (see the story-viewer Dialog above) or its clicks would be
+          swallowed the same way StoryShareSheet's were. */}
+      <Dialog open={showLikeDetails} onOpenChange={(v) => { setShowLikeDetails(v); if (!v) setPaused(false); }}>
+        <DialogContent className="max-w-sm bg-white border-gray-200 text-gray-900 z-[110]">
+          <DialogTitle>{lang === "ro" ? "Aprecieri" : "Likes"}</DialogTitle>
+          {likeDetails.length === 0 ? (
+            <p className="text-sm text-gray-500 py-4 text-center">
+              {lang === "ro" ? "Încă nimeni nu a apreciat acest story." : "No one has liked this story yet."}
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {likeDetails.map((liker) => (
+                <div key={liker.liker_user_id} className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
+                    {liker.liker_photo ? <img src={liker.liker_photo} alt="" className="w-full h-full object-cover" /> : <User className="h-4 w-4 text-gray-400" />}
+                  </div>
+                  <span className="text-sm text-gray-900 font-body">{liker.liker_name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { UserPlus, ArrowLeft, CheckCheck, Handshake, Check, X, Star, Video, Heart } from "lucide-react";
+import { UserPlus, ArrowLeft, CheckCheck, Handshake, Check, X, Star, Video, Heart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PersonalProfile, { getTestLabelByKey } from "./PersonalProfile";
@@ -75,22 +75,114 @@ interface StoryLikeNotification {
 
 type Notification = FollowNotification | CollabNotification | RecommendationNotification | VideoNotification | StoryLikeNotification;
 
+const NOTIF_PAGE_SIZE = 20;
+
+// Turns one denormalized row from the get_notifications_feed RPC back into
+// the discriminated Notification union the rest of this component (and its
+// JSX) already knows how to render.
+function mapNotifRow(row: any, userId: string): Notification | null {
+  switch (row.notif_type) {
+    case "follow":
+      return {
+        id: row.notif_id,
+        type: "follow",
+        follower_id: row.other_user_id,
+        created_at: row.created_at,
+        status: row.status,
+        follower_name: row.other_name,
+        follower_photo: row.other_photo,
+        follower_role: row.other_role,
+        isRead: isNotificationRead(userId, row.notif_id),
+        direction: row.direction,
+      };
+    case "collab_request":
+      return {
+        id: row.notif_id,
+        type: "collab_request",
+        other_user_id: row.other_user_id,
+        created_at: row.created_at,
+        other_name: row.other_name,
+        other_photo: row.other_photo,
+        status: row.status,
+        perspective: row.perspective,
+        initiated_by: row.initiated_by,
+        isRead: row.status !== "pending" || isNotificationRead(userId, row.notif_id),
+      };
+    case "recommendation":
+      return {
+        id: row.notif_id,
+        type: "recommendation",
+        other_user_id: row.other_user_id,
+        other_name: row.other_name,
+        other_photo: row.other_photo,
+        other_role: row.other_role,
+        created_at: row.created_at,
+        status: row.status,
+        perspective: row.perspective,
+        isRead: isNotificationRead(userId, row.notif_id),
+      };
+    case "video":
+      return {
+        id: row.notif_id,
+        type: "video",
+        videoType: row.video_type,
+        player_id: row.other_user_id,
+        player_name: row.other_name,
+        player_photo: row.other_photo,
+        player_sport: row.player_sport,
+        test_key: row.test_key,
+        created_at: row.created_at,
+        isRead: isNotificationRead(userId, row.notif_id),
+      };
+    case "story_like":
+      return {
+        id: row.notif_id,
+        type: "story_like",
+        other_user_id: row.other_user_id,
+        other_name: row.other_name,
+        other_photo: row.other_photo,
+        other_role: row.other_role,
+        created_at: row.created_at,
+        isRead: isNotificationRead(userId, row.notif_id),
+      };
+    default:
+      return null;
+  }
+}
+
 const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigateToChat?: (userId: string) => void; onNavigateToProfile?: () => void }) => {
   const { lang } = useLanguage();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
   const [viewProfileRole, setViewProfileRole] = useState<"player" | "cauta_jucator" | null>(null);
 
+  const fetchNotificationsPage = async (userId: string, role: string, offset: number): Promise<Notification[]> => {
+    const { data, error } = await (supabase as any).rpc("get_notifications_feed", {
+      p_user_id: userId,
+      p_role: role,
+      p_limit: NOTIF_PAGE_SIZE,
+      p_offset: offset,
+    });
+    if (error) { console.error("Failed to load notifications:", error); return []; }
+    return (data || [])
+      .map((row: any) => mapNotifRow(row, userId))
+      .filter((n: Notification | null): n is Notification => n !== null);
+  };
+
   const fetchNotifications = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setCurrentUserId(user.id);
+    setLoading(true);
+    setHasMore(true);
 
-    // Get user role
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("role")
@@ -99,445 +191,30 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
     const userRole = roleData?.role || "player";
     setCurrentUserRole(userRole);
 
-    // Fetch follow notifications
-    const [incomingFollowsRes, outgoingRespondedFollowsRes] = await Promise.all([
-      supabase
-        .from("follows")
-        .select("id, follower_id, created_at, responded_at, status")
-        .eq("following_id", user.id)
-        .in("status", ["pending", "accepted", "rejected"])
-        .order("responded_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("follows")
-        .select("id, following_id, created_at, responded_at, status")
-        .eq("follower_id", user.id)
-        .in("status", ["accepted", "rejected"])
-        .order("responded_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-    ]);
-
-    const follows = incomingFollowsRes.data;
-    const respondedSentFollows = outgoingRespondedFollowsRes.data;
-
-    let followNotifs: FollowNotification[] = [];
-
-    const profileIds = new Set<string>();
-    follows?.forEach(f => profileIds.add(f.follower_id));
-    respondedSentFollows?.forEach(f => profileIds.add(f.following_id));
-
-    if (profileIds.size > 0) {
-      const followerIds = [...profileIds];
-
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id, role")
-        .in("user_id", followerIds);
-
-      const roleMap: Record<string, string> = {};
-      roles?.forEach(r => { roleMap[r.user_id] = r.role; });
-
-      const playerIds = followerIds.filter(id => roleMap[id] === "player");
-      const scoutIds = followerIds.filter(id => roleMap[id] === "cauta_jucator");
-
-      let playerMap: Record<string, { name: string; photo: string | null }> = {};
-      let scoutMap: Record<string, { name: string; photo: string | null }> = {};
-
-      if (playerIds.length > 0) {
-        const { data: players } = await supabase
-          .from("player_profiles")
-          .select("user_id, first_name, last_name, photo_url")
-          .in("user_id", playerIds);
-        players?.forEach(p => {
-          playerMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
-        });
-      }
-
-      if (scoutIds.length > 0) {
-        const { data: scouts } = await supabase
-          .from("scout_profiles")
-          .select("user_id, first_name, last_name, photo_url")
-          .in("user_id", scoutIds);
-        scouts?.forEach(s => {
-          scoutMap[s.user_id] = { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url };
-        });
-      }
-
-      followNotifs = [
-        ...(follows || []).map(f => {
-          const role = (roleMap[f.follower_id] || "player") as "player" | "cauta_jucator";
-          const info = role === "player" ? playerMap[f.follower_id] : scoutMap[f.follower_id];
-          return {
-            id: f.id,
-            type: "follow" as const,
-            follower_id: f.follower_id,
-            created_at: f.responded_at || f.created_at,
-            responded_at: f.responded_at,
-            status: f.status as "pending" | "accepted" | "rejected",
-            follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
-            follower_photo: info?.photo || null,
-            follower_role: role,
-            isRead: isNotificationRead(user.id, f.id),
-            direction: "incoming" as const,
-          };
-        }),
-        ...(respondedSentFollows || []).map(f => {
-          const role = (roleMap[f.following_id] || "player") as "player" | "cauta_jucator";
-          const info = role === "player" ? playerMap[f.following_id] : scoutMap[f.following_id];
-          return {
-            id: `${f.id}-response`,
-            type: "follow" as const,
-            follower_id: f.following_id,
-            created_at: f.responded_at || f.created_at,
-            responded_at: f.responded_at,
-            status: f.status as "accepted" | "rejected",
-            follower_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
-            follower_photo: info?.photo || null,
-            follower_role: role,
-            isRead: isNotificationRead(user.id, `${f.id}-response`),
-            direction: "outgoing" as const,
-          };
-        }),
-      ];
-    }
-
-    // Fetch collaboration requests
-    let collabNotifs: CollabNotification[] = [];
-
-    // Represented Players collaboration requests are available to every cauta_jucator now
-    if (userRole === "cauta_jucator") {
-      const { data: collabRequests } = await supabase
-        .from("agent_collaboration_requests")
-        .select("*")
-        .eq("agent_user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (collabRequests && collabRequests.length > 0) {
-        const pIds = collabRequests.map(r => r.player_user_id);
-        const { data: players } = await supabase
-          .from("player_profiles")
-          .select("user_id, first_name, last_name, photo_url")
-          .in("user_id", pIds);
-
-        const pMap: Record<string, { name: string; photo: string | null }> = {};
-        players?.forEach(p => {
-          pMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
-        });
-
-        collabRequests.forEach(r => {
-          const initiatedBy = (r as any).initiated_by || "player";
-          const playerName = pMap[r.player_user_id]?.name || (lang === "ro" ? "Jucător necunoscut" : "Unknown player");
-          const playerPhoto = pMap[r.player_user_id]?.photo || null;
-
-          if (initiatedBy === "agent") {
-            // Agent sent this - show as confirmation
-            collabNotifs.push({
-              id: `${r.id}-sent`,
-              type: "collab_request",
-              other_user_id: r.player_user_id,
-              created_at: r.created_at,
-              other_name: playerName,
-              other_photo: playerPhoto,
-              status: "sent",
-              perspective: "agent",
-              initiated_by: "agent",
-              isRead: true,
-            });
-            if (r.status === "accepted" || r.status === "rejected") {
-              collabNotifs.push({
-                id: `${r.id}-response`,
-                type: "collab_request",
-                other_user_id: r.player_user_id,
-                created_at: r.updated_at || r.created_at,
-                other_name: playerName,
-                other_photo: playerPhoto,
-                status: r.status,
-                perspective: "agent",
-                initiated_by: "agent",
-                isRead: isNotificationRead(user.id, `${r.id}-response`),
-              });
-            }
-          } else {
-            // Player sent this - agent can accept/reject
-            collabNotifs.push({
-              id: r.id,
-              type: "collab_request",
-              other_user_id: r.player_user_id,
-              created_at: r.created_at,
-              other_name: playerName,
-              other_photo: playerPhoto,
-              status: r.status,
-              perspective: "agent",
-              initiated_by: "player",
-              isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
-            });
-          }
-        });
-      }
-    }
-
-    // For players: all collaboration requests involving them
-    if (userRole === "player") {
-      const { data: playerRequests } = await supabase
-        .from("agent_collaboration_requests")
-        .select("*")
-        .eq("player_user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (playerRequests && playerRequests.length > 0) {
-        const agentIds = playerRequests.map(r => r.agent_user_id);
-        const { data: agents } = await supabase
-          .from("scout_profiles")
-          .select("user_id, first_name, last_name, photo_url")
-          .in("user_id", agentIds);
-
-        const aMap: Record<string, { name: string; photo: string | null }> = {};
-        agents?.forEach(a => {
-          aMap[a.user_id] = { name: `${a.first_name} ${a.last_name}`.trim(), photo: a.photo_url };
-        });
-
-        playerRequests.forEach(r => {
-          const initiatedBy = (r as any).initiated_by || "player";
-          const agentName = aMap[r.agent_user_id]?.name || (lang === "ro" ? "Descoperitor necunoscut" : "Unknown discoverer");
-          const agentPhoto = aMap[r.agent_user_id]?.photo || null;
-
-          if (initiatedBy === "agent") {
-            // Agent initiated - player can accept/reject
-            collabNotifs.push({
-              id: r.id,
-              type: "collab_request",
-              other_user_id: r.agent_user_id,
-              created_at: r.created_at,
-              other_name: agentName,
-              other_photo: agentPhoto,
-              status: r.status,
-              perspective: "player",
-              initiated_by: "agent",
-              isRead: r.status !== "pending" || isNotificationRead(user.id, r.id),
-            });
-          } else {
-            // Player initiated - show confirmation and response
-            collabNotifs.push({
-              id: `${r.id}-sent`,
-              type: "collab_request",
-              other_user_id: r.agent_user_id,
-              created_at: r.created_at,
-              other_name: agentName,
-              other_photo: agentPhoto,
-              status: "sent",
-              perspective: "player",
-              initiated_by: "player",
-              isRead: true,
-            });
-            if (r.status === "accepted" || r.status === "rejected") {
-              collabNotifs.push({
-                id: `${r.id}-response`,
-                type: "collab_request",
-                other_user_id: r.agent_user_id,
-                created_at: r.updated_at || r.created_at,
-                other_name: agentName,
-                other_photo: agentPhoto,
-                status: r.status,
-                perspective: "player",
-                initiated_by: "player",
-                isRead: isNotificationRead(user.id, `${r.id}-response`),
-              });
-            }
-          }
-        });
-      }
-    }
-
-    // Fetch recommendation notifications
-    let recNotifs: RecommendationNotification[] = [];
-
-    const [pendingAsAuthorRes, submittedAsRecipientRes] = await Promise.all([
-      supabase.from("recommendations").select("id, recipient_user_id, created_at")
-        .eq("author_user_id", user.id).eq("status", "pending").eq("initiated_by", "request")
-        .order("created_at", { ascending: false }),
-      supabase.from("recommendations").select("id, author_user_id, created_at")
-        .eq("recipient_user_id", user.id).eq("status", "submitted")
-        .order("created_at", { ascending: false }),
-    ]);
-
-    const pendingAsAuthor = pendingAsAuthorRes.data || [];
-    const submittedAsRecipient = submittedAsRecipientRes.data || [];
-    const recOtherIds = new Set<string>([
-      ...pendingAsAuthor.map((r: any) => r.recipient_user_id),
-      ...submittedAsRecipient.map((r: any) => r.author_user_id),
-    ]);
-
-    if (recOtherIds.size > 0) {
-      const recIds = [...recOtherIds];
-      const [recRolesRes, recPlayerRes, recScoutRes] = await Promise.all([
-        supabase.from("user_roles").select("user_id, role").in("user_id", recIds),
-        supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", recIds),
-        supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", recIds),
-      ]);
-      const recRoleMap: Record<string, string> = {};
-      (recRolesRes.data || []).forEach((r: any) => { recRoleMap[r.user_id] = r.role; });
-      const recNameMap: Record<string, { name: string; photo: string | null }> = {};
-      (recPlayerRes.data || []).forEach((p: any) => { recNameMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url }; });
-      (recScoutRes.data || []).forEach((s: any) => { recNameMap[s.user_id] = { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url }; });
-
-      pendingAsAuthor.forEach((r: any) => {
-        const info = recNameMap[r.recipient_user_id];
-        const role = (recRoleMap[r.recipient_user_id] || "cauta_jucator") as "player" | "cauta_jucator";
-        recNotifs.push({
-          id: `rec-${r.id}-author`,
-          type: "recommendation",
-          other_user_id: r.recipient_user_id,
-          other_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
-          other_photo: info?.photo || null,
-          other_role: role,
-          created_at: r.created_at,
-          status: "pending",
-          perspective: "author",
-          isRead: isNotificationRead(user.id, `rec-${r.id}-author`),
-        });
-      });
-
-      submittedAsRecipient.forEach((r: any) => {
-        const info = recNameMap[r.author_user_id];
-        const role = (recRoleMap[r.author_user_id] || "player") as "player" | "cauta_jucator";
-        recNotifs.push({
-          id: `rec-${r.id}-recipient`,
-          type: "recommendation",
-          other_user_id: r.author_user_id,
-          other_name: info?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
-          other_photo: info?.photo || null,
-          other_role: role,
-          created_at: r.created_at,
-          status: "submitted",
-          perspective: "recipient",
-          isRead: isNotificationRead(user.id, `rec-${r.id}-recipient`),
-        });
-      });
-    }
-
-    // Fetch video notifications (for anyone who follows a player, regardless of their own role)
-    let videoNotifs: VideoNotification[] = [];
-
-    {
-      const { data: followsData } = await supabase
-        .from("follows")
-        .select("following_id, responded_at, created_at")
-        .eq("follower_id", user.id)
-        .eq("status", "accepted");
-
-      // Only surface activity from after the follow was actually accepted —
-      // otherwise a fresh follow floods you with the player's whole history.
-      const followedSinceMap: Record<string, string> = {};
-      (followsData || []).forEach((f: any) => {
-        followedSinceMap[f.following_id] = f.responded_at || f.created_at;
-      });
-      const followedIds = Object.keys(followedSinceMap);
-
-      if (followedIds.length > 0) {
-        const { data: playerRolesData } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .in("user_id", followedIds)
-          .eq("role", "player");
-
-        const playerIds = (playerRolesData || []).map((r: any) => r.user_id);
-
-        if (playerIds.length > 0) {
-          const [videoNotifsRes, playerProfilesRes] = await Promise.all([
-            supabase
-              .from("player_video_notifications")
-              .select("id, player_id, type, video_url, test_key, created_at")
-              .in("player_id", playerIds)
-              .order("created_at", { ascending: false })
-              .limit(50),
-            supabase
-              .from("player_profiles")
-              .select("user_id, first_name, last_name, photo_url, sport")
-              .in("user_id", playerIds),
-          ]);
-
-          const playerInfoMap: Record<string, { name: string; photo: string | null; sport: string | null }> = {};
-          (playerProfilesRes.data || []).forEach((p: any) => {
-            playerInfoMap[p.user_id] = {
-              name: `${p.first_name || ""} ${p.last_name || ""}`.trim(),
-              photo: p.photo_url || null,
-              sport: p.sport || null,
-            };
-          });
-
-          videoNotifs = (videoNotifsRes.data || [])
-            .filter((n: any) => {
-              const followedSince = followedSinceMap[n.player_id];
-              return followedSince && new Date(n.created_at) >= new Date(followedSince);
-            })
-            .map((n: any) => ({
-              id: `video-${n.id}`,
-              type: "video" as const,
-              videoType: n.type as "highlight" | "test",
-              player_id: n.player_id,
-              player_name: playerInfoMap[n.player_id]?.name || "Jucător",
-              player_photo: playerInfoMap[n.player_id]?.photo || null,
-              player_sport: playerInfoMap[n.player_id]?.sport || null,
-              test_key: n.test_key || null,
-              created_at: n.created_at,
-              isRead: isNotificationRead(user.id, `video-${n.id}`),
-            }));
-        }
-      }
-    }
-
-    // Fetch likes on my stories
-    let storyLikeNotifs: StoryLikeNotification[] = [];
-    {
-      const { data: myStories } = await (supabase as any).from("stories").select("id").eq("user_id", user.id);
-      const myStoryIds = (myStories || []).map((s: any) => s.id);
-      if (myStoryIds.length > 0) {
-        const { data: likesData } = await (supabase as any)
-          .from("story_likes")
-          .select("id, user_id, created_at")
-          .in("story_id", myStoryIds)
-          .neq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(50);
-
-        const likerIds = Array.from(new Set<string>((likesData || []).map((l: any) => l.user_id as string)));
-        if (likerIds.length > 0) {
-          const [likerPlayerRes, likerScoutRes, likerRoleRes] = await Promise.all([
-            supabase.from("player_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", likerIds),
-            supabase.from("scout_profiles").select("user_id, first_name, last_name, photo_url").in("user_id", likerIds),
-            supabase.from("user_roles").select("user_id, role").in("user_id", likerIds),
-          ]);
-          const likerInfoMap: Record<string, { name: string; photo: string | null }> = {};
-          (likerPlayerRes.data || []).forEach((p: any) => {
-            likerInfoMap[p.user_id] = { name: `${p.first_name} ${p.last_name}`.trim(), photo: p.photo_url };
-          });
-          (likerScoutRes.data || []).forEach((s: any) => {
-            if (!likerInfoMap[s.user_id]) likerInfoMap[s.user_id] = { name: `${s.first_name} ${s.last_name}`.trim(), photo: s.photo_url };
-          });
-          const likerRoleMap: Record<string, string> = {};
-          (likerRoleRes.data || []).forEach((r: any) => { likerRoleMap[r.user_id] = r.role; });
-
-          storyLikeNotifs = (likesData || []).map((l: any) => ({
-            id: `storylike-${l.id}`,
-            type: "story_like" as const,
-            other_user_id: l.user_id,
-            other_name: likerInfoMap[l.user_id]?.name || (lang === "ro" ? "Utilizator necunoscut" : "Unknown user"),
-            other_photo: likerInfoMap[l.user_id]?.photo || null,
-            other_role: (likerRoleMap[l.user_id] || "player") as "player" | "cauta_jucator",
-            created_at: l.created_at,
-            isRead: isNotificationRead(user.id, `storylike-${l.id}`),
-          }));
-        }
-      }
-    }
-
-    // Merge and sort by date
-    const allNotifs: Notification[] = [...followNotifs, ...collabNotifs, ...recNotifs, ...videoNotifs, ...storyLikeNotifs]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-    setNotifications(allNotifs);
+    const page = await fetchNotificationsPage(user.id, userRole, 0);
+    setNotifications(page);
+    setHasMore(page.length === NOTIF_PAGE_SIZE);
     setLoading(false);
   };
+
+  const loadMoreNotifications = useCallback(async () => {
+    if (loadingMore || !hasMore || loading || !currentUserId || !currentUserRole) return;
+    setLoadingMore(true);
+    const nextPage = await fetchNotificationsPage(currentUserId, currentUserRole, notifications.length);
+    setNotifications(prev => [...prev, ...nextPage]);
+    setHasMore(nextPage.length === NOTIF_PAGE_SIZE);
+    setLoadingMore(false);
+  }, [loadingMore, hasMore, loading, currentUserId, currentUserRole, notifications.length]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadMoreNotifications();
+    }, { rootMargin: "400px" });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMoreNotifications]);
 
   useEffect(() => {
     fetchNotifications();
@@ -696,7 +373,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
   }
 
   return (
-    <div className="max-w-2xl lg:mx-auto relative isolate flex flex-col h-full min-h-0 -m-4 lg:-m-8">
+    <div className="max-w-2xl lg:mx-auto relative isolate flex flex-col h-full min-h-0 -m-4 lg:-m-8 overflow-x-hidden">
       <div className="flex items-center justify-between mb-6 pt-4 lg:pt-8 px-4 lg:px-8 shrink-0 sticky top-0 z-10 bg-gray-200">
         <h2 className="text-2xl font-display text-gray-900">
           {lang === "ro" ? "Notificări" : "Notifications"}
@@ -1019,6 +696,12 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
 
             return null;
           })}
+          <div ref={sentinelRef} className="h-1" />
+          {loadingMore && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+            </div>
+          )}
         </div>
       )}
 
@@ -1081,54 +764,6 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
             height: "140px",
             background: "#a3e635",
             clipPath: "polygon(0 0, 100% 0, 0 100%)",
-            opacity: 0.9,
-          }}
-        />
-        <div
-          className="absolute -z-10 pointer-events-none"
-          style={{
-            top: "140px",
-            left: "-420px",
-            width: "130px",
-            height: "130px",
-            background: "linear-gradient(135deg, #f97316, #fb923c)",
-            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-            opacity: 0.9,
-          }}
-        />
-        <div
-          className="absolute -z-10 pointer-events-none"
-          style={{
-            top: "60px",
-            right: "-480px",
-            width: "150px",
-            height: "150px",
-            background: "#a3e635",
-            clipPath: "polygon(0 0, 100% 0, 0 100%)",
-            opacity: 0.9,
-          }}
-        />
-        <div
-          className="absolute -z-10 pointer-events-none"
-          style={{
-            top: "500px",
-            left: "-380px",
-            width: "120px",
-            height: "120px",
-            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-            clipPath: "polygon(0 100%, 100% 100%, 0 0)",
-            opacity: 0.9,
-          }}
-        />
-        <div
-          className="absolute -z-10 pointer-events-none"
-          style={{
-            top: "560px",
-            right: "-420px",
-            width: "140px",
-            height: "140px",
-            background: "linear-gradient(135deg, #f97316, #fb923c)",
-            clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
             opacity: 0.9,
           }}
         />

@@ -631,7 +631,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
                         <Info className="h-4 w-4" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+                    <PopoverContent align="start" collisionPadding={16} className="w-[calc(100vw-32px)] max-w-80 text-sm bg-white border-gray-200">
                       <p className="font-semibold text-gray-900 mb-2">{ts.headerTipsTitle}</p>
                       <ul className="list-disc pl-4 space-y-1 text-gray-500">
                         <li>{ts.headerTip1}</li>
@@ -782,7 +782,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+              <PopoverContent align="start" collisionPadding={16} className="w-[calc(100vw-32px)] max-w-80 text-sm bg-white border-gray-200">
                 <p className="font-semibold text-gray-900 mb-2">{ts.aboutTipsTitle}</p>
                 <ul className="list-disc pl-4 space-y-1 text-gray-500">
                   <li>{ts.aboutTip1}</li>
@@ -830,7 +830,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+              <PopoverContent align="start" collisionPadding={16} className="w-[calc(100vw-32px)] max-w-80 text-sm bg-white border-gray-200">
                 <p className="font-semibold text-gray-900 mb-2">{ts.skillsTipsTitle}</p>
                 <ul className="list-disc pl-4 space-y-1 text-gray-500">
                   <li>{ts.skillTip1}</li>
@@ -874,7 +874,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+              <PopoverContent align="start" collisionPadding={16} className="w-[calc(100vw-32px)] max-w-80 text-sm bg-white border-gray-200">
                 <p className="font-semibold text-gray-900 mb-2">{ts.activityTipsTitle}</p>
                 <ul className="list-disc pl-4 space-y-1 text-gray-500">
                   <li>{ts.activityTip1}</li>
@@ -1037,7 +1037,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
                   <Info className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" className="w-80 text-sm bg-white border-gray-200">
+              <PopoverContent align="start" collisionPadding={16} className="w-[calc(100vw-32px)] max-w-80 text-sm bg-white border-gray-200">
                 <p className="font-semibold text-gray-900 mb-2">{ts.experienceTipsTitle}</p>
                 <ul className="list-disc pl-4 space-y-1 text-gray-500">
                   <li>{ts.expTip1}</li>
