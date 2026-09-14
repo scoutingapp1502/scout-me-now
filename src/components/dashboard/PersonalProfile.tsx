@@ -853,14 +853,11 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
 
   return (
     <div className={`relative isolate -mx-4 lg:mx-0 w-[calc(100%+2rem)] lg:w-auto ${activeTab === "posts" || activeTab === "profile" || activeTab === "stats" || activeTab === "video" ? "" : "max-w-4xl lg:mx-auto"}`}>
-      <div className={activeTab === "profile" || activeTab === "stats" || activeTab === "video" ? "grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start" : ""}>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
       <div className="min-w-0">
-      {/* SECTION 1: Header / Hero - sticky. On the "posts" tab this stays
-          visible only on mobile/tablet (the desktop layout already shows a
-          mini profile card in the left sidebar there, so the full hero
-          would be redundant on lg:+). */}
+      {/* SECTION 1: Header / Hero - sticky, shown above every tab. */}
       <div className="z-20 rounded-xl overflow-hidden">
-      <div className={`relative bg-white rounded-t-xl overflow-hidden ${activeTab === "posts" ? "lg:hidden" : ""}`}>
+      <div className="relative bg-white rounded-t-xl overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--primary)) 1px, transparent 0)`,
           backgroundSize: '30px 30px'
@@ -987,7 +984,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
 
             {/* Nationality, DOB & Social icons */}
             {editingSection !== "header" && (
-              <div className="grid grid-cols-3 lg:flex items-start lg:items-center justify-items-center lg:justify-items-stretch text-center lg:text-left justify-center lg:justify-between gap-3 sm:gap-4 lg:gap-6 mt-4 pt-3 lg:pt-[calc(0.75rem+0.8cm)] border-t border-gray-200 lg:flex-wrap lg:pr-[calc(2.5rem+0.5cm)]">
+              <div className="grid grid-cols-3 gap-3 sm:gap-6 mt-4 pt-3 border-t border-gray-200 text-center sm:text-left">
                 <div className="flex flex-col min-w-0 w-full">
                   <span className="text-xs sm:text-sm text-gray-500 font-body truncate">{t.dashboard.profile.nationality}</span>
                   <span className="text-sm sm:text-base font-semibold text-gray-900 font-body mt-0.5 truncate">
@@ -1002,7 +999,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
                 </div>
                 <div className="flex flex-col min-w-0 w-full">
                   <span className="text-xs sm:text-sm text-gray-500 font-body truncate">{t.dashboard.profile.addSocial || "Rețele de socializare"}</span>
-                  <div className="flex items-center justify-center lg:justify-start gap-1 mt-0.5">
+                  <div className="flex items-center justify-center sm:justify-start gap-1 mt-0.5">
                     {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-primary transition-colors p-1.5 -m-1.5"><Instagram className="h-5 w-5" /></a>}
                     {profile?.twitter_url && <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-primary transition-colors p-1.5 -m-1.5"><Twitter className="h-5 w-5" /></a>}
                     {!profile?.instagram_url && !profile?.twitter_url && !readOnly && <span className="text-muted-foreground italic text-sm font-body font-normal">—</span>}
@@ -1137,7 +1134,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
       </div>
 
       {/* Tabs row (no edit button) */}
-      <div className={`flex items-stretch border-b border-gray-200 bg-white z-20 ${activeTab === "posts" ? "rounded-xl lg:rounded-t-none" : "rounded-b-xl"}`}>
+      <div className="flex items-stretch border-b border-gray-200 bg-white z-20 rounded-b-xl">
         <div className="flex flex-1 overflow-x-auto">
           {([
             { key: "profile" as TabType, label: lang === "ro" ? "Profil" : "Profile" },

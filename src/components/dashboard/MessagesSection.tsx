@@ -1914,9 +1914,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                     <DropdownMenu open={longPressedMessageId === msg.id} onOpenChange={(open) => { if (!open) setLongPressedMessageId(null); }}>
                       <DropdownMenuTrigger asChild>
                         <button
+                          type="button"
+                          onClick={() => setLongPressedMessageId(msg.id)}
                           className="flex lg:opacity-0 lg:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-700 shrink-0 order-first items-center justify-center w-0 lg:w-4 overflow-hidden lg:overflow-visible"
-                          tabIndex={-1}
-                          aria-hidden="true"
                         >
                           <MoreHorizontal className="h-4 w-4 shrink-0" />
                         </button>
@@ -2451,9 +2451,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                     <DropdownMenu open={longPressedMessageId === msg.id} onOpenChange={(open) => { if (!open) setLongPressedMessageId(null); }}>
                       <DropdownMenuTrigger asChild>
                         <button
+                          type="button"
+                          onClick={() => setLongPressedMessageId(msg.id)}
                           className="flex lg:opacity-0 lg:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-700 shrink-0 order-first items-center justify-center w-0 lg:w-4 overflow-hidden lg:overflow-visible"
-                          tabIndex={-1}
-                          aria-hidden="true"
                         >
                           <MoreHorizontal className="h-4 w-4 shrink-0" />
                         </button>

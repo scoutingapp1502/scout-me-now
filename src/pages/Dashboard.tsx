@@ -35,7 +35,6 @@ import TermsSection from "@/components/dashboard/TermsSection";
 import PrivacyPolicySection from "@/components/dashboard/PrivacyPolicySection";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import WelcomeTour from "@/components/dashboard/WelcomeTour";
-import AppAssistant from "@/components/dashboard/AppAssistant";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { markFollowingSeen, markMineSeen } from "@/hooks/useActivityNotifications";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -472,7 +471,6 @@ const Dashboard = () => {
           </main>
         </>
       )}
-      {!showTour && !showWizard && !showStreakModal && <AppAssistant />}
     </div>
   );
 };
