@@ -8,7 +8,7 @@ import {
   Ban, MessageCircle, MessageSquare, Share2, AlertOctagon,
   EyeOff, UserPlus, Heart, VolumeX, LayoutGrid, Film,
   Languages, HelpCircle, Shield, Info,
-  ChevronRight, Trash2, LogOut, UserCheck, Globe,
+  ChevronRight, Trash2, LogOut, UserCheck, Globe, Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,6 +113,17 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [search, setSearch] = useState("");
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredGroups = normalizedSearch
+    ? groups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => (ts[item.labelKey] as string).toLowerCase().includes(normalizedSearch)),
+        }))
+        .filter((group) => group.items.length > 0)
+    : groups;
 
   const handleChangePassword = async () => {
     if (!currentPassword) {
@@ -196,8 +207,24 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
         {ts.pageTitle}
       </h2>
 
+      <div className="px-1 pb-4">
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={ts.searchPlaceholder}
+          className="pl-10 rounded-full border-0 bg-white text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
+        />
+      </div>
+      </div>
+
+      {normalizedSearch && filteredGroups.length === 0 && (
+        <p className="text-sm text-gray-500 font-body px-1 pb-4">{ts.searchNoResults}</p>
+      )}
+
       <div className="space-y-6">
-        {groups.map((group) => (
+        {filteredGroups.map((group) => (
           <section key={group.id}>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 mb-1 font-body">
               {ts[group.titleKey]}

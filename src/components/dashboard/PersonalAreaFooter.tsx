@@ -11,11 +11,11 @@ const PersonalAreaFooter = ({ onNavigate }: PersonalAreaFooterProps) => {
   return (
     <footer className="mt-8 border-t border-gray-200 py-6 px-4">
       <div className="flex flex-col items-center gap-3 text-center">
-        <div className="flex items-center gap-2">
-          <span className="text-base">⚽</span>
-          <SportriseWordmark className="text-base" />
-        </div>
+        <SportriseWordmark className="text-base" />
         <div className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-xs text-gray-500 font-body">
+          <a href="/contact" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">
+            Contact
+          </a>
           <button onClick={() => onNavigate?.("terms")} className="hover:text-orange-500 transition-colors">
             {lang === "ro" ? "Termeni" : "Terms"}
           </button>

@@ -1,83 +1,124 @@
 import { ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import LegalDocBody from "@/components/legal/LegalDocBody";
 
 interface PrivacyPolicySectionProps {
   onBack: () => void;
 }
 
-const SECTIONS_RO = [
+export const PRIVACY_SECTIONS_RO = [
   {
-    title: "1. Ce date colectăm",
-    body: "Colectăm informațiile pe care ni le oferi direct (nume, poză, poziție, echipă, videoclipuri de teste, postări, mesaje) și date tehnice generate de folosirea aplicației (activitate, aprecieri, urmăritori, ora ultimei conectări).",
+    title: "1. Cine suntem",
+    body: "Această Politică de Confidențialitate explică modul în care SportRise (\"noi\", \"aplicația\", \"Platforma\") colectează, folosește, stochează și protejează datele tale personale atunci când folosești Platforma. Pentru orice întrebare legată de datele tale, ne poți contacta din pagina de Contact.",
   },
   {
-    title: "2. Cum folosim datele",
-    body: "Datele tale sunt folosite pentru a-ți afișa profilul altor utilizatori conform setărilor tale de confidențialitate, pentru a-ți arăta conținut relevant în comunitate, pentru verificarea conturilor de tip Descoperitor și pentru a îmbunătăți funcționarea aplicației.",
+    title: "2. Ce date colectăm",
+    body: "Colectăm: (a) date pe care ni le oferi direct — nume, prenume, data nașterii, gen, naționalitate, fotografie de profil, poziție/rol sportiv, echipă, date fizice (înălțime, greutate), videoclipuri de teste, postări, mesaje, recomandări; (b) date tehnice generate automat — tipul de dispozitiv și browser, activitatea din aplicație (aprecieri, urmăritori, ora ultimei conectări); (c) date de verificare — pentru conturile de tip Descoperitor/Agent, documentele încărcate pentru confirmarea identității și a activității profesionale.",
   },
   {
-    title: "3. Cu cine sunt distribuite",
-    body: "Nu vindem datele tale către terți. Informațiile din profil sunt vizibile altor utilizatori conform setărilor tale de confidențialitate cont. Fișierele (poze, videoclipuri, documente) sunt stocate securizat și accesibile doar persoanelor autorizate să vadă conținutul respectiv.",
+    title: "3. Temeiul legal al prelucrării",
+    body: "Prelucrăm datele tale în baza: executării contractului dintre tine și SportRise, pentru a-ți putea oferi Serviciul; consimțământului tău explicit, de exemplu pentru încărcarea videoclipurilor de test; interesului nostru legitim, pentru a preveni frauda și a asigura siguranța Platformei; și a obligațiilor legale, atunci când este cazul.",
   },
   {
-    title: "4. Controlul tău asupra datelor",
-    body: "Poți oricând să-ți modifici setările de confidențialitate, să blochezi sau restricționezi alți utilizatori, să ștergi postări sau mesaje, și să-ți ștergi definitiv contul din secțiunea Setări → Contul tău.",
+    title: "4. Cum folosim datele",
+    body: "Datele tale sunt folosite pentru: a-ți afișa profilul altor utilizatori conform setărilor tale de confidențialitate; a-ți arăta conținut relevant în comunitate; a verifica identitatea și activitatea conturilor de tip Descoperitor/Agent; a preveni fraudele și comportamentele abuzive; a îmbunătăți funcționarea și securitatea aplicației; și a te contacta în legătură cu contul tău sau cu solicitări de suport.",
   },
   {
-    title: "5. Securitate",
-    body: "Folosim măsuri tehnice și organizatorice pentru a proteja datele tale împotriva accesului neautorizat, pierderii sau utilizării abuzive.",
+    title: "5. Datele minorilor",
+    body: "O parte semnificativă a utilizatorilor SportRise sunt sportivi minori. Datele acestora (inclusiv fotografii și videoclipuri) sunt colectate doar cu acordul unui părinte sau tutore legal și sunt tratate cu un nivel sporit de protecție. Videoclipurile de test necesită un consimțământ explicit separat înainte de încărcare. Părinții sau tutorii pot solicita oricând accesul, corectarea sau ștergerea datelor copilului, contactându-ne prin pagina de Contact.",
   },
   {
-    title: "6. Păstrarea datelor",
-    body: "Păstrăm datele tale atât timp cât contul tău este activ. La ștergerea contului, datele asociate sunt eliminate definitiv, cu excepția cazurilor în care păstrarea lor este cerută de lege.",
+    title: "6. Cu cine sunt distribuite datele",
+    body: "Nu vindem și nu închiriem datele tale către terți. Informațiile din profil sunt vizibile altor utilizatori conform setărilor tale de confidențialitate. Fișierele (poze, videoclipuri, documente) sunt stocate securizat, prin intermediul unor furnizori de găzduire și infrastructură, și sunt accesibile doar persoanelor autorizate să vadă conținutul respectiv. Putem divulga date atunci când legea o impune sau pentru a proteja drepturile, siguranța ori proprietatea SportRise sau ale utilizatorilor săi.",
   },
   {
-    title: "7. Modificări ale acestei politici",
-    body: "Putem actualiza această politică de confidențialitate periodic. Continuarea folosirii aplicației după o actualizare reprezintă acceptarea noii politici.",
+    title: "7. Transferul internațional al datelor",
+    body: "Furnizorii noștri de infrastructură pot stoca sau procesa date în afara României. În aceste cazuri, ne asigurăm că transferul se realizează în condiții care oferă un nivel adecvat de protecție, conform legislației aplicabile privind protecția datelor.",
   },
   {
-    title: "8. Contact",
-    body: "Pentru întrebări legate de datele tale sau această politică, ne poți contacta din secțiunea Ajutor și asistență a aplicației.",
+    title: "8. Păstrarea datelor",
+    body: "Păstrăm datele tale atât timp cât contul tău este activ și cât este necesar pentru a-ți oferi Serviciul. La ștergerea contului, datele asociate sunt eliminate definitiv într-un termen rezonabil, cu excepția cazurilor în care păstrarea lor este cerută de lege sau este necesară pentru soluționarea unor dispute.",
+  },
+  {
+    title: "9. Drepturile tale",
+    body: "Ai dreptul: să accesezi datele pe care le deținem despre tine; să soliciți corectarea datelor inexacte; să soliciți ștergerea datelor tale; să restricționezi sau să te opui anumitor prelucrări; să soliciți portabilitatea datelor; să îți retragi consimțământul în orice moment; și să depui o plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP) sau la autoritatea echivalentă din țara ta. Poți corecta majoritatea datelor direct din profilul tău, iar ștergerea definitivă a contului o poți face imediat, din Setări → Contul tău. Pentru celelalte drepturi (acces la o copie a datelor, portabilitate, restricționare sau opoziție), trimite-ne o cerere prin pagina de Contact sau din secțiunea Ajutor și asistență — o vom procesa manual și îți vom răspunde în cel mai scurt timp.",
+  },
+  {
+    title: "10. Securitate",
+    body: "Folosim măsuri tehnice și organizatorice — criptare, controlul accesului, autentificare securizată — pentru a proteja datele tale împotriva accesului neautorizat, pierderii, distrugerii sau utilizării abuzive. Cu toate acestea, nicio metodă de transmisie sau stocare electronică nu este 100% sigură.",
+  },
+  {
+    title: "11. Cookies și tehnologii similare",
+    body: "Folosim cookie-uri și stocare locală strict necesare funcționării aplicației. Detalii complete găsești în Politica de Cookies.",
+  },
+  {
+    title: "12. Modificări ale acestei politici",
+    body: "Putem actualiza această politică periodic. Te vom notifica despre modificările semnificative prin aplicație sau email. Continuarea folosirii aplicației după o actualizare reprezintă acceptarea noii politici.",
+  },
+  {
+    title: "13. Contact",
+    body: "Pentru întrebări legate de datele tale sau despre această politică, ne poți contacta din secțiunea Ajutor și asistență a aplicației sau din pagina de Contact.",
   },
 ];
 
-const SECTIONS_EN = [
+export const PRIVACY_SECTIONS_EN = [
   {
-    title: "1. What data we collect",
-    body: "We collect the information you give us directly (name, photo, position, team, test videos, posts, messages) and technical data generated by using the app (activity, likes, followers, last login time).",
+    title: "1. Who we are",
+    body: "This Privacy Policy explains how SportRise (\"we\", \"the app\", \"the Platform\") collects, uses, stores, and protects your personal data when you use the Platform. For any question about your data, you can reach us from the Contact page.",
   },
   {
-    title: "2. How we use your data",
-    body: "Your data is used to show your profile to other users according to your privacy settings, to show you relevant content in the community, to verify Scout-type accounts, and to improve how the app works.",
+    title: "2. What data we collect",
+    body: "We collect: (a) data you give us directly — first and last name, date of birth, gender, nationality, profile photo, sport position/role, team, physical data (height, weight), test videos, posts, messages, recommendations; (b) technical data generated automatically — device and browser type, in-app activity (likes, followers, last login time); (c) verification data — for Scout/Agent accounts, documents uploaded to confirm identity and professional activity.",
   },
   {
-    title: "3. Who we share it with",
-    body: "We don't sell your data to third parties. Profile information is visible to other users according to your account privacy settings. Files (photos, videos, documents) are stored securely and only accessible to people authorized to see that content.",
+    title: "3. Legal basis for processing",
+    body: "We process your data based on: performance of the contract between you and SportRise, so we can provide the Service; your explicit consent, for example when uploading test videos; our legitimate interest, to prevent fraud and keep the Platform safe; and legal obligations, where applicable.",
   },
   {
-    title: "4. Your control over your data",
-    body: "You can change your privacy settings at any time, block or restrict other users, delete posts or messages, and permanently delete your account from Settings → Your account.",
+    title: "4. How we use your data",
+    body: "Your data is used to: show your profile to other users according to your privacy settings; show you relevant content in the community; verify Scout/Agent accounts; prevent fraud and abusive behavior; improve how the app works and its security; and contact you about your account or support requests.",
   },
   {
-    title: "5. Security",
-    body: "We use technical and organizational measures to protect your data against unauthorized access, loss, or misuse.",
+    title: "5. Minors' data",
+    body: "A significant portion of SportRise users are minor athletes. Their data (including photos and videos) is collected only with the consent of a parent or legal guardian and is handled with an elevated level of protection. Test videos require a separate, explicit consent before upload. Parents or guardians can request access to, correction of, or deletion of their child's data at any time by contacting us through the Contact page.",
   },
   {
-    title: "6. Data retention",
-    body: "We keep your data for as long as your account is active. When you delete your account, associated data is permanently removed, except where retention is required by law.",
+    title: "6. Who we share your data with",
+    body: "We don't sell or rent your data to third parties. Profile information is visible to other users according to your privacy settings. Files (photos, videos, documents) are stored securely, through hosting and infrastructure providers, and are only accessible to people authorized to see that content. We may disclose data when required by law, or to protect the rights, safety, or property of SportRise or its users.",
   },
   {
-    title: "7. Changes to this policy",
-    body: "We may update this privacy policy periodically. Continuing to use the app after an update means you accept the new policy.",
+    title: "7. International data transfers",
+    body: "Our infrastructure providers may store or process data outside of Romania. In such cases, we ensure the transfer takes place under conditions that provide an adequate level of protection, in accordance with applicable data protection law.",
   },
   {
-    title: "8. Contact",
-    body: "For questions about your data or this policy, you can reach us from the Help and support section of the app.",
+    title: "8. Data retention",
+    body: "We keep your data for as long as your account is active and for as long as necessary to provide the Service. When you delete your account, associated data is permanently removed within a reasonable timeframe, except where retention is required by law or necessary to resolve a dispute.",
+  },
+  {
+    title: "9. Your rights",
+    body: "You have the right to: access the data we hold about you; request correction of inaccurate data; request deletion of your data; restrict or object to certain processing; request data portability; withdraw your consent at any time; and file a complaint with the National Supervisory Authority for Personal Data Processing (ANSPDCP) or the equivalent authority in your country. You can correct most of your data directly from your profile, and permanently delete your account instantly from Settings → Your account. For the other rights (access to a copy of your data, portability, restriction, or objection), send us a request through the Contact page or the Help and support section — we'll process it manually and respond as soon as possible.",
+  },
+  {
+    title: "10. Security",
+    body: "We use technical and organizational measures — encryption, access control, secure authentication — to protect your data against unauthorized access, loss, destruction, or misuse. That said, no method of electronic transmission or storage is 100% secure.",
+  },
+  {
+    title: "11. Cookies and similar technologies",
+    body: "We use cookies and local storage strictly necessary for the app to function. Full details are available in our Cookie Policy.",
+  },
+  {
+    title: "12. Changes to this policy",
+    body: "We may update this policy periodically. We'll notify you of significant changes through the app or by email. Continuing to use the app after an update means you accept the new policy.",
+  },
+  {
+    title: "13. Contact",
+    body: "For questions about your data or this policy, you can reach us from the Help and support section of the app or the Contact page.",
   },
 ];
 
 export default function PrivacyPolicySection({ onBack }: PrivacyPolicySectionProps) {
   const { lang } = useLanguage();
-  const sections = lang === "ro" ? SECTIONS_RO : SECTIONS_EN;
+  const sections = lang === "ro" ? PRIVACY_SECTIONS_RO : PRIVACY_SECTIONS_EN;
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -90,16 +131,15 @@ export default function PrivacyPolicySection({ onBack }: PrivacyPolicySectionPro
         </h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-        <p className="text-xs text-gray-500 font-body">
-          {lang === "ro" ? "Ultima actualizare: 2 septembrie 2026" : "Last updated: September 2, 2026"}
-        </p>
-        {sections.map((s) => (
-          <div key={s.title}>
-            <p className="text-sm font-semibold font-body text-gray-900 mb-1">{s.title}</p>
-            <p className="text-sm text-gray-500 font-body leading-relaxed">{s.body}</p>
-          </div>
-        ))}
+      <div className="flex-1 overflow-y-auto">
+        <LegalDocBody
+          eyebrow="LEGAL"
+          title={lang === "ro" ? "Politica de Confidențialitate" : "Privacy Policy"}
+          lastUpdated={lang === "ro" ? "Ultima actualizare: 17 septembrie 2026 · Versiunea 2.0" : "Last updated: September 17, 2026 · Version 2.0"}
+          tocLabel={lang === "ro" ? "Cuprins" : "Table of Contents"}
+          sections={sections}
+          compact
+        />
       </div>
     </div>
   );

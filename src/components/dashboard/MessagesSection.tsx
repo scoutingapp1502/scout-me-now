@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, User, Loader2, ArrowLeft, Send, Search, X, Smile, Users, Check, CheckCheck, Link2, UserPlus, ChevronRight, MoreHorizontal, Lock, Bell, LogOut, Ban, Film, Image as ImageIcon, Paperclip, FileText } from "lucide-react";
+import { MessageSquare, User, Loader2, ArrowLeft, Send, Search, X, Smile, Users, Check, CheckCheck, Link2, UserPlus, ChevronRight, MoreHorizontal, Lock, Bell, LogOut, Ban, Film, Image as ImageIcon, Paperclip, FileText, ShieldAlert } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -2090,6 +2090,16 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
             </div>
           </button>
         </div>
+
+        <div className="flex items-center gap-1.5 py-1.5 shrink-0 border-b border-gray-100">
+          <ShieldAlert className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+          <p className="text-[11px] text-gray-500 font-body leading-snug">
+            {lang === "ro"
+              ? "SportRise nu cere niciodată plăți sau întâlniri neoficiale prin mesaje. Raportează orice cerere suspectă."
+              : "SportRise never asks for payments or unofficial meetups through messages. Report any suspicious request."}
+          </p>
+        </div>
+
         <div ref={groupMessagesScrollContainerRef} onScroll={handleGroupMessagesScroll} className={`flex-1 overflow-y-auto py-4 space-y-3 min-h-0 ${!groupChatLoading && !groupChatScrollReady ? "invisible" : ""}`}>
           {/* Group info card — shown at the start of the conversation */}
           <div className="flex flex-col items-center text-center pb-6 mb-2 border-b border-gray-200">
@@ -2679,6 +2689,15 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
           </div>
         </div>
 
+        <div className="flex items-center gap-1.5 py-1.5 shrink-0 border-b border-gray-100">
+          <ShieldAlert className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+          <p className="text-[11px] text-gray-500 font-body leading-snug">
+            {lang === "ro"
+              ? "SportRise nu cere niciodată plăți sau întâlniri neoficiale prin mesaje. Raportează orice cerere suspectă."
+              : "SportRise never asks for payments or unofficial meetups through messages. Report any suspicious request."}
+          </p>
+        </div>
+
         <div ref={messagesScrollContainerRef} onScroll={handleMessagesScroll} className={`flex-1 overflow-y-auto py-4 space-y-3 min-h-0 ${!chatLoading && !chatScrollReady ? "invisible" : ""}`}>
           {chatLoading ? (
             <div className="flex items-center justify-center h-full">
@@ -2920,6 +2939,16 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         >
           <Users className="h-5 w-5 text-white" />
         </Button>
+      </div>
+
+      {/* Safety notice: SportRise never requests payments or unofficial meetups through messages */}
+      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-200">
+        <ShieldAlert className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+        <p className="text-xs text-blue-800 font-body leading-snug">
+          {lang === "ro"
+            ? "SportRise nu solicită niciodată plăți prin mesaje și nu organizează întâlniri neanunțate oficial prin platformă. Nu trimite bani și nu accepta întâlniri private cerute doar prin chat — raportează orice mesaj suspect."
+            : "SportRise never asks for payments through messages and never arranges unannounced in-person meetings through the platform. Don't send money or accept private meetups requested only through chat — report anything suspicious."}
+        </p>
       </div>
 
       {/* Groups */}

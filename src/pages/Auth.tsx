@@ -43,6 +43,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [scoutDocument, setScoutDocument] = useState<File | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,6 +72,10 @@ const Auth = () => {
     }
     if (REQUIRES_VERIFICATION.includes(role) && !scoutDocument) {
       toast({ title: "Document lipsă", description: "Încarcă un document de verificare pentru acest tip de cont.", variant: "destructive" });
+      return;
+    }
+    if (!agreedToTerms) {
+      toast({ title: t.auth.errorRegister, description: t.auth.agreeTermsRequired, variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -489,7 +494,27 @@ const Auth = () => {
                     </div>
                   )}
 
-                  <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-5" disabled={loading}>
+                  {tab === "register" && (
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <Checkbox
+                        checked={agreedToTerms}
+                        onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <span className="text-sm text-gray-600 font-body leading-snug">
+                        {t.auth.agreeTermsPrefix}{" "}
+                        <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-orange-500 hover:underline font-medium">
+                          {t.auth.termsOfUse}
+                        </a>{" "}
+                        {t.auth.and}{" "}
+                        <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-orange-500 hover:underline font-medium">
+                          {t.auth.privacyPolicy}
+                        </a>
+                      </span>
+                    </label>
+                  )}
+
+                  <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-5" disabled={loading || (tab === "register" && !agreedToTerms)}>
                     {loading ? t.auth.processing : tab === "register" ? t.auth.createBtn : t.auth.loginBtn}
                   </Button>
                 </form>

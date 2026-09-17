@@ -14,6 +14,10 @@ const FooterSection = () => {
             <Link to="/" className="hover:text-orange-600 transition-colors">{t.footer.home}</Link>
             <Link to="/auth?tab=register" className="hover:text-orange-600 transition-colors">{t.footer.register}</Link>
             <Link to="/auth?tab=login" className="hover:text-orange-600 transition-colors">{t.footer.auth}</Link>
+            <Link to="/contact" className="hover:text-orange-600 transition-colors">{t.footer.contact}</Link>
+            <Link to="/terms" className="hover:text-orange-600 transition-colors">{t.footer.terms}</Link>
+            <Link to="/privacy" className="hover:text-orange-600 transition-colors">{t.footer.privacy}</Link>
+            <Link to="/cookies" className="hover:text-orange-600 transition-colors">{t.footer.cookies}</Link>
           </div>
           <p className="text-gray-400 text-xs sm:text-sm font-body">{t.footer.rights}</p>
         </div>

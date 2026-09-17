@@ -42,6 +42,8 @@ import InviteFriendsModal from "./InviteFriendsModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useVideoSubmissions, submitVideoSubmission } from "@/hooks/useVideoSubmissions";
 import { useTestReferenceVideos } from "@/hooks/useTestReferenceVideos";
+import { useVideoConsent } from "@/hooks/useVideoConsent";
+import VideoConsentDialog from "./VideoConsentDialog";
 import { useClubLogos } from "@/hooks/useClubLogos";
 import AddStoryModal from "./AddStoryModal";
 import StoryViewer from "./StoryViewer";
@@ -1573,6 +1575,28 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
   const { videos: testReferenceVideos } = useTestReferenceVideos();
   const technicalTests = getTechnicalTestsBySport(currentSport);
   const isOwner = !readOnly || viewerUserId === userId;
+  const { hasConsented: hasVideoConsent, grantConsent: grantVideoConsent } = useVideoConsent(userId);
+  const [consentDialogOpen, setConsentDialogOpen] = useState(false);
+  const [pendingUploadId, setPendingUploadId] = useState<string | null>(null);
+  const [consentLoading, setConsentLoading] = useState(false);
+  const triggerVideoUpload = (id: string) => {
+    if (hasVideoConsent) {
+      document.getElementById(id)?.click();
+    } else {
+      setPendingUploadId(id);
+      setConsentDialogOpen(true);
+    }
+  };
+  const handleConsentConfirm = async () => {
+    setConsentLoading(true);
+    const { error } = await grantVideoConsent();
+    setConsentLoading(false);
+    if (!error) {
+      setConsentDialogOpen(false);
+      if (pendingUploadId) document.getElementById(pendingUploadId)?.click();
+      setPendingUploadId(null);
+    }
+  };
   const unlocks = useTestUnlocks(
     userId,
     viewerUserId,
@@ -1743,7 +1767,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                               </div>
                               <div className="relative">
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                                  onClick={() => document.getElementById(`inline-${test.uploadId}`)?.click()}>
+                                  onClick={() => triggerVideoUpload(`inline-${test.uploadId}`)}>
                                   <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
                                   <span className="text-xs text-muted-foreground font-body block mt-1">{tt.orUploadVideo}</span>
                                 </div>
@@ -2008,7 +2032,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                       </div>
                       <div className="relative mt-2">
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                          onClick={() => document.getElementById(test.uploadId)?.click()}>
+                          onClick={() => triggerVideoUpload(test.uploadId)}>
                           <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
                           <span className="text-xs text-muted-foreground font-body block mt-1">{tt.orUploadVideo}</span>
                         </div>
@@ -2196,7 +2220,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                       </div>
                       <div className="relative">
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                          onClick={() => document.getElementById(`inline-${test.uploadId}`)?.click()}>
+                          onClick={() => triggerVideoUpload(`inline-${test.uploadId}`)}>
                           <Upload className="h-5 w-5 text-muted-foreground mx-auto" />
                           <span className="text-xs text-muted-foreground font-body block mt-1">{tt.orUploadVideo}</span>
                         </div>
@@ -2276,6 +2300,12 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
         setShowInviteModal(false);
         unlocks.refetch();
       }}
+    />
+    <VideoConsentDialog
+      open={consentDialogOpen}
+      onOpenChange={(o) => { setConsentDialogOpen(o); if (!o) setPendingUploadId(null); }}
+      onConfirm={handleConsentConfirm}
+      loading={consentLoading}
     />
     </>
   );

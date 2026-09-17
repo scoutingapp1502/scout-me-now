@@ -432,7 +432,7 @@ const Dashboard = () => {
     "settings", "saved", "archive", "your-activity", "likes-activity", "recently-deleted",
     "time-management", "notification-settings", "sleep-mode-settings", "account-privacy",
     "blocked", "messages-replies", "comments", "sharing-reuse", "follow-invite", "favourites",
-    "like-share-counts", "language", "help", "about",
+    "like-share-counts", "language", "help", "about", "terms", "privacy-policy",
   ];
   const showLightMain = activeSection === "profile" || activeSection === "messages" || activeSection === "notifications" || activeSection === "activity" || activeSection === "player-notes" || communitySections.includes(activeSection) || settingsSections.includes(activeSection);
 
@@ -505,7 +505,6 @@ const Dashboard = () => {
               <button onClick={() => setSidebarOpen(true)} className="text-gray-900">
                 <Menu className="h-6 w-6" />
               </button>
-              <span className="text-lg">⚽</span>
               <SportriseWordmark className="text-lg" />
             </header>
             <main className={`flex-1 min-w-0 p-4 overflow-y-auto overflow-x-hidden ${showLightMain ? "bg-gray-200" : "bg-background"}`}>

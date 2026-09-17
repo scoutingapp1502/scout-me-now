@@ -12,6 +12,10 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminVideoReview from "./pages/AdminVideoReview";
 import ExternalRecommend from "./pages/ExternalRecommend";
 import JoinGroup from "./pages/JoinGroup";
+import PublicTerms from "./pages/PublicTerms";
+import PublicPrivacy from "./pages/PublicPrivacy";
+import PublicCookies from "./pages/PublicCookies";
+import PublicContact from "./pages/PublicContact";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +36,10 @@ const App = () => (
             <Route path="/admin/video-review" element={<AdminVideoReview />} />
             <Route path="/recommend" element={<ExternalRecommend />} />
             <Route path="/join-group/:token" element={<JoinGroup />} />
+            <Route path="/terms" element={<PublicTerms />} />
+            <Route path="/privacy" element={<PublicPrivacy />} />
+            <Route path="/cookies" element={<PublicCookies />} />
+            <Route path="/contact" element={<PublicContact />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
