@@ -66,6 +66,17 @@ const Auth = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    const missingRequiredField =
+      !fullName.trim() ||
+      !email.trim() ||
+      !password ||
+      !confirmPassword ||
+      (role === "player" && (!sport || !gender)) ||
+      (role === "cauta_jucator" && selectedSports.length === 0);
+    if (missingRequiredField) {
+      toast({ title: t.auth.errorRegister, description: t.auth.requiredFieldsError, variant: "destructive" });
+      return;
+    }
     if (password !== confirmPassword) {
       toast({ title: t.auth.errorRegister, description: t.auth.passwordsMismatch, variant: "destructive" });
       return;
