@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Star, Plus, X, Minus } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
 import { useLanguage } from "@/i18n/LanguageContext";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -200,7 +201,7 @@ function ImageBlockContent({
   if (block.url) {
     return (
       <div className="space-y-2">
-        <img src={block.url} alt={block.name} className="max-w-full rounded-lg border border-gray-200 object-cover" style={{ maxHeight: 300 }} />
+        <SignedImg src={block.url} alt={block.name} className="max-w-full rounded-lg border border-gray-200 object-cover" style={{ maxHeight: 300 }} />
         <button type="button" onClick={() => onUpdate({ ...block, url: "", name: "" })}
           className="text-xs text-gray-500 hover:text-gray-900 underline">
           {ro ? "Schimbă imaginea" : "Change image"}

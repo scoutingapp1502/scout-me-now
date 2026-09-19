@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, Rocket, ImagePlus, X, Trash2, Send } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
@@ -170,7 +171,7 @@ export default function AdminSportrisePosts({ embedded }: { embedded?: boolean }
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm text-gray-900 whitespace-pre-wrap">{p.content}</p>
-                    {p.image_url && <img src={p.image_url} alt="" className="max-h-32 rounded-lg object-cover mt-2" />}
+                    {p.image_url && <SignedImg src={p.image_url} alt="" className="max-h-32 rounded-lg object-cover mt-2" />}
                     <p className="text-[11px] text-gray-400 mt-2">
                       {new Date(p.created_at).toLocaleDateString("ro-RO", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </p>

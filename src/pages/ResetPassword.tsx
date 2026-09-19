@@ -126,11 +126,11 @@ const ResetPassword = () => {
               <form onSubmit={handleReset} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="newPassword" className="font-body">{t.auth.newPassword}</Label>
-                  <Input id="newPassword" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
+                  <Input id="newPassword" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={8} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword" className="font-body">{t.auth.confirmPassword}</Label>
-                  <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
+                  <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={8} />
                 </div>
                 <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-5" disabled={loading}>
                   {loading ? t.auth.processing : t.auth.resetPassword}

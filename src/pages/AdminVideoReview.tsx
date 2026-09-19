@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle, XCircle, Clock, Video, Star } from "lucide-react";
+import { SignedVideo, SignedLink } from "@/components/SignedSrc";
 
 const athleticTestUnits: Record<string, { unit: "secunde" | "cm"; label: string }> = {
   speed_video: { unit: "secunde", label: "Timp (secunde)" },
@@ -210,19 +211,19 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                       <p className="text-xs text-gray-500 mt-1">Note: {sub.reviewer_notes}</p>
                     )}
                   </div>
-                  <a
+                  <SignedLink
                     href={sub.video_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-orange-500 text-xs underline whitespace-nowrap"
                   >
                     Vezi video →
-                  </a>
+                  </SignedLink>
                 </div>
 
                 {/* Video preview */}
                 {sub.video_url && !sub.video_url.includes("youtube") && !sub.video_url.includes("youtu.be") && (
-                  <video
+                  <SignedVideo
                     src={sub.video_url}
                     controls
                     className="w-full max-h-64 rounded-md mt-3 bg-black"

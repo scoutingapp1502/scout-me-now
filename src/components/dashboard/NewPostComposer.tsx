@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAccountLock } from "@/hooks/useAccountLock";
+import { moderateUploadedPost } from "@/lib/videoModeration";
 
 const POST_TYPES = [
   { value: "general", labelRo: "General", labelEn: "General" },
@@ -19,7 +20,7 @@ interface NewPostComposerProps {
   currentUserId: string;
   myPhoto?: string | null;
   myRole?: "player" | "cauta_jucator" | null;
-  onPosted: (post?: { id: string; content: string; image_url: string | null; video_url: string | null; post_type: string; created_at: string }) => void;
+  onPosted: (post?: { id: string; content: string; image_url: string | null; video_url: string | null; post_type: string; created_at: string; moderation_status: string }) => void;
 }
 
 const NewPostComposer = ({ currentUserId, myPhoto, myRole, onPosted }: NewPostComposerProps) => {
@@ -98,6 +99,7 @@ const NewPostComposer = ({ currentUserId, myPhoto, myRole, onPosted }: NewPostCo
       imageUrl = urlData.publicUrl;
     }
     let videoUrl: string | null = null;
+    let videoStoragePath: string | null = null;
     if (videoFile) {
       const ext = videoFile.name.split(".").pop();
       const path = `${currentUserId}/${Date.now()}-video.${ext}`;
@@ -109,7 +111,12 @@ const NewPostComposer = ({ currentUserId, myPhoto, myRole, onPosted }: NewPostCo
       }
       const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
       videoUrl = urlData.publicUrl;
+      videoStoragePath = path;
     }
+    // Every post (text, photo, or video) goes through the same moderation
+    // pipeline now, so moderation_status always starts 'pending' here and
+    // moderateUploadedPost below is what actually resolves it — nothing is
+    // auto-approved just for lacking an attachment.
     const { data, error } = myRole === "cauta_jucator"
       ? await supabase
           .from("scout_posts")
@@ -118,7 +125,7 @@ const NewPostComposer = ({ currentUserId, myPhoto, myRole, onPosted }: NewPostCo
           .single()
       : await supabase
           .from("posts")
-          .insert({ user_id: currentUserId, content: newContent.trim(), image_url: imageUrl, video_url: videoUrl, post_type: newType } as any)
+          .insert({ user_id: currentUserId, content: newContent.trim(), image_url: imageUrl, video_url: videoUrl, post_type: newType, moderation_status: "pending" } as any)
           .select()
           .single();
     if (error) {
@@ -135,7 +142,23 @@ const NewPostComposer = ({ currentUserId, myPhoto, myRole, onPosted }: NewPostCo
         video_url: (data as any).video_url ?? null,
         post_type: (data as any).post_type ?? (myRole === "cauta_jucator" ? "scout" : newType),
         created_at: (data as any).created_at,
+        moderation_status: (data as any).moderation_status ?? "pending",
       } : undefined);
+
+      // Every post (text, photo, or video) stays hidden from everyone but
+      // the author/admins until this resolves — never blocks the toast/UI
+      // above, runs in the background. scout_posts has no moderation_status
+      // column yet, so this only applies to player posts for now.
+      if (data && myRole !== "cauta_jucator") {
+        moderateUploadedPost({
+          videoFile,
+          videoBucket: "player-videos",
+          videoStoragePath,
+          imageFile,
+          contentId: (data as any).id,
+          caption: newContent.trim(),
+        }).catch((err) => console.error("Moderation pipeline failed:", err));
+      }
     }
     setPosting(false);
   };

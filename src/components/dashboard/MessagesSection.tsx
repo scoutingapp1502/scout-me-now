@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageSquare, User, Loader2, ArrowLeft, Send, Search, X, Smile, Users, Check, CheckCheck, Link2, UserPlus, ChevronRight, MoreHorizontal, Lock, Bell, LogOut, Ban, Film, Image as ImageIcon, Paperclip, FileText, ShieldAlert } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
+import { getSignedMediaUrl, openSignedUrl } from "@/lib/signedMedia";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -8,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Switch } from "@/components/ui/switch";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { usePresence } from "@/hooks/usePresence";
 import { useAccountLock } from "@/hooks/useAccountLock";
@@ -73,8 +76,9 @@ const isImageAttachment = (attachmentType?: string | null, attachmentName?: stri
 };
 
 const downloadAttachment = async (url: string, name: string) => {
+  const target = (await getSignedMediaUrl(url)) ?? url;
   try {
-    const res = await fetch(url);
+    const res = await fetch(target);
     const blob = await res.blob();
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -87,7 +91,7 @@ const downloadAttachment = async (url: string, name: string) => {
   } catch {
     // Cross-origin fetch failed (e.g. storage CORS) — fall back to a plain
     // navigation, which still downloads for same-origin-configured buckets.
-    window.open(url, "_blank");
+    window.open(target, "_blank");
   }
 };
 
@@ -243,7 +247,7 @@ const SharedStoryCard = ({ story, onClick, lang }: { story: SharedStory; onClick
       className={`w-40 rounded-xl overflow-hidden border-2 border-gradient bg-white ${onClick ? "cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
       style={{ borderImage: "linear-gradient(135deg, #f97316, #a855f7) 1" }}
     >
-      <img src={story.mediaUrl} alt="" className="w-full aspect-[9/16] object-cover" />
+      <SignedImg src={story.mediaUrl} alt="" className="w-full aspect-[9/16] object-cover" />
       <div className="px-2 py-1.5 bg-white">
         <span className="text-[11px] text-gray-500 font-body">
           {lang === "ro" ? `Story de la ${story.ownerName}` : `Story from ${story.ownerName}`}
@@ -259,7 +263,7 @@ const SharedPostCard = ({ post, onClick }: { post: SharedPost; onClick?: () => v
     className={`w-56 rounded-xl overflow-hidden border border-gray-200 bg-white ${onClick ? "cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
   >
     {post.imageUrl ? (
-      <img src={post.imageUrl} alt="" className="w-full aspect-square object-cover" />
+      <SignedImg src={post.imageUrl} alt="" className="w-full aspect-square object-cover" />
     ) : post.videoUrl ? (
       <div className="w-full aspect-square bg-gray-100 flex items-center justify-center">
         <Film className="h-8 w-8 text-gray-500" />
@@ -405,6 +409,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [dmSearchQuery, setDmSearchQuery] = useState("");
   const [highlightedDmMsgId, setHighlightedDmMsgId] = useState<string | null>(null);
   const [blockingUser, setBlockingUser] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
   const { toast } = useToast();
 
   // Viewing a shared post
@@ -1044,6 +1051,39 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     </AlertDialog>
   );
 
+  const reportUserDialog = (
+    <Dialog open={showReportDialog} onOpenChange={(open) => { if (!open) { setShowReportDialog(false); setReportReason(""); } }}>
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
+        <DialogTitle>{lang === "ro" ? `Raportează pe ${selectedConversation?.other_name ?? ""}` : `Report ${selectedConversation?.other_name ?? ""}`}</DialogTitle>
+        <p className="text-sm text-gray-500 font-body -mt-2">
+          {lang === "ro"
+            ? "SportRise nu solicită niciodată plăți prin mesaje și nu organizează întâlniri neanunțate oficial prin platformă. Descrie ce s-a întâmplat."
+            : "SportRise never requests payments through messages and doesn't arrange meetings unofficially through the platform. Describe what happened."}
+        </p>
+        <Textarea
+          value={reportReason}
+          onChange={(e) => setReportReason(e.target.value)}
+          placeholder={lang === "ro" ? "Descrie motivul raportării..." : "Describe the reason for the report..."}
+          className="font-body text-sm resize-none"
+          rows={4}
+        />
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => { setShowReportDialog(false); setReportReason(""); }}>
+            {lang === "ro" ? "Anulează" : "Cancel"}
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={!reportReason.trim() || submittingReport}
+            onClick={handleSubmitReport}
+          >
+            {submittingReport ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {lang === "ro" ? "Trimite raportul" : "Submit report"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   const readByDialog = (
     <Dialog open={!!readByDialogMessageId} onOpenChange={(open) => { if (!open) { setReadByDialogMessageId(null); setReadByNames([]); } }}>
       <DialogContent className="max-w-sm bg-white border-gray-200 text-gray-900">
@@ -1075,7 +1115,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         <Button variant="ghost" size="icon" onClick={() => setPhotoModal(null)} className="absolute -top-10 right-0 text-white hover:text-white/80">
           <X className="h-5 w-5" />
         </Button>
-        <img src={photoModal.url} alt={photoModal.name} className="w-full h-auto rounded-xl object-contain max-h-[80vh]" />
+        <SignedImg src={photoModal.url} alt={photoModal.name} className="w-full h-auto rounded-xl object-contain max-h-[80vh]" />
       </div>
     </div>
   );
@@ -1247,6 +1287,25 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     } else {
       toast({ title: lang === "ro" ? "Eroare la blocare." : "Error blocking.", variant: "destructive" });
     }
+  };
+
+  const handleSubmitReport = async () => {
+    if (!currentUserId || !selectedConversation || !reportReason.trim()) return;
+    setSubmittingReport(true);
+    const { error } = await (supabase as any).from("support_tickets").insert({
+      user_id: currentUserId,
+      reported_user_id: selectedConversation.other_user_id,
+      category: "report_user",
+      message: reportReason.trim(),
+    });
+    setSubmittingReport(false);
+    if (error) {
+      toast({ title: lang === "ro" ? "Eroare la trimiterea raportului." : "Error submitting report.", variant: "destructive" });
+      return;
+    }
+    toast({ title: lang === "ro" ? "Raport trimis. Echipa noastră îl va analiza." : "Report submitted. Our team will review it." });
+    setShowReportDialog(false);
+    setReportReason("");
   };
 
   const GROUP_MESSAGE_COLUMNS = "id, group_id, sender_id, content, created_at, deleted_at, shared_post_id, attachment_url, attachment_name, attachment_size, attachment_type";
@@ -1704,7 +1763,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                       onClick={() => m.shared_post_id && handleViewPost(m.shared_post_id)}
                       className="aspect-square overflow-hidden rounded-md bg-gray-100 hover:opacity-90 transition-opacity"
                     >
-                      <img src={m.sharedPost!.imageUrl!} alt="" className="w-full h-full object-cover" />
+                      <SignedImg src={m.sharedPost!.imageUrl!} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -1774,7 +1833,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                   {docItems.map(m => (
                     <a
                       key={m.id}
-                      href={m.attachment_url!}
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); openSignedUrl(m.attachment_url!); }}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 py-3 px-1 -mx-1 hover:bg-gray-50 transition-colors rounded-lg"
@@ -2215,7 +2275,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                       <div className={`rounded-xl transition-colors duration-500 ${highlightedGroupMsgId === msg.id ? "ring-2 ring-primary" : ""}`}>
                         {isImageAttachment(msg.attachment_type, msg.attachment_name) ? (
                           <button type="button" onClick={() => setPhotoModal({ url: msg.attachment_url!, name: msg.attachment_name || "" })} className="block">
-                            <img src={msg.attachment_url} alt={msg.attachment_name || ""} className="max-w-full max-h-64 rounded-xl object-cover" />
+                            <SignedImg src={msg.attachment_url} alt={msg.attachment_name || ""} className="max-w-full max-h-64 rounded-xl object-cover" />
                           </button>
                         ) : (
                           <button
@@ -2455,7 +2515,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                       onClick={() => m.shared_post_id && handleViewPost(m.shared_post_id)}
                       className="aspect-square overflow-hidden rounded-md bg-gray-100 hover:opacity-90 transition-opacity"
                     >
-                      <img src={m.sharedPost!.imageUrl!} alt="" className="w-full h-full object-cover" />
+                      <SignedImg src={m.sharedPost!.imageUrl!} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -2525,7 +2585,8 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                   {docItems.map(m => (
                     <a
                       key={m.id}
-                      href={m.attachment_url!}
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); openSignedUrl(m.attachment_url!); }}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 py-3 px-1 -mx-1 hover:bg-gray-50 transition-colors rounded-lg"
@@ -2606,6 +2667,9 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="center" className="bg-white border-gray-200 text-gray-900">
+                  <DropdownMenuItem onClick={() => { setReportReason(""); setShowReportDialog(true); }} className="focus:bg-gray-100">
+                    <ShieldAlert className="h-4 w-4 mr-2" /> {lang === "ro" ? "Raportează" : "Report"}
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleBlockUser} disabled={blockingUser} className="text-destructive focus:text-destructive focus:bg-gray-100">
                     <Ban className="h-4 w-4 mr-2" /> {lang === "ro" ? "Blochează" : "Block"}
                   </DropdownMenuItem>
@@ -2759,7 +2823,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
                     >
                       {isImageAttachment(msg.attachment_type, msg.attachment_name) ? (
                         <button type="button" onClick={() => setPhotoModal({ url: msg.attachment_url!, name: msg.attachment_name || "" })} className="block">
-                          <img src={msg.attachment_url} alt={msg.attachment_name || ""} className="max-w-full max-h-64 rounded-xl object-cover" />
+                          <SignedImg src={msg.attachment_url} alt={msg.attachment_name || ""} className="max-w-full max-h-64 rounded-xl object-cover" />
                         </button>
                       ) : (
                         <button
@@ -2920,6 +2984,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         {viewPostDialog}
         {storyViewerDialog}
         {deleteMessageDialog}
+        {reportUserDialog}
       </div>
     );
   }

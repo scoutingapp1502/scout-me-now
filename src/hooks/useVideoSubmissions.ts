@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { moderateUploadedVideo } from "@/lib/videoModeration";
 
 export interface VideoSubmission {
   id: string;
@@ -7,6 +8,7 @@ export interface VideoSubmission {
   test_key: string;
   video_url: string;
   status: string;
+  moderation_status?: string;
   grade: number | null;
   reviewer_notes: string | null;
   reviewed_by: string | null;
@@ -17,7 +19,15 @@ export interface VideoSubmission {
 
 // Standalone so callers that don't need the hook's reactive submissions
 // list (e.g. a profile save handler) can still submit a video for review.
-export async function submitVideoSubmission(testKey: string, videoUrl: string, currentUserId: string) {
+// `videoFile`/`storagePath` are optional so existing call sites that only
+// have the already-uploaded URL keep working; passing them runs the content
+// moderation pipeline (independent of the test-grading review below).
+export async function submitVideoSubmission(
+  testKey: string,
+  videoUrl: string,
+  currentUserId: string,
+  moderation?: { videoFile: File; storagePath: string }
+) {
   const { data, error } = await supabase
     .from("video_submissions")
     .upsert(
@@ -34,6 +44,15 @@ export async function submitVideoSubmission(testKey: string, videoUrl: string, c
       });
     } catch (e) {
       console.warn("Email notification failed:", e);
+    }
+    if (moderation && data) {
+      moderateUploadedVideo({
+        file: moderation.videoFile,
+        bucket: "player-videos",
+        storagePath: moderation.storagePath,
+        contentType: "test_video",
+        contentId: (data as any).id,
+      }).catch((err) => console.error("Video moderation pipeline failed:", err));
     }
   }
   return { data, error };
@@ -60,8 +79,13 @@ export function useVideoSubmissions(userId?: string) {
     fetchSubmissions();
   }, [fetchSubmissions]);
 
-  const submitVideo = async (testKey: string, videoUrl: string, currentUserId: string) => {
-    const result = await submitVideoSubmission(testKey, videoUrl, currentUserId);
+  const submitVideo = async (
+    testKey: string,
+    videoUrl: string,
+    currentUserId: string,
+    moderation?: { videoFile: File; storagePath: string }
+  ) => {
+    const result = await submitVideoSubmission(testKey, videoUrl, currentUserId, moderation);
     if (!result.error) {
       await fetchSubmissions();
     }

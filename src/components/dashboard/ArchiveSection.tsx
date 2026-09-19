@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Calendar, RotateCcw, X, ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -86,7 +87,7 @@ function CalendarView({ stories }: { stories: ArchivedStory[] }) {
       {preview && (
         <div className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center" onClick={() => setPreview(null)}>
           <button className="absolute top-4 right-4 text-white p-2" onClick={() => setPreview(null)}><X className="h-6 w-6" /></button>
-          <img src={preview.media_url} alt="" className="max-w-[90vw] max-h-[80vh] rounded-xl object-contain" />
+          <SignedImg src={preview.media_url} alt="" className="max-w-[90vw] max-h-[80vh] rounded-xl object-contain" />
         </div>
       )}
       {months.map(({ year, month }) => {
@@ -111,7 +112,7 @@ function CalendarView({ stories }: { stories: ArchivedStory[] }) {
                   <div key={day} className="flex flex-col items-center gap-0.5">
                     {hasStory ? (
                       <button onClick={() => setPreview(dayStories[0])} className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-orange-500/60 hover:ring-orange-500 transition-all">
-                        <img src={dayStories[0].media_url} alt="" className="w-full h-full object-cover" />
+                        <SignedImg src={dayStories[0].media_url} alt="" className="w-full h-full object-cover" />
                       </button>
                     ) : (
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isToday ? "bg-orange-500" : ""}`}>
@@ -285,7 +286,7 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
                           <div className="grid grid-cols-3 gap-0.5">
                             {items.map(s => (
                               <button key={s.id} onClick={() => setPreview(s)} className="aspect-[9/16] overflow-hidden relative">
-                                <img src={s.media_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
+                                <SignedImg src={s.media_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
                                 {s.overlay_text && (
                                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <span className="text-white text-[10px] font-bold text-center px-1 drop-shadow line-clamp-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
@@ -325,7 +326,7 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
                   {posts.map(p => (
                     <div key={p.id} className="aspect-square overflow-hidden bg-gray-100 relative">
                       {p.image_url ? (
-                        <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                        <SignedImg src={p.image_url} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center p-2">
                           <p className="text-xs text-gray-500 font-body text-center line-clamp-4">{p.content}</p>
@@ -347,7 +348,7 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
             <X className="h-6 w-6" />
           </button>
           <div className="relative max-w-sm w-full mx-4">
-            <img src={preview.media_url} alt="" className="w-full rounded-xl object-contain max-h-[80vh]" />
+            <SignedImg src={preview.media_url} alt="" className="w-full rounded-xl object-contain max-h-[80vh]" />
             {preview.overlay_text && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <span className="text-white text-2xl font-bold text-center px-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"

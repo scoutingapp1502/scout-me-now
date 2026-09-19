@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight, User, Heart, Send, Forward } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -249,7 +250,7 @@ export default function StoryViewer({ userId, open, onClose, displayName, avatar
 
               {/* Image */}
               <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
-                <img
+                <SignedImg
                   src={current.media_url}
                   alt=""
                   className="w-full h-full object-contain"

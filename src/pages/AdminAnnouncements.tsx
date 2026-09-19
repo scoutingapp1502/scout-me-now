@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Edit2, Loader2, Megaphone, X, ImagePlus, Video, Paperclip, FileText } from "lucide-react";
+import { SignedImg, SignedVideo, SignedLink } from "@/components/SignedSrc";
 import type { Language } from "@/i18n/translations";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -386,14 +387,14 @@ export default function AdminAnnouncements({ embedded }: { embedded?: boolean } 
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{a.title}</p>
                     <p className="text-sm text-gray-500 whitespace-pre-wrap mt-1">{a.content}</p>
-                    {a.image_url && <img src={a.image_url} alt="" className="max-h-32 rounded-lg object-cover mt-2" />}
-                    {a.video_url && <video src={a.video_url} className="max-h-32 rounded-lg mt-2" controls />}
+                    {a.image_url && <SignedImg src={a.image_url} alt="" className="max-h-32 rounded-lg object-cover mt-2" />}
+                    {a.video_url && <SignedVideo src={a.video_url} className="max-h-32 rounded-lg mt-2" controls />}
                     {a.document_urls?.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {a.document_urls.map((url) => (
-                          <a key={url} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-orange-600 hover:underline bg-gray-100 rounded-full px-2 py-1">
+                          <SignedLink key={url} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-orange-600 hover:underline bg-gray-100 rounded-full px-2 py-1">
                             <FileText className="h-3 w-3" />{getFileName(url)}
-                          </a>
+                          </SignedLink>
                         ))}
                       </div>
                     )}

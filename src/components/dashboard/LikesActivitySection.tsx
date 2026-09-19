@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, ChevronDown, Video, User, Search } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -336,7 +337,7 @@ export default function LikesActivitySection({ userId, onBack, onViewProfile }: 
                   className={`aspect-square overflow-hidden bg-gray-100 relative ${isSelected ? "opacity-80" : ""}`}
                 >
                   {lp.post.image_url ? (
-                    <img src={lp.post.image_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
+                    <SignedImg src={lp.post.image_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
                   ) : lp.post.video_url ? (
                     <div className="w-full h-full bg-gray-100/60 flex items-center justify-center"><Video className="h-6 w-6 text-white/80" /></div>
                   ) : (

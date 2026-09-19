@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, Clock } from "lucide-react";
+import { Loader2, CheckCircle, Clock, ShieldOff, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,10 @@ interface SupportTicket {
   admin_notes: string | null;
   created_at: string;
   resolved_at: string | null;
+  reported_user_id: string | null;
   reporter_name?: string;
+  reported_name?: string;
+  reported_banned?: boolean;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,6 +35,7 @@ export default function AdminSupportTickets() {
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState<string | null>(null);
+  const [banning, setBanning] = useState<string | null>(null);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -47,16 +51,47 @@ export default function AdminSupportTickets() {
     }
 
     const userIds = (data || []).map((t: any) => t.user_id);
+    const reportedIds = [...new Set((data || []).map((t: any) => t.reported_user_id).filter(Boolean))] as string[];
+    const allProfileIds = [...new Set([...userIds, ...reportedIds])];
     const [playerRes, scoutRes] = await Promise.all([
-      supabase.from("player_profiles").select("user_id, first_name, last_name").in("user_id", userIds),
-      supabase.from("scout_profiles").select("user_id, first_name, last_name").in("user_id", userIds),
+      supabase.from("player_profiles").select("user_id, first_name, last_name").in("user_id", allProfileIds),
+      supabase.from("scout_profiles").select("user_id, first_name, last_name").in("user_id", allProfileIds),
     ]);
     const nameByUserId = new Map<string, string>();
     (playerRes.data || []).forEach((p: any) => nameByUserId.set(p.user_id, `${p.first_name} ${p.last_name}`.trim()));
     (scoutRes.data || []).forEach((s: any) => { if (!nameByUserId.has(s.user_id)) nameByUserId.set(s.user_id, `${s.first_name} ${s.last_name}`.trim()); });
 
-    setTickets((data || []).map((t: any) => ({ ...t, reporter_name: nameByUserId.get(t.user_id) || "Utilizator" })));
+    // Ban status can only be read by an admin-gated RPC (auth.users isn't
+    // exposed through PostgREST) — checked once per distinct reported user,
+    // not once per ticket, since the same person can be reported multiple times.
+    const bannedByUserId = new Map<string, boolean>();
+    await Promise.all(reportedIds.map(async (id) => {
+      const { data: isBanned } = await (supabase as any).rpc("is_user_banned", { _user_id: id });
+      bannedByUserId.set(id, !!isBanned);
+    }));
+
+    setTickets((data || []).map((t: any) => ({
+      ...t,
+      reporter_name: nameByUserId.get(t.user_id) || "Utilizator",
+      reported_name: t.reported_user_id ? (nameByUserId.get(t.reported_user_id) || "Utilizator") : undefined,
+      reported_banned: t.reported_user_id ? bannedByUserId.get(t.reported_user_id) : undefined,
+    })));
     setLoading(false);
+  };
+
+  const handleBanToggle = async (ticket: SupportTicket, action: "ban" | "unban") => {
+    if (!ticket.reported_user_id) return;
+    setBanning(ticket.id);
+    const { error } = await supabase.functions.invoke("ban-user", {
+      body: { userId: ticket.reported_user_id, action },
+    });
+    setBanning(null);
+    if (error) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: action === "ban" ? "Cont blocat." : "Cont deblocat." });
+    await fetchTickets();
   };
 
   useEffect(() => { fetchTickets(); }, []);
@@ -129,6 +164,41 @@ export default function AdminSupportTickets() {
           <p className="text-sm text-gray-900 font-body bg-gray-100 rounded-lg px-3 py-2 whitespace-pre-wrap">
             {ticket.message}
           </p>
+
+          {ticket.reported_user_id && (
+            <div className="flex items-center justify-between gap-3 flex-wrap rounded-lg border border-orange-200 bg-orange-50 px-3 py-2.5">
+              <div>
+                <p className="text-xs text-gray-500 font-body">Utilizator raportat</p>
+                <p className="text-sm font-semibold font-body text-gray-900">
+                  {ticket.reported_name}
+                  {ticket.reported_banned && <span className="ml-2 text-xs font-normal text-red-600">(cont blocat)</span>}
+                </p>
+              </div>
+              {ticket.reported_banned ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                  disabled={banning === ticket.id}
+                  onClick={() => handleBanToggle(ticket, "unban")}
+                >
+                  {banning === ticket.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  Deblochează contul
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="gap-2"
+                  disabled={banning === ticket.id}
+                  onClick={() => handleBanToggle(ticket, "ban")}
+                >
+                  {banning === ticket.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
+                  Blochează contul
+                </Button>
+              )}
+            </div>
+          )}
 
           {ticket.status !== "resolved" && (
             <div className="space-y-3">

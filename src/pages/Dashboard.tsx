@@ -47,6 +47,8 @@ import { getTechnicalTestsBySport, getTestLabelByKey } from "@/components/dashbo
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useMaintenanceMode } from "@/hooks/useMaintenanceMode";
 import MaintenancePage from "@/pages/MaintenancePage";
+import { useLegalConsent } from "@/hooks/useLegalConsent";
+import LegalConsentDialog from "@/components/dashboard/LegalConsentDialog";
 import { Wrench, X } from "lucide-react";
 
 function maintenanceBannerText(maintenance: ReturnType<typeof useMaintenanceMode>, lang: string, compact: boolean): string {
@@ -100,6 +102,7 @@ const Dashboard = () => {
   useTimeTracking(user?.id ?? null);
   const maintenance = useMaintenanceMode();
   const [maintenanceBannerDismissed, setMaintenanceBannerDismissed] = useState(false);
+  const legalConsent = useLegalConsent(user?.id ?? null);
 
   useEffect(() => {
     let isMounted = true;
@@ -440,6 +443,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col h-screen bg-background dark overflow-hidden">
+      <LegalConsentDialog open={legalConsent.needsConsent} onAccept={legalConsent.accept} />
       {showMaintenanceBanner && (
         <div className="shrink-0 flex items-start gap-2 px-3 sm:px-4 py-1.5 bg-amber-50 border-b border-amber-200 text-amber-800 text-xs sm:text-sm font-body">
           <Wrench className="h-3.5 w-3.5 shrink-0 mt-0.5" />

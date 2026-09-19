@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Bookmark, Loader2 } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -186,7 +187,7 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
               className="aspect-square bg-gray-100 overflow-hidden relative hover:opacity-80 transition-opacity"
             >
               {savedPost.post.image_url ? (
-                <img src={savedPost.post.image_url} alt="" className="w-full h-full object-cover" />
+                <SignedImg src={savedPost.post.image_url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex flex-col p-2.5 bg-white border border-gray-200/30">
                   <div className="flex items-center gap-1.5 mb-1.5 min-w-0">

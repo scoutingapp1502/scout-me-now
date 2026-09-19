@@ -1,6 +1,7 @@
 import { useLanguage } from "@/i18n/LanguageContext";
 import LegalDocPage from "@/components/legal/LegalDocPage";
 import { PRIVACY_SECTIONS_RO, PRIVACY_SECTIONS_EN } from "@/components/dashboard/PrivacyPolicySection";
+import { PRIVACY_VERSION, legalLastUpdatedLabel } from "@/lib/legalVersions";
 
 const PublicPrivacy = () => {
   const { lang } = useLanguage();
@@ -10,7 +11,7 @@ const PublicPrivacy = () => {
     <LegalDocPage
       eyebrow="LEGAL"
       title={lang === "ro" ? "Politica de Confidențialitate" : "Privacy Policy"}
-      lastUpdated={lang === "ro" ? "Ultima actualizare: 17 septembrie 2026 · Versiunea 2.0" : "Last updated: September 17, 2026 · Version 2.0"}
+      lastUpdated={legalLastUpdatedLabel(lang, PRIVACY_VERSION)}
       tocLabel={lang === "ro" ? "Cuprins" : "Table of Contents"}
       sections={sections}
       backLabel={lang === "ro" ? "Înapoi" : "Back"}

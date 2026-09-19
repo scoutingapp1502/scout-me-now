@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Camera, Loader2, User } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
@@ -147,7 +148,7 @@ export default function AddStoryModal({ userId, open, onClose, onPosted, userPho
                   ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="aspect-square bg-muted animate-pulse" />)
                   : recentImages.map((img) => (
                       <button key={img.id} onClick={() => selectImage(img.url)} className="aspect-square overflow-hidden">
-                        <img src={img.url} alt="" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
+                        <SignedImg src={img.url} alt="" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
                       </button>
                     ))}
                 {!loadingImages && recentImages.length === 0 && (
@@ -186,7 +187,7 @@ export default function AddStoryModal({ userId, open, onClose, onPosted, userPho
 
             {/* Image */}
             <div className="flex-1 bg-black relative overflow-hidden">
-              <img src={selectedUrl} alt="Story preview" className="w-full h-full object-contain" />
+              <SignedImg src={selectedUrl} alt="Story preview" className="w-full h-full object-contain" />
               {/* Text overlay */}
               {overlayText && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -232,7 +233,7 @@ export default function AddStoryModal({ userId, open, onClose, onPosted, userPho
           <>
             {/* Image background */}
             <div className="absolute inset-0 z-0">
-              <img src={selectedUrl} alt="" className="w-full h-full object-contain" />
+              <SignedImg src={selectedUrl} alt="" className="w-full h-full object-contain" />
               <div className="absolute inset-0 bg-black/40" />
             </div>
 

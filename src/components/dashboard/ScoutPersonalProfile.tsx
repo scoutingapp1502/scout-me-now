@@ -7,6 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users, Lock, FileText, Upload, Download } from "lucide-react";
+import { openSignedUrl } from "@/lib/signedMedia";
+import { SignedImg } from "@/components/SignedSrc";
 import MessageDialog from "./MessageDialog";
 import ScoutExtraSections from "./ScoutExtraSections";
 import RepresentedPlayersSection from "./RepresentedPlayersSection";
@@ -223,7 +225,8 @@ function PlayerReportsSection({ userId, readOnly = false }: { userId: string; re
               </div>
               <div className="flex gap-1.5 shrink-0 mt-0.5">
                 <a
-                  href={report.file_url}
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); openSignedUrl(report.file_url); }}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:text-orange-500 hover:border-orange-300 transition-colors font-body"
@@ -1001,7 +1004,7 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
               {/* Post image */}
               {post.image_url && (
                 <div className="w-full">
-                  <img src={post.image_url} alt="" className="w-full object-cover max-h-64" />
+                  <SignedImg src={post.image_url} alt="" className="w-full object-cover max-h-64" />
                 </div>
               )}
 

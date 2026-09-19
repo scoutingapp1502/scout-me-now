@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone, Menu, Rocket, Wrench } from "lucide-react";
+import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone, Menu, Rocket, Wrench, ShieldAlert, FlaskConical, Ban } from "lucide-react";
 import AdminVideoReview from "@/pages/AdminVideoReview";
+import AdminContentModeration from "@/pages/AdminContentModeration";
+import AdminUsersAtRisk from "@/pages/AdminUsersAtRisk";
 import AdminScoutVerification from "@/pages/AdminScoutVerification";
 import AdminTestVideos from "@/pages/AdminTestVideos";
 import AdminSupportTickets from "@/pages/AdminSupportTickets";
@@ -15,9 +17,21 @@ import { Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
+// Dev-only test panel: dynamic import() behind a literal
+// `import.meta.env.DEV` check lets Vite/Rollup statically eliminate this
+// branch (and everything AdminModerationTestPanel.tsx pulls in) from a
+// `vite build` output entirely — not merely hide it at runtime. A
+// production bundle contains none of this module's code.
+const AdminModerationTestPanel = import.meta.env.DEV
+  ? lazy(() => import("@/pages/AdminModerationTestPanel"))
+  : null;
+
 const adminSections = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
   { id: "video-review", label: "Verificare Videouri", icon: Video },
+  { id: "content-moderation", label: "Moderare Conținut", icon: ShieldAlert },
+  { id: "users-at-risk", label: "Useri cu risc de blocare", icon: Ban },
+  ...(import.meta.env.DEV ? [{ id: "moderation-test", label: "Test Moderare (dev)", icon: FlaskConical }] : []),
   { id: "test-videos", label: "Video-uri Exemplu Teste", icon: Film },
   { id: "club-logos", label: "Logo-uri Cluburi", icon: Image },
   { id: "announcements", label: "Știri și Anunțuri", icon: Megaphone },
@@ -60,15 +74,18 @@ export default function AdminDashboard() {
   }, [navigate, toast]);
 
   const fetchPendingCounts = async () => {
-    const [videos, docs, tickets] = await Promise.all([
+    const [videos, docs, tickets, moderatedPosts, moderatedSubmissions] = await Promise.all([
       supabase.from("video_submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("scout_verification_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
       (supabase as any).from("support_tickets").select("*", { count: "exact", head: true }).neq("status", "resolved"),
+      (supabase as any).from("posts").select("*", { count: "exact", head: true }).in("moderation_status", ["pending", "flagged"]),
+      (supabase as any).from("video_submissions").select("*", { count: "exact", head: true }).in("moderation_status", ["pending", "flagged"]),
     ]);
     setPendingCounts({
       "video-review": videos.count || 0,
       "scout-verification": docs.count || 0,
       "support-tickets": tickets.count || 0,
+      "content-moderation": (moderatedPosts.count || 0) + (moderatedSubmissions.count || 0),
     });
   };
 
@@ -86,6 +103,7 @@ export default function AdminDashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "video_submissions" }, fetchPendingCounts)
       .on("postgres_changes", { event: "*", schema: "public", table: "scout_verification_requests" }, fetchPendingCounts)
       .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, fetchPendingCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, fetchPendingCounts)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [isAdmin]);
@@ -162,6 +180,17 @@ export default function AdminDashboard() {
       )}
       {activeSection === "video-review" && (
         <AdminVideoReview embedded />
+      )}
+      {activeSection === "content-moderation" && (
+        <AdminContentModeration embedded />
+      )}
+      {activeSection === "users-at-risk" && (
+        <AdminUsersAtRisk embedded />
+      )}
+      {activeSection === "moderation-test" && AdminModerationTestPanel && (
+        <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-orange-500" /></div>}>
+          <AdminModerationTestPanel />
+        </Suspense>
       )}
       {activeSection === "test-videos" && (
         <AdminTestVideos embedded />

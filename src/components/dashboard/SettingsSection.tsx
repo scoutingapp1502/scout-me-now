@@ -8,7 +8,7 @@ import {
   Ban, MessageCircle, MessageSquare, Share2, AlertOctagon,
   EyeOff, UserPlus, Heart, VolumeX, LayoutGrid, Film,
   Languages, HelpCircle, Shield, Info,
-  ChevronRight, Trash2, LogOut, UserCheck, Globe, Search,
+  ChevronRight, Trash2, LogOut, UserCheck, Globe, Search, Download, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ type SettingsItem = {
   labelKey: keyof TranslationKeys["dashboard"]["settings"];
   id: string;
   value?: string;
-  action?: "soon" | "password" | "delete" | "logout";
+  action?: "soon" | "password" | "delete" | "logout" | "export";
   navigateTo?: string;
 };
 
@@ -85,8 +85,9 @@ const groups: SettingsGroup[] = [
     titleKey: "groupAccount",
     id: "account",
     items: [
-      { icon: Lock,   labelKey: "itemChangePassword", id: "change-password", action: "password" },
-      { icon: Trash2, labelKey: "itemDeleteAccount",  id: "delete-account",  action: "delete"   },
+      { icon: Lock,     labelKey: "itemChangePassword", id: "change-password", action: "password" },
+      { icon: Download, labelKey: "itemDownloadData",   id: "download-data",   action: "export"   },
+      { icon: Trash2,   labelKey: "itemDeleteAccount",  id: "delete-account",  action: "delete"   },
     ],
   },
   {
@@ -113,6 +114,7 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [search, setSearch] = useState("");
 
   const normalizedSearch = search.trim().toLowerCase();
@@ -134,7 +136,7 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
       toast({ title: ts.toastPasswordsMismatch, variant: "destructive" });
       return;
     }
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       toast({ title: ts.toastPasswordTooShort, variant: "destructive" });
       return;
     }
@@ -173,15 +175,42 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
     setSavingPassword(false);
   };
 
+  const handleExportData = async () => {
+    if (exporting) return;
+    setExporting(true);
+    const { data, error } = await (supabase as any).rpc("export_my_data");
+    setExporting(false);
+    if (error) {
+      toast({ title: ts.toastExportDataError, variant: "destructive" });
+      return;
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sportrise-data-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast({ title: ts.toastExportDataSuccess });
+  };
+
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== "STERGE") return;
     const { error } = await (supabase as any).rpc("delete_my_account");
     if (error) {
       toast({ title: ts.toastDeleteAccountError, variant: "destructive" });
-    } else {
-      await supabase.auth.signOut();
-      navigate("/");
+      return;
     }
+    // Public-schema data is gone at this point. The auth row itself can only
+    // be removed with the service role, so that last step is an Edge
+    // Function; if it fails, the account is still unusable (no data) and the
+    // user sees success — the orphaned auth row is logged for manual cleanup.
+    const { error: fnError } = await supabase.functions.invoke("delete-auth-user");
+    if (fnError) console.error("delete-auth-user failed after public data was deleted:", fnError);
+    await supabase.auth.signOut();
+    navigate("/");
   };
 
   const handleItemClick = (item: SettingsItem) => {
@@ -198,6 +227,8 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
     } else if (item.action === "delete") {
       setShowChangePassword(false);
       setShowDeleteConfirm((v) => !v);
+    } else if (item.action === "export") {
+      handleExportData();
     }
   };
 
@@ -248,9 +279,13 @@ export default function SettingsSection({ userId, userRole, onNavigate }: Settin
                       {item.value && (
                         <span className="text-sm text-gray-500 font-body mr-1">{item.value}</span>
                       )}
-                      <ChevronRight className={`h-4 w-4 text-gray-400 shrink-0 transition-transform ${
-                        (isPasswordRow && showChangePassword) || (isDeleteRow && showDeleteConfirm) ? "rotate-90" : ""
-                      }`} />
+                      {item.action === "export" && exporting ? (
+                        <Loader2 className="h-4 w-4 text-gray-400 shrink-0 animate-spin" />
+                      ) : (
+                        <ChevronRight className={`h-4 w-4 text-gray-400 shrink-0 transition-transform ${
+                          (isPasswordRow && showChangePassword) || (isDeleteRow && showDeleteConfirm) ? "rotate-90" : ""
+                        }`} />
+                      )}
                     </button>
 
                     {/* Inline: Change password */}

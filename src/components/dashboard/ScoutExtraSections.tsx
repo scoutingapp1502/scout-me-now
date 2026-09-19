@@ -153,13 +153,24 @@ const ScoutExtraSections = ({ userId, readOnly = false }: ScoutExtraSectionsProp
   };
 
   const openDocSafely = async (url: string) => {
+    // The bucket is private: the stored URL is only used to recover the
+    // object path, which is then signed for a short-lived read.
+    let target = url;
+    const marker = "/scout-documents/";
+    const idx = url.indexOf(marker);
+    if (idx !== -1) {
+      const { data } = await supabase.storage
+        .from("scout-documents")
+        .createSignedUrl(url.slice(idx + marker.length), 300);
+      if (data?.signedUrl) target = data.signedUrl;
+    }
     try {
-      const res = await fetch(url);
+      const res = await fetch(target);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, "_blank");
     } catch {
-      window.open(url, "_blank");
+      window.open(target, "_blank");
     }
   };
 

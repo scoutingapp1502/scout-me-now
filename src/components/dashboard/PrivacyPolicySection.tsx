@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LegalDocBody from "@/components/legal/LegalDocBody";
+import { PRIVACY_VERSION, legalLastUpdatedLabel } from "@/lib/legalVersions";
 
 interface PrivacyPolicySectionProps {
   onBack: () => void;
@@ -24,8 +25,8 @@ export const PRIVACY_SECTIONS_RO = [
     body: "Datele tale sunt folosite pentru: a-ți afișa profilul altor utilizatori conform setărilor tale de confidențialitate; a-ți arăta conținut relevant în comunitate; a verifica identitatea și activitatea conturilor de tip Descoperitor/Agent; a preveni fraudele și comportamentele abuzive; a îmbunătăți funcționarea și securitatea aplicației; și a te contacta în legătură cu contul tău sau cu solicitări de suport.",
   },
   {
-    title: "5. Datele minorilor",
-    body: "O parte semnificativă a utilizatorilor SportRise sunt sportivi minori. Datele acestora (inclusiv fotografii și videoclipuri) sunt colectate doar cu acordul unui părinte sau tutore legal și sunt tratate cu un nivel sporit de protecție. Videoclipurile de test necesită un consimțământ explicit separat înainte de încărcare. Părinții sau tutorii pot solicita oricând accesul, corectarea sau ștergerea datelor copilului, contactându-ne prin pagina de Contact.",
+    title: "5. Vârsta minimă și utilizatorii minori",
+    body: "SportRise poate fi folosit doar de persoane cu vârsta de cel puțin 16 ani. Data nașterii este obligatorie la înregistrare și este verificată automat; nu creăm conturi și nu colectăm cu bună știință date despre persoane sub 16 ani. Dacă aflăm că un cont aparține unei persoane sub această vârstă, îl vom închide și vom șterge datele asociate. Utilizatorii cu vârsta între 16 și 18 ani sunt în continuare minori, iar datele lor (inclusiv fotografii și videoclipuri) sunt tratate cu un nivel sporit de protecție; videoclipurile de test necesită un consimțământ explicit separat înainte de încărcare. Părinții sau tutorii legali ai unui utilizator minor pot solicita oricând accesul, corectarea sau ștergerea datelor acestuia, contactându-ne prin pagina de Contact.",
   },
   {
     title: "6. Cu cine sunt distribuite datele",
@@ -41,7 +42,7 @@ export const PRIVACY_SECTIONS_RO = [
   },
   {
     title: "9. Drepturile tale",
-    body: "Ai dreptul: să accesezi datele pe care le deținem despre tine; să soliciți corectarea datelor inexacte; să soliciți ștergerea datelor tale; să restricționezi sau să te opui anumitor prelucrări; să soliciți portabilitatea datelor; să îți retragi consimțământul în orice moment; și să depui o plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP) sau la autoritatea echivalentă din țara ta. Poți corecta majoritatea datelor direct din profilul tău, iar ștergerea definitivă a contului o poți face imediat, din Setări → Contul tău. Pentru celelalte drepturi (acces la o copie a datelor, portabilitate, restricționare sau opoziție), trimite-ne o cerere prin pagina de Contact sau din secțiunea Ajutor și asistență — o vom procesa manual și îți vom răspunde în cel mai scurt timp.",
+    body: "Ai dreptul: să accesezi datele pe care le deținem despre tine; să soliciți corectarea datelor inexacte; să soliciți ștergerea datelor tale; să restricționezi sau să te opui anumitor prelucrări; să soliciți portabilitatea datelor; să îți retragi consimțământul în orice moment; și să depui o plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP) sau la autoritatea echivalentă din țara ta. Poți corecta majoritatea datelor direct din profilul tău, poți descărca oricând o copie completă a datelor tale în format JSON (Setări → Contul tău → Descarcă datele mele), iar ștergerea definitivă a contului o poți face imediat, din Setări → Contul tău. Pentru celelalte drepturi (restricționare sau opoziție), trimite-ne o cerere prin pagina de Contact sau din secțiunea Ajutor și asistență — o vom procesa manual și îți vom răspunde în cel mai scurt timp.",
   },
   {
     title: "10. Securitate",
@@ -79,8 +80,8 @@ export const PRIVACY_SECTIONS_EN = [
     body: "Your data is used to: show your profile to other users according to your privacy settings; show you relevant content in the community; verify Scout/Agent accounts; prevent fraud and abusive behavior; improve how the app works and its security; and contact you about your account or support requests.",
   },
   {
-    title: "5. Minors' data",
-    body: "A significant portion of SportRise users are minor athletes. Their data (including photos and videos) is collected only with the consent of a parent or legal guardian and is handled with an elevated level of protection. Test videos require a separate, explicit consent before upload. Parents or guardians can request access to, correction of, or deletion of their child's data at any time by contacting us through the Contact page.",
+    title: "5. Minimum age and minor users",
+    body: "SportRise may only be used by people who are at least 16 years old. Your date of birth is required at registration and is checked automatically; we do not create accounts for, or knowingly collect data about, anyone under 16. If we learn that an account belongs to someone under that age, we will close it and delete the associated data. Users aged 16 to 18 are still minors, and their data (including photos and videos) is handled with an elevated level of protection; test videos require a separate, explicit consent before upload. The parents or legal guardians of a minor user can request access to, correction of, or deletion of that user's data at any time by contacting us through the Contact page.",
   },
   {
     title: "6. Who we share your data with",
@@ -96,7 +97,7 @@ export const PRIVACY_SECTIONS_EN = [
   },
   {
     title: "9. Your rights",
-    body: "You have the right to: access the data we hold about you; request correction of inaccurate data; request deletion of your data; restrict or object to certain processing; request data portability; withdraw your consent at any time; and file a complaint with the National Supervisory Authority for Personal Data Processing (ANSPDCP) or the equivalent authority in your country. You can correct most of your data directly from your profile, and permanently delete your account instantly from Settings → Your account. For the other rights (access to a copy of your data, portability, restriction, or objection), send us a request through the Contact page or the Help and support section — we'll process it manually and respond as soon as possible.",
+    body: "You have the right to: access the data we hold about you; request correction of inaccurate data; request deletion of your data; restrict or object to certain processing; request data portability; withdraw your consent at any time; and file a complaint with the National Supervisory Authority for Personal Data Processing (ANSPDCP) or the equivalent authority in your country. You can correct most of your data directly from your profile, download a complete copy of your data in JSON format at any time (Settings → Your account → Download my data), and permanently delete your account instantly from Settings → Your account. For the other rights (restriction or objection), send us a request through the Contact page or the Help and support section — we'll process it manually and respond as soon as possible.",
   },
   {
     title: "10. Security",
@@ -135,7 +136,7 @@ export default function PrivacyPolicySection({ onBack }: PrivacyPolicySectionPro
         <LegalDocBody
           eyebrow="LEGAL"
           title={lang === "ro" ? "Politica de Confidențialitate" : "Privacy Policy"}
-          lastUpdated={lang === "ro" ? "Ultima actualizare: 17 septembrie 2026 · Versiunea 2.0" : "Last updated: September 17, 2026 · Version 2.0"}
+          lastUpdated={legalLastUpdatedLabel(lang, PRIVACY_VERSION)}
           tocLabel={lang === "ro" ? "Cuprins" : "Table of Contents"}
           sections={sections}
           compact

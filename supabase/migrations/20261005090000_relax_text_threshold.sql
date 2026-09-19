@@ -1,0 +1,11 @@
+-- A plain caption ("Victorie de excepție" — a normal, harmless sports post)
+-- routed straight to admin_review because OpenAI Moderation's category
+-- scores lexically associate common sports vocabulary (victorie/luptă/
+-- adversar/atac) with conflict/violence more than expected, and
+-- scores.text = max(sexual, violence, hate, threats) inherits whichever of
+-- those reads highest. A sports-scouting platform's normal captions use
+-- exactly this vocabulary constantly, so "text" needs to be the most
+-- lenient category, not a middling one — the other categories (sexual,
+-- weapons, drugs) don't have this lexical-overlap problem and stay as they
+-- were recalibrated in 20261002090000.
+UPDATE public.moderation_thresholds SET low_max = 0.60, high_min = 0.92 WHERE category = 'text';

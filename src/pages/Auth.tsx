@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import SportriseWordmark from "@/components/SportriseWordmark";
+import { MINIMUM_AGE, isAtLeastAge, latestDateOfBirthForAge } from "@/lib/age";
+import { TERMS_VERSION, PRIVACY_VERSION } from "@/lib/legalVersions";
 
 // Roles that must upload a verification document at signup and stay
 // gated (dashboard visible, actions disabled) until an admin approves it.
@@ -35,6 +37,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [sport, setSport] = useState("football");
   const [gender, setGender] = useState("");
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
@@ -68,6 +71,7 @@ const Auth = () => {
     e.preventDefault();
     const missingRequiredField =
       !fullName.trim() ||
+      !dateOfBirth ||
       !email.trim() ||
       !password ||
       !confirmPassword ||
@@ -81,6 +85,10 @@ const Auth = () => {
       toast({ title: t.auth.errorRegister, description: t.auth.passwordsMismatch, variant: "destructive" });
       return;
     }
+    if (!isAtLeastAge(dateOfBirth, MINIMUM_AGE)) {
+      toast({ title: t.auth.errorRegister, description: t.auth.minAgeError, variant: "destructive" });
+      return;
+    }
     if (REQUIRES_VERIFICATION.includes(role) && !scoutDocument) {
       toast({ title: "Document lipsă", description: "Încarcă un document de verificare pentru acest tip de cont.", variant: "destructive" });
       return;
@@ -91,7 +99,14 @@ const Auth = () => {
     }
     setLoading(true);
     try {
-      const metadata: Record<string, any> = { full_name: fullName, role, gender, sport };
+      const metadata: Record<string, any> = {
+        full_name: fullName, role, gender, sport, date_of_birth: dateOfBirth,
+        terms_version: TERMS_VERSION, privacy_version: PRIVACY_VERSION,
+      };
+      const trimmedInviteCode = inviteCode.trim().toUpperCase();
+      if (role === "player" && trimmedInviteCode) {
+        metadata.invite_code = trimmedInviteCode;
+      }
       if (role === "cauta_jucator") {
         metadata.sports = selectedSports;
       }
@@ -101,24 +116,6 @@ const Auth = () => {
       });
       if (error) throw error;
       if (data.user) {
-        // Process invite code if provided (players only)
-        const trimmedCode = inviteCode.trim().toUpperCase();
-        if (trimmedCode && role === "player") {
-          const { data: codeRow } = await (supabase as any)
-            .from("user_invite_codes")
-            .select("user_id")
-            .eq("code", trimmedCode)
-            .maybeSingle();
-          if (codeRow?.user_id && codeRow.user_id !== data.user.id) {
-            const { error: inviteErr } = await (supabase as any)
-              .from("invite_uses")
-              .upsert(
-                { inviter_id: codeRow.user_id, invitee_id: data.user.id },
-                { onConflict: "invitee_id" }
-              );
-            if (inviteErr) console.error("invite_uses insert failed:", inviteErr);
-          }
-        }
         // Upload verification document if provided
         if (REQUIRES_VERIFICATION.includes(role) && scoutDocument && data.user) {
           try {
@@ -161,8 +158,11 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Goes through an Edge Function so the "is this the admin's email"
+      // decision (admin password is only ever changed from the Supabase
+      // dashboard) happens server-side and can't be probed from here.
+      const { error } = await supabase.functions.invoke("request-password-reset", {
+        body: { email, redirectTo: `${window.location.origin}/reset-password` },
       });
       if (error) throw error;
       toast({ title: t.auth.resetSent, description: t.auth.resetSentDesc });
@@ -329,6 +329,18 @@ const Auth = () => {
                         <Label htmlFor="fullName" className="font-body">{t.auth.fullName}</Label>
                         <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.auth.fullNamePlaceholder} required />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dateOfBirth" className="font-body">{t.auth.dateOfBirth}</Label>
+                        <Input
+                          id="dateOfBirth"
+                          type="date"
+                          value={dateOfBirth}
+                          onChange={(e) => setDateOfBirth(e.target.value)}
+                          max={latestDateOfBirthForAge(MINIMUM_AGE)}
+                          required
+                        />
+                        <p className="text-xs text-gray-500 font-body">{t.auth.dateOfBirthHint}</p>
+                      </div>
                       {role === "player" && (
                         <>
                           <div className="space-y-2">
@@ -421,7 +433,7 @@ const Auth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="password" className="font-body">{t.auth.password}</Label>
                     <div className="relative">
-                      <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} className="pr-10" />
+                      <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={8} className="pr-10" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 transition-colors">
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -431,7 +443,7 @@ const Auth = () => {
                    {tab === "register" && (
                      <div className="space-y-2">
                        <Label htmlFor="confirmPassword" className="font-body">{t.auth.confirmPassword}</Label>
-                       <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={6} />
+                       <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.auth.passwordPlaceholder} required minLength={8} />
                      </div>
                    )}
 

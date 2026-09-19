@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, Trash2, RotateCcw, Video } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
@@ -148,7 +149,7 @@ export default function RecentlyDeletedSection({ userId, onBack, onViewProfile }
                 className="aspect-square overflow-hidden bg-gray-100 relative"
               >
                 {item.image_url ? (
-                  <img src={item.image_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
+                  <SignedImg src={item.image_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
                 ) : item.video_url ? (
                   <div className="w-full h-full bg-gray-100/60 flex items-center justify-center"><Video className="h-6 w-6 text-white/80" /></div>
                 ) : (

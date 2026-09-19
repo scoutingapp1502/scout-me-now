@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Edit2, MapPin, Instagram, Twitter, Youtube, Plus, Trash2, Upload, Loader2, FileText, X, Info, Calendar, GripVertical, ChevronsUpDown, Check, MessageCircle, UserPlus, UserCheck, Users, Lock, Clock, CheckCircle, XCircle, Play } from "lucide-react";
+import { SignedImg, SignedVideo, SignedLink } from "@/components/SignedSrc";
+import { moderationBadgeLabel } from "@/lib/moderationBadge";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
+import { getSignedMediaUrl, openSignedUrl } from "@/lib/signedMedia";
 import MessageDialog from "./MessageDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PostCard from "./PostCard";
@@ -20,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Tables } from "@/integrations/supabase/types";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { MINIMUM_AGE, isAtLeastAge } from "@/lib/age";
 import type { TranslationKeys, Language } from "@/i18n/translations";
 import { translatePosition, translateFootHandValue } from "@/lib/positionTranslations";
 import { translateTestLabel, translateTestDescription } from "@/lib/testTranslations";
@@ -246,13 +251,14 @@ const TestInfoContent = ({ test, referenceVideoUrl }: { test: TechnicalTest; ref
   const tt = t.dashboard.tests;
   const [showVideo, setShowVideo] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const signedReferenceVideoUrl = useSignedUrl(referenceVideoUrl);
 
   if (showVideo) {
     return (
       <div>
         {referenceVideoUrl && !videoError ? (
           <video
-            src={referenceVideoUrl}
+            src={signedReferenceVideoUrl ?? undefined}
             autoPlay
             loop
             muted
@@ -320,6 +326,10 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
   const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<PlayerProfile>>({});
+  // Tracks the raw File + storage path behind a just-uploaded test video URL,
+  // so the moderation pipeline (needs the actual file for frame extraction)
+  // can run when the video is submitted — the URL alone isn't enough.
+  const uploadedVideoMetaRef = useRef<Map<string, { file: File; storagePath: string }>>(new Map());
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("profile");
@@ -619,6 +629,11 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
         setSaving(false);
         return;
       }
+      if (form.date_of_birth && !isAtLeastAge(form.date_of_birth, MINIMUM_AGE)) {
+        toast({ title: t.auth.minAgeError, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
       let photoUrl = form.photo_url;
 
       if (avatarFile) {
@@ -712,7 +727,11 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
         for (const [testKey, videoUrl] of Object.entries(technicalVideoFields)) {
           const previousUrl = (profile as any)?.[testKey];
           if (videoUrl && videoUrl !== previousUrl) {
-            await submitVideoSubmission(testKey, videoUrl, userId);
+            const meta = uploadedVideoMetaRef.current.get(videoUrl);
+            await submitVideoSubmission(
+              testKey, videoUrl, userId,
+              meta ? { videoFile: meta.file, storagePath: meta.storagePath } : undefined
+            );
           }
         }
       }
@@ -1681,7 +1700,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                 allowFullScreen
                               />
                             ) : (
-                              <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                              <SignedVideo src={videoUrl} controls className="w-full rounded-lg aspect-video" />
                             )}
                           </div>
                         )}
@@ -1787,6 +1806,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                       return;
                                     }
                                     const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                                    uploadedVideoMetaRef.current.set(urlData.publicUrl, { file, storagePath: path });
                                     updateForm(test.videoKey as any, urlData.publicUrl);
                                     toast({ title: tt.videoUploadedSuccess });
                                   }}
@@ -1821,7 +1841,11 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                     if (error) {
                                       toast({ title: tt.saveErrorTitle, variant: "destructive" });
                                     } else {
-                                      const result = await submitVideo(test.videoKey, newVideoUrl, userId);
+                                      const meta = uploadedVideoMetaRef.current.get(newVideoUrl);
+                                      const result = await submitVideo(
+                                        test.videoKey, newVideoUrl, userId,
+                                        meta ? { videoFile: meta.file, storagePath: meta.storagePath } : undefined
+                                      );
                                       if (result.error) {
                                         toast({ title: tt.videoSavedButSubmitFailed, variant: "destructive" });
                                       } else {
@@ -2133,7 +2157,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             allowFullScreen
                           />
                         ) : (
-                          <video src={videoUrl} controls className="w-full rounded-lg aspect-video" />
+                          <SignedVideo src={videoUrl} controls className="w-full rounded-lg aspect-video" />
                         )}
                       </div>
                     );
@@ -2240,6 +2264,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                               return;
                             }
                             const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+                            uploadedVideoMetaRef.current.set(urlData.publicUrl, { file, storagePath: path });
                             updateForm(test.key as any, urlData.publicUrl);
                             toast({ title: tt.videoUploadedSuccess });
                           }}
@@ -2268,7 +2293,11 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                             } else {
                               // Submit for verification
                               if (videoUrl) {
-                                await submitVideo(test.key, videoUrl, userId);
+                                const meta = uploadedVideoMetaRef.current.get(videoUrl);
+                                await submitVideo(
+                                  test.key, videoUrl, userId,
+                                  meta ? { videoFile: meta.file, storagePath: meta.storagePath } : undefined
+                                );
                               }
                               toast({ title: tt.videoSavedPendingReview });
                               setInlineEditTest(null);
@@ -2379,13 +2408,14 @@ function DocumentUploader({ documents, onAdd, onRemove, editing, label }: {
               <button
                 type="button"
                 onClick={async () => {
+                  const target = (await getSignedMediaUrl(url)) ?? url;
                   try {
-                    const response = await fetch(url);
+                    const response = await fetch(target);
                     const blob = await response.blob();
                     const blobUrl = URL.createObjectURL(blob);
                     window.open(blobUrl, '_blank');
                   } catch {
-                    window.open(url, '_blank');
+                    window.open(target, '_blank');
                   }
                 }}
                 className="text-sm text-gray-900 font-body hover:text-primary truncate flex-1 text-left"
@@ -2618,7 +2648,7 @@ function PalmaresDocUpload({ documentUrl, onUpdate }: { documentUrl: string; onU
     return (
       <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5 mt-1">
         <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
-        <button type="button" onClick={() => window.open(documentUrl, '_blank')} className="text-xs text-gray-900 font-body hover:text-primary truncate flex-1 text-left">
+        <button type="button" onClick={() => openSignedUrl(documentUrl)} className="text-xs text-gray-900 font-body hover:text-primary truncate flex-1 text-left">
           {tp.documentAttachedText}
         </button>
         <button type="button" onClick={() => onUpdate("")} className="text-destructive hover:text-destructive/80 shrink-0">
@@ -3292,7 +3322,7 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
                            <div key={pIdx} className="mt-1">
                              <p className="text-xs text-gray-500">🏆 {parts.join(" • ")}</p>
                              {p.document_url && (
-                               <button type="button" onClick={() => window.open(p.document_url, '_blank')} className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5">
+                               <button type="button" onClick={() => openSignedUrl(p.document_url)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5">
                                  <FileText className="h-3 w-3" /> {tp.documentAttachedText}
                                </button>
                              )}
@@ -3540,7 +3570,7 @@ function VideoSection({
                   </div>
                 ) : isUploaded ? (
                   <div className="aspect-video">
-                    <video
+                    <SignedVideo
                       src={url}
                       controls
                       className="w-full h-full object-contain bg-black"
@@ -3548,12 +3578,12 @@ function VideoSection({
                     />
                   </div>
                 ) : (
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 hover:bg-gray-100 transition-colors">
+                  <SignedLink href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 hover:bg-gray-100 transition-colors">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <Youtube className="h-5 w-5 text-primary" />
                     </div>
                     <span className="font-body text-sm text-gray-900 truncate">{url}</span>
-                  </a>
+                  </SignedLink>
                 )}
                 <div className="px-4 py-3 border-t border-gray-200">
                   {editing ? (
@@ -3605,11 +3635,23 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [authorInfo, setAuthorInfo] = useState<{ name: string; photo: string | null; role: string; title: string } | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  // Private moderation counters — only ever fetched/shown for the profile
+  // owner (!readOnly), never for a visitor viewing someone else's profile.
+  const [moderationCounts, setModerationCounts] = useState<{ pending_count: number; rejected_count: number } | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
       .catch((err) => console.error("Failed to get current user:", err));
   }, []);
+
+  useEffect(() => {
+    if (readOnly) return;
+    (supabase as any).rpc("get_my_moderation_counts").then(({ data, error }: any) => {
+      if (error) { console.error("Failed to load moderation counts:", error); return; }
+      const row = data?.[0];
+      if (row) setModerationCounts({ pending_count: Number(row.pending_count) || 0, rejected_count: Number(row.rejected_count) || 0 });
+    });
+  }, [readOnly, posts.length]);
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
@@ -3691,13 +3733,34 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
         <NewPostComposer currentUserId={currentUserId} myPhoto={authorInfo?.photo} onPosted={fetchPosts} />
       )}
 
+      {/* Private moderation summary — visible only to the profile owner. */}
+      {!readOnly && moderationCounts && (moderationCounts.pending_count > 0 || moderationCounts.rejected_count > 0) && (
+        <div className="flex flex-wrap gap-2 text-xs font-body">
+          {moderationCounts.pending_count > 0 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 text-yellow-800 px-3 py-1">
+              {moderationCounts.pending_count} {lang === "ro" ? "postări în verificare" : "posts under review"}
+            </span>
+          )}
+          {moderationCounts.rejected_count > 0 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 text-red-700 px-3 py-1">
+              {moderationCounts.rejected_count} {lang === "ro" ? "postări respinse" : "posts rejected"}
+            </span>
+          )}
+        </div>
+      )}
+
       {posts.length === 0 ? (
         <p className="text-center text-muted-foreground py-12 font-body">
           {lang === "ro" ? "Nicio postare încă." : "No posts yet."}
         </p>
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-1.5">
-          {posts.map((post) => (
+          {posts.map((post) => {
+            // moderation_status only exists on `posts` (video-capable),
+            // never on scout_posts — undefined there is treated as
+            // "approved" so scout posts render exactly as before.
+            const modBadge = !readOnly ? moderationBadgeLabel(post.moderation_status, lang) : null;
+            return (
             <button
               key={post.id}
               type="button"
@@ -3705,10 +3768,10 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
               className="relative aspect-square overflow-hidden rounded-md bg-gray-100 group"
             >
               {post.image_url ? (
-                <img src={post.image_url} alt="" loading="lazy" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                <SignedImg src={post.image_url} alt="" loading="lazy" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
               ) : post.video_url ? (
                 <>
-                  <video src={post.video_url} className="w-full h-full object-cover" muted preload="metadata" />
+                  <SignedVideo src={post.video_url} className="w-full h-full object-cover" muted preload="metadata" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                     <Play className="h-6 w-6 text-white fill-white drop-shadow" />
                   </div>
@@ -3718,8 +3781,19 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
                   <p className="text-gray-900 text-[11px] leading-snug text-center line-clamp-5 font-medium">{post.content}</p>
                 </div>
               )}
+              {/* Moderation badge: only ever rendered for the profile owner
+                  (readOnly=false means this is the viewer's own profile) —
+                  a visitor viewing someone else's profile never sees this,
+                  and never sees the underlying post at all unless RLS
+                  already cleared it (moderation_status='approved'). */}
+              {modBadge && (
+                <span className={`absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${modBadge.className}`}>
+                  {modBadge.label}
+                </span>
+              )}
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
 

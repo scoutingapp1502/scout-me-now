@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LegalDocBody from "@/components/legal/LegalDocBody";
+import { TERMS_VERSION, legalLastUpdatedLabel } from "@/lib/legalVersions";
 
 interface TermsSectionProps {
   onBack: () => void;
@@ -21,7 +22,7 @@ export const TERMS_SECTIONS_RO = [
   },
   {
     title: "4. Cine poate folosi SportRise",
-    body: "SportRise este o platformă de scouting sportiv destinată sportivilor (inclusiv minorilor), scouterilor, agenților și reprezentanților de cluburi. Pentru a crea un cont trebuie să furnizezi informații corecte, complete și actualizate despre identitatea, vârsta și rolul tău. Dacă ești minor, folosirea Platformei trebuie să se facă cu acordul unui părinte sau tutore legal, care își asumă responsabilitatea pentru activitatea derulată din cont. Rolurile de Descoperitor, Agent și Reprezentant de club pot fi supuse unui proces de verificare a identității și a activității profesionale, iar SportRise își rezervă dreptul de a refuza sau revoca accesul acestor roluri dacă documentele furnizate nu sunt considerate satisfăcătoare.",
+    body: "SportRise este o platformă de scouting sportiv destinată sportivilor, scouterilor, agenților și reprezentanților de cluburi. Platforma poate fi folosită exclusiv de persoane care au împlinit vârsta de 16 ani: data nașterii este obligatorie la crearea contului și este verificată automat, iar conturile care nu îndeplinesc această condiție nu pot fi create. Dacă ai între 16 și 18 ani, îți recomandăm să folosești Platforma cu știrea unui părinte sau tutore legal. Pentru a crea un cont trebuie să furnizezi informații corecte, complete și actualizate despre identitatea, vârsta și rolul tău; declararea unei vârste false constituie o încălcare a acestor Termeni și duce la închiderea contului. Rolurile de Descoperitor, Agent și Reprezentant de club pot fi supuse unui proces de verificare a identității și a activității profesionale, iar SportRise își rezervă dreptul de a refuza sau revoca accesul acestor roluri dacă documentele furnizate nu sunt considerate satisfăcătoare.",
   },
   {
     title: "5. Contul tău și securitatea acestuia",
@@ -92,7 +93,7 @@ export const TERMS_SECTIONS_EN = [
   },
   {
     title: "4. Who can use SportRise",
-    body: "SportRise is a sports scouting platform for athletes (including minors), scouts, agents, and club representatives. To create an account, you must provide accurate, complete, and up-to-date information about your identity, age, and role. If you're a minor, using the Platform must be done with the consent of a parent or legal guardian, who assumes responsibility for the activity carried out from the account. Scout, Agent, and Club Representative roles may be subject to an identity and professional activity verification process, and SportRise reserves the right to refuse or revoke access to these roles if the documents provided are not deemed satisfactory.",
+    body: "SportRise is a sports scouting platform for athletes, scouts, agents, and club representatives. The Platform may only be used by people who are at least 16 years old: your date of birth is required when creating an account and is checked automatically, and accounts that don't meet this condition cannot be created. If you're between 16 and 18, we recommend using the Platform with the knowledge of a parent or legal guardian. To create an account, you must provide accurate, complete, and up-to-date information about your identity, age, and role; declaring a false age is a breach of these Terms and results in account closure. Scout, Agent, and Club Representative roles may be subject to an identity and professional activity verification process, and SportRise reserves the right to refuse or revoke access to these roles if the documents provided are not deemed satisfactory.",
   },
   {
     title: "5. Your account and its security",
@@ -167,7 +168,7 @@ export default function TermsSection({ onBack }: TermsSectionProps) {
         <LegalDocBody
           eyebrow="LEGAL"
           title={lang === "ro" ? "Termeni și Condiții" : "Terms and Conditions"}
-          lastUpdated={lang === "ro" ? "Ultima actualizare: 17 septembrie 2026 · Versiunea 2.0" : "Last updated: September 17, 2026 · Version 2.0"}
+          lastUpdated={legalLastUpdatedLabel(lang, TERMS_VERSION)}
           tocLabel={lang === "ro" ? "Cuprins" : "Table of Contents"}
           sections={sections}
           compact

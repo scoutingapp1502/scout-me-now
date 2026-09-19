@@ -3,6 +3,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useAnnouncements, getAnnouncementText, type Announcement } from "@/hooks/useAnnouncements";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, FileText } from "lucide-react";
+import { SignedImg, SignedVideo, SignedLink } from "@/components/SignedSrc";
 import type { Language } from "@/i18n/translations";
 
 const getFileName = (url: string) => {
@@ -94,15 +95,15 @@ export default function NewsAnnouncementsPanel() {
               </p>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{text.content}</p>
               {openAnnouncement.image_url && (
-                <img src={openAnnouncement.image_url} alt="" className="w-full rounded-lg object-cover" />
+                <SignedImg src={openAnnouncement.image_url} alt="" className="w-full rounded-lg object-cover" />
               )}
               {openAnnouncement.video_url && (
-                <video src={openAnnouncement.video_url} className="w-full rounded-lg" controls />
+                <SignedVideo src={openAnnouncement.video_url} className="w-full rounded-lg" controls />
               )}
               {openAnnouncement.document_urls?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {openAnnouncement.document_urls.map((url) => (
-                    <a
+                    <SignedLink
                       key={url}
                       href={url}
                       target="_blank"
@@ -110,7 +111,7 @@ export default function NewsAnnouncementsPanel() {
                       className="flex items-center gap-1 text-xs text-orange-600 hover:underline bg-gray-100 rounded-full px-2.5 py-1.5 max-w-full"
                     >
                       <FileText className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{getFileName(url)}</span>
-                    </a>
+                    </SignedLink>
                   ))}
                 </div>
               )}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Heart, Calendar, MapPin, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
+import { SignedImg } from "@/components/SignedSrc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -79,7 +80,7 @@ function CalendarTab({ stories }: { stories: ArchivedStory[] }) {
     <div className="flex-1 overflow-y-auto px-4 py-2">
       {preview && (
         <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center" onClick={() => setPreview(null)}>
-          <img src={preview.media_url} alt="" className="max-w-[90vw] max-h-[80vh] rounded-xl object-contain" />
+          <SignedImg src={preview.media_url} alt="" className="max-w-[90vw] max-h-[80vh] rounded-xl object-contain" />
         </div>
       )}
       {months.map(({ year, month }) => {
@@ -115,7 +116,7 @@ function CalendarTab({ stories }: { stories: ArchivedStory[] }) {
                         onClick={() => setPreview(dayStories[0])}
                         className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-primary/60 hover:ring-primary transition-all"
                       >
-                        <img src={dayStories[0].media_url} alt="" className="w-full h-full object-cover" />
+                        <SignedImg src={dayStories[0].media_url} alt="" className="w-full h-full object-cover" />
                       </button>
                     ) : (
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isToday ? "bg-primary text-white" : ""}`}>
@@ -223,7 +224,7 @@ export default function StoryArchiveModal({ userId, open, onClose }: StoryArchiv
                                 onClick={() => setPreviewStory(s)}
                                 className="aspect-[9/16] overflow-hidden relative"
                               >
-                                <img src={s.media_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
+                                <SignedImg src={s.media_url} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
                                 {s.overlay_text && (
                                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <span className="text-white text-[10px] font-bold text-center px-1 drop-shadow line-clamp-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
@@ -293,7 +294,7 @@ export default function StoryArchiveModal({ userId, open, onClose }: StoryArchiv
             <X className="h-6 w-6" />
           </button>
           <div className="relative max-w-sm w-full mx-4">
-            <img src={previewStory.media_url} alt="" className="w-full rounded-xl object-contain max-h-[80vh]" />
+            <SignedImg src={previewStory.media_url} alt="" className="w-full rounded-xl object-contain max-h-[80vh]" />
             {previewStory.overlay_text && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <span

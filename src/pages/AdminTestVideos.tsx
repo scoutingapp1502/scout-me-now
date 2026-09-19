@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Upload, Trash2, Plus, Loader2, Film } from "lucide-react";
+import { SignedVideo } from "@/components/SignedSrc";
 
 const SPORTS: { key: string; label: string }[] = [
   { key: "football", label: "Fotbal" },
@@ -85,7 +86,7 @@ export default function AdminTestVideos({ embedded }: { embedded?: boolean } = {
 
         {videoUrl && (
           <div className="relative">
-            <video src={videoUrl} controls className="w-full max-h-56 rounded-md bg-black" />
+            <SignedVideo src={videoUrl} controls className="w-full max-h-56 rounded-md bg-black" />
             <Button
               type="button"
               size="icon"

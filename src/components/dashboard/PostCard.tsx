@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send, Forward, Loader2, Bookmark, Instagram, TrendingUp, RefreshCw, Archive, Eye, EyeOff, Film, Pencil, Crop, Pin, MessageSquare, Users, Search, Rocket } from "lucide-react";
+import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send, Forward, Loader2, Bookmark, Instagram, TrendingUp, RefreshCw, Archive, Eye, EyeOff, Film, Pencil, Crop, Pin, MessageSquare, Users, Search, Rocket, Flag } from "lucide-react";
+import { SignedImg, SignedVideo } from "@/components/SignedSrc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { isLikelyUnwantedComment, type HideUnwantedLevel } from "@/lib/commentModeration";
 import { useAccountLock } from "@/hooks/useAccountLock";
@@ -562,6 +564,30 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   };
 
   const isOwnPost = post.user_id === currentUserId;
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const handleSubmitReport = async () => {
+    if (!currentUserId || !reportReason.trim()) return;
+    setSubmittingReport(true);
+    const { error } = await (supabase as any).from("support_tickets").insert({
+      user_id: currentUserId,
+      reported_user_id: post.user_id,
+      reported_content_type: "post",
+      reported_content_id: post.id,
+      category: "report_user",
+      message: reportReason.trim(),
+    });
+    setSubmittingReport(false);
+    if (error) {
+      toast.error(lang === "ro" ? "Eroare la trimiterea raportului." : "Error submitting report.");
+      return;
+    }
+    toast.success(lang === "ro" ? "Raport trimis. Echipa noastră îl va analiza." : "Report submitted. Our team will review it.");
+    setShowReportDialog(false);
+    setReportReason("");
+  };
 
   const [commentsDisabled, setCommentsDisabled] = useState(!!post.comments_disabled);
   const [togglingComments, setTogglingComments] = useState(false);
@@ -764,9 +790,17 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         {/* Header */}
         <div className={`flex items-start justify-between ${reserveCloseButtonSpace ? "pr-10" : ""}`}>
           <div className="flex items-center gap-3">
-            {isSportriseAuthor ? (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center overflow-hidden shrink-0">
-                <Rocket className="h-5 w-5 text-white" />
+            {isSportriseAuthor || isOwnPost ? (
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                {isSportriseAuthor ? (
+                  <div className="w-full h-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                    <Rocket className="h-5 w-5 text-white" />
+                  </div>
+                ) : author.photo ? (
+                  <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
+                ) : (
+                  <User className="h-5 w-5 text-gray-500" />
+                )}
               </div>
             ) : (
               <button
@@ -782,7 +816,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                {isSportriseAuthor ? (
+                {isSportriseAuthor || isOwnPost ? (
                   <span className="font-display text-sm text-gray-900 truncate">{author.name}</span>
                 ) : (
                   <button
@@ -823,17 +857,60 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          {!isOwnPost && !hideMenu && currentUserId && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
+                <DropdownMenuItem onClick={() => { setReportReason(""); setShowReportDialog(true); }}>
+                  <Flag className="h-4 w-4 mr-2" /> {lang === "ro" ? "Raportează" : "Report"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
+      <Dialog open={showReportDialog} onOpenChange={(open) => { if (!open) { setShowReportDialog(false); setReportReason(""); } }}>
+        <DialogContent className="bg-white border-gray-200 text-gray-900">
+          <DialogHeader>
+            <DialogTitle>{lang === "ro" ? "Raportează această postare" : "Report this post"}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500 font-body -mt-2">
+            {lang === "ro"
+              ? "SportRise nu solicită niciodată plăți prin mesaje și nu organizează întâlniri neanunțate oficial prin platformă. Descrie ce e nepotrivit la această postare."
+              : "SportRise never requests payments through messages and doesn't arrange meetings unofficially through the platform. Describe what's wrong with this post."}
+          </p>
+          <Textarea
+            value={reportReason}
+            onChange={(e) => setReportReason(e.target.value)}
+            placeholder={lang === "ro" ? "Descrie motivul raportării..." : "Describe the reason for the report..."}
+            className="font-body text-sm resize-none"
+            rows={4}
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setShowReportDialog(false); setReportReason(""); }}>
+              {lang === "ro" ? "Anulează" : "Cancel"}
+            </Button>
+            <Button variant="destructive" disabled={!reportReason.trim() || submittingReport} onClick={handleSubmitReport}>
+              {submittingReport ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {lang === "ro" ? "Trimite raportul" : "Submit report"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Image */}
       {post.image_url && (
-        <img src={post.image_url} alt="" loading="lazy" className="w-full max-h-96 object-cover" />
+        <SignedImg src={post.image_url} alt="" loading="lazy" className="w-full aspect-video object-contain bg-gray-100" />
       )}
 
       {/* Video */}
       {post.video_url && (
-        <video src={post.video_url} className="w-full max-h-96" controls preload="none" />
+        <SignedVideo src={post.video_url} className="w-full aspect-video bg-black object-contain" controls preload="metadata" />
       )}
 
       {/* Like & Comment bar */}
@@ -902,12 +979,16 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
           </div>
         ) : (
           <p className="text-sm text-gray-700 whitespace-pre-wrap">
-            <button
-              onClick={() => onViewProfile(author.user_id, author.role)}
-              className="font-semibold text-gray-900 hover:underline mr-1.5"
-            >
-              {author.name}
-            </button>
+            {isOwnPost ? (
+              <span className="font-semibold text-gray-900 mr-1.5">{author.name}</span>
+            ) : (
+              <button
+                onClick={() => onViewProfile(author.user_id, author.role)}
+                className="font-semibold text-gray-900 hover:underline mr-1.5"
+              >
+                {author.name}
+              </button>
+            )}
             {editContent}
           </p>
         )}

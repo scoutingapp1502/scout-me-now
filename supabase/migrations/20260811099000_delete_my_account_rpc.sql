@@ -16,13 +16,14 @@
 -- including tables with no tracked CREATE TABLE migration like
 -- scout_experiences, and deletes matching rows).
 --
--- Known limitation: this cannot remove the auth.users row itself — that
--- requires the Supabase Admin API (service_role), which must never be
--- callable directly from an authenticated client (it would let any user
--- delete any other user's auth account). All of the account's actual data
--- is fully erased; the auth.users row is left behind but empty/orphaned,
--- with nothing else in the schema referencing it. The client signs the
--- user out immediately after this succeeds.
+-- This cannot remove the auth.users row itself — that requires the
+-- Supabase Admin API (service_role), which must never be callable directly
+-- from an authenticated client. That last step is done by the
+-- delete-auth-user Edge Function (supabase/functions/delete-auth-user/),
+-- which the client calls right after this RPC succeeds; it derives the
+-- account to delete from the caller's own JWT, never from the request
+-- body, so it can only ever remove the caller's own auth row. The client
+-- then signs the user out.
 CREATE OR REPLACE FUNCTION public.delete_my_account()
 RETURNS void
 LANGUAGE plpgsql

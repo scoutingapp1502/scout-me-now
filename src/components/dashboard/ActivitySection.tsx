@@ -8,6 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import PostCard from "./PostCard";
+import { moderationBadgeLabel } from "@/lib/moderationBadge";
 import NewsAnnouncementsPanel from "./NewsAnnouncementsPanel";
 import PersonalProfile, { FifaPlayerCard } from "./PersonalProfile";
 import ScoutPersonalProfile from "./ScoutPersonalProfile";
@@ -28,6 +29,11 @@ interface Post {
   author_role: string;
   author_title: string;
   comments_disabled?: boolean;
+  // Only ever set on myRecentPosts entries (the author's own just-published
+  // posts, pinned client-side) — get_activity_feed already filters everyone
+  // else's posts to moderation_status='approved' server-side, so this is
+  // never needed for the rest of the feed.
+  moderation_status?: string;
 }
 
 // Decorative geometric accents scattered between feed cards, alternating
@@ -85,30 +91,67 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
   // confirmation — so a just-created own post is pinned to the top for
   // OWN_POST_PIN_DURATION_MS, tracked purely client-side (never sent to the
   // RPC), then dropped from view entirely (it remains visible on the
-  // profile's own Posts tab regardless). Persisted to localStorage (keyed
+  // profile's own Posts tab regardless). This is a list, not a single slot —
+  // publishing a second post within the 10-minute window must not cut the
+  // first one's remaining time short; each pinned post carries its own
+  // expiry and is cleared independently. Persisted to localStorage (keyed
   // per user) because ActivitySection unmounts on navigation — plain
-  // useState would silently lose the pin the moment the user left and came
-  // back to Activity within the 10-minute window.
-  const [myRecentPost, setMyRecentPost] = useState<Post | null>(null);
-  const myRecentPostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // useState would silently lose the pins the moment the user left and came
+  // back to Activity within the window.
+  const [myRecentPosts, setMyRecentPosts] = useState<Post[]>([]);
+  const myRecentPostTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  const RECENT_POST_STORAGE_KEY = (uid: string) => `activity-recent-own-post-${uid}`;
+  const RECENT_POSTS_STORAGE_KEY = (uid: string) => `activity-recent-own-posts-${uid}`;
 
-  const persistRecentPost = (uid: string, post: Post | null) => {
+  const persistRecentPosts = (uid: string, entries: { post: Post; expiresAt: number }[]) => {
     try {
-      if (post) localStorage.setItem(RECENT_POST_STORAGE_KEY(uid), JSON.stringify({ post, expiresAt: Date.now() + OWN_POST_PIN_DURATION_MS }));
-      else localStorage.removeItem(RECENT_POST_STORAGE_KEY(uid));
+      if (entries.length > 0) localStorage.setItem(RECENT_POSTS_STORAGE_KEY(uid), JSON.stringify(entries));
+      else localStorage.removeItem(RECENT_POSTS_STORAGE_KEY(uid));
     } catch (err) {
-      console.error("Failed to persist recent own post:", err);
+      console.error("Failed to persist recent own posts:", err);
     }
   };
 
-  const scheduleRecentPostClear = (uid: string, msRemaining: number) => {
-    if (myRecentPostTimerRef.current) clearTimeout(myRecentPostTimerRef.current);
-    myRecentPostTimerRef.current = setTimeout(() => {
-      setMyRecentPost(null);
-      persistRecentPost(uid, null);
-    }, msRemaining);
+  const removeExpiredRecentPost = (uid: string, postId: string) => {
+    myRecentPostTimersRef.current.delete(postId);
+    setMyRecentPosts((prev) => {
+      const next = prev.filter((p) => p.id !== postId);
+      try {
+        const raw = localStorage.getItem(RECENT_POSTS_STORAGE_KEY(uid));
+        const entries: { post: Post; expiresAt: number }[] = raw ? JSON.parse(raw) : [];
+        persistRecentPosts(uid, entries.filter((e) => e.post.id !== postId));
+      } catch (err) {
+        console.error("Failed to update persisted recent own posts:", err);
+      }
+      return next;
+    });
+  };
+
+  const scheduleRecentPostClear = (uid: string, postId: string, msRemaining: number) => {
+    const existing = myRecentPostTimersRef.current.get(postId);
+    if (existing) clearTimeout(existing);
+    const timer = setTimeout(() => removeExpiredRecentPost(uid, postId), msRemaining);
+    myRecentPostTimersRef.current.set(postId, timer);
+  };
+
+  // Pins a just-created own post to the top of Activity for
+  // OWN_POST_PIN_DURATION_MS. Shared by the NewPostComposer instance
+  // embedded here AND by the realtime INSERT listener below — the latter is
+  // what makes this work for a post created from anywhere else (e.g. the
+  // Personal Profile's own composer), since this component has no other way
+  // to learn about it.
+  const pinOwnPost = (uid: string, recentPost: Post & { video_url: string | null }) => {
+    if (myRecentPostTimersRef.current.has(recentPost.id)) return; // already pinned
+    const expiresAt = Date.now() + OWN_POST_PIN_DURATION_MS;
+    setMyRecentPosts((prev) => [recentPost, ...prev]);
+    try {
+      const raw = localStorage.getItem(RECENT_POSTS_STORAGE_KEY(uid));
+      const entries: { post: Post; expiresAt: number }[] = raw ? JSON.parse(raw) : [];
+      persistRecentPosts(uid, [{ post: recentPost, expiresAt }, ...entries]);
+    } catch (err) {
+      console.error("Failed to persist new recent own post:", err);
+    }
+    scheduleRecentPostClear(uid, recentPost.id, OWN_POST_PIN_DURATION_MS);
   };
 
   useEffect(() => {
@@ -121,19 +164,36 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
           .catch((err: unknown) => console.error("Failed to load privacy settings:", err));
 
         try {
-          const raw = localStorage.getItem(RECENT_POST_STORAGE_KEY(user.id));
+          const raw = localStorage.getItem(RECENT_POSTS_STORAGE_KEY(user.id));
           if (raw) {
-            const { post, expiresAt } = JSON.parse(raw);
-            const msRemaining = expiresAt - Date.now();
-            if (msRemaining > 0) {
-              setMyRecentPost(post);
-              scheduleRecentPostClear(user.id, msRemaining);
-            } else {
-              localStorage.removeItem(RECENT_POST_STORAGE_KEY(user.id));
+            const entries: { post: Post; expiresAt: number }[] = JSON.parse(raw);
+            const now = Date.now();
+            const stillValid = entries.filter((e) => e.expiresAt > now);
+            if (stillValid.length !== entries.length) persistRecentPosts(user.id, stillValid);
+            setMyRecentPosts(stillValid.map((e) => e.post));
+            stillValid.forEach((e) => scheduleRecentPostClear(user.id, e.post.id, e.expiresAt - now));
+
+            // The stored moderation_status is a snapshot from when the post
+            // was made — a page reload/revisit must not keep showing a
+            // stale "pending"/"flagged" badge for something an admin
+            // already approved while the tab was closed. Re-fetch the
+            // current status for each still-pinned post.
+            const ids = stillValid.map((e) => e.post.id);
+            if (ids.length > 0) {
+              supabase.from("posts").select("id, moderation_status, image_url, video_url").in("id", ids)
+                .then(({ data }) => {
+                  if (!data) return;
+                  const byId = new Map(data.map((p: any) => [p.id, p]));
+                  setMyRecentPosts((prev) => prev.map((p) => {
+                    const fresh = byId.get(p.id);
+                    return fresh ? { ...p, moderation_status: fresh.moderation_status, image_url: fresh.image_url, video_url: fresh.video_url } : p;
+                  }));
+                })
+                .catch((err) => console.error("Failed to refresh recent own posts' moderation status:", err));
             }
           }
         } catch (err) {
-          console.error("Failed to restore recent own post:", err);
+          console.error("Failed to restore recent own posts:", err);
         }
       }
     }).catch((err) => console.error("Failed to get current user:", err));
@@ -232,11 +292,22 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
 
   const currentUserIdRef = useRef<string | null>(null);
   currentUserIdRef.current = currentUserId;
+  // Kept in refs (not read from state directly) because the realtime
+  // listener below is set up once ([] deps) — it needs the latest author
+  // info at the moment a post comes in, not whatever it was when the
+  // channel was first subscribed.
+  const myAuthorInfoRef = useRef({ name: "", photo: null as string | null, role: "player" as "player" | "cauta_jucator", title: "" });
+  myAuthorInfoRef.current = {
+    name: myName || (lang === "ro" ? "Tu" : "You"),
+    photo: myPhoto,
+    role: myRole || "player",
+    title: myRole === "player" ? [myProfile?.position, myProfile?.current_team].filter(Boolean).join(" · ") : myTitle,
+  };
 
   useEffect(() => { if (currentUserId) fetchPosts(currentUserId); }, [currentUserId]);
 
   useEffect(() => {
-    return () => { if (myRecentPostTimerRef.current) clearTimeout(myRecentPostTimerRef.current); };
+    return () => { myRecentPostTimersRef.current.forEach((t) => clearTimeout(t)); };
   }, []);
 
   useEffect(() => {
@@ -246,9 +317,26 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
 
       const newUserId = payload.new?.user_id;
 
-      // If the change was made by the current user, it's excluded from this
-      // feed anyway (only other people's posts show here) — just show the
-      // refresh hint for any new post, same as anyone else's.
+      // A post of mine, created from anywhere (Activity's own composer
+      // already pins it directly via onPosted — this is what covers every
+      // OTHER place a post can be created, e.g. the Personal Profile tab's
+      // composer, which has no way to reach this component directly).
+      if (newUserId === uid && payload.new?.id) {
+        const p = payload.new;
+        const author = myAuthorInfoRef.current;
+        pinOwnPost(uid, {
+          id: p.id, user_id: uid, content: p.content ?? "",
+          image_url: p.image_url ?? null, video_url: p.video_url ?? null,
+          post_type: p.post_type ?? "general", created_at: p.created_at ?? new Date().toISOString(),
+          author_name: author.name, author_photo: author.photo, author_role: author.role, author_title: author.title,
+          moderation_status: p.moderation_status ?? "pending",
+        });
+        return;
+      }
+
+      // Otherwise: someone else's post — excluded from this feed anyway
+      // (only other people's posts show here via get_activity_feed), just
+      // show the refresh hint like any other new post.
       setNewPostsAvailable(true);
     };
     const handleDeleteEvent = (payload: any) => {
@@ -256,10 +344,35 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
       if (!uid) return;
       fetchPosts(uid);
     };
+    // myRecentPosts entries capture moderation_status at the moment they
+    // were created and never re-fetch — without this, an admin approving or
+    // rejecting a post later has no way to reach the author's already-open
+    // Activity tab, and the badge (and hidden media, if still pending) would
+    // stay stuck showing the stale status indefinitely. Also covers a
+    // soft-delete (deleted_at set from the Personal Profile's own composer,
+    // or anywhere else) — an own post deleted while still pinned must
+    // disappear from here immediately, not linger until its 10-minute
+    // window naturally expires.
+    const handleUpdate = (payload: any) => {
+      const uid = currentUserIdRef.current;
+      if (!uid || payload.new?.user_id !== uid) return;
+      if (payload.new?.deleted_at) {
+        const timer = myRecentPostTimersRef.current.get(payload.new.id);
+        if (timer) clearTimeout(timer);
+        removeExpiredRecentPost(uid, payload.new.id);
+        return;
+      }
+      setMyRecentPosts((prev) => prev.map((p) =>
+        p.id === payload.new.id
+          ? { ...p, moderation_status: payload.new.moderation_status, image_url: payload.new.image_url, video_url: payload.new.video_url }
+          : p
+      ));
+    };
     const channel = supabase.channel("posts-feed-" + Date.now())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, handleInsert)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "scout_posts" }, handleInsert)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sportrise_posts" }, handleInsert)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "posts" }, handleUpdate)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts" }, handleDeleteEvent)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "scout_posts" }, handleDeleteEvent)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "sportrise_posts" }, handleDeleteEvent)
@@ -278,10 +391,10 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
     // actually updated a row.
     const succeeded = (postsRes.data?.length ?? 0) > 0 || (scoutPostsRes.data?.length ?? 0) > 0;
     if (!succeeded) { toast.error(lang === "ro" ? "Eroare la ștergere" : "Failed to delete"); return; }
-    if (myRecentPost?.id === postId) {
-      if (myRecentPostTimerRef.current) clearTimeout(myRecentPostTimerRef.current);
-      setMyRecentPost(null);
-      if (currentUserId) persistRecentPost(currentUserId, null);
+    if (currentUserId && myRecentPosts.some((p) => p.id === postId)) {
+      const timer = myRecentPostTimersRef.current.get(postId);
+      if (timer) clearTimeout(timer);
+      removeExpiredRecentPost(currentUserId, postId);
     }
     if (currentUserId) fetchPosts(currentUserId);
   };
@@ -439,21 +552,28 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
                 onPosted={(post) => {
                   fetchPosts(currentUserId);
                   if (!post) return;
-                  const recentPost: Post = {
+                  // myRecentPost only ever exists in the author's own
+                  // browser state — it's never sent to, or seen by, any
+                  // other user (everyone else's feed comes from
+                  // get_activity_feed, which already filters strictly to
+                  // moderation_status='approved' server-side). So the
+                  // author can safely see their own image/video here right
+                  // away, with the badge below showing it isn't public
+                  // yet, instead of hiding it from them too.
+                  pinOwnPost(currentUserId, {
                     id: post.id,
                     user_id: currentUserId,
                     content: post.content,
                     image_url: post.image_url,
+                    video_url: post.video_url,
                     post_type: post.post_type,
                     created_at: post.created_at,
                     author_name: myName || (lang === "ro" ? "Tu" : "You"),
                     author_photo: myPhoto,
                     author_role: myRole || "player",
                     author_title: myRole === "player" ? [myProfile?.position, myProfile?.current_team].filter(Boolean).join(" · ") : myTitle,
-                  };
-                  setMyRecentPost(recentPost);
-                  persistRecentPost(currentUserId, recentPost);
-                  scheduleRecentPostClear(currentUserId, OWN_POST_PIN_DURATION_MS);
+                    moderation_status: post.moderation_status,
+                  });
                 }}
               />
             </div>
@@ -487,26 +607,45 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
           {/* Feed */}
           {loading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-orange-500" /></div>
-          ) : posts.length === 0 && !myRecentPost ? (
+          ) : posts.length === 0 && myRecentPosts.length === 0 ? (
             <div className="text-center py-16 text-gray-500 px-4 lg:px-0">
               {lang === "ro" ? "Nicio postare încă. Urmărește persoane pentru a vedea activitatea lor aici!" : "No posts yet. Follow people to see their activity here!"}
             </div>
           ) : (
             <div className="space-y-4">
-              {myRecentPost && (
-                <Fragment key={myRecentPost.id}>
-                  <PostCard
-                    post={{ id: myRecentPost.id, user_id: myRecentPost.user_id, content: myRecentPost.content, image_url: myRecentPost.image_url, video_url: (myRecentPost as any).video_url || null, post_type: myRecentPost.post_type, created_at: myRecentPost.created_at, comments_disabled: false }}
-                    author={{ user_id: myRecentPost.user_id, name: myRecentPost.author_name, photo: myRecentPost.author_photo, role: myRecentPost.author_role, title: myRecentPost.author_title }}
-                    currentUserId={currentUserId}
-                    onDelete={handleDelete}
-                    onViewProfile={handleViewProfile}
-                    hideLikeCounts={hideLikeCounts}
-                    simplifiedMenu
-                  />
-                  {posts.length > 0 && <FeedDivider index={0} />}
+              {myRecentPosts.map((recentPost, idx) => (
+                <Fragment key={recentPost.id}>
+                  <div className="relative">
+                    {/* Own just-published posts, each pinned client-side for
+                        OWN_POST_PIN_DURATION_MS from its own publish time —
+                        publishing a new one does not cut short an earlier
+                        one still within its window. Image/video is shown to
+                        the author right away (see onPosted) even while
+                        moderation_status isn't 'approved' — this badge is
+                        what tells them it isn't visible to anyone else yet.
+                        Never shown to anyone else (myRecentPosts only ever
+                        exists in the poster's own session/browser state). */}
+                    {(() => {
+                      const badge = moderationBadgeLabel(recentPost.moderation_status, lang);
+                      return badge ? (
+                        <span className={`absolute top-3 right-3 z-10 text-[11px] font-semibold px-2 py-1 rounded-full ${badge.className}`}>
+                          {badge.label}
+                        </span>
+                      ) : null;
+                    })()}
+                    <PostCard
+                      post={{ id: recentPost.id, user_id: recentPost.user_id, content: recentPost.content, image_url: recentPost.image_url, video_url: (recentPost as any).video_url || null, post_type: recentPost.post_type, created_at: recentPost.created_at, comments_disabled: false }}
+                      author={{ user_id: recentPost.user_id, name: recentPost.author_name, photo: recentPost.author_photo, role: recentPost.author_role, title: recentPost.author_title }}
+                      currentUserId={currentUserId}
+                      onDelete={handleDelete}
+                      onViewProfile={handleViewProfile}
+                      hideLikeCounts={hideLikeCounts}
+                      simplifiedMenu
+                    />
+                  </div>
+                  {(idx < myRecentPosts.length - 1 || posts.length > 0) && <FeedDivider index={idx} />}
                 </Fragment>
-              )}
+              ))}
               {posts.map((post, idx) => (
                 <Fragment key={post.id}>
                   <PostCard
