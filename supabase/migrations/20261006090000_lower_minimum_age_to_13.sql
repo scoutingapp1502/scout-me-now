@@ -15,6 +15,19 @@
 --      rejects dates of birth between 13 and 16 that don't carry a
 --      parental_consent_at value, so a direct API call can't skip the
 --      checkbox any more than it can skip date_of_birth itself.
+--
+-- Also re-adds date_of_birth with IF NOT EXISTS on both tables: the
+-- 20260922090000_minimum_age_16.sql migration that was supposed to add it
+-- to scout_profiles was never actually applied to production, so
+-- handle_new_user() below would otherwise fail at creation time
+-- (check_function_bodies validates the INSERT column list against the
+-- real schema).
+
+ALTER TABLE public.player_profiles
+  ADD COLUMN IF NOT EXISTS date_of_birth date;
+
+ALTER TABLE public.scout_profiles
+  ADD COLUMN IF NOT EXISTS date_of_birth date;
 
 ALTER TABLE public.player_profiles
   ADD COLUMN IF NOT EXISTS parental_consent_at timestamptz;
