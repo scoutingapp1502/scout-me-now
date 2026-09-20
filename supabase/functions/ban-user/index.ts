@@ -5,18 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Blocks an account's ability to log in without deleting the account or any
-// of its data — per explicit product decision: a banned user keeps their
-// profile/posts/messages exactly as they were (visible to others as before,
-// or however the app already treats a normal account), they simply can no
-// longer authenticate. Implemented via Supabase Auth's own ban_duration
-// mechanism (auth.admin.updateUserById), not a custom "is_banned" column —
-// that's the one place actually capable of rejecting a login attempt,
-// since RLS only governs data access, not the auth handshake itself.
+// Blocks an account's ability to USE the app without deleting the account or
+// any of its data — per explicit product decision: a banned user keeps their
+// profile/posts/messages exactly as they were (visible to others as before),
+// they simply see a dedicated "account banned" page instead of the app.
 //
-// "876000h" (100 years) stands in for "indefinite" — Supabase Auth's API
-// takes a duration, not a boolean, and has no literal "forever" value.
-const PERMANENT_BAN_DURATION = "876000h";
+// Deliberately NOT Supabase Auth's ban_duration anymore (that was the
+// original implementation) — ban_duration rejects the login request itself
+// at the Auth layer, before any of this project's own code runs, which
+// means there is no way to show the user a custom page explaining why or
+// how to appeal; they just get a generic failed-login error. Login is
+// allowed to succeed normally now, and account_status (set here via
+// set_account_status) is what the app checks right after — see
+// 20261009090000_account_status_in_app_blocking.sql.
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -80,8 +81,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
-      ban_duration: action === "ban" ? PERMANENT_BAN_DURATION : "none",
+    const { error: updateError } = await adminClient.rpc("set_account_status", {
+      p_user_id: userId,
+      p_status: action === "ban" ? "banned" : "active",
     });
 
     if (updateError) {

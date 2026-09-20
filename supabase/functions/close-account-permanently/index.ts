@@ -6,15 +6,18 @@ const corsHeaders = {
 };
 
 // Irreversible account closure — explicitly different from ban-user (which
-// only blocks login and can be undone). This:
-//   1. blocks login immediately (same ban_duration mechanism as ban-user);
+// only blocks app usage and can be undone). This:
+//   1. blocks app usage immediately, same account_status mechanism as
+//      ban-user (see 20261009090000_account_status_in_app_blocking.sql),
+//      but set to 'closed' rather than 'banned' — the app shows a
+//      different, permanent-sounding page for this status, with no path
+//      back to 'active' anywhere in this project's code;
 //   2. permanently blacklists the account's email address, so it can never
 //      be used to register again — enforced server-side by a trigger on
 //      auth.users (reject_blacklisted_email_trigger), not just by this
 //      function, so it can't be bypassed by any other signup path.
 // The account's data is NOT deleted — same product decision as ban-user,
-// this only ever removes the ability to authenticate, never the content.
-const PERMANENT_BAN_DURATION = "876000h";
+// this only ever removes the ability to use the app, never the content.
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -96,11 +99,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { error: banError } = await adminClient.auth.admin.updateUserById(userId, {
-      ban_duration: PERMANENT_BAN_DURATION,
+    const { error: statusError } = await adminClient.rpc("set_account_status", {
+      p_user_id: userId, p_status: "closed",
     });
-    if (banError) {
-      return new Response(JSON.stringify({ error: banError.message }), {
+    if (statusError) {
+      return new Response(JSON.stringify({ error: statusError.message }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

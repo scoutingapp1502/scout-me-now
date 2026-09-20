@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  evaluateOverallRisk, maxAcrossFrames, isMinor,
+  evaluateOverallRisk, maxAcrossFrames, mergeMaxScores, isMinor,
   type CategoryScores, type Threshold,
 } from "../_shared/moderationRiskEngine.ts";
 
@@ -10,36 +10,42 @@ const corsHeaders = {
 };
 
 // First pass of the video moderation pipeline (prompt §3-5). Runs on
-// sampled frames + caption text, using OpenAI's Moderation API — free, no
-// separate billing key beyond the API key itself.
+// sampled frames + caption text, using ONLY Google (Vision for images,
+// Natural Language for text) — no OpenAI anywhere in this file. OpenAI
+// Moderation was the original design, but this project's OpenAI account has
+// no billing enabled: every single call (image AND text) failed with 429 in
+// production, unconditionally. Keeping OpenAI as a "first attempt that
+// always fails" added latency, complexity, and — critically — a real bug:
+// the text-fallback path only activated when the earlier OpenAI *frame*
+// call failed a specific way, so a post with both an image and abusive text
+// could have its image correctly routed to the Vision fallback while its
+// text was silently never checked at all (documented gap that let a slur
+// through in production). Google-only, unconditionally, removes that gap
+// entirely — there is now exactly one code path for images and one for
+// text, always taken, never conditional on another provider's failure mode.
 //
-// Known coverage gap (documented, not a bug): OpenAI's omni-moderation model
-// is strong on sexual/violence/hate/self-harm/harassment, but has no
-// dedicated category for weapons-as-object, drugs-as-object, or non-violent
-// "dangerous content" (e.g. risky stunts). Those gaps are why weapons/drugs
+// Known coverage gap (documented, not a bug): Vision has no dedicated
+// category for weapons-as-object or drugs-as-object either — those still
 // route to Google Vision Object/Label Detection at the recheck stage
-// (recheck-video-content) rather than being scored here at all — this
-// function reports them as 0 (unknown-but-not-flagged-yet), and the uncertain
-// band for those categories is intentionally wide so real cases still surface.
+// (recheck-video-content), same as before.
 //
 // ---------------------------------------------------------------------------
 // MODERATION_TEST_MODE (dev/testing only)
 // ---------------------------------------------------------------------------
-// OpenAI billing isn't enabled yet, so OpenAI Moderation currently returns
-// 429 for this project. Setting the Supabase secret MODERATION_TEST_MODE to
-// the exact string "true" skips the OpenAI calls entirely for content_type
-// "test_video" and substitutes a server-decided mock score set instead, so
-// the rest of the pipeline (risk engine, Google Vision, Google Video
-// Intelligence OAuth + polling, recheck-video-content, admin_review) can
-// still be exercised end-to-end for free. Any other value, or the secret
-// being unset, is production behavior — real OpenAI calls, no mocking.
+// Setting the Supabase secret MODERATION_TEST_MODE to the exact string
+// "true" skips the real Google calls entirely for content_type "test_video"
+// and substitutes a server-decided mock score set instead, so the rest of
+// the pipeline (risk engine, Google Video Intelligence OAuth + polling,
+// recheck-video-content, admin_review) can still be exercised end-to-end
+// without spending real API quota. Any other value, or the secret being
+// unset, is production behavior — real Google calls, no mocking.
 //
 // This is intentionally narrow: it never accepts scores from the client,
 // never activates for content_type "post" (real user posts are never
 // mocked), and always logs which mode produced a given result via the
 // content_moderation_results.provider column ("test_mock" vs
-// "openai_moderation"), so a mock result can never be mistaken for a real
-// one in the admin queue or in any later audit.
+// "google_vision"/"google_natural_language"), so a mock result can never be
+// mistaken for a real one in the admin queue or in any later audit.
 const isTestModeEnabled = () => Deno.env.get("MODERATION_TEST_MODE") === "true";
 
 type TestScenario = "SAFE" | "UNCERTAIN_VIOLENCE" | "UNCERTAIN_SEXUAL" | "HIGH";
@@ -47,48 +53,57 @@ type TestScenario = "SAFE" | "UNCERTAIN_VIOLENCE" | "UNCERTAIN_SEXUAL" | "HIGH";
 interface AnalyzeRequest {
   frames: { base64: string; atFraction: number }[];
   caption?: string;
-  content_type: "post" | "test_video";
+  content_type: "post" | "scout_post" | "test_video" | "avatar" | "video_highlight";
   content_id: string;
   // Only ever honored when MODERATION_TEST_MODE=true AND content_type is
   // "test_video" — see handling below. Ignored for real posts, and ignored
   // outright in production.
   test_scenario?: TestScenario;
+  // Required (and only meaningful) when content_type is "avatar" — which of
+  // the two profile tables to write the decision to. Avatars have no
+  // dedicated content_id row of their own (unlike posts/video_submissions),
+  // so content_id here is the user_id whose pending_photo_url is being
+  // reviewed, and avatar_table says where to find it.
+  avatar_table?: "player_profiles" | "scout_profiles";
 }
 
-async function moderateWithOpenAI(apiKey: string, input: { type: "image_url" | "text"; value: string }[]) {
-  const res = await fetch("https://api.openai.com/v1/moderations", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "omni-moderation-latest",
-      input: input.map((i) =>
-        i.type === "image_url"
-          ? { type: "image_url", image_url: { url: i.value } }
-          : { type: "text", text: i.value }
-      ),
-    }),
-  });
-  if (!res.ok) throw new Error(`OpenAI Moderation failed: ${res.status} ${await res.text()}`);
-  return res.json();
-}
-
-// Maps OpenAI's category_scores onto our category set. sexual/minors folds
-// into "sexual" (already the most severe reading); self-harm has no
-// dedicated column in our schema yet, so it folds into "violence" as the
-// closest safety-relevant bucket rather than being silently dropped.
-function mapOpenAiScores(categoryScores: Record<string, number>): CategoryScores {
-  return {
-    sexual: Math.max(categoryScores["sexual"] ?? 0, categoryScores["sexual/minors"] ?? 0),
-    violence: Math.max(
-      categoryScores["violence"] ?? 0,
-      categoryScores["violence/graphic"] ?? 0,
-      categoryScores["self-harm"] ?? 0,
-      categoryScores["self-harm/intent"] ?? 0,
-      categoryScores["self-harm/instructions"] ?? 0
-    ),
-    hate: Math.max(categoryScores["hate"] ?? 0, categoryScores["hate/threatening"] ?? 0),
-    threats: Math.max(categoryScores["harassment"] ?? 0, categoryScores["harassment/threatening"] ?? 0),
-  };
+// Normalizes common evasion tricks BEFORE any text is sent to Google — a
+// purely local, deterministic string transform, no API call. Without this,
+// leetspeak/character-substitution ("$ugi pwla",
+// "v4 tai") sails past every classifier because the substituted string
+// simply isn't a word in any language model's vocabulary; normalizing first
+// turns it back into the real word so the actual moderation providers get a
+// fair shot at it. Deliberately conservative: only maps unambiguous
+// look-alike substitutions, and only used for moderation scoring — never
+// mutates what's actually stored/shown as the post's caption.
+function normalizeForModeration(text: string): string {
+  let out = text.toLowerCase();
+  // Only unambiguous digit/symbol → letter look-alikes, and only when
+  // adjacent to actual letters (so a real number like a score "5-0" or a
+  // year is left alone). Deliberately does NOT map plain-letter look-alikes
+  // such as w→v or ph→f — those misfire constantly on ordinary Romanian/
+  // English words (e.g. "phenomenal", "wow", any word containing "w" or
+  // "ph") and would corrupt normal captions rather than catch evasion.
+  const substitutions: [RegExp, string][] = [
+    [/\$/g, "s"], [/@/g, "a"],
+    [/(?<=[a-z])0(?=[a-z])|^0(?=[a-z])|(?<=[a-z])0$/g, "o"],
+    [/(?<=[a-z])[1!|]|[1!|](?=[a-z])/g, "i"],
+    [/(?<=[a-z])3(?=[a-z])|^3(?=[a-z])|(?<=[a-z])3$/g, "e"],
+    [/(?<=[a-z])7(?=[a-z])/g, "t"],
+    [/(?<=[a-z])\+(?=[a-z])/g, "t"],
+    [/(?<=[a-z])8(?=[a-z])/g, "b"],
+    [/(?<=[a-z])9(?=[a-z])/g, "g"],
+  ];
+  for (const [pattern, replacement] of substitutions) out = out.replace(pattern, replacement);
+  // Collapse letter-by-letter spacing/punctuation used to break up a word
+  // for a keyword filter ("p u l a", "p.u.l.a", "p-u-l-a") — only between
+  // single letters, so normal spaced-out words/sentences are untouched.
+  out = out.replace(/\b([a-z])[\s.\-_]+(?=[a-z]\b)/g, "$1");
+  // Collapse repeated characters used to dodge exact-match filters
+  // ("vaaaa taaaai" → "vaa taai"), but keep up to 2 in a row so genuine
+  // doubled letters in real words survive.
+  out = out.replace(/(.)\1{2,}/g, "$1$1");
+  return out;
 }
 
 async function ocrFrame(apiKey: string, base64: string): Promise<string> {
@@ -120,14 +135,11 @@ function labelScore(objects: any[], labels: any[], keywords: string[]): number {
   return best;
 }
 
-// Fallback first pass, used ONLY when OpenAI Moderation itself is
-// unavailable (billing not enabled, rate limited, network error) — never
-// runs alongside a successful OpenAI call. Google Vision has no OpenAI
-// equivalent for hate/threats text classification, so this covers
-// sexual/violence (SafeSearch) and weapons/drugs (Object/Label Detection)
-// per frame; hate/threats/text stay at 0 here (nothing to derive them from
-// without OpenAI or a caption keyword list), which is a known, accepted gap
-// of this fallback — not silently pretending they were checked.
+// The (only) image moderation pass — Google Vision SafeSearch for
+// sexual/violence, Object/Label Detection for weapons/drugs. Vision has no
+// text-sentiment capability, so hate/threats/text always come from the
+// separate text pass below (moderateTextWithNaturalLanguage), never from
+// here — this function never claims a reading on those three categories.
 async function moderateFrameWithVision(apiKey: string, base64: string): Promise<CategoryScores> {
   const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
     method: "POST",
@@ -143,7 +155,7 @@ async function moderateFrameWithVision(apiKey: string, base64: string): Promise<
       }],
     }),
   });
-  if (!res.ok) throw new Error(`Vision fallback failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new Error(`Vision image moderation failed: ${res.status} ${await res.text()}`);
   const data = await res.json();
   const r = data?.responses?.[0] ?? {};
   const safeSearch = r.safeSearchAnnotation ?? {};
@@ -157,6 +169,105 @@ async function moderateFrameWithVision(apiKey: string, base64: string): Promise<
   };
 }
 
+// The (only) text moderation pass — Google Cloud Natural Language API's
+// moderateText endpoint (Perspective API, used here previously, is being
+// wound down and became unreliable). Runs unconditionally on every post's
+// caption + any OCR'd text, regardless of what happened with the image
+// pass — this used to only run as a fallback after an OpenAI text call
+// failed, which meant a post's text was skipped entirely whenever its
+// separate image call had already failed a different way (see this file's
+// header comment). Lives on the same Google Cloud project as Vision —
+// reuses GOOGLE_CLOUD_VISION_API_KEY, no separate key/service to provision.
+// IMPORTANT: its supported-language list does NOT include Romanian
+// (confirmed live) — text is machine-translated to English first
+// (translateToEnglish) specifically to work around this.
+// https://cloud.google.com/natural-language/docs/moderating-text
+//
+// Category mapping onto our schema: "Toxic"/"Insult"/"Profanity" fold into
+// the overall text score; "Death, Harm & Tragedy"/"Violent" → violence;
+// "Firearms & Weapons" → weapons; "Drugs" → drugs; "Sexual" → sexual;
+// "Toxic" (as the closest identity/hate-adjacent category Natural Language
+// exposes) also feeds hate; there is no dedicated "threats" category, so it
+// takes the same reading as hate (both are conservative proxies here, not a
+// perfect match — documented gap, not silently invented precision).
+//
+// IMPORTANT: moderateText's supported-language list does NOT include
+// Romanian, which is why `text` is expected to already be pre-translated to
+// English by the caller (see translateToEnglish below) before reaching this
+// function — untranslated Romanian text returns HTTP 200 with
+// `languageSupported: false` and near-zero scores even on an unambiguous
+// threat. `languageSupported` is still returned here for visibility/logging,
+// but the caller uses the category scores regardless of its value (product
+// decision — see the call site's comment for the tradeoff this accepts).
+async function moderateTextWithNaturalLanguage(apiKey: string, text: string): Promise<{ text: number; hate: number; threats: number; violence: number; weapons: number; drugs: number; sexual: number; languageSupported: boolean }> {
+  const res = await fetch(`https://language.googleapis.com/v2/documents:moderateText?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      document: { type: "PLAIN_TEXT", content: text },
+    }),
+  });
+  if (!res.ok) throw new Error(`Natural Language moderateText failed: ${res.status} ${await res.text()}`);
+  const data = await res.json();
+  const categories: { name: string; confidence: number }[] = data?.moderationCategories ?? [];
+  const score = (name: string) => categories.find((c) => c.name === name)?.confidence ?? 0;
+
+  const toxic = Math.max(score("Toxic"), score("Insult"), score("Profanity"));
+  const violence = Math.max(score("Violent"), score("Death, Harm & Tragedy"));
+  const weapons = score("Firearms & Weapons");
+  const drugs = score("Drugs");
+  const sexual = score("Sexual");
+  const hate = toxic;
+  const threats = toxic;
+  const text_ = Math.max(toxic, violence, weapons, drugs, sexual);
+  return { text: text_, hate, threats, violence, weapons, drugs, sexual, languageSupported: data?.languageSupported !== false };
+}
+
+// Translates arbitrary-language text to English via MyMemory Translation API
+// before it reaches Google's moderateText, since that endpoint's model only
+// actually understands a fixed set of languages (English, Chinese, French,
+// German, Italian, Japanese, Korean, Portuguese, Spanish) and Romanian is
+// not among them — confirmed live: it returns confidently-shaped but
+// meaningless near-zero scores instead of an error for unsupported
+// languages, which is worse than failing loudly.
+//
+// Deliberately MyMemory, not Google Cloud Translation or Azure Translator:
+// no account, no API key, no signup at all — a plain HTTP GET — so there's
+// nothing to be rate-limited or fraud-blocked on signup (Azure account
+// creation was blocked here for "unusual activity"). Per MyMemory's own
+// published limits (mymemory.translated.net/doc/usagelimits.php): anonymous
+// usage is 5,000 CHARACTERS/day; attaching a contact email via the `de`
+// parameter raises that to 50,000 characters/day, still with no account or
+// API key created anywhere — the email is just a contact-in-case-of-abuse
+// field MyMemory asks for, not a signup. MODERATION_CONTACT_EMAIL is that
+// address (this project's own account email, not a personal one). This is
+// the one deliberately low-effort spot in an otherwise carefully
+// provisioned pipeline — if MyMemory's daily quota is ever exhausted, the
+// caller below treats a failed/empty translation exactly like any other
+// provider failure (→ admin_review), never silently approved on an
+// untranslated reading.
+async function translateToEnglish(text: string): Promise<string> {
+  const contactEmail = Deno.env.get("MODERATION_CONTACT_EMAIL");
+  const emailParam = contactEmail ? `&de=${encodeURIComponent(contactEmail)}` : "";
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ro|en${emailParam}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`MyMemory Translation failed: ${res.status} ${await res.text()}`);
+  const data = await res.json();
+  // MyMemory reports quota/errors inside a 200 response via responseStatus
+  // and quotaFinished, not always via HTTP status — must be checked
+  // explicitly or a quota rejection silently passes through as an "empty"
+  // translation.
+  if (data?.quotaFinished === true) {
+    throw new Error("MyMemory Translation daily quota exhausted");
+  }
+  if (data?.responseStatus && data.responseStatus !== 200) {
+    throw new Error(`MyMemory Translation error: ${data.responseStatus} ${data?.responseDetails ?? ""}`);
+  }
+  const translated = data?.responseData?.translatedText;
+  if (typeof translated !== "string" || !translated.trim()) throw new Error("MyMemory Translation returned no text");
+  return translated;
+}
+
 async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
@@ -165,11 +276,6 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
     return fn();
   }
 }
-
-// Spacing between sequential OpenAI calls (6 frames + 1 text call per
-// upload) so they don't trip the free tier's per-minute rate limit on their
-// own. Revisit/lower once billing is enabled on the OpenAI account.
-const OPENAI_CALL_SPACING_MS = 2500;
 
 // Builds a CategoryScores set for a test scenario using the thresholds
 // already loaded from moderation_thresholds, instead of hardcoding
@@ -242,11 +348,29 @@ Deno.serve(async (req) => {
     const body: AnalyzeRequest = await req.json();
     // frames may legitimately be empty — a text-only post has nothing to
     // sample, and goes through the same pipeline for its caption alone.
-    const { frames = [], caption, content_type, content_id, test_scenario } = body;
+    const { frames = [], caption, content_type, content_id, test_scenario, avatar_table } = body;
     if (!content_type || !content_id) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+    if (content_type === "avatar") {
+      if (avatar_table !== "player_profiles" && avatar_table !== "scout_profiles") {
+        return new Response(JSON.stringify({ error: "Missing/invalid avatar_table" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Unlike a post/video_submission row (whose ownership RLS already
+      // gates), an avatar's content_id IS the profile's user_id directly —
+      // must be pinned to the caller's own id, or any authenticated user
+      // could pass someone else's user_id and trigger moderation (and, on
+      // approval, promote a pending_photo_url) on an account that isn't
+      // theirs.
+      if (content_id !== caller.id) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { data: thresholds } = await adminClient
@@ -264,133 +388,142 @@ Deno.serve(async (req) => {
     // test_scenario is only ever honored under both conditions at once —
     // test mode enabled AND this is a test_video, never a real post. A
     // scenario named for a "post" is silently ignored and falls through to
-    // the real OpenAI path below.
+    // the real Google path below.
     const useTestMock = isTestModeEnabled() && content_type === "test_video" && !!test_scenario;
 
     let scores: CategoryScores = {};
     let textScoresForRecheck: { hate: number; threats: number; text: number } = { hate: 0, threats: 0, text: 0 };
     let serviceUnavailable = false;
     let provider = "unavailable";
+    // Tracked outside the block below so the final admin_review reason can
+    // say specifically which half of the check (image, text, or both)
+    // actually failed, instead of a single generic message.
+    let imageCheckFailedOuter = false;
+    let textCheckFailedOuter = false;
 
     if (useTestMock) {
       scores = buildMockScores(test_scenario!, thresholdList);
       textScoresForRecheck = { hate: scores.hate ?? 0, threats: scores.threats ?? 0, text: scores.text ?? 0 };
       provider = "test_mock";
     } else {
-      const openaiKey = Deno.env.get("OPENAI_API_KEY");
       const visionKey = Deno.env.get("GOOGLE_CLOUD_VISION_API_KEY");
 
       let perFrameScores: CategoryScores[] = [];
       let ocrText = "";
-      let openAiUnavailable = false;
+      let imageCheckFailed = false;
 
-      // A text-only post has no frames at all — nothing to run image
-      // moderation against, so this whole leg is skipped rather than
-      // wastefully failing on an out-of-bounds frame.
-      if (frames.length === 0) {
-        // Not a failure — just nothing to check here.
-      } else if (!openaiKey) {
-        console.error("OPENAI_API_KEY not configured — falling back to Google Vision for the initial pass.");
-        openAiUnavailable = true;
-      } else {
-        try {
-          // OpenAI's Moderation API accepts exactly one image per request,
-          // and this project's OpenAI account has no billing enabled — its
-          // free-tier rate limit is low enough that even one request per
-          // frame, spaced out, still triggers 429 (confirmed in production
-          // logs). So only ONE frame — the middle one, most representative
-          // of the clip — is sent to OpenAI; the other frames are still
-          // available to the Google Vision fallback/recheck stage if
-          // needed, they're just not spent on OpenAI. Revisit sending all
-          // frames once billing is enabled and the real rate limit is much
-          // higher. A single-image post (exactly one frame) always uses
-          // that one frame.
-          const middleFrame = frames[Math.floor(frames.length / 2)];
-          const result: any = await withRetry(() =>
-            moderateWithOpenAI(openaiKey, [{ type: "image_url" as const, value: `data:image/jpeg;base64,${middleFrame.base64}` }])
-          );
-          perFrameScores = [mapOpenAiScores(result.results?.[0]?.category_scores ?? {})];
-        } catch (err) {
-          console.error("OpenAI Moderation (frames) failed after retry, falling back to Google Vision:", err);
-          openAiUnavailable = true;
+      // Image pass — Vision SafeSearch + Object/Label Detection on every
+      // extracted frame. Skipped only when there are no frames at all (a
+      // text-only post has nothing to check here — not a failure).
+      if (frames.length > 0) {
+        if (!visionKey) {
+          console.error("GOOGLE_CLOUD_VISION_API_KEY not configured — no automated image check could run.");
+          imageCheckFailed = true;
+        } else {
+          try {
+            perFrameScores = await Promise.all(frames.map((f) => moderateFrameWithVision(visionKey, f.base64)));
+          } catch (err) {
+            console.error("Vision image moderation failed:", err);
+            imageCheckFailed = true;
+          }
         }
       }
 
-      // OCR runs once per frame on the already-extracted frames (no new
-      // frames), regardless of the image-moderation outcome — dangerous
-      // text can ride on an otherwise-innocuous frame.
-      if (visionKey) {
+      // OCR runs once per frame regardless of the image-moderation outcome
+      // above — dangerous text can ride on an otherwise-innocuous frame,
+      // and OCR'd text feeds into the text pass below either way.
+      if (visionKey && frames.length > 0) {
         const ocrResults = await Promise.all(
           frames.map((f) => ocrFrame(visionKey, f.base64).catch(() => ""))
         );
         ocrText = ocrResults.filter(Boolean).join("\n");
-      } else {
-        console.error("GOOGLE_CLOUD_VISION_API_KEY not configured — OCR skipped for this upload.");
       }
 
+      // Text pass — runs UNCONDITIONALLY whenever there's a caption or
+      // OCR'd text, regardless of what happened with the image pass above.
+      // This is the fix for the real bug the old OpenAI-first design had:
+      // text used to only be checked as a "fallback" after a separate,
+      // independent image-call failure, so a post with an image AND
+      // abusive text could have its image correctly routed to Vision while
+      // its text was silently never checked at all.
       let textScores: CategoryScores = {};
-      if (openAiUnavailable) {
-        // Fallback path: OpenAI is down/unconfigured. Run Google Vision
-        // SafeSearch + Object/Label Detection on the frames directly instead
-        // of giving up — this is a real automated first pass, not a mock,
-        // and only ever engages when OpenAI genuinely could not be reached.
-        // Only fail the whole pass (→ admin_review) if Vision ALSO isn't
-        // configured or fails — two independent providers both down is the
-        // only case treated as "no automated check ran at all".
-        if (!visionKey) {
-          console.error("Vision fallback unavailable (no GOOGLE_CLOUD_VISION_API_KEY) — no automated check could run.");
-          serviceUnavailable = true;
+      let textCategoryScores: CategoryScores = {};
+      let textCheckFailed = false;
+      const rawCombinedText = [caption, ocrText].filter(Boolean).join("\n").trim();
+      // Normalized before reaching Natural Language — without this,
+      // leetspeak/character-substitution evasion ("$ugi pwla") sails
+      // through because the substituted string isn't a real word in any
+      // language model's vocabulary. Never changes what's stored/displayed,
+      // only what's scored.
+      const combinedText = normalizeForModeration(rawCombinedText);
+      if (combinedText) {
+        const naturalLanguageKey = Deno.env.get("GOOGLE_CLOUD_VISION_API_KEY");
+        if (naturalLanguageKey) {
+          try {
+            // Natural Language's moderateText does NOT understand Romanian
+            // (confirmed live: it answers HTTP 200 with
+            // languageSupported: false rather than erroring — which very
+            // nearly let a real threat, "vă tai pe toți", through as
+            // "approved" before the MyMemory translation step below was
+            // added). So the caption is machine-translated to English first
+            // via MyMemory (free, no account/key — see translateToEnglish).
+            //
+            // languageSupported can still come back false even AFTER
+            // translation — confirmed happening on plain nonsense text like
+            // "asdlasd;ald" (MyMemory has nothing real to translate, so its
+            // output isn't reliably recognizable as English either). Explicit
+            // product decision: Google's returned category scores are used
+            // as-is regardless of that flag, rather than treating it as a
+            // provider failure (which routed every such case to admin_review
+            // for no real reason — nonsense text has nothing dangerous in it
+            // for the classifier to score highly in the first place). This
+            // does mean a genuine abusive message that happens to translate
+            // into something Google doesn't recognize as valid English would
+            // also be scored (and possibly approved) rather than escalated —
+            // an accepted tradeoff, not an oversight.
+            const englishText = await withRetry(() => translateToEnglish(combinedText));
+            const nl = await withRetry(() => moderateTextWithNaturalLanguage(naturalLanguageKey, englishText));
+            textScores = { text: nl.text, hate: nl.hate, threats: nl.threats };
+            // Natural Language's category set also reads violence/weapons/
+            // drugs/sexual signal directly out of the text, so fold those in
+            // too rather than leaving them at 0 purely because there was no
+            // image (or the image check failed).
+            textCategoryScores = { violence: nl.violence, weapons: nl.weapons, drugs: nl.drugs, sexual: nl.sexual };
+          } catch (err) {
+            console.error("Google Natural Language (translation + moderateText) failed:", err);
+            textCheckFailed = true;
+          }
         } else {
-          try {
-            perFrameScores = await Promise.all(frames.map((f) => moderateFrameWithVision(visionKey, f.base64)));
-            provider = "google_vision_fallback";
-          } catch (err) {
-            console.error("Vision fallback failed:", err);
-            serviceUnavailable = true;
-          }
-        }
-        // hate/threats/text have no signal in this fallback (Vision doesn't
-        // classify text sentiment) — left at 0 rather than guessed at. This
-        // is a known, accepted gap of running without OpenAI: text-based
-        // abuse (harassment, hate speech in a caption) is not caught until
-        // OpenAI is available again or a user reports it.
-      } else {
-        provider = "openai_moderation";
-        const combinedText = [caption, ocrText].filter(Boolean).join("\n").trim();
-        if (combinedText && openaiKey) {
-          try {
-            // Spaced out from the last frame call above for the same
-            // rate-limit reason.
-            await new Promise((r) => setTimeout(r, OPENAI_CALL_SPACING_MS));
-            const textResult = await withRetry(() => moderateWithOpenAI(openaiKey, [{ type: "text", value: combinedText }]));
-            const mapped = mapOpenAiScores(textResult.results?.[0]?.category_scores ?? {});
-            textScores = { text: Math.max(mapped.sexual ?? 0, mapped.violence ?? 0, mapped.hate ?? 0, mapped.threats ?? 0), hate: mapped.hate, threats: mapped.threats };
-          } catch (err) {
-            // OpenAI succeeded on frames but failed on text — there is no
-            // independent second text provider in this pipeline (Vision
-            // fallback above only covers images), so this must still route
-            // to admin_review, never approved on frame-only confidence.
-            console.error("OpenAI Moderation (text) failed after retry:", err);
-            serviceUnavailable = true;
-          }
+          console.error("GOOGLE_CLOUD_VISION_API_KEY not configured — no text check could run.");
+          textCheckFailed = true;
         }
       }
 
-      scores = { ...maxAcrossFrames(perFrameScores), ...textScores };
-      // weapons/drugs get a mid-band placeholder only when OpenAI actually
-      // ran on an actual frame (it never scores them at all — see file
-      // header); the Vision fallback above already computes real
-      // weapons/drugs scores per frame, so it must not be overwritten here.
-      // A text-only post (no frames at all) has nothing depicting a weapon
-      // or drug to begin with, so both stay unset/low rather than flagged
-      // as "uncertain" purely for lacking an image.
-      if (provider === "openai_moderation" && frames.length > 0) {
-        const weaponsThreshold = thresholdList.find((t) => t.category === "weapons");
-        const drugsThreshold = thresholdList.find((t) => t.category === "drugs");
-        if (weaponsThreshold) scores.weapons = weaponsThreshold.low_max + 0.01;
-        if (drugsThreshold) scores.drugs = drugsThreshold.low_max + 0.01;
+      // Fail-safe, never fail-open: if EITHER the image pass (when there
+      // were frames to check) or the text pass (when there was text to
+      // check) genuinely couldn't run/complete, this whole thing is
+      // "unavailable" and goes to admin_review — never silently approved on
+      // half a check.
+      if (imageCheckFailed || textCheckFailed) {
+        serviceUnavailable = true;
+        imageCheckFailedOuter = imageCheckFailed;
+        textCheckFailedOuter = textCheckFailed;
       }
+      provider = frames.length > 0 && combinedText
+        ? "google_vision_and_natural_language"
+        : frames.length > 0
+        ? "google_vision"
+        : "google_natural_language";
 
+      // mergeMaxScores, not spread: textCategoryScores and the image scores
+      // share the same 4 keys (sexual/violence/weapons/drugs) — a plain
+      // {...imageScores, ...textCategoryScores} let the text pass's
+      // (usually near-zero, caption-derived) score silently overwrite a
+      // real, dangerous Vision score for the image whenever a caption was
+      // present, which is exactly why an image-only-dangerous post with any
+      // caption at all was sailing through undetected. hate/threats/text
+      // only ever come from textScores, so max() is a no-op for those.
+      scores = mergeMaxScores(maxAcrossFrames(perFrameScores), textScores, textCategoryScores);
       textScoresForRecheck = { hate: textScores.hate ?? 0, threats: textScores.threats ?? 0, text: textScores.text ?? 0 };
     }
 
@@ -400,9 +533,11 @@ Deno.serve(async (req) => {
 
     if (serviceUnavailable) {
       decision = "admin_review";
-      reason = provider === "unavailable"
-        ? "Prima verificare automată indisponibilă (OpenAI Moderation și Google Vision)."
-        : "Verificare text indisponibilă (OpenAI Moderation).";
+      reason = imageCheckFailedOuter && textCheckFailedOuter
+        ? "Verificare automată indisponibilă (Google Vision și Google Natural Language)."
+        : imageCheckFailedOuter
+        ? "Verificare imagine indisponibilă (Google Vision)."
+        : "Verificare text indisponibilă (Google Natural Language sau traducere MyMemory).";
     } else {
       const risk = evaluateOverallRisk(scores, thresholdList, minor);
       triggeredCategories = risk.triggeredCategories;
@@ -424,14 +559,46 @@ Deno.serve(async (req) => {
     // to 'flagged' — otherwise it's indistinguishable from a post whose
     // moderation hasn't run yet at all, and both the author-facing badge and
     // the admin queue lose the ability to tell "waiting" from "needs a human".
-    const table = content_type === "post" ? "posts" : "video_submissions";
     const newStatus = decision === "approved" ? "approved" : decision === "admin_review" ? "flagged" : "pending";
-    await adminClient.from(table).update({ moderation_status: newStatus }).eq("id", content_id);
+    if (content_type === "avatar") {
+      // Avatars use a different shape than posts/video_submissions: there's
+      // no separate row to flip a status on, just pending_photo_url +
+      // avatar_moderation_status staged on the profile row itself (see
+      // 20261006090000_avatar_moderation.sql). Approval promotes the staged
+      // URL into photo_url via approve_pending_avatar; recheck/admin_review
+      // leaves pending_photo_url untouched and just updates the status so
+      // the author sees "pending"/"flagged" instead of the file going live.
+      if (decision === "approved") {
+        await adminClient.rpc("approve_pending_avatar", { p_user_id: content_id, p_table: avatar_table });
+      } else {
+        await adminClient.from(avatar_table!).update({
+          avatar_moderation_status: newStatus === "approved" ? null : newStatus,
+        }).eq("user_id", content_id);
+      }
+    } else if (content_type === "video_highlight") {
+      // Same staged-approval shape as avatars: content_id here is the
+      // video_highlight_submissions.id (see
+      // 20261015090000_video_highlights_moderation.sql). Approval appends
+      // the url/description into player_profiles' live arrays via
+      // approve_video_highlight; recheck/admin_review just flips this
+      // row's own status column (a real column here, unlike avatars).
+      if (decision === "approved") {
+        await adminClient.rpc("approve_video_highlight", { p_submission_id: content_id });
+      } else {
+        await adminClient.from("video_highlight_submissions").update({ moderation_status: newStatus }).eq("id", content_id);
+      }
+    } else {
+      // "scout_post" mirrors "post" exactly (see
+      // 20261016090000_scout_posts_same_pipeline_as_posts.sql) — a
+      // Descoperitor's own post row, just in a different table.
+      const table = content_type === "post" ? "posts" : content_type === "scout_post" ? "scout_posts" : "video_submissions";
+      await adminClient.from(table).update({ moderation_status: newStatus }).eq("id", content_id);
+    }
 
     // initialTextScores lets recheck-video-content resolve a triggered
-    // hate/threats/text category from this pass's own OpenAI (or test-mode
-    // mock) results — there is no independent second text provider in this
-    // pipeline.
+    // hate/threats/text category from this pass's own Google Natural
+    // Language (or test-mode mock) results, without re-querying any text
+    // provider a second time.
     return new Response(JSON.stringify({
       decision, scores, triggeredCategories,
       initialTextScores: textScoresForRecheck,

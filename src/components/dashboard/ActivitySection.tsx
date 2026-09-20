@@ -165,33 +165,94 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
 
         try {
           const raw = localStorage.getItem(RECENT_POSTS_STORAGE_KEY(user.id));
+          const now = Date.now();
+          let stillValid: { post: Post; expiresAt: number }[] = [];
           if (raw) {
             const entries: { post: Post; expiresAt: number }[] = JSON.parse(raw);
-            const now = Date.now();
-            const stillValid = entries.filter((e) => e.expiresAt > now);
-            if (stillValid.length !== entries.length) persistRecentPosts(user.id, stillValid);
-            setMyRecentPosts(stillValid.map((e) => e.post));
-            stillValid.forEach((e) => scheduleRecentPostClear(user.id, e.post.id, e.expiresAt - now));
-
-            // The stored moderation_status is a snapshot from when the post
-            // was made — a page reload/revisit must not keep showing a
-            // stale "pending"/"flagged" badge for something an admin
-            // already approved while the tab was closed. Re-fetch the
-            // current status for each still-pinned post.
-            const ids = stillValid.map((e) => e.post.id);
-            if (ids.length > 0) {
-              supabase.from("posts").select("id, moderation_status, image_url, video_url").in("id", ids)
-                .then(({ data }) => {
-                  if (!data) return;
-                  const byId = new Map(data.map((p: any) => [p.id, p]));
-                  setMyRecentPosts((prev) => prev.map((p) => {
-                    const fresh = byId.get(p.id);
-                    return fresh ? { ...p, moderation_status: fresh.moderation_status, image_url: fresh.image_url, video_url: fresh.video_url } : p;
-                  }));
-                })
-                .catch((err) => console.error("Failed to refresh recent own posts' moderation status:", err));
-            }
+            stillValid = entries.filter((e) => e.expiresAt > now);
           }
+
+          // localStorage only ever gets written to by THIS component's own
+          // realtime listener/composer callback (see pinOwnPost) — a post
+          // made from anywhere else (e.g. Personal Profile's own composer)
+          // while Activity wasn't mounted never reaches either of those, so
+          // it would otherwise never show up here at all once the user
+          // navigates to Activity afterwards. Directly querying for the
+          // author's own posts from the last pin window closes that gap —
+          // this runs unconditionally on every mount, not just when
+          // localStorage already had something. Queries both posts and
+          // scout_posts — a Descoperitor's own post goes through the exact
+          // same pin/badge treatment now (see
+          // 20261016090000_scout_posts_same_pipeline_as_posts.sql).
+          Promise.all([
+            supabase
+              .from("posts")
+              .select("id, content, image_url, video_url, post_type, created_at, moderation_status")
+              .eq("user_id", user.id)
+              .gte("created_at", new Date(now - OWN_POST_PIN_DURATION_MS).toISOString())
+              .order("created_at", { ascending: false }),
+            (supabase as any)
+              .from("scout_posts")
+              .select("id, content, image_url, video_url, created_at, moderation_status")
+              .eq("user_id", user.id)
+              .gte("created_at", new Date(now - OWN_POST_PIN_DURATION_MS).toISOString())
+              .order("created_at", { ascending: false }),
+          ])
+            .then(([{ data, error }, { data: scoutData, error: scoutError }]) => {
+              if (error) { console.error("Failed to query recent own posts:", error); }
+              if (scoutError) { console.error("Failed to query recent own scout posts:", scoutError); }
+              const author = myAuthorInfoRef.current;
+              const alreadyKnownIds = new Set(stillValid.map((e) => e.post.id));
+              const rows = [
+                ...(data || []).map((p: any) => ({ ...p, post_type: p.post_type ?? "general" })),
+                ...(scoutData || []).map((p: any) => ({ ...p, post_type: "scout" })),
+              ];
+              const discovered: { post: Post; expiresAt: number }[] = rows
+                .filter((p: any) => !alreadyKnownIds.has(p.id))
+                .map((p: any) => ({
+                  post: {
+                    id: p.id, user_id: user.id, content: p.content ?? "",
+                    image_url: p.image_url, video_url: p.video_url, post_type: p.post_type,
+                    created_at: p.created_at, moderation_status: p.moderation_status ?? "pending",
+                    author_name: author.name, author_photo: author.photo, author_role: author.role, author_title: author.title,
+                  } as Post,
+                  expiresAt: new Date(p.created_at).getTime() + OWN_POST_PIN_DURATION_MS,
+                }))
+                .filter((e) => e.expiresAt > now);
+
+              const merged = [...stillValid, ...discovered].sort((a, b) => b.expiresAt - a.expiresAt);
+              persistRecentPosts(user.id, merged);
+              setMyRecentPosts(merged.map((e) => e.post));
+              merged.forEach((e) => scheduleRecentPostClear(user.id, e.post.id, e.expiresAt - now));
+
+              // The stored moderation_status is a snapshot from when the
+              // post was made (or just-queried, for a freshly-discovered
+              // one) — a page reload/revisit must not keep showing a stale
+              // "pending"/"flagged" badge for something an admin already
+              // approved while the tab was closed. Re-fetch the current
+              // status for every pinned post once more, covering both
+              // sources uniformly.
+              const postOnlyIds = merged.map((e) => e.post).filter((p) => p.post_type !== "scout").map((p) => p.id);
+              const scoutOnlyIds = merged.map((e) => e.post).filter((p) => p.post_type === "scout").map((p) => p.id);
+              if (postOnlyIds.length > 0 || scoutOnlyIds.length > 0) {
+                Promise.all([
+                  postOnlyIds.length > 0
+                    ? supabase.from("posts").select("id, moderation_status, image_url, video_url").in("id", postOnlyIds)
+                    : Promise.resolve({ data: [] }),
+                  scoutOnlyIds.length > 0
+                    ? (supabase as any).from("scout_posts").select("id, moderation_status, image_url, video_url").in("id", scoutOnlyIds)
+                    : Promise.resolve({ data: [] }),
+                ])
+                  .then(([{ data: fresh }, { data: freshScout }]) => {
+                    const byId = new Map([...(fresh || []), ...(freshScout || [])].map((p: any) => [p.id, p]));
+                    setMyRecentPosts((prev) => prev.map((p) => {
+                      const f = byId.get(p.id);
+                      return f ? { ...p, moderation_status: f.moderation_status, image_url: f.image_url, video_url: f.video_url } : p;
+                    }));
+                  })
+                  .catch((err) => console.error("Failed to refresh recent own posts' moderation status:", err));
+              }
+            });
         } catch (err) {
           console.error("Failed to restore recent own posts:", err);
         }
@@ -310,6 +371,22 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
     return () => { myRecentPostTimersRef.current.forEach((t) => clearTimeout(t)); };
   }, []);
 
+  // A pinned post discovered by directly querying for it (see the mount
+  // effect below, which covers a post made from Personal Profile before
+  // Activity was ever mounted) is built with whatever myAuthorInfoRef held
+  // at that moment — which can be the "Tu"/no-photo placeholder if the
+  // profile fetch (loadMyProfile) hadn't resolved yet. Once the real name/
+  // photo/role/title do arrive, backfill them onto every currently-pinned
+  // post so the card never keeps showing a stale placeholder author.
+  useEffect(() => {
+    if (!myName && !myPhoto && !myRole) return;
+    const author = myAuthorInfoRef.current;
+    setMyRecentPosts((prev) => prev.map((p) => ({
+      ...p, author_name: author.name, author_photo: author.photo, author_role: author.role, author_title: author.title,
+    })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myName, myPhoto, myRole, myProfile, myTitle]);
+
   useEffect(() => {
     const handleInsert = (payload: any) => {
       const uid = currentUserIdRef.current;
@@ -373,6 +450,11 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "scout_posts" }, handleInsert)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sportrise_posts" }, handleInsert)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "posts" }, handleUpdate)
+      // scout_posts now goes through the same moderation pipeline as posts
+      // (see 20261016090000_scout_posts_same_pipeline_as_posts.sql) — without
+      // this, a Descoperitor's own Activity tab never learned about an
+      // admin decision or an edit's re-check until a full refresh.
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "scout_posts" }, handleUpdate)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts" }, handleDeleteEvent)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "scout_posts" }, handleDeleteEvent)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "sportrise_posts" }, handleDeleteEvent)

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { UserPlus, ArrowLeft, CheckCheck, Handshake, Check, X, Star, Video, Heart, Loader2 } from "lucide-react";
+import { UserPlus, ArrowLeft, CheckCheck, Handshake, Check, X, Star, Video, Heart, Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PersonalProfile, { getTestLabelByKey } from "./PersonalProfile";
@@ -73,7 +73,34 @@ interface StoryLikeNotification {
   isRead: boolean;
 }
 
-type Notification = FollowNotification | CollabNotification | RecommendationNotification | VideoNotification | StoryLikeNotification;
+// Issued by an admin via AdminUsersAtRisk (see
+// 20261008090000_user_warnings_as_notifications.sql) — never retracted,
+// accumulates permanently, unlike every other notification kind here there
+// is no "other person" to attribute it to, it comes from the platform
+// itself.
+interface WarningNotification {
+  id: string;
+  type: "warning";
+  created_at: string;
+  isRead: boolean;
+}
+
+// Automatic, generic "your content was removed" notice — fired by
+// reject-post/reject-avatar/approve_user_report whenever content is
+// actually deleted, whether from the automated moderation pipeline or an
+// admin approving another user's report (see
+// 20261013090000_content_rejection_notices.sql). Deliberately distinct
+// from WarningNotification: this never increments any admin-facing
+// counter, it's purely informational.
+interface ContentRejectionNotification {
+  id: string;
+  type: "content_rejection";
+  contentType: "post" | "comment" | "avatar";
+  created_at: string;
+  isRead: boolean;
+}
+
+type Notification = FollowNotification | CollabNotification | RecommendationNotification | VideoNotification | StoryLikeNotification | WarningNotification | ContentRejectionNotification;
 
 const NOTIF_PAGE_SIZE = 20;
 
@@ -142,6 +169,24 @@ function mapNotifRow(row: any, userId: string): Notification | null {
         other_name: row.other_name,
         other_photo: row.other_photo,
         other_role: row.other_role,
+        created_at: row.created_at,
+        isRead: isNotificationRead(userId, row.notif_id),
+      };
+    case "warning":
+      return {
+        id: row.notif_id,
+        type: "warning",
+        created_at: row.created_at,
+        isRead: isNotificationRead(userId, row.notif_id),
+      };
+    case "content_rejection":
+      return {
+        id: row.notif_id,
+        type: "content_rejection",
+        // Carried in the player_sport slot — see this row shape's other
+        // type-specific reuses (e.g. video's test_key) for the same
+        // no-dedicated-column convention.
+        contentType: row.player_sport,
         created_at: row.created_at,
         isRead: isNotificationRead(userId, row.notif_id),
       };
@@ -690,6 +735,68 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                     <p className="text-xs text-gray-500 mt-0.5">{timeAgo(sn.created_at)}</p>
                   </div>
                   <Heart className={`h-4 w-4 shrink-0 ${sn.isRead ? "text-orange-300" : "text-orange-500"} fill-current`} />
+                </button>
+              );
+            }
+
+            if (n.type === "warning") {
+              const wn = n as WarningNotification;
+              return (
+                <button
+                  key={wn.id}
+                  onClick={() => handleMarkOneRead(wn.id)}
+                  className="w-full flex items-center gap-3 p-4 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 transition-all text-left"
+                >
+                  <div className="shrink-0 w-2.5 flex items-center justify-center">
+                    {!wn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 animate-pulse" />}
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-red-600 flex items-center justify-center shrink-0">
+                    <ShieldAlert className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${wn.isRead ? "text-gray-900" : "text-gray-900 font-semibold"}`}>
+                      {lang === "ro"
+                        ? "Ai primit un avertisment pentru încălcarea regulilor comunității."
+                        : "You've received a warning for violating community guidelines."}
+                    </p>
+                    <p className={`text-sm mt-0.5 ${wn.isRead ? "text-gray-500" : "text-gray-900/80"}`}>
+                      {lang === "ro"
+                        ? "Dacă o postare viitoare este respinsă, contul tău poate fi blocat sau închis definitiv."
+                        : "If a future post is rejected, your account may be suspended or permanently closed."}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{timeAgo(wn.created_at)}</p>
+                  </div>
+                </button>
+              );
+            }
+
+            if (n.type === "content_rejection") {
+              const rn = n as ContentRejectionNotification;
+              const contentLabel = {
+                post: lang === "ro" ? "O postare de-a ta" : "One of your posts",
+                comment: lang === "ro" ? "Un comentariu de-al tău" : "One of your comments",
+                avatar: lang === "ro" ? "Poza ta de profil" : "Your profile photo",
+              }[rn.contentType];
+              return (
+                <button
+                  key={rn.id}
+                  onClick={() => handleMarkOneRead(rn.id)}
+                  className="w-full flex items-center gap-3 p-4 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 transition-all text-left"
+                >
+                  <div className="shrink-0 w-2.5 flex items-center justify-center">
+                    {!rn.isRead && <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 animate-pulse" />}
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-red-600 flex items-center justify-center shrink-0">
+                    <ShieldAlert className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${rn.isRead ? "text-gray-900" : "text-gray-900 font-semibold"}`}>
+                      {lang === "ro"
+                        ? `${contentLabel} a fost eliminată pentru încălcarea regulilor comunității.`
+                        : `${contentLabel} was removed for violating community guidelines.`}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{timeAgo(rn.created_at)}</p>
+                  </div>
                 </button>
               );
             }

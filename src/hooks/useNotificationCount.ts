@@ -97,7 +97,17 @@ export function useNotificationCount(userId: string | null) {
       }
     }
 
-    setCount(unreadFollows + unreadRespondedFollows + unreadAgentCollabs + unreadPlayerCollabs + unreadPendingRecs + unreadSubmittedRecs + unreadVideoNotifs + unreadStoryLikes);
+    // Count unread admin warnings — permanent notifications, never
+    // retracted (see 20261008090000_user_warnings_as_notifications.sql).
+    const { data: warnings } = await (supabase as any).from("user_warnings").select("id").eq("user_id", userId);
+    const unreadWarnings = (warnings || []).filter((w: any) => !readIds.has(`warning-${w.id}`)).length;
+
+    // Count unread content-rejection notices — separate from warnings, see
+    // 20261013090000_content_rejection_notices.sql.
+    const { data: rejectionNotices } = await (supabase as any).from("content_rejection_notices").select("id").eq("user_id", userId);
+    const unreadRejectionNotices = (rejectionNotices || []).filter((r: any) => !readIds.has(`rejection-${r.id}`)).length;
+
+    setCount(unreadFollows + unreadRespondedFollows + unreadAgentCollabs + unreadPlayerCollabs + unreadPendingRecs + unreadSubmittedRecs + unreadVideoNotifs + unreadStoryLikes + unreadWarnings + unreadRejectionNotices);
   }, [userId]);
 
   useEffect(() => {
@@ -121,6 +131,8 @@ export function useNotificationCount(userId: string | null) {
       .on("postgres_changes", { event: "*", schema: "public", table: "recommendations", filter: `recipient_user_id=eq.${userId}` }, () => recalc())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "player_video_notifications" }, () => recalc())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "story_likes" }, () => recalc())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "user_warnings", filter: `user_id=eq.${userId}` }, () => recalc())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "content_rejection_notices", filter: `user_id=eq.${userId}` }, () => recalc())
       .subscribe();
 
     return () => {

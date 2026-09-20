@@ -76,12 +76,12 @@ export default function SavedSection({ userId, onBack }: SavedSectionProps) {
           ? (supabase as any).from("posts").select("id, user_id, content, image_url, video_url, post_type, created_at, comments_disabled").in("id", postIds)
           : Promise.resolve({ data: [] }),
         scoutPostIds.length > 0
-          ? (supabase as any).from("scout_posts").select("id, user_id, content, image_url, created_at, comments_disabled").in("id", scoutPostIds)
+          ? (supabase as any).from("scout_posts").select("id, user_id, content, image_url, video_url, created_at, comments_disabled").in("id", scoutPostIds)
           : Promise.resolve({ data: [] }),
       ]);
 
       const postMap = new Map((postsRes.data || []).map((p: any) => [p.id, p]));
-      const scoutPostMap = new Map((scoutPostsRes.data || []).map((p: any) => [p.id, { ...p, post_type: "scout", video_url: null }]));
+      const scoutPostMap = new Map((scoutPostsRes.data || []).map((p: any) => [p.id, { ...p, post_type: "scout", video_url: p.video_url ?? null }]));
 
       const resolved = savedRows
         .map((row: any) => ({

@@ -2,10 +2,12 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone, Menu, Rocket, Wrench, ShieldAlert, FlaskConical, Ban } from "lucide-react";
+import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone, Menu, Rocket, Wrench, ShieldAlert, FlaskConical, Ban, Flag, Users } from "lucide-react";
 import AdminVideoReview from "@/pages/AdminVideoReview";
 import AdminContentModeration from "@/pages/AdminContentModeration";
 import AdminUsersAtRisk from "@/pages/AdminUsersAtRisk";
+import AdminUserReports from "@/pages/AdminUserReports";
+import AdminAllUsers from "@/pages/AdminAllUsers";
 import AdminScoutVerification from "@/pages/AdminScoutVerification";
 import AdminTestVideos from "@/pages/AdminTestVideos";
 import AdminSupportTickets from "@/pages/AdminSupportTickets";
@@ -26,19 +28,30 @@ const AdminModerationTestPanel = import.meta.env.DEV
   ? lazy(() => import("@/pages/AdminModerationTestPanel"))
   : null;
 
+// Grouped by purpose (moderation & accounts, content verification,
+// platform management) rather than the order features were built in —
+// the flat build-order list had become hard to scan as it grew.
 const adminSections = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-  { id: "video-review", label: "Verificare Videouri", icon: Video },
+
+  // Moderare & Useri
   { id: "content-moderation", label: "Moderare Conținut", icon: ShieldAlert },
+  { id: "user-reports", label: "Rapoarte Utilizatori", icon: Flag },
   { id: "users-at-risk", label: "Useri cu risc de blocare", icon: Ban },
+  { id: "all-users", label: "Toți Utilizatorii", icon: Users },
+  { id: "support-tickets", label: "Tichete Suport", icon: MessageSquareWarning },
   ...(import.meta.env.DEV ? [{ id: "moderation-test", label: "Test Moderare (dev)", icon: FlaskConical }] : []),
+
+  // Verificări de conținut
+  { id: "video-review", label: "Verificare Videouri", icon: Video },
+  { id: "scout-verification", label: "Verificare Documente Înregistrate", icon: UserCheck },
   { id: "test-videos", label: "Video-uri Exemplu Teste", icon: Film },
-  { id: "club-logos", label: "Logo-uri Cluburi", icon: Image },
+
+  // Platformă
   { id: "announcements", label: "Știri și Anunțuri", icon: Megaphone },
   { id: "sportrise-posts", label: "Postări SportRise", icon: Rocket },
+  { id: "club-logos", label: "Logo-uri Cluburi", icon: Image },
   { id: "maintenance-mode", label: "Mentenanță", icon: Wrench },
-  { id: "scout-verification", label: "Verificare Documente Înregistrate", icon: UserCheck },
-  { id: "support-tickets", label: "Rapoarte Utilizatori", icon: MessageSquareWarning },
 ];
 
 export default function AdminDashboard() {
@@ -74,18 +87,20 @@ export default function AdminDashboard() {
   }, [navigate, toast]);
 
   const fetchPendingCounts = async () => {
-    const [videos, docs, tickets, moderatedPosts, moderatedSubmissions] = await Promise.all([
+    const [videos, docs, tickets, moderatedPosts, moderatedSubmissions, userReports] = await Promise.all([
       supabase.from("video_submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("scout_verification_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
       (supabase as any).from("support_tickets").select("*", { count: "exact", head: true }).neq("status", "resolved"),
       (supabase as any).from("posts").select("*", { count: "exact", head: true }).in("moderation_status", ["pending", "flagged"]),
       (supabase as any).from("video_submissions").select("*", { count: "exact", head: true }).in("moderation_status", ["pending", "flagged"]),
+      (supabase as any).from("user_content_reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
     ]);
     setPendingCounts({
       "video-review": videos.count || 0,
       "scout-verification": docs.count || 0,
       "support-tickets": tickets.count || 0,
       "content-moderation": (moderatedPosts.count || 0) + (moderatedSubmissions.count || 0),
+      "user-reports": userReports.count || 0,
     });
   };
 
@@ -186,6 +201,12 @@ export default function AdminDashboard() {
       )}
       {activeSection === "users-at-risk" && (
         <AdminUsersAtRisk embedded />
+      )}
+      {activeSection === "user-reports" && (
+        <AdminUserReports embedded />
+      )}
+      {activeSection === "all-users" && (
+        <AdminAllUsers embedded />
       )}
       {activeSection === "moderation-test" && AdminModerationTestPanel && (
         <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-orange-500" /></div>}>

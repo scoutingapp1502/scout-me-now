@@ -82,3 +82,26 @@ export function maxAcrossFrames(perFrameScores: CategoryScores[]): CategoryScore
   }
   return result;
 }
+
+// Merges multiple CategoryScores objects that can legitimately overlap on
+// the same category from two different sources (e.g. Vision reading
+// "sexual"/"violence"/"weapons"/"drugs" off an image, and Natural Language
+// reading that same set off the caption/OCR text) using max(), never plain
+// object-spread overwrite. A plain {...imageScores, ...textScores} silently
+// discards the image's score for any category the text pass also produced
+// a (usually near-zero, since the caption is normally clean) value for —
+// which meant a post with a genuinely dangerous image and an innocuous
+// caption could still get approved, because the caption's ~0 scores for
+// sexual/violence/weapons/drugs overwrote Vision's real ones. Always use
+// this (or maxAcrossFrames) to combine scores from different sources;
+// never combine CategoryScores objects with spread.
+export function mergeMaxScores(...scoreSets: CategoryScores[]): CategoryScores {
+  const result: CategoryScores = {};
+  for (const scores of scoreSets) {
+    for (const [category, score] of Object.entries(scores) as [ModerationCategory, number][]) {
+      if (score == null) continue;
+      result[category] = Math.max(result[category] ?? 0, score);
+    }
+  }
+  return result;
+}

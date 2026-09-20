@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { isLikelyUnwantedComment, type HideUnwantedLevel } from "@/lib/commentModeration";
 import { useAccountLock } from "@/hooks/useAccountLock";
+import { moderateUploadedPost } from "@/lib/videoModeration";
+import { moderationBadgeLabel } from "@/lib/moderationBadge";
 
 interface PostAuthor {
   user_id: string;
@@ -126,15 +128,18 @@ function requestEngagement(postId: string, viewerId: string | null): Promise<Eng
   });
 }
 
-function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, onToggleLike, timeAgo }: {
+function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, onToggleLike, onReport, reportedIds, timeAgo }: {
   comment: Comment;
   currentUserId: string | null;
   lang: string;
   onViewProfile: (userId: string, role: string) => void;
   onDelete: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
+  onReport: (commentId: string, commentOwnerId: string) => void;
+  reportedIds: Set<string>;
   timeAgo: (dateStr: string) => string;
 }) {
+  const isOwnComment = c.user_id === currentUserId;
   return (
     <div className="flex items-start gap-2 group">
       <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
@@ -150,7 +155,7 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
             <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="text-xs font-medium text-gray-900 hover:underline cursor-pointer text-left">{c.author_name}</button>
             <p className="text-xs text-gray-700">{c.content}</p>
           </div>
-          {c.user_id === currentUserId && (
+          {isOwnComment ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-gray-500">
@@ -164,7 +169,26 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
+          ) : currentUserId ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-gray-500">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
+                <DropdownMenuItem
+                  onClick={() => onReport(c.id, c.user_id)}
+                  disabled={reportedIds.has(c.id)}
+                >
+                  <Flag className="h-3.5 w-3.5 mr-2" />
+                  {reportedIds.has(c.id)
+                    ? (lang === "ro" ? "Raportat" : "Reported")
+                    : (lang === "ro" ? "Raportează" : "Report")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </div>
         <div className="flex items-center gap-2 ml-1 mt-0.5">
           <span className="text-[10px] text-gray-400">{timeAgo(c.created_at)}</span>
@@ -564,29 +588,66 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   };
 
   const isOwnPost = post.user_id === currentUserId;
-  const [showReportDialog, setShowReportDialog] = useState(false);
-  const [reportReason, setReportReason] = useState("");
+  const [reportedByMe, setReportedByMe] = useState(false);
   const [submittingReport, setSubmittingReport] = useState(false);
 
-  const handleSubmitReport = async () => {
-    if (!currentUserId || !reportReason.trim()) return;
+  // One click, no dialog/reason text (explicit product decision) — writes
+  // straight to user_content_reports, the dedicated admin-facing report
+  // queue (separate tab, "Rapoarte Utilizatori"), not support_tickets
+  // (generic support-ticket table, used for unrelated help requests).
+  // reportedByMe just disables the menu item after a successful report so
+  // the same person can't spam duplicate reports on the same post — the
+  // partial unique index on user_content_reports enforces this server-side
+  // too, so this is a UX nicety, not the actual guard.
+  const handleReportPost = async () => {
+    if (!currentUserId || reportedByMe) return;
     setSubmittingReport(true);
-    const { error } = await (supabase as any).from("support_tickets").insert({
-      user_id: currentUserId,
-      reported_user_id: post.user_id,
-      reported_content_type: "post",
-      reported_content_id: post.id,
-      category: "report_user",
-      message: reportReason.trim(),
+    const { error } = await (supabase as any).from("user_content_reports").insert({
+      reporter_id: currentUserId,
+      content_type: "post",
+      content_id: post.id,
+      content_owner_id: post.user_id,
     });
     setSubmittingReport(false);
     if (error) {
+      if (error.code === "23505") {
+        // Already reported by this user — not a failure, just already done.
+        setReportedByMe(true);
+        toast.info(lang === "ro" ? "Ai raportat deja această postare." : "You've already reported this post.");
+        return;
+      }
       toast.error(lang === "ro" ? "Eroare la trimiterea raportului." : "Error submitting report.");
       return;
     }
+    setReportedByMe(true);
     toast.success(lang === "ro" ? "Raport trimis. Echipa noastră îl va analiza." : "Report submitted. Our team will review it.");
-    setShowReportDialog(false);
-    setReportReason("");
+  };
+
+  // Comment reports work the same way as post reports (one click, no
+  // reason text), but need post_id too — separate from content_id (the
+  // comment's own id) — so the admin queue can show the parent post
+  // alongside the reported comment, per explicit product requirement.
+  const [reportedCommentIds, setReportedCommentIds] = useState<Set<string>>(new Set());
+  const handleReportComment = async (commentId: string, commentOwnerId: string) => {
+    if (!currentUserId || reportedCommentIds.has(commentId)) return;
+    const { error } = await (supabase as any).from("user_content_reports").insert({
+      reporter_id: currentUserId,
+      content_type: "comment",
+      content_id: commentId,
+      post_id: post.id,
+      content_owner_id: commentOwnerId,
+    });
+    if (error) {
+      if (error.code === "23505") {
+        setReportedCommentIds((prev) => new Set(prev).add(commentId));
+        toast.info(lang === "ro" ? "Ai raportat deja acest comentariu." : "You've already reported this comment.");
+        return;
+      }
+      toast.error(lang === "ro" ? "Eroare la trimiterea raportului." : "Error submitting report.");
+      return;
+    }
+    setReportedCommentIds((prev) => new Set(prev).add(commentId));
+    toast.success(lang === "ro" ? "Raport trimis. Echipa noastră îl va analiza." : "Report submitted. Our team will review it.");
   };
 
   const [commentsDisabled, setCommentsDisabled] = useState(!!post.comments_disabled);
@@ -689,14 +750,46 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [savingEdit, setSavingEdit] = useState(false);
+  // Set only right after a successful edit, to show the author a "pending
+  // re-check" badge immediately without needing every PostCard call site to
+  // thread the row's real moderation_status through (most don't today).
+  // null/unknown otherwise — never shown to anyone but the author (below).
+  const [editModerationStatus, setEditModerationStatus] = useState<string | null>(null);
 
   const handleEditSave = async () => {
     if (!editContent.trim()) return;
+    // scout_posts now goes through the exact same moderation pipeline as
+    // posts (see 20261016090000_scout_posts_same_pipeline_as_posts.sql), so
+    // both need the same re-check-on-edit treatment.
+    const isScoutPost = post.post_type === "scout";
     setSavingEdit(true);
-    const { error } = await supabase.from("posts").update({ content: editContent.trim() } as any).eq("id", post.id);
-    if (error) { toast.error(lang === "ro" ? "Eroare la salvare." : "Failed to save."); }
-    else { setIsEditing(false); }
+    const table = isScoutPost ? "scout_posts" : "posts";
+    // Editing the caption is a fresh submission for moderation purposes —
+    // without resetting moderation_status here, an already-approved post
+    // stayed visible to everyone no matter what the new text said, since
+    // get_activity_feed only ever checks the stored moderation_status and
+    // nothing re-evaluated it on edit. Flipping it back to 'pending'
+    // immediately removes it from get_activity_feed's WHERE moderation_status
+    // = 'approved' filter (see 20260928090000_activity_feed_moderation_filter.sql)
+    // — same "hidden from everyone but the author until resolved" behavior
+    // as a brand new post — while moderateUploadedPost below actually
+    // re-checks it.
+    const { error } = await supabase.from(table).update({ content: editContent.trim(), moderation_status: "pending" } as any).eq("id", post.id);
+    if (error) { toast.error(lang === "ro" ? "Eroare la salvare." : "Failed to save."); setSavingEdit(false); return; }
+
+    setIsEditing(false);
     setSavingEdit(false);
+    setEditModerationStatus("pending");
+    // Text-only re-check — no new media, so no file/frames to extract;
+    // moderateUploadedPost with no videoFile/imageFile still runs the
+    // (unconditional) text pass in analyze-video-frames against the new
+    // caption. Runs in the background, same non-blocking pattern as a
+    // brand new post.
+    moderateUploadedPost({
+      contentId: post.id,
+      caption: editContent.trim(),
+      contentType: isScoutPost ? "scout_post" : "post",
+    }).catch((err) => console.error("Re-moderation after edit failed:", err));
   };
 
   // Share dialog
@@ -865,8 +958,11 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
-                <DropdownMenuItem onClick={() => { setReportReason(""); setShowReportDialog(true); }}>
-                  <Flag className="h-4 w-4 mr-2" /> {lang === "ro" ? "Raportează" : "Report"}
+                <DropdownMenuItem onClick={handleReportPost} disabled={reportedByMe || submittingReport}>
+                  {submittingReport ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Flag className="h-4 w-4 mr-2" />}
+                  {reportedByMe
+                    ? (lang === "ro" ? "Raportat" : "Reported")
+                    : (lang === "ro" ? "Raportează" : "Report")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -874,43 +970,19 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         </div>
       </div>
 
-      <Dialog open={showReportDialog} onOpenChange={(open) => { if (!open) { setShowReportDialog(false); setReportReason(""); } }}>
-        <DialogContent className="bg-white border-gray-200 text-gray-900">
-          <DialogHeader>
-            <DialogTitle>{lang === "ro" ? "Raportează această postare" : "Report this post"}</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-500 font-body -mt-2">
-            {lang === "ro"
-              ? "SportRise nu solicită niciodată plăți prin mesaje și nu organizează întâlniri neanunțate oficial prin platformă. Descrie ce e nepotrivit la această postare."
-              : "SportRise never requests payments through messages and doesn't arrange meetings unofficially through the platform. Describe what's wrong with this post."}
-          </p>
-          <Textarea
-            value={reportReason}
-            onChange={(e) => setReportReason(e.target.value)}
-            placeholder={lang === "ro" ? "Descrie motivul raportării..." : "Describe the reason for the report..."}
-            className="font-body text-sm resize-none"
-            rows={4}
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => { setShowReportDialog(false); setReportReason(""); }}>
-              {lang === "ro" ? "Anulează" : "Cancel"}
-            </Button>
-            <Button variant="destructive" disabled={!reportReason.trim() || submittingReport} onClick={handleSubmitReport}>
-              {submittingReport ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {lang === "ro" ? "Trimite raportul" : "Submit report"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Image */}
+      {/* Image — no forced aspect ratio (Instagram-style): the image keeps
+          its own proportions instead of being letterboxed into a fixed
+          16:9 box, which made a portrait photo (very common for a single
+          player shot) render tiny with gray bars above/below it. Capped at
+          max-h-[75vh] purely so an extreme aspect ratio can't blow out the
+          whole card. */}
       {post.image_url && (
-        <SignedImg src={post.image_url} alt="" loading="lazy" className="w-full aspect-video object-contain bg-gray-100" />
+        <SignedImg src={post.image_url} alt="" loading="lazy" className="w-full max-h-[75vh] object-contain bg-gray-100" />
       )}
 
       {/* Video */}
       {post.video_url && (
-        <SignedVideo src={post.video_url} className="w-full aspect-video bg-black object-contain" controls preload="metadata" />
+        <SignedVideo src={post.video_url} className="w-full max-h-[75vh] bg-black object-contain" controls preload="metadata" />
       )}
 
       {/* Like & Comment bar */}
@@ -957,6 +1029,19 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
             {getTypeLabel(post.post_type)}
           </span>
         )}
+
+        {/* Own-only: after editing text on a moderated post, it's hidden
+            from everyone else until re-checked (see handleEditSave) — this
+            tells the author why, same badge posts already show while
+            newly-created and pending. */}
+        {isOwnPost && editModerationStatus && (() => {
+          const badge = moderationBadgeLabel(editModerationStatus, lang);
+          return badge && (
+            <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-medium ml-1.5 ${badge.className}`}>
+              {badge.label}
+            </span>
+          );
+        })()}
 
         {isEditing ? (
           <div className="space-y-2 mt-1">
@@ -1139,6 +1224,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                   onViewProfile={onViewProfile}
                   onDelete={deleteComment}
                   onToggleLike={toggleCommentLike}
+                  onReport={handleReportComment}
+                  reportedIds={reportedCommentIds}
                   timeAgo={timeAgo}
                 />
               ))}
@@ -1163,6 +1250,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                           onViewProfile={onViewProfile}
                           onDelete={deleteComment}
                           onToggleLike={toggleCommentLike}
+                          onReport={handleReportComment}
+                          reportedIds={reportedCommentIds}
                           timeAgo={timeAgo}
                         />
                       ))}

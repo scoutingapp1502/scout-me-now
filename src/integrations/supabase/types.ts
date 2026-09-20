@@ -1573,8 +1573,10 @@ export type Database = {
           id: string
           image_url: string | null
           is_archived: boolean
+          moderation_status: string
           updated_at: string
           user_id: string
+          video_url: string | null
         }
         Insert: {
           comments_disabled?: boolean
@@ -1584,8 +1586,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_archived?: boolean
+          moderation_status?: string
           updated_at?: string
           user_id: string
+          video_url?: string | null
         }
         Update: {
           comments_disabled?: boolean
@@ -1595,8 +1599,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_archived?: boolean
+          moderation_status?: string
           updated_at?: string
           user_id?: string
+          video_url?: string | null
         }
         Relationships: []
       }

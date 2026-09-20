@@ -14,30 +14,35 @@ const corsHeaders = {
 // triggered, with the minimum data each one needs (never the whole video
 // for a text-only trigger, never re-sending images for a text trigger).
 //
-// No Anthropic/Claude anywhere in this pipeline (deliberate product
-// decision — no ANTHROPIC_API_KEY is configured and none should be added).
-// The only providers in play are OpenAI Moderation (initial pass, already
-// run before this function is called), Google Cloud Vision (images/OCR/
-// objects/labels), and Google Cloud Video Intelligence (explicit content on
-// the full video) — anything neither of those can settle with confidence
-// goes to admin_review. Never fail-open.
+// No Anthropic/Claude and no OpenAI anywhere in this pipeline (deliberate
+// product decisions — no ANTHROPIC_API_KEY is configured and none should be
+// added; OpenAI was removed after its account's lack of billing made every
+// single call fail with 429 in production). The only providers in play are
+// Google Cloud Natural Language (initial pass, already run before this
+// function is called), Google Cloud Vision (images/OCR/objects/labels), and
+// Google Cloud Video Intelligence (explicit content on the full video) —
+// anything none of those can settle with confidence goes to admin_review.
+// Never fail-open.
 //
 // This function is meant to be invoked directly by analyze-video-frames's
 // caller (the upload flow) as a synchronous follow-up call right after the
 // initial pass, rather than through a separate polling job.
 
 interface RecheckRequest {
-  content_type: "post" | "test_video";
+  content_type: "post" | "scout_post" | "test_video" | "avatar" | "video_highlight";
   content_id: string;
   bucket: "player-videos";
   storage_path: string; // needed only if `sexual` is among triggeredCategories
   frames: { base64: string; atFraction: number }[]; // same frames from the initial pass, reused — no new extraction
   triggeredCategories: ModerationCategory[];
-  // Scores OpenAI Moderation already produced in the initial pass for
+  // Scores Google Natural Language already produced in the initial pass for
   // hate/threats/text — there is no independent second text provider in
   // this pipeline, so a triggered text category is resolved from this
   // instead of being re-queried anywhere.
   initialTextScores?: { hate?: number; threats?: number; text?: number };
+  // Required (and only meaningful) when content_type is "avatar" — see the
+  // matching field in analyze-video-frames's AnalyzeRequest.
+  avatar_table?: "player_profiles" | "scout_profiles";
 }
 
 async function googleVisionSafeSearch(apiKey: string, base64: string) {
@@ -122,11 +127,25 @@ Deno.serve(async (req) => {
     }
 
     const body: RecheckRequest = await req.json();
-    const { content_type, content_id, bucket, storage_path, frames, triggeredCategories, initialTextScores } = body;
+    const { content_type, content_id, bucket, storage_path, frames, triggeredCategories, initialTextScores, avatar_table } = body;
     if (!content_type || !content_id || !triggeredCategories?.length) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+    if (content_type === "avatar") {
+      if (avatar_table !== "player_profiles" && avatar_table !== "scout_profiles") {
+        return new Response(JSON.stringify({ error: "Missing/invalid avatar_table" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Same ownership pin as analyze-video-frames — an avatar's content_id
+      // IS the profile's user_id, so it must be the caller's own.
+      if (content_id !== caller.id) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const visionKey = Deno.env.get("GOOGLE_CLOUD_VISION_API_KEY");
@@ -258,7 +277,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // hate / threats / text → resolved from OpenAI Moderation's own
+    // hate / threats / text → resolved from Google Natural Language's own
     // initial-pass scores (no independent second text provider exists in
     // this pipeline). If those scores weren't provided at all, there is
     // nothing to re-derive a decision from, so this is treated as
@@ -306,10 +325,27 @@ Deno.serve(async (req) => {
       decision, reason,
     });
 
-    const table = content_type === "post" ? "posts" : "video_submissions";
-    await adminClient.from(table)
-      .update({ moderation_status: decision === "approved" ? "approved" : "flagged" })
-      .eq("id", content_id);
+    if (content_type === "avatar") {
+      // Same staged-approval shape as analyze-video-frames: approval
+      // promotes pending_photo_url into photo_url; otherwise the pending
+      // file stays staged and only the status flips to 'flagged'.
+      if (decision === "approved") {
+        await adminClient.rpc("approve_pending_avatar", { p_user_id: content_id, p_table: avatar_table });
+      } else {
+        await adminClient.from(avatar_table!).update({ avatar_moderation_status: "flagged" }).eq("user_id", content_id);
+      }
+    } else if (content_type === "video_highlight") {
+      if (decision === "approved") {
+        await adminClient.rpc("approve_video_highlight", { p_submission_id: content_id });
+      } else {
+        await adminClient.from("video_highlight_submissions").update({ moderation_status: "flagged" }).eq("id", content_id);
+      }
+    } else {
+      const table = content_type === "post" ? "posts" : content_type === "scout_post" ? "scout_posts" : "video_submissions";
+      await adminClient.from(table)
+        .update({ moderation_status: decision === "approved" ? "approved" : "flagged" })
+        .eq("id", content_id);
+    }
 
     return new Response(JSON.stringify({ decision, scores }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -19,9 +19,10 @@ interface AtRiskUser {
   first_name: string;
   last_name: string;
   rejected_posts_count: number;
-  warned_at: string | null;
+  approved_reports_count: number;
+  warning_count: number;
   email: string;
-  banned_until: string | null;
+  account_status: "active" | "banned" | "closed";
 }
 
 export default function AdminUsersAtRisk({ embedded }: { embedded?: boolean } = {}) {
@@ -47,17 +48,22 @@ export default function AdminUsersAtRisk({ embedded }: { embedded?: boolean } = 
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  const isBanned = (u: AtRiskUser) => !!u.banned_until && new Date(u.banned_until) > new Date();
+  const isBanned = (u: AtRiskUser) => u.account_status === "banned";
+  const isClosed = (u: AtRiskUser) => u.account_status === "closed";
 
-  const handleToggleWarning = async (u: AtRiskUser) => {
+  // Issues a new, permanent warning notification to the user (see
+  // 20261008090000_user_warnings_as_notifications.sql) — there is no "undo"
+  // for this anymore; each click adds one to the running count, exactly
+  // like sending them a message that can't be unsent.
+  const handleIssueWarning = async (u: AtRiskUser) => {
     setProcessing(u.user_id);
-    const { error } = await (supabase as any).rpc("set_user_warned", { p_user_id: u.user_id, p_warned: !u.warned_at });
+    const { error } = await (supabase as any).rpc("issue_user_warning", { p_user_id: u.user_id });
     setProcessing(null);
     if (error) {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: u.warned_at ? "Avertisment eliminat." : "Utilizator avertizat." });
+    toast({ title: "Avertisment trimis utilizatorului." });
     await fetchUsers();
   };
 
@@ -99,7 +105,7 @@ export default function AdminUsersAtRisk({ embedded }: { embedded?: boolean } = 
         <h2 className="text-xl font-heading font-bold">Useri cu potențial de blocare</h2>
       </div>
       <p className="text-sm text-gray-500 font-body">
-        Jucători cu {MIN_REJECTED_TO_LIST}+ postări respinse. Avertizarea este doar informativă — nu blochează automat contul la o nouă respingere.
+        Utilizatori (jucători sau scouteri) cu {MIN_REJECTED_TO_LIST}+ postări/poze de profil respinse SAU {MIN_REJECTED_TO_LIST}+ rapoarte aprobate. Avertizarea este doar informativă — nu blochează automat contul la o nouă respingere.
       </p>
 
       {loading ? (
@@ -113,15 +119,25 @@ export default function AdminUsersAtRisk({ embedded }: { embedded?: boolean } = 
               <div>
                 <p className="font-heading font-semibold">
                   {u.first_name} {u.last_name}
-                  {u.warned_at && <span className="ml-2 text-xs font-normal text-orange-600">(avertizat)</span>}
                 </p>
                 <p className="text-xs text-gray-500 font-body mt-0.5">{u.email}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-red-600 border-red-500">
-                  {u.rejected_posts_count} postări respinse
+                  {u.rejected_posts_count} respinse (postări/poze profil)
                 </Badge>
-                {isBanned(u) && <Badge variant="outline" className="text-gray-600 border-gray-400">Blocat</Badge>}
+                {u.approved_reports_count > 0 && (
+                  <Badge variant="outline" className="text-red-700 border-red-600">
+                    {u.approved_reports_count} rapoarte utilizatori aprobate
+                  </Badge>
+                )}
+                {u.warning_count > 0 && (
+                  <Badge variant="outline" className="text-orange-600 border-orange-500">
+                    {u.warning_count} {u.warning_count === 1 ? "avertisment trimis" : "avertismente trimise"}
+                  </Badge>
+                )}
+                {isClosed(u) && <Badge variant="outline" className="text-gray-600 border-gray-400">Închis definitiv</Badge>}
+                {isBanned(u) && !isClosed(u) && <Badge variant="outline" className="text-gray-600 border-gray-400">Blocat</Badge>}
               </div>
             </div>
 
@@ -129,38 +145,42 @@ export default function AdminUsersAtRisk({ embedded }: { embedded?: boolean } = 
               <Button
                 size="sm" variant="outline" className="gap-2"
                 disabled={processing === u.user_id}
-                onClick={() => handleToggleWarning(u)}
+                onClick={() => handleIssueWarning(u)}
               >
                 {processing === u.user_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
-                {u.warned_at ? "Elimină avertisment" : "Avertizează"}
+                Avertizează
               </Button>
-              {isBanned(u) ? (
+              {!isClosed(u) && (
+                isBanned(u) ? (
+                  <Button
+                    size="sm" variant="outline" className="gap-2"
+                    disabled={processing === u.user_id}
+                    onClick={() => handleBanToggle(u)}
+                  >
+                    {processing === u.user_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                    Deblochează
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm" variant="destructive" className="gap-2"
+                    disabled={processing === u.user_id}
+                    onClick={() => handleBanToggle(u)}
+                  >
+                    {processing === u.user_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
+                    Blochează
+                  </Button>
+                )
+              )}
+              {!isClosed(u) && (
                 <Button
-                  size="sm" variant="outline" className="gap-2"
+                  size="sm" variant="destructive" className="gap-2 bg-red-900 hover:bg-red-950"
                   disabled={processing === u.user_id}
-                  onClick={() => handleBanToggle(u)}
+                  onClick={() => { setClosingUser(u); setCloseReason(""); }}
                 >
-                  {processing === u.user_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                  Deblochează
-                </Button>
-              ) : (
-                <Button
-                  size="sm" variant="destructive" className="gap-2"
-                  disabled={processing === u.user_id}
-                  onClick={() => handleBanToggle(u)}
-                >
-                  {processing === u.user_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
-                  Blochează
+                  <Ban className="h-4 w-4" />
+                  Închide definitiv
                 </Button>
               )}
-              <Button
-                size="sm" variant="destructive" className="gap-2 bg-red-900 hover:bg-red-950"
-                disabled={processing === u.user_id}
-                onClick={() => { setClosingUser(u); setCloseReason(""); }}
-              >
-                <Ban className="h-4 w-4" />
-                Închide definitiv
-              </Button>
             </div>
           </div>
         ))

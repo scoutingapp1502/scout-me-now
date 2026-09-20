@@ -58,7 +58,7 @@ export default function RecentlyDeletedSection({ userId, onBack, onViewProfile }
         .order("deleted_at", { ascending: false }),
       (supabase as any)
         .from("scout_posts")
-        .select("id, user_id, content, image_url, created_at, deleted_at")
+        .select("id, user_id, content, image_url, video_url, created_at, deleted_at")
         .eq("user_id", userId)
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false }),
@@ -73,7 +73,7 @@ export default function RecentlyDeletedSection({ userId, onBack, onViewProfile }
 
     const combined: DeletedPost[] = [
       ...(posts || []).map((p: any) => ({ ...p, table: "posts" as const, video_url: p.video_url ?? null, post_type: p.post_type ?? "general", comments_disabled: p.comments_disabled ?? false, authorName, authorPhoto, authorRole })),
-      ...(scoutPosts || []).map((p: any) => ({ ...p, table: "scout_posts" as const, video_url: null, post_type: "general", comments_disabled: false, authorName, authorPhoto, authorRole })),
+      ...(scoutPosts || []).map((p: any) => ({ ...p, table: "scout_posts" as const, video_url: p.video_url ?? null, post_type: "general", comments_disabled: false, authorName, authorPhoto, authorRole })),
     ].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
 
     setItems(combined);

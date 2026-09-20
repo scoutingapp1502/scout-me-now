@@ -30,6 +30,13 @@ interface ArchiveSectionProps {
 type StoryTab = "stories" | "calendar";
 type ArchiveMode = "stories" | "posts";
 
+// Stories are turned off for now (matches STORIES_ENABLED in
+// PersonalProfile.tsx — kept as a separate flag here since this component
+// has no import relationship to that one, but both must move together).
+// Hides the "stories" mode/entry point entirely rather than deleting the
+// story-archive code, so re-enabling later is a one-line flip.
+const STORIES_ENABLED = false;
+
 const STORY_TABS: { id: StoryTab; icon: React.ElementType }[] = [
   { id: "stories",  icon: RotateCcw },
   { id: "calendar", icon: Calendar  },
@@ -134,7 +141,7 @@ function CalendarView({ stories }: { stories: ArchivedStory[] }) {
 /* ─── Main component ─── */
 export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) {
   const { lang } = useLanguage();
-  const [mode, setMode] = useState<ArchiveMode>("stories");
+  const [mode, setMode] = useState<ArchiveMode>(STORIES_ENABLED ? "stories" : "posts");
   const [storyTab, setStoryTab] = useState<StoryTab>("stories");
   const [stories, setStories] = useState<ArchivedStory[]>([]);
   const [posts, setPosts] = useState<ArchivedPost[]>([]);
@@ -167,7 +174,7 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
         .order("created_at", { ascending: false }),
       (supabase as any)
         .from("scout_posts")
-        .select("id, content, image_url, created_at")
+        .select("id, content, image_url, video_url, created_at")
         .eq("user_id", userId)
         .eq("is_archived", true)
         .order("created_at", { ascending: false }),
@@ -175,7 +182,7 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
       .then(([postsRes, scoutPostsRes]: any) => {
         const combined = [
           ...(postsRes.data || []),
-          ...(scoutPostsRes.data || []).map((p: any) => ({ ...p, video_url: null, post_type: "scout" })),
+          ...(scoutPostsRes.data || []).map((p: any) => ({ ...p, video_url: p.video_url ?? null, post_type: "scout" })),
         ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setPosts(combined);
       })
@@ -207,31 +214,39 @@ export default function ArchiveSection({ userId, onBack }: ArchiveSectionProps) 
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        {/* Centered title + dropdown */}
+        {/* Centered title (+ mode dropdown, only when stories are enabled —
+            with stories off, "posts" is the only mode there is, so a
+            switcher with a single option would be pointless UI). */}
         <div ref={dropdownRef} className="absolute left-1/2 -translate-x-1/2">
-          <button
-            onClick={() => setShowDropdown(v => !v)}
-            className="flex items-center gap-1 font-heading text-sm text-gray-900 tracking-wide hover:text-orange-500 transition-colors"
-          >
-            {title}
-            {showDropdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
+          {STORIES_ENABLED ? (
+            <>
+              <button
+                onClick={() => setShowDropdown(v => !v)}
+                className="flex items-center gap-1 font-heading text-sm text-gray-900 tracking-wide hover:text-orange-500 transition-colors"
+              >
+                {title}
+                {showDropdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
 
-          {/* Dropdown */}
-          {showDropdown && (
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
-              {(["stories", "posts"] as ArchiveMode[]).map(m => (
-                <button
-                  key={m}
-                  onClick={() => { setMode(m); setShowDropdown(false); }}
-                  className={`w-full px-4 py-3 text-sm font-body text-center transition-colors ${mode === m ? "text-gray-900 font-semibold bg-gray-100/50" : "text-gray-500 hover:bg-gray-100/30 hover:text-gray-900"}`}
-                >
-                  {m === "stories"
-                    ? (lang === "ro" ? "Story-uri arhivate" : "Stories archive")
-                    : (lang === "ro" ? "Postări arhivate"  : "Posts archive"  )}
-                </button>
-              ))}
-            </div>
+              {/* Dropdown */}
+              {showDropdown && (
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
+                  {(["stories", "posts"] as ArchiveMode[]).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => { setMode(m); setShowDropdown(false); }}
+                      className={`w-full px-4 py-3 text-sm font-body text-center transition-colors ${mode === m ? "text-gray-900 font-semibold bg-gray-100/50" : "text-gray-500 hover:bg-gray-100/30 hover:text-gray-900"}`}
+                    >
+                      {m === "stories"
+                        ? (lang === "ro" ? "Story-uri arhivate" : "Stories archive")
+                        : (lang === "ro" ? "Postări arhivate"  : "Posts archive"  )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <span className="font-heading text-sm text-gray-900 tracking-wide">{title}</span>
           )}
         </div>
 

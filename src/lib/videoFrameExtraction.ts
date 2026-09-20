@@ -16,6 +16,36 @@ export interface ExtractedFrame {
   atFraction: number;
 }
 
+// A hard ceiling on video length, checked client-side before upload even
+// starts — keeps both the moderation pipeline's per-upload cost (frame
+// extraction/OpenAI/Vision calls scale with nothing here, but Video
+// Intelligence's recheck stage bills by video duration) and Supabase
+// Storage usage bounded and predictable. Not a moderation decision, just a
+// resource limit — enforced the same way for every uploader.
+export const MAX_VIDEO_DURATION_SECONDS = 60;
+
+// Reads a video file's duration without extracting any frames — used for
+// a fast client-side reject right at file-selection time, before the user
+// waits through an entire upload only to have it rejected. Loads only
+// <video> metadata (not the full file), so this is cheap even for a
+// near-limit-size file.
+export function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.src = url;
+    const cleanup = () => { URL.revokeObjectURL(url); video.removeAttribute("src"); video.load(); };
+    video.addEventListener("loadedmetadata", () => {
+      const duration = video.duration;
+      cleanup();
+      if (!isFinite(duration) || duration <= 0) reject(new Error("Video has no readable duration"));
+      else resolve(duration);
+    }, { once: true });
+    video.addEventListener("error", () => { cleanup(); reject(new Error("Video metadata failed to load")); }, { once: true });
+  });
+}
+
 function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const onSeeked = () => { cleanup(); resolve(); };

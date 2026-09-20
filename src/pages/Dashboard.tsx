@@ -47,6 +47,8 @@ import { getTechnicalTestsBySport, getTestLabelByKey } from "@/components/dashbo
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useMaintenanceMode } from "@/hooks/useMaintenanceMode";
 import MaintenancePage from "@/pages/MaintenancePage";
+import { useAccountStatus } from "@/hooks/useAccountStatus";
+import AccountBlockedPage from "@/pages/AccountBlockedPage";
 import { useLegalConsent } from "@/hooks/useLegalConsent";
 import LegalConsentDialog from "@/components/dashboard/LegalConsentDialog";
 import { Wrench, X } from "lucide-react";
@@ -103,6 +105,7 @@ const Dashboard = () => {
   const maintenance = useMaintenanceMode();
   const [maintenanceBannerDismissed, setMaintenanceBannerDismissed] = useState(false);
   const legalConsent = useLegalConsent(user?.id ?? null);
+  const accountStatus = useAccountStatus(user?.id ?? null);
 
   useEffect(() => {
     let isMounted = true;
@@ -338,7 +341,7 @@ const Dashboard = () => {
     ? getTestLabelByKey(playerSport, streakState.nextTestPreview, lang)
     : null;
 
-  if (!user || roleLoading) {
+  if (!user || roleLoading || accountStatus.loading) {
     return (
       <div className="flex min-h-screen bg-background dark items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -351,6 +354,14 @@ const Dashboard = () => {
   // above), so no separate role check is needed here.
   if (maintenance.isActive) {
     return <MaintenancePage maintenance={maintenance} />;
+  }
+
+  // Checked right after login (see useAccountStatus/AccountBlockedPage) —
+  // replaces Supabase Auth's ban_duration, which used to reject the login
+  // itself before any of this code could run. Waits for accountStatus.loading
+  // above so a banned/closed user never even flashes the real Dashboard.
+  if (accountStatus.status !== "active") {
+    return <AccountBlockedPage status={accountStatus.status} />;
   }
 
   const handleSectionChange = (section: string) => {

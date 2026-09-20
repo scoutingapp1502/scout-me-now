@@ -998,6 +998,62 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     />
   );
 
+  // Declared here, before any of the const-JSX dialog blocks below (rather
+  // than further down near handleBlockUser/handleBack, where they
+  // previously lived) — those blocks are plain `const x = (<Dialog>...)`
+  // expressions evaluated immediately as the component body runs, not
+  // functions invoked lazily at render time, so a handler they reference
+  // must already be initialized by the time execution reaches them or JS's
+  // temporal dead zone throws "Cannot access before initialization" —
+  // exactly the crash this fixes (every visit to Messages was blank/crashed).
+  // Three handlers were affected: handleSubmitReport (used by
+  // reportUserDialog), handleDeleteMessage/handleDeleteGroupMessage (used
+  // by deleteMessageDialog).
+  const handleDeleteMessage = async (messageId: string) => {
+    const { error } = await (supabase as any)
+      .from("messages")
+      .update({ deleted_at: new Date().toISOString(), content: "", attachment_url: null, attachment_name: null, attachment_size: null, attachment_type: null, shared_post_id: null })
+      .eq("id", messageId)
+      .eq("sender_id", currentUserId);
+    if (error) {
+      toast({ title: lang === "ro" ? "Mesajul nu a putut fi șters." : "Message could not be deleted.", variant: "destructive" });
+      return;
+    }
+    setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, deleted_at: new Date().toISOString(), content: "", attachment_url: null, sharedPost: null } : m));
+  };
+
+  const handleDeleteGroupMessage = async (messageId: string) => {
+    const { error } = await (supabase as any)
+      .from("group_messages")
+      .update({ deleted_at: new Date().toISOString(), content: "", attachment_url: null, attachment_name: null, attachment_size: null, attachment_type: null, shared_post_id: null })
+      .eq("id", messageId)
+      .eq("sender_id", currentUserId);
+    if (error) {
+      toast({ title: lang === "ro" ? "Mesajul nu a putut fi șters." : "Message could not be deleted.", variant: "destructive" });
+      return;
+    }
+    setGroupMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, deleted_at: new Date().toISOString(), content: "", attachment_url: null, sharedPost: null } : m));
+  };
+
+  const handleSubmitReport = async () => {
+    if (!currentUserId || !selectedConversation || !reportReason.trim()) return;
+    setSubmittingReport(true);
+    const { error } = await (supabase as any).from("support_tickets").insert({
+      user_id: currentUserId,
+      reported_user_id: selectedConversation.other_user_id,
+      category: "report_user",
+      message: reportReason.trim(),
+    });
+    setSubmittingReport(false);
+    if (error) {
+      toast({ title: lang === "ro" ? "Eroare la trimiterea raportului." : "Error submitting report.", variant: "destructive" });
+      return;
+    }
+    toast({ title: lang === "ro" ? "Raport trimis. Echipa noastră îl va analiza." : "Report submitted. Our team will review it." });
+    setShowReportDialog(false);
+    setReportReason("");
+  };
+
   const viewPostDialog = (
     <Dialog open={!!viewingPostId} onOpenChange={(open) => { if (!open) { setViewingPostId(null); setViewingPost(null); } }}>
       <DialogContent className="max-w-lg p-0 gap-0 max-h-[90vh] overflow-y-auto border-0 bg-transparent shadow-none">
@@ -1228,32 +1284,6 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     setReadByLoading(false);
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
-    const { error } = await (supabase as any)
-      .from("messages")
-      .update({ deleted_at: new Date().toISOString(), content: "", attachment_url: null, attachment_name: null, attachment_size: null, attachment_type: null, shared_post_id: null })
-      .eq("id", messageId)
-      .eq("sender_id", currentUserId);
-    if (error) {
-      toast({ title: lang === "ro" ? "Mesajul nu a putut fi șters." : "Message could not be deleted.", variant: "destructive" });
-      return;
-    }
-    setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, deleted_at: new Date().toISOString(), content: "", attachment_url: null, sharedPost: null } : m));
-  };
-
-  const handleDeleteGroupMessage = async (messageId: string) => {
-    const { error } = await (supabase as any)
-      .from("group_messages")
-      .update({ deleted_at: new Date().toISOString(), content: "", attachment_url: null, attachment_name: null, attachment_size: null, attachment_type: null, shared_post_id: null })
-      .eq("id", messageId)
-      .eq("sender_id", currentUserId);
-    if (error) {
-      toast({ title: lang === "ro" ? "Mesajul nu a putut fi șters." : "Message could not be deleted.", variant: "destructive" });
-      return;
-    }
-    setGroupMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, deleted_at: new Date().toISOString(), content: "", attachment_url: null, sharedPost: null } : m));
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -1287,25 +1317,6 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     } else {
       toast({ title: lang === "ro" ? "Eroare la blocare." : "Error blocking.", variant: "destructive" });
     }
-  };
-
-  const handleSubmitReport = async () => {
-    if (!currentUserId || !selectedConversation || !reportReason.trim()) return;
-    setSubmittingReport(true);
-    const { error } = await (supabase as any).from("support_tickets").insert({
-      user_id: currentUserId,
-      reported_user_id: selectedConversation.other_user_id,
-      category: "report_user",
-      message: reportReason.trim(),
-    });
-    setSubmittingReport(false);
-    if (error) {
-      toast({ title: lang === "ro" ? "Eroare la trimiterea raportului." : "Error submitting report.", variant: "destructive" });
-      return;
-    }
-    toast({ title: lang === "ro" ? "Raport trimis. Echipa noastră îl va analiza." : "Report submitted. Our team will review it." });
-    setShowReportDialog(false);
-    setReportReason("");
   };
 
   const GROUP_MESSAGE_COLUMNS = "id, group_id, sender_id, content, created_at, deleted_at, shared_post_id, attachment_url, attachment_name, attachment_size, attachment_type";

@@ -13,7 +13,7 @@ import { moderationBadgeLabel } from "@/lib/moderationBadge";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import { getSignedMediaUrl, openSignedUrl } from "@/lib/signedMedia";
 import MessageDialog from "./MessageDialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import PostCard from "./PostCard";
 import NewPostComposer from "./NewPostComposer";
 import NewsAnnouncementsPanel from "./NewsAnnouncementsPanel";
@@ -42,7 +42,7 @@ const LazyScoutPersonalProfile = lazy(() => import("./ScoutPersonalProfile"));
 import StreakBadges, { getNextBadgeMilestone } from "./StreakBadges";
 import ScoutPlayerNoteDialog from "./ScoutPlayerNoteDialog";
 import ScoutPlayerReportDialog from "./ScoutPlayerReportDialog";
-import { ClipboardList, ChevronDown, ChevronUp, FileBarChart, RotateCcw } from "lucide-react";
+import { ClipboardList, ChevronDown, ChevronUp, FileBarChart, RotateCcw, Flag } from "lucide-react";
 import InviteFriendsModal from "./InviteFriendsModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useVideoSubmissions, submitVideoSubmission } from "@/hooks/useVideoSubmissions";
@@ -53,8 +53,14 @@ import { useClubLogos } from "@/hooks/useClubLogos";
 import AddStoryModal from "./AddStoryModal";
 import StoryViewer from "./StoryViewer";
 import StoryArchiveModal from "./StoryArchiveModal";
+import { moderateUploadedAvatar, moderateUploadedVideo } from "@/lib/videoModeration";
 
-const STORIES_ENABLED = true;
+// Stories are turned off for now (explicit product decision — not a bug,
+// not incomplete work). Deliberately a single flag rather than deleting any
+// of the story code/components, so re-enabling later is just flipping this
+// back to true. See also the matching guard in ArchiveSection.tsx, which
+// hides the separate "archived stories" entry point.
+const STORIES_ENABLED = false;
 
 type PlayerProfile = Tables<"player_profiles">;
 
@@ -356,6 +362,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
   const [followLoading, setFollowLoading] = useState(false);
   const [recAuthorView, setRecAuthorView] = useState<{ userId: string; role: string } | null>(null);
   const [showFollowersList, setShowFollowersList] = useState(false);
+  const [avatarReportedByMe, setAvatarReportedByMe] = useState(false);
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const currentSport = (form as any).sport || (profile as any)?.sport || "football";
 
@@ -635,17 +642,27 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
         return;
       }
       let photoUrl = form.photo_url;
+      let pendingPhotoUrl: string | null = null;
 
       if (avatarFile) {
+        // Uploaded to a DIFFERENT path than the live avatar (avatar-pending
+        // vs. avatar) and staged into pending_photo_url, NOT photo_url —
+        // the currently-approved avatar keeps showing everywhere until this
+        // one is reviewed (explicit product requirement: never blank/replace
+        // a visible avatar on an unreviewed upload). photo_url itself is
+        // left untouched here; pendingPhotoUrl is folded into the same
+        // insert/update payload below rather than a separate UPDATE, since
+        // a separate UPDATE would silently no-op on a first-time save where
+        // the player_profiles row doesn't exist yet.
         const ext = avatarFile.name.split(".").pop();
-        const path = `${userId}/avatar.${ext}`;
+        const path = `${userId}/avatar-pending.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("avatars")
           .upload(path, avatarFile, { upsert: true });
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-        photoUrl = urlData.publicUrl;
+        pendingPhotoUrl = urlData.publicUrl;
       }
 
       // Technical test video fields are sport-specific (basketball vs.
@@ -702,6 +719,11 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
           sport: (form as any).sport,
           star_shooting_drill: (form as any).star_shooting_drill,
           ...technicalVideoFields,
+          // Only actually changes anything when a new avatarFile was picked
+          // this save — otherwise pendingPhotoUrl is null and this key is
+          // simply omitted so an existing pending review isn't disturbed by
+          // an unrelated profile edit.
+          ...(pendingPhotoUrl ? { pending_photo_url: pendingPhotoUrl, avatar_moderation_status: "pending", avatar_rejection_reason: null, avatar_submitted_at: new Date().toISOString() } : {}),
         };
 
       let error;
@@ -717,6 +739,14 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
       }
 
       if (error) throw error;
+
+      // Runs in the background, after the row is confirmed staged — never
+      // blocks the save/toast above. The live photo_url is untouched until
+      // this resolves to "approved".
+      if (pendingPhotoUrl) {
+        moderateUploadedAvatar({ imageFile: avatarFile!, userId, avatarTable: "player_profiles" })
+          .catch((err) => console.error("Avatar moderation pipeline failed:", err));
+      }
 
       // Technical test videos are saved as plain player_profiles columns
       // above, but the admin review queue is a separate video_submissions
@@ -910,7 +940,63 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
               avatarPosX={(form as any).avatar_pos_x}
               avatarPosY={(form as any).avatar_pos_y}
               onAvatarPositionChange={(x, y) => { updateForm("avatar_pos_x", x); updateForm("avatar_pos_y", y); }}
+              avatarUploadDisabled={!!(profile as any)?.avatar_moderation_status}
             />
+            {/* Own-only avatar review badge — the visible photoSrc above is
+                always the last-approved photo_url (or a local preview of a
+                just-picked file, before it's even uploaded); this is the
+                only indicator that a previously-submitted avatar is still
+                pending/flagged, or was rejected. Never shown to viewers of
+                someone else's profile. */}
+            {!readOnly && (profile as any)?.avatar_moderation_status && (
+              <div className={`mt-2 text-center text-xs font-body rounded-full px-3 py-1 ${moderationBadgeLabel((profile as any).avatar_moderation_status, lang)?.className}`}>
+                {lang === "ro" ? "Poza de profil: " : "Profile photo: "}
+                {moderationBadgeLabel((profile as any).avatar_moderation_status, lang)?.label}
+              </div>
+            )}
+            {!readOnly && !(profile as any)?.avatar_moderation_status && (profile as any)?.avatar_rejection_reason && (
+              <div className="mt-2 text-center text-xs font-body rounded-full px-3 py-1 bg-red-600 text-white">
+                {lang === "ro" ? "Ultima poză a fost respinsă" : "Last photo was rejected"}
+              </div>
+            )}
+            {/* Report the profile photo — only for a visitor viewing someone
+                else's profile, never the owner. One click, no reason text,
+                same as post/comment reports — writes to
+                user_content_reports with content_type='avatar', content_id
+                = the profile owner's user_id (an avatar has no row of its
+                own to point at, same convention analyze-video-frames uses). */}
+            {readOnly && !isOwnReadOnlyProfile && viewerUserId && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (avatarReportedByMe) return;
+                  const { error } = await (supabase as any).from("user_content_reports").insert({
+                    reporter_id: viewerUserId,
+                    content_type: "avatar",
+                    content_id: userId,
+                    content_owner_id: userId,
+                  });
+                  if (error) {
+                    if (error.code === "23505") {
+                      setAvatarReportedByMe(true);
+                      toast({ title: lang === "ro" ? "Ai raportat deja această poză." : "You've already reported this photo." });
+                      return;
+                    }
+                    toast({ title: lang === "ro" ? "Eroare la trimiterea raportului." : "Error submitting report.", variant: "destructive" });
+                    return;
+                  }
+                  setAvatarReportedByMe(true);
+                  toast({ title: lang === "ro" ? "Raport trimis." : "Report submitted." });
+                }}
+                disabled={avatarReportedByMe}
+                className="mt-2 flex items-center justify-center gap-1 mx-auto text-xs font-body text-gray-400 hover:text-red-600 disabled:hover:text-gray-400 transition-colors"
+              >
+                <Flag className="h-3 w-3" />
+                {avatarReportedByMe
+                  ? (lang === "ro" ? "Poză raportată" : "Photo reported")
+                  : (lang === "ro" ? "Raportează poza" : "Report photo")}
+              </button>
+            )}
           </div>
 
           {/* Info */}
@@ -1231,6 +1317,9 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
         )}
         {activeTab === "video" && (
           <VideoTab
+            userId={userId}
+            viewerUserId={viewerUserId}
+            readOnly={readOnly}
             form={form}
             profile={profile}
             editingSection={editingSection}
@@ -1354,11 +1443,15 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
 };
 
 /* ======================== FIFA-STYLE PLAYER CARD ======================== */
-export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOpenStory, onAddStory, showAddStoryButton, isEditingHeader, onAvatarChange, avatarPosX, avatarPosY, onAvatarPositionChange, mini = false }: {
+export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOpenStory, onAddStory, showAddStoryButton, isEditingHeader, onAvatarChange, avatarPosX, avatarPosY, onAvatarPositionChange, mini = false, avatarUploadDisabled = false }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; photoSrc?: string | null; userId?: string;
   hasStory?: boolean; onOpenStory?: () => void; onAddStory?: () => void; showAddStoryButton?: boolean;
   isEditingHeader?: boolean; onAvatarChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   avatarPosX?: number; avatarPosY?: number; onAvatarPositionChange?: (x: number, y: number) => void; mini?: boolean;
+  // True while a previously-submitted avatar is still pending/flagged — a
+  // second upload is blocked until that one is resolved, rather than
+  // silently overwriting pending_photo_url and orphaning the first file.
+  avatarUploadDisabled?: boolean;
 }) {
   const { getSubmissionForTest } = useVideoSubmissions(userId);
   const dragState = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
@@ -1487,10 +1580,19 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
                     e.preventDefault();
                     dragMovedRef.current = false;
                   }
+                  // Repositioning the current (already-approved) photo is
+                  // still allowed while a new one is pending review — only
+                  // picking a NEW file is blocked, so this only intercepts
+                  // the click, not the drag handlers above.
+                  if (avatarUploadDisabled) e.preventDefault();
                 }}
               >
-                <Camera className="h-6 w-6 text-white" />
-                <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
+                {avatarUploadDisabled ? (
+                  <Clock className="h-6 w-6 text-white/70" />
+                ) : (
+                  <Camera className="h-6 w-6 text-white" />
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} disabled={avatarUploadDisabled} />
               </label>
             )}
             {showAddStoryButton && (
@@ -3347,7 +3449,8 @@ function ProfileTab({ form, profile, editingSection, updateForm, userId, readOnl
 }
 
 /* ======================== VIDEO TAB ======================== */
-function VideoTab({ form, profile, editingSection, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton, SectionSaveButton }: {
+function VideoTab({ userId, viewerUserId, readOnly, form, profile, editingSection, newVideoUrl, setNewVideoUrl, addVideoUrl, removeVideoUrl, updateForm, SectionEditButton, SectionSaveButton }: {
+  userId?: string; viewerUserId?: string | null; readOnly?: boolean;
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection;
   newVideoUrl: string; setNewVideoUrl: (v: string) => void; addVideoUrl: () => void; removeVideoUrl: (i: number) => void; updateForm: (k: string, v: any) => void; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
 }) {
@@ -3367,6 +3470,12 @@ function VideoTab({ form, profile, editingSection, newVideoUrl, setNewVideoUrl, 
         useSharedNewUrl
         newVideoUrl={newVideoUrl}
         setNewVideoUrl={setNewVideoUrl}
+        // Only Video Highlights goes through moderation — explicit product
+        // decision, Full Match Replay below is unaffected for now.
+        moderateUploads
+        userId={userId}
+        viewerUserId={viewerUserId}
+        readOnly={readOnly}
       />
       <VideoSection
         title="VIDEO FULL MATCH REPLAY"
@@ -3398,6 +3507,10 @@ function VideoSection({
   useSharedNewUrl = false,
   newVideoUrl: externalNewUrl,
   setNewVideoUrl: setExternalNewUrl,
+  moderateUploads = false,
+  userId,
+  viewerUserId,
+  readOnly,
 }: {
   title: string;
   section: EditingSection;
@@ -3412,15 +3525,100 @@ function VideoSection({
   useSharedNewUrl?: boolean;
   newVideoUrl?: string;
   setNewVideoUrl?: (v: string) => void;
+  // Only Video Highlights sets this — Full Match Replay uploads still go
+  // live immediately, unmoderated, per explicit product scope decision.
+  moderateUploads?: boolean;
+  userId?: string;
+  viewerUserId?: string | null;
+  readOnly?: boolean;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [localNewUrl, setLocalNewUrl] = useState("");
   const [newVideoDescription, setNewVideoDescription] = useState("");
+  const [reportedUrls, setReportedUrls] = useState<Set<string>>(new Set());
+  const [reportingUrl, setReportingUrl] = useState<string | null>(null);
+  // Own-only, own-session pending highlight uploads — mirrors myRecentPosts
+  // in ActivitySection.tsx: shown to the author immediately with a "pending"
+  // badge, refetched on mount so a decision made while the tab was closed
+  // is reflected on return, never sent to/seen by anyone else.
+  const [pendingHighlights, setPendingHighlights] = useState<{ id: string; video_url: string; description: string; moderation_status: string }[]>([]);
+
+  useEffect(() => {
+    if (!moderateUploads || !userId) return;
+    (supabase as any)
+      .from("video_highlight_submissions")
+      .select("id, video_url, description, moderation_status")
+      .eq("user_id", userId)
+      .in("moderation_status", ["pending", "flagged"])
+      .order("created_at", { ascending: false })
+      .then(({ data, error }: any) => {
+        if (error) { console.error("Failed to load pending video highlights:", error); return; }
+        setPendingHighlights(data || []);
+      });
+
+    // An admin approving/rejecting while this tab is open must update the
+    // badge (or remove the card once approved — it then lives in the
+    // video_highlights array instead) without requiring a manual refresh.
+    const channel = supabase
+      .channel(`video-highlight-submissions-${userId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "video_highlight_submissions", filter: `user_id=eq.${userId}` }, (payload: any) => {
+        const status = payload.new?.moderation_status;
+        if (status === "pending" || status === "flagged") {
+          setPendingHighlights((prev) => prev.map((h) => h.id === payload.new.id ? { ...h, moderation_status: status } : h));
+        } else {
+          // Approved or rejected — no longer pending, drop it from this list.
+          setPendingHighlights((prev) => prev.filter((h) => h.id !== payload.new.id));
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [moderateUploads, userId]);
 
   const newUrl = useSharedNewUrl ? (externalNewUrl ?? "") : localNewUrl;
   const setNewUrl = useSharedNewUrl ? (setExternalNewUrl ?? (() => {})) : setLocalNewUrl;
+
+  // Reporting a live, already-approved highlight — content_id is its
+  // video_highlight_submissions.id, resolved by video_url since the
+  // approved arrays only carry the url/description, not the submission
+  // id (see 20261015090000_video_highlights_moderation.sql for why rows
+  // are kept, not deleted, after approval — this lookup is what that's
+  // for). Only ever shown for moderateUploads sections (Video Highlights),
+  // never Full Match Replay.
+  const handleReportHighlight = async (url: string) => {
+    if (!viewerUserId || !userId || reportedUrls.has(url)) return;
+    setReportingUrl(url);
+    const { data: submission, error: findError } = await (supabase as any)
+      .from("video_highlight_submissions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("video_url", url)
+      .maybeSingle();
+    if (findError || !submission) {
+      setReportingUrl(null);
+      toast({ title: t.dashboard.profile.error, description: "Nu s-a putut identifica acest video pentru raportare.", variant: "destructive" });
+      return;
+    }
+    const { error } = await (supabase as any).from("user_content_reports").insert({
+      reporter_id: viewerUserId,
+      content_type: "video_highlight",
+      content_id: submission.id,
+      content_owner_id: userId,
+    });
+    setReportingUrl(null);
+    if (error) {
+      if (error.code === "23505") {
+        setReportedUrls((prev) => new Set(prev).add(url));
+        toast({ title: lang === "ro" ? "Ai raportat deja acest video." : "You've already reported this video." });
+        return;
+      }
+      toast({ title: t.dashboard.profile.error, description: error.message, variant: "destructive" });
+      return;
+    }
+    setReportedUrls((prev) => new Set(prev).add(url));
+    toast({ title: lang === "ro" ? "Raport trimis." : "Report submitted." });
+  };
 
   const videos: string[] = editing ? ((form as any)[videosKey] || []) : ((profile as any)?.[videosKey] || []);
   const descriptions: string[] = editing ? ((form as any)[descriptionsKey] || []) : ((profile as any)?.[descriptionsKey] || []);
@@ -3480,12 +3678,33 @@ function VideoSection({
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
-      const currentVideos: string[] = (form as any)[videosKey] || [];
-      const currentDescs: string[] = (form as any)[descriptionsKey] || [];
-      updateForm(videosKey, [...currentVideos, urlData.publicUrl]);
-      updateForm(descriptionsKey, [...currentDescs, ""]);
 
-      toast({ title: "Video încărcat cu succes!" });
+      if (moderateUploads && userId) {
+        // Staged in video_highlight_submissions, NOT appended to
+        // video_highlights — the array (source of truth for what's
+        // displayed) only ever gains this entry once
+        // approve_video_highlight runs, on the pipeline's own decision.
+        const { data: submission, error: insertError } = await (supabase as any)
+          .from("video_highlight_submissions")
+          .insert({ user_id: userId, video_url: urlData.publicUrl, storage_path: path, description: "" })
+          .select("id")
+          .single();
+        if (insertError) throw insertError;
+
+        setPendingHighlights((prev) => [{ id: submission.id, video_url: urlData.publicUrl, description: "", moderation_status: "pending" }, ...prev]);
+        toast({ title: "Video încărcat — în așteptare de verificare." });
+
+        moderateUploadedVideo({
+          file, bucket: "player-videos", storagePath: path,
+          contentType: "video_highlight", contentId: submission.id,
+        }).catch((err) => console.error("Video highlight moderation pipeline failed:", err));
+      } else {
+        const currentVideos: string[] = (form as any)[videosKey] || [];
+        const currentDescs: string[] = (form as any)[descriptionsKey] || [];
+        updateForm(videosKey, [...currentVideos, urlData.publicUrl]);
+        updateForm(descriptionsKey, [...currentDescs, ""]);
+        toast({ title: "Video încărcat cu succes!" });
+      }
     } catch (err: any) {
       toast({ title: t.dashboard.profile.error, description: err.message, variant: "destructive" });
     } finally {
@@ -3550,6 +3769,32 @@ function VideoSection({
         </div>
       )}
 
+      {/* Own-only pending/flagged uploads — never shown to a visitor
+          (pendingHighlights is only ever fetched when moderateUploads AND
+          it's the owner's own session; a visitor's profile view never
+          reaches this state). The video itself is shown to the author
+          right away, same rationale as myRecentPosts in ActivitySection —
+          the badge is what signals it isn't public yet. */}
+      {pendingHighlights.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          {pendingHighlights.map((h) => {
+            const badge = moderationBadgeLabel(h.moderation_status, lang);
+            return (
+              <div key={h.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden relative">
+                {badge && (
+                  <span className={`absolute top-2 right-2 z-10 text-[11px] font-semibold px-2 py-1 rounded-full ${badge.className}`}>
+                    {badge.label}
+                  </span>
+                )}
+                <div className="aspect-video">
+                  <SignedVideo src={h.video_url} controls className="w-full h-full object-contain bg-black" preload="metadata" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {videos.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {videos.map((url, i) => {
@@ -3604,6 +3849,23 @@ function VideoSection({
                     className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
+                {/* Report — only for a visitor on an uploaded (not YouTube)
+                    highlight, never the owner, only on the moderated
+                    section (Video Highlights). One click, no reason text,
+                    same as post/comment/avatar reports. */}
+                {moderateUploads && readOnly && viewerUserId && viewerUserId !== userId && isUploaded && (
+                  <button
+                    type="button"
+                    onClick={() => handleReportHighlight(url)}
+                    disabled={reportedUrls.has(url) || reportingUrl === url}
+                    className="absolute bottom-2 right-2 flex items-center gap-1 text-[11px] font-body bg-white/90 text-gray-600 hover:text-red-600 disabled:hover:text-gray-600 rounded-full px-2 py-1 shadow-sm"
+                  >
+                    <Flag className="h-3 w-3" />
+                    {reportedUrls.has(url)
+                      ? (lang === "ro" ? "Raportat" : "Reported")
+                      : (lang === "ro" ? "Raportează" : "Report")}
                   </button>
                 )}
               </div>
@@ -3664,7 +3926,7 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
 
     const allPosts = [
       ...(postsRes.data || []).map(p => ({ ...p, video_url: p.video_url || null })),
-      ...(scoutPostsRes.data || []).map(p => ({ ...p, post_type: "scout", video_url: null })),
+      ...(scoutPostsRes.data || []).map(p => ({ ...p, post_type: "scout", video_url: p.video_url || null })),
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     setPosts(allPosts);
@@ -3754,11 +4016,11 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
           {lang === "ro" ? "Nicio postare încă." : "No posts yet."}
         </p>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
           {posts.map((post) => {
-            // moderation_status only exists on `posts` (video-capable),
-            // never on scout_posts — undefined there is treated as
-            // "approved" so scout posts render exactly as before.
+            // scout_posts now has moderation_status too (see
+            // 20261016090000_scout_posts_same_pipeline_as_posts.sql) and is
+            // selected via "*" above, so this works uniformly for both.
             const modBadge = !readOnly ? moderationBadgeLabel(post.moderation_status, lang) : null;
             return (
             <button
@@ -3777,8 +4039,9 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
                   </div>
                 </>
               ) : (
-                <div className="w-full h-full flex items-center justify-center p-3 bg-white border border-gray-200">
-                  <p className="text-gray-900 text-[11px] leading-snug text-center line-clamp-5 font-medium">{post.content}</p>
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
+                  <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                  <p className="text-gray-900 text-sm sm:text-base leading-snug text-center line-clamp-5 font-medium">{post.content}</p>
                 </div>
               )}
               {/* Moderation badge: only ever rendered for the profile owner
@@ -3798,7 +4061,8 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
       )}
 
       <Dialog open={!!selectedPostId} onOpenChange={(open) => { if (!open) setSelectedPostId(null); }}>
-        <DialogContent className="max-w-lg p-0 max-h-[85vh] overflow-y-auto bg-white">
+        <DialogContent className="max-w-[100vw] sm:max-w-2xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-white border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-xl fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%] overflow-y-auto overflow-x-hidden">
+          <DialogTitle className="sr-only">{lang === "ro" ? "Postare" : "Post"}</DialogTitle>
           {selectedPost && (
             <PostCard
               post={selectedPost}

@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users, Lock, FileText, Upload, Download } from "lucide-react";
+import { Camera, Save, Edit2, MapPin, Building2, Plus, Trash2, Loader2, Briefcase, Award, MessageSquare, Image, Send, MoreHorizontal, ThumbsUp, Share2, Info, MessageCircle, UserPlus, UserCheck, Users, Lock, FileText, Upload, Download, Clock, Flag, Video } from "lucide-react";
 import { openSignedUrl } from "@/lib/signedMedia";
-import { SignedImg } from "@/components/SignedSrc";
+import { SignedImg, SignedVideo } from "@/components/SignedSrc";
 import MessageDialog from "./MessageDialog";
 import ScoutExtraSections from "./ScoutExtraSections";
 import RepresentedPlayersSection from "./RepresentedPlayersSection";
@@ -23,6 +23,9 @@ import FollowersList from "./FollowersList";
 import RecommendationsSection from "./RecommendationsSection";
 import PersonalAreaFooter from "./PersonalAreaFooter";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { moderateUploadedAvatar, moderateUploadedPost } from "@/lib/videoModeration";
+import { moderationBadgeLabel } from "@/lib/moderationBadge";
+import { getVideoDuration, MAX_VIDEO_DURATION_SECONDS } from "@/lib/videoFrameExtraction";
 const LazyPersonalProfile = lazy(() => import("./PersonalProfile"));
 const LazyScoutPersonalProfile = lazy(() => import("./ScoutPersonalProfile"));
 
@@ -277,12 +280,16 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
   const [newPostContent, setNewPostContent] = useState("");
   const [newPostImage, setNewPostImage] = useState<File | null>(null);
   const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null);
+  const [newPostVideo, setNewPostVideo] = useState<File | null>(null);
+  const [newPostVideoPreview, setNewPostVideoPreview] = useState<string | null>(null);
   const [postingActivity, setPostingActivity] = useState(false);
   const [activityFilter, setActivityFilter] = useState<"all" | "posts" | "images">("all");
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [followStatus, setFollowStatus] = useState<"none" | "pending" | "accepted" | "rejected">("none");
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
+  const [avatarReportedByMe, setAvatarReportedByMe] = useState(false);
+  const [reportedPostIds, setReportedPostIds] = useState<Set<string>>(new Set());
   const { followers, count: followerCount, removeFollower } = useFollowers(userId);
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [viewerRole, setViewerRole] = useState<string | null>(null);
@@ -374,19 +381,50 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
         imageUrl = urlData.publicUrl;
       }
-      const { error } = await supabase.from("scout_posts").insert({
+      let videoUrl: string | null = null;
+      let videoStoragePath: string | null = null;
+      if (newPostVideo) {
+        const ext = newPostVideo.name.split(".").pop();
+        const path = `${userId}/${Date.now()}-video.${ext}`;
+        const { error: videoUploadError } = await supabase.storage.from("player-videos").upload(path, newPostVideo);
+        if (videoUploadError) throw videoUploadError;
+        const { data: urlData } = supabase.storage.from("player-videos").getPublicUrl(path);
+        videoUrl = urlData.publicUrl;
+        videoStoragePath = path;
+      }
+      // Same moderation pipeline as a player's post now — text, photo, and
+      // video all start 'pending' and are hidden from everyone but the
+      // author/admins until analyze-video-frames resolves it (see
+      // 20261016090000_scout_posts_same_pipeline_as_posts.sql).
+      const { data: inserted, error } = await (supabase as any).from("scout_posts").insert({
         user_id: userId,
         content: newPostContent.trim(),
         image_url: imageUrl,
-      });
+        video_url: videoUrl,
+        moderation_status: "pending",
+      }).select().single();
       if (error) throw error;
       setNewPostContent("");
       setNewPostImage(null);
       setNewPostImagePreview(null);
+      setNewPostVideo(null);
+      setNewPostVideoPreview(null);
       const { data: refreshed } = await (supabase as any).from("scout_posts").select("*").eq("user_id", userId).eq("is_archived", false).order("created_at", { ascending: false }).limit(10);
       if (refreshed) setPosts(refreshed);
       notifyProfileUpdated();
       toast({ title: ts.postPublished });
+
+      if (inserted) {
+        moderateUploadedPost({
+          videoFile: newPostVideo,
+          videoBucket: "player-videos",
+          videoStoragePath,
+          imageFile: newPostImage,
+          contentId: inserted.id,
+          caption: newPostContent.trim(),
+          contentType: "scout_post",
+        }).catch((err) => console.error("Moderation pipeline failed:", err));
+      }
     } catch (err: any) {
       const isRlsError = typeof err?.message === "string" && err.message.includes("row-level security policy");
       toast({
@@ -405,9 +443,62 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
     notifyProfileUpdated();
   };
 
+  // One click, no reason text — same as post/comment/avatar reports on
+  // <PostCard> (which this grid doesn't use; it's its own inline
+  // rendering). content_type stays "post" regardless of the source table,
+  // matching PostCard.handleReportPost — admin resolution looks the id up
+  // in both posts and scout_posts.
+  const handleReportPost = async (postId: string, postOwnerId: string) => {
+    if (!viewerUserId || reportedPostIds.has(postId)) return;
+    const { error } = await (supabase as any).from("user_content_reports").insert({
+      reporter_id: viewerUserId,
+      content_type: "post",
+      content_id: postId,
+      content_owner_id: postOwnerId,
+    });
+    if (error) {
+      if (error.code === "23505") {
+        setReportedPostIds((prev) => new Set(prev).add(postId));
+        toast({ title: lang === "ro" ? "Ai raportat deja această postare." : "You've already reported this post." });
+        return;
+      }
+      toast({ title: lang === "ro" ? "Eroare la trimiterea raportului." : "Error submitting report.", variant: "destructive" });
+      return;
+    }
+    setReportedPostIds((prev) => new Set(prev).add(postId));
+    toast({ title: lang === "ro" ? "Raport trimis." : "Report submitted." });
+  };
+
   const handlePostImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) { setNewPostImage(file); setNewPostImagePreview(URL.createObjectURL(file)); }
+  };
+
+  const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
+  const handlePostVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+      toast({ title: lang === "ro" ? "Format nesuportat. Folosește MP4, WebM, OGG sau MOV." : "Unsupported format. Use MP4, WebM, OGG or MOV.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast({ title: lang === "ro" ? "Videoclipul trebuie să fie sub 50MB" : "Video must be under 50MB", variant: "destructive" });
+      return;
+    }
+    try {
+      const duration = await getVideoDuration(file);
+      if (duration > MAX_VIDEO_DURATION_SECONDS) {
+        toast({ title: lang === "ro" ? `Videoclipul trebuie să fie sub ${MAX_VIDEO_DURATION_SECONDS} de secunde.` : `Video must be under ${MAX_VIDEO_DURATION_SECONDS} seconds.`, variant: "destructive" });
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to read video duration:", err);
+      toast({ title: lang === "ro" ? "Nu s-a putut citi videoclipul. Încearcă alt fișier." : "Couldn't read the video. Try a different file.", variant: "destructive" });
+      return;
+    }
+    setNewPostVideo(file);
+    setNewPostVideoPreview(URL.createObjectURL(file));
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -439,14 +530,19 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
     try {
       let photoUrl = form.photo_url;
       let coverUrl = form.cover_photo_url;
+      let pendingPhotoUrl: string | null = null;
 
       if (avatarFile) {
+        // Staged, not applied — uploaded to a different path than the live
+        // avatar and held in pending_photo_url until moderation clears it,
+        // so the currently-approved avatar keeps showing everywhere in the
+        // meantime (photo_url itself is left untouched here).
         const ext = avatarFile.name.split(".").pop();
-        const path = `${userId}/scout-avatar.${ext}`;
+        const path = `${userId}/scout-avatar-pending.${ext}`;
         const { error: avatarError } = await supabase.storage.from("avatars").upload(path, avatarFile, { upsert: true });
         if (avatarError) throw avatarError;
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-        photoUrl = urlData.publicUrl;
+        pendingPhotoUrl = urlData.publicUrl;
       }
 
       if (coverFile) {
@@ -467,8 +563,17 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
         country: form.country,
         photo_url: photoUrl,
         cover_photo_url: coverUrl,
+        ...(pendingPhotoUrl ? { pending_photo_url: pendingPhotoUrl, avatar_moderation_status: "pending", avatar_rejection_reason: null, avatar_submitted_at: new Date().toISOString() } : {}),
       }).eq("user_id", userId);
       if (error) throw error;
+
+      // Runs in the background, after the row is confirmed staged — never
+      // blocks the save/toast below. The live photo_url is untouched until
+      // this resolves to "approved".
+      if (pendingPhotoUrl) {
+        moderateUploadedAvatar({ imageFile: avatarFile!, userId, avatarTable: "scout_profiles" })
+          .catch((err) => console.error("Avatar moderation pipeline failed:", err));
+      }
 
       toast({ title: t.dashboard.profile.profileUpdated });
       setEditingSection(null);
@@ -614,13 +719,72 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
                 </div>
               )}
             </div>
-            {editingSection === "header" && (
-              <label className="absolute bottom-1 left-20 sm:left-24 bg-orange-500 rounded-full p-2 cursor-pointer hover:bg-orange-600 transition-colors shadow-md">
-                <Camera className="h-4 w-4 text-white" />
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-              </label>
-            )}
+            {editingSection === "header" && (() => {
+              // A second avatar upload is blocked while one is still
+              // pending/flagged review — prevents silently overwriting
+              // pending_photo_url and orphaning the first staged file.
+              const avatarUploadDisabled = !!(profile as any)?.avatar_moderation_status;
+              return (
+                <label className={`absolute bottom-1 left-20 sm:left-24 rounded-full p-2 shadow-md transition-colors ${avatarUploadDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 cursor-pointer hover:bg-orange-600"}`}>
+                  {avatarUploadDisabled ? <Clock className="h-4 w-4 text-white" /> : <Camera className="h-4 w-4 text-white" />}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} disabled={avatarUploadDisabled} />
+                </label>
+              );
+            })()}
           </div>
+
+          {/* Own-only avatar review badge — same rationale as PersonalProfile's:
+              photoSrc above is always the last-approved photo (or a local
+              preview of a just-picked file), this is the only indicator that
+              a submitted avatar is pending/flagged/was rejected. Never shown
+              to viewers of someone else's profile. */}
+          {!readOnly && (profile as any)?.avatar_moderation_status && (
+            <div className={`mb-3 inline-block text-xs font-body rounded-full px-3 py-1 ${moderationBadgeLabel((profile as any).avatar_moderation_status, lang)?.className}`}>
+              {lang === "ro" ? "Poza de profil: " : "Profile photo: "}
+              {moderationBadgeLabel((profile as any).avatar_moderation_status, lang)?.label}
+            </div>
+          )}
+          {!readOnly && !(profile as any)?.avatar_moderation_status && (profile as any)?.avatar_rejection_reason && (
+            <div className="mb-3 inline-block text-xs font-body rounded-full px-3 py-1 bg-red-600 text-white">
+              {lang === "ro" ? "Ultima poză a fost respinsă" : "Last photo was rejected"}
+            </div>
+          )}
+          {/* Report the profile photo — only for a visitor, never the
+              owner. One click, no reason text, same as post/comment
+              reports — see PersonalProfile.tsx's identical button for the
+              full rationale. */}
+          {readOnly && viewerUserId && viewerUserId !== userId && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (avatarReportedByMe) return;
+                const { error } = await (supabase as any).from("user_content_reports").insert({
+                  reporter_id: viewerUserId,
+                  content_type: "avatar",
+                  content_id: userId,
+                  content_owner_id: userId,
+                });
+                if (error) {
+                  if (error.code === "23505") {
+                    setAvatarReportedByMe(true);
+                    toast({ title: lang === "ro" ? "Ai raportat deja această poză." : "You've already reported this photo." });
+                    return;
+                  }
+                  toast({ title: lang === "ro" ? "Eroare la trimiterea raportului." : "Error submitting report.", variant: "destructive" });
+                  return;
+                }
+                setAvatarReportedByMe(true);
+                toast({ title: lang === "ro" ? "Raport trimis." : "Report submitted." });
+              }}
+              disabled={avatarReportedByMe}
+              className="mb-3 flex items-center gap-1 text-xs font-body text-gray-400 hover:text-red-600 disabled:hover:text-gray-400 transition-colors"
+            >
+              <Flag className="h-3 w-3" />
+              {avatarReportedByMe
+                ? (lang === "ro" ? "Poză raportată" : "Photo reported")
+                : (lang === "ro" ? "Raportează poza" : "Report photo")}
+            </button>
+          )}
 
           {/* Name & Title */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 text-center sm:text-left">
@@ -946,11 +1110,23 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
                     <button onClick={() => { setNewPostImage(null); setNewPostImagePreview(null); }} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">×</button>
                   </div>
                 )}
+                {newPostVideoPreview && (
+                  <div className="relative mt-2 inline-block">
+                    <video src={newPostVideoPreview} className="max-h-32 rounded-lg" controls />
+                    <button onClick={() => { setNewPostVideo(null); setNewPostVideoPreview(null); }} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">×</button>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-                  <label className={`text-gray-500 transition-colors ${viewerLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:text-orange-500"}`}>
-                    <Image className="h-5 w-5" />
-                    <input type="file" accept="image/*" className="hidden" onChange={handlePostImageChange} disabled={viewerLocked} />
-                  </label>
+                  <div className="flex items-center gap-3">
+                    <label className={`text-gray-500 transition-colors ${viewerLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:text-orange-500"}`}>
+                      <Image className="h-5 w-5" />
+                      <input type="file" accept="image/*" className="hidden" onChange={handlePostImageChange} disabled={viewerLocked} />
+                    </label>
+                    <label className={`text-gray-500 transition-colors ${viewerLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:text-orange-500"}`}>
+                      <Video className="h-5 w-5" />
+                      <input type="file" accept="video/*" className="hidden" onChange={handlePostVideoChange} disabled={viewerLocked} />
+                    </label>
+                  </div>
                   <Button
                     size="sm"
                     onClick={handlePostSubmit}
@@ -994,7 +1170,34 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
                 )}
+                {readOnly && viewerUserId && viewerUserId !== userId && (
+                  <button
+                    type="button"
+                    onClick={() => handleReportPost(post.id, post.user_id)}
+                    disabled={reportedPostIds.has(post.id)}
+                    className="text-gray-400 hover:text-red-600 disabled:hover:text-gray-400 transition-colors p-1"
+                    title={reportedPostIds.has(post.id) ? (lang === "ro" ? "Postare raportată" : "Post reported") : (lang === "ro" ? "Raportează postarea" : "Report post")}
+                  >
+                    <Flag className="h-4 w-4" />
+                  </button>
+                )}
               </div>
+
+              {/* Own-only pending/flagged badge — a visitor never receives
+                  a non-approved row at all (RLS on scout_posts already
+                  restricts SELECT to approved/own/admin), so this is purely
+                  the author's own view of their own post's status, same
+                  pattern as posts elsewhere in the app. */}
+              {!readOnly && (() => {
+                const badge = moderationBadgeLabel((post as any).moderation_status, lang);
+                return badge && (
+                  <div className="px-4 -mt-1 mb-1">
+                    <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-medium ${badge.className}`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                );
+              })()}
 
               {/* Post content */}
               <div className="px-4 pb-3">
@@ -1005,6 +1208,13 @@ const ScoutPersonalProfile = ({ userId, readOnly = false, onNavigateToChat, onNa
               {post.image_url && (
                 <div className="w-full">
                   <SignedImg src={post.image_url} alt="" className="w-full object-cover max-h-64" />
+                </div>
+              )}
+
+              {/* Post video */}
+              {(post as any).video_url && (
+                <div className="w-full aspect-video">
+                  <SignedVideo src={(post as any).video_url} controls className="w-full h-full object-contain bg-black" preload="metadata" />
                 </div>
               )}
 

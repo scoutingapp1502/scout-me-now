@@ -2,8 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { extractSampleFrames, type ExtractedFrame } from "@/lib/videoFrameExtraction";
 import { extractImageFrame } from "@/lib/imageFrameExtraction";
 
-export type ModerationContentType = "post" | "test_video";
+export type ModerationContentType = "post" | "scout_post" | "test_video" | "avatar" | "video_highlight";
 export type TestScenario = "SAFE" | "UNCERTAIN_VIOLENCE" | "UNCERTAIN_SEXUAL" | "HIGH";
+export type AvatarTable = "player_profiles" | "scout_profiles";
 
 export interface ModerationOutcome {
   decision: "approved" | "recheck" | "admin_review";
@@ -25,6 +26,7 @@ async function runModerationPipeline(params: {
   contentId: string;
   caption?: string;
   testScenario?: TestScenario;
+  avatarTable?: AvatarTable;
 }): Promise<ModerationOutcome | null> {
   const framePayload = params.frames.map((f) => ({ base64: f.base64, atFraction: f.atFraction }));
 
@@ -37,6 +39,7 @@ async function runModerationPipeline(params: {
       // Sent for "post" too, but the server ignores it unless contentType
       // is "test_video" — never gated only on the client.
       test_scenario: params.testScenario,
+      avatar_table: params.avatarTable,
     },
   });
   if (initialError) {
@@ -62,6 +65,7 @@ async function runModerationPipeline(params: {
       frames: framePayload,
       triggeredCategories: initial.triggeredCategories ?? [],
       initialTextScores: initial.initialTextScores,
+      avatar_table: params.avatarTable,
     },
   });
   if (recheckError) {
@@ -110,6 +114,10 @@ export async function moderateUploadedPost(params: {
   imageFile?: File | null;
   contentId: string;
   caption?: string;
+  // Defaults to "post" (player posts/PostCard edits). Pass "scout_post" for
+  // a Descoperitor's own scout_posts row — same pipeline, different table
+  // (see 20261016090000_scout_posts_same_pipeline_as_posts.sql).
+  contentType?: "post" | "scout_post";
 }): Promise<ModerationOutcome | null> {
   let frames: ExtractedFrame[] = [];
   try {
@@ -128,8 +136,39 @@ export async function moderateUploadedPost(params: {
     frames,
     bucket: params.videoFile ? params.videoBucket ?? "player-videos" : null,
     storagePath: params.videoFile ? params.videoStoragePath ?? null : null,
-    contentType: "post",
+    contentType: params.contentType ?? "post",
     contentId: params.contentId,
     caption: params.caption,
+  });
+}
+
+// Profile photo (avatar) entry point. Unlike a post, an avatar has no
+// dedicated content row — contentId here is the uploader's own user_id, and
+// avatarTable says which profile table to stage/promote pending_photo_url
+// on (see 20261006090000_avatar_moderation.sql). The caller is responsible
+// for having already uploaded the file to a NEW path (not overwriting the
+// currently-approved avatar) and staged its URL into pending_photo_url
+// before calling this — this function only runs the analysis, it does not
+// touch storage or pending_photo_url itself.
+export async function moderateUploadedAvatar(params: {
+  imageFile: File;
+  userId: string;
+  avatarTable: AvatarTable;
+}): Promise<ModerationOutcome | null> {
+  let frames: ExtractedFrame[] = [];
+  try {
+    frames = await extractImageFrame(params.imageFile);
+  } catch (err) {
+    console.error("Frame extraction failed, leaving avatar pending for admin review:", err);
+    return null;
+  }
+
+  return runModerationPipeline({
+    frames,
+    bucket: null,
+    storagePath: null,
+    contentType: "avatar",
+    contentId: params.userId,
+    avatarTable: params.avatarTable,
   });
 }
