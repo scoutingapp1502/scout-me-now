@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send, Forward, Loader2, Bookmark, Instagram, TrendingUp, RefreshCw, Archive, Eye, EyeOff, Film, Pencil, Crop, Pin, MessageSquare, Users, Search, Rocket, Flag } from "lucide-react";
+import { Heart, MessageCircle, User, MoreHorizontal, Trash2, Send, Forward, Loader2, Bookmark, Instagram, TrendingUp, RefreshCw, Archive, Eye, EyeOff, Film, Pencil, Crop, Pin, MessageSquare, Users, Search, Rocket, Flag, Check } from "lucide-react";
 import { SignedImg, SignedVideo } from "@/components/SignedSrc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { isLikelyUnwantedComment, type HideUnwantedLevel } from "@/lib/commentModeration";
 import { useAccountLock } from "@/hooks/useAccountLock";
+
+const REPORT_REASONS = [
+  { value: "spam", ro: "Spam sau conținut înșelător", en: "Spam or misleading content" },
+  { value: "nudity", ro: "Nuditate sau conținut sexual", en: "Nudity or sexual content" },
+  { value: "hate_harassment", ro: "Discurs instigator la ură sau hărțuire", en: "Hate speech or harassment" },
+  { value: "violence", ro: "Violență sau conținut cu grad ridicat de șoc", en: "Violence or graphic content" },
+  { value: "false_info", ro: "Informații false", en: "False information" },
+  { value: "ip", ro: "Încalcă drepturile de autor", en: "Intellectual property violation" },
+  { value: "other", ro: "Altceva", en: "Something else" },
+] as const;
 
 interface PostAuthor {
   user_id: string;
@@ -565,19 +575,24 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
   const isOwnPost = post.user_id === currentUserId;
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportCategory, setReportCategory] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState("");
   const [submittingReport, setSubmittingReport] = useState(false);
+  const reportCanSubmit = !!reportCategory && (reportCategory !== "other" || !!reportReason.trim());
 
   const handleSubmitReport = async () => {
-    if (!currentUserId || !reportReason.trim()) return;
+    if (!currentUserId || !reportCanSubmit) return;
     setSubmittingReport(true);
+    const selectedReason = REPORT_REASONS.find((r) => r.value === reportCategory);
+    const reasonLabel = selectedReason ? (lang === "ro" ? selectedReason.ro : selectedReason.en) : reportCategory;
+    const message = reportReason.trim() ? `${reasonLabel}: ${reportReason.trim()}` : reasonLabel;
     const { error } = await (supabase as any).from("support_tickets").insert({
       user_id: currentUserId,
       reported_user_id: post.user_id,
       reported_content_type: "post",
       reported_content_id: post.id,
       category: "report_user",
-      message: reportReason.trim(),
+      message,
     });
     setSubmittingReport(false);
     if (error) {
@@ -586,6 +601,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     }
     toast.success(lang === "ro" ? "Raport trimis. Echipa noastră îl va analiza." : "Report submitted. Our team will review it.");
     setShowReportDialog(false);
+    setReportCategory(null);
     setReportReason("");
   };
 
@@ -865,7 +881,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
-                <DropdownMenuItem onClick={() => { setReportReason(""); setShowReportDialog(true); }}>
+                <DropdownMenuItem onClick={() => { setReportCategory(null); setReportReason(""); setShowReportDialog(true); }}>
                   <Flag className="h-4 w-4 mr-2" /> {lang === "ro" ? "Raportează" : "Report"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -874,28 +890,60 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         </div>
       </div>
 
-      <Dialog open={showReportDialog} onOpenChange={(open) => { if (!open) { setShowReportDialog(false); setReportReason(""); } }}>
+      <Dialog open={showReportDialog} onOpenChange={(open) => { if (!open) { setShowReportDialog(false); setReportCategory(null); setReportReason(""); } }}>
         <DialogContent className="bg-white border-gray-200 text-gray-900">
           <DialogHeader>
             <DialogTitle>{lang === "ro" ? "Raportează această postare" : "Report this post"}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500 font-body -mt-2">
             {lang === "ro"
-              ? "SportRise nu solicită niciodată plăți prin mesaje și nu organizează întâlniri neanunțate oficial prin platformă. Descrie ce e nepotrivit la această postare."
-              : "SportRise never requests payments through messages and doesn't arrange meetings unofficially through the platform. Describe what's wrong with this post."}
+              ? "Raportul tău este confidențial — persoana raportată nu va afla cine l-a trimis. Echipa noastră analizează fiecare sesizare și ia măsuri conform Termenilor și Condițiilor."
+              : "Your report is confidential — the reported person won't know who submitted it. Our team reviews every report and takes action in line with our Terms and Conditions."}
           </p>
-          <Textarea
-            value={reportReason}
-            onChange={(e) => setReportReason(e.target.value)}
-            placeholder={lang === "ro" ? "Descrie motivul raportării..." : "Describe the reason for the report..."}
-            className="font-body text-sm resize-none"
-            rows={4}
-          />
+
+          <div>
+            <p className="text-sm font-semibold font-body text-gray-900 mb-2">
+              {lang === "ro" ? "De ce raportezi această postare?" : "Why are you reporting this post?"}
+            </p>
+            <div className="space-y-1.5">
+              {REPORT_REASONS.map((r) => (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => setReportCategory(r.value)}
+                  className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-lg border text-sm font-body text-left transition-colors ${
+                    reportCategory === r.value
+                      ? "border-gray-900 bg-gray-50 text-gray-900 font-medium"
+                      : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {lang === "ro" ? r.ro : r.en}
+                  {reportCategory === r.value && <Check className="h-4 w-4 text-gray-900 shrink-0" />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold font-body text-gray-900 mb-2">
+              {lang === "ro"
+                ? `Detalii suplimentare${reportCategory === "other" ? "" : " (opțional)"}`
+                : `Additional details${reportCategory === "other" ? "" : " (optional)"}`}
+            </p>
+            <Textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder={lang === "ro" ? "Descrie ce ai observat..." : "Describe what you noticed..."}
+              className="font-body text-sm resize-none"
+              rows={3}
+            />
+          </div>
+
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => { setShowReportDialog(false); setReportReason(""); }}>
+            <Button variant="outline" onClick={() => { setShowReportDialog(false); setReportCategory(null); setReportReason(""); }}>
               {lang === "ro" ? "Anulează" : "Cancel"}
             </Button>
-            <Button variant="destructive" disabled={!reportReason.trim() || submittingReport} onClick={handleSubmitReport}>
+            <Button variant="destructive" disabled={!reportCanSubmit || submittingReport} onClick={handleSubmitReport}>
               {submittingReport ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {lang === "ro" ? "Trimite raportul" : "Submit report"}
             </Button>

@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import SportriseWordmark from "@/components/SportriseWordmark";
-import { MINIMUM_AGE, isAtLeastAge, latestDateOfBirthForAge } from "@/lib/age";
+import { MINIMUM_AGE, PARENTAL_CONSENT_AGE, isAtLeastAge, latestDateOfBirthForAge } from "@/lib/age";
 import { TERMS_VERSION, PRIVACY_VERSION } from "@/lib/legalVersions";
 
 // Roles that must upload a verification document at signup and stay
@@ -47,7 +47,16 @@ const Auth = () => {
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [scoutDocument, setScoutDocument] = useState<File | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [parentalConsent, setParentalConsent] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 13 and 14 are old enough to register but still need a parent/guardian
+  // to confirm they know about it — a self-declared checkbox, not a
+  // verified adult signature.
+  const needsParentalConsent =
+    !!dateOfBirth &&
+    isAtLeastAge(dateOfBirth, MINIMUM_AGE) &&
+    !isAtLeastAge(dateOfBirth, PARENTAL_CONSENT_AGE);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -89,6 +98,10 @@ const Auth = () => {
       toast({ title: t.auth.errorRegister, description: t.auth.minAgeError, variant: "destructive" });
       return;
     }
+    if (needsParentalConsent && !parentalConsent) {
+      toast({ title: t.auth.errorRegister, description: t.auth.parentalConsentRequired, variant: "destructive" });
+      return;
+    }
     if (REQUIRES_VERIFICATION.includes(role) && !scoutDocument) {
       toast({ title: "Document lipsă", description: "Încarcă un document de verificare pentru acest tip de cont.", variant: "destructive" });
       return;
@@ -102,6 +115,7 @@ const Auth = () => {
       const metadata: Record<string, any> = {
         full_name: fullName, role, gender, sport, date_of_birth: dateOfBirth,
         terms_version: TERMS_VERSION, privacy_version: PRIVACY_VERSION,
+        parental_consent: needsParentalConsent && parentalConsent,
       };
       const trimmedInviteCode = inviteCode.trim().toUpperCase();
       if (role === "player" && trimmedInviteCode) {
@@ -341,6 +355,19 @@ const Auth = () => {
                         />
                         <p className="text-xs text-gray-500 font-body">{t.auth.dateOfBirthHint}</p>
                       </div>
+                      {needsParentalConsent && (
+                        <div className="flex items-start gap-2 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                          <Checkbox
+                            id="parentalConsent"
+                            checked={parentalConsent}
+                            onCheckedChange={(v) => setParentalConsent(v === true)}
+                            className="mt-0.5"
+                          />
+                          <Label htmlFor="parentalConsent" className="font-body text-sm text-gray-700 leading-snug cursor-pointer">
+                            {t.auth.parentalConsentLabel}
+                          </Label>
+                        </div>
+                      )}
                       {role === "player" && (
                         <>
                           <div className="space-y-2">

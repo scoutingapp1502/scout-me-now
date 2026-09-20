@@ -26,7 +26,7 @@ export const PRIVACY_SECTIONS_RO = [
   },
   {
     title: "5. Vârsta minimă și utilizatorii minori",
-    body: "SportRise poate fi folosit doar de persoane cu vârsta de cel puțin 16 ani. Data nașterii este obligatorie la înregistrare și este verificată automat; nu creăm conturi și nu colectăm cu bună știință date despre persoane sub 16 ani. Dacă aflăm că un cont aparține unei persoane sub această vârstă, îl vom închide și vom șterge datele asociate. Utilizatorii cu vârsta între 16 și 18 ani sunt în continuare minori, iar datele lor (inclusiv fotografii și videoclipuri) sunt tratate cu un nivel sporit de protecție; videoclipurile de test necesită un consimțământ explicit separat înainte de încărcare. Părinții sau tutorii legali ai unui utilizator minor pot solicita oricând accesul, corectarea sau ștergerea datelor acestuia, contactându-ne prin pagina de Contact.",
+    body: "SportRise poate fi folosit doar de persoane cu vârsta de cel puțin 13 ani. Data nașterii este obligatorie la înregistrare și este verificată automat; nu creăm conturi și nu colectăm cu bună știință date despre persoane sub 13 ani. Dacă aflăm că un cont aparține unei persoane sub această vârstă, îl vom închide și vom șterge datele asociate. Utilizatorii cu vârsta între 13 și 15 ani pot crea un cont doar după ce bifează, la înregistrare, o declarație prin care confirmă că un părinte sau tutore legal este la curent și de acord cu înregistrarea; este o declarație pe propria răspundere, completată de minor, fără o verificare suplimentară a identității părintelui. Utilizatorii cu vârsta între 13 și 18 ani sunt în continuare minori, iar datele lor (inclusiv fotografii și videoclipuri) sunt tratate cu un nivel sporit de protecție; videoclipurile de test necesită un consimțământ explicit separat înainte de încărcare. Părinții sau tutorii legali ai unui utilizator minor pot solicita oricând accesul, corectarea sau ștergerea datelor acestuia, contactându-ne prin pagina de Contact.",
   },
   {
     title: "6. Cu cine sunt distribuite datele",
@@ -81,7 +81,7 @@ export const PRIVACY_SECTIONS_EN = [
   },
   {
     title: "5. Minimum age and minor users",
-    body: "SportRise may only be used by people who are at least 16 years old. Your date of birth is required at registration and is checked automatically; we do not create accounts for, or knowingly collect data about, anyone under 16. If we learn that an account belongs to someone under that age, we will close it and delete the associated data. Users aged 16 to 18 are still minors, and their data (including photos and videos) is handled with an elevated level of protection; test videos require a separate, explicit consent before upload. The parents or legal guardians of a minor user can request access to, correction of, or deletion of that user's data at any time by contacting us through the Contact page.",
+    body: "SportRise may only be used by people who are at least 13 years old. Your date of birth is required at registration and is checked automatically; we do not create accounts for, or knowingly collect data about, anyone under 13. If we learn that an account belongs to someone under that age, we will close it and delete the associated data. Users aged 13 to 15 can only create an account after checking a declaration, at signup, confirming that a parent or legal guardian is aware of and agrees with the registration; this is a self-declaration filled in by the minor, without any further verification of the parent's identity. Users aged 13 to 18 are still minors, and their data (including photos and videos) is handled with an elevated level of protection; test videos require a separate, explicit consent before upload. The parents or legal guardians of a minor user can request access to, correction of, or deletion of that user's data at any time by contacting us through the Contact page.",
   },
   {
     title: "6. Who we share your data with",
@@ -136,7 +136,7 @@ export default function PrivacyPolicySection({ onBack }: PrivacyPolicySectionPro
         <LegalDocBody
           eyebrow="LEGAL"
           title={lang === "ro" ? "Politica de Confidențialitate" : "Privacy Policy"}
-          lastUpdated={legalLastUpdatedLabel(lang, PRIVACY_VERSION)}
+          lastUpdated={legalLastUpdatedLabel(lang, PRIVACY_VERSION, "privacy")}
           tocLabel={lang === "ro" ? "Cuprins" : "Table of Contents"}
           sections={sections}
           compact

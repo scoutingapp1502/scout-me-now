@@ -11,7 +11,7 @@ const PublicPrivacy = () => {
     <LegalDocPage
       eyebrow="LEGAL"
       title={lang === "ro" ? "Politica de Confidențialitate" : "Privacy Policy"}
-      lastUpdated={legalLastUpdatedLabel(lang, PRIVACY_VERSION)}
+      lastUpdated={legalLastUpdatedLabel(lang, PRIVACY_VERSION, "privacy")}
       tocLabel={lang === "ro" ? "Cuprins" : "Table of Contents"}
       sections={sections}
       backLabel={lang === "ro" ? "Înapoi" : "Back"}

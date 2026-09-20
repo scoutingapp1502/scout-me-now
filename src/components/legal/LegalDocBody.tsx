@@ -45,7 +45,11 @@ const LegalDocBody = ({ eyebrow, title, lastUpdated, tocLabel, sections, compact
             <h2 className={compact ? "font-display text-lg sm:text-xl text-gray-900 mb-1.5" : "font-display text-xl text-gray-900 mb-2"}>
               {s.title}
             </h2>
-            <p className="text-gray-500 font-body leading-relaxed text-sm sm:text-base">{s.body}</p>
+            <div className="text-gray-500 font-body leading-relaxed text-sm sm:text-base space-y-3">
+              {s.body.split("\n\n").map((paragraph, i) => (
+                <p key={i} className="indent-8">{paragraph}</p>
+              ))}
+            </div>
           </div>
         ))}
       </div>

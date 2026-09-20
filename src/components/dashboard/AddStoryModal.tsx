@@ -122,38 +122,38 @@ export default function AddStoryModal({ userId, open, onClose, onPosted, userPho
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent
-        className="max-w-sm w-full p-0 bg-background border-border overflow-hidden h-[92vh] flex flex-col gap-0"
+        className="max-w-sm w-full p-0 bg-white border-gray-200 overflow-hidden h-[92vh] flex flex-col gap-0"
         hideClose={true}
       >
 
         {/* ───── GALLERY VIEW ───── */}
         {view === "gallery" && (
           <>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-              <button onClick={onClose} className="p-1 text-foreground hover:text-primary"><X className="h-5 w-5" /></button>
-              <h2 className="font-heading text-base text-foreground">{lang === "ro" ? "Adaugă la story" : "Add to story"}</h2>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0 bg-white">
+              <button onClick={onClose} className="p-1 text-gray-500 hover:text-orange-500"><X className="h-5 w-5" /></button>
+              <h2 className="font-heading text-base text-gray-900">{lang === "ro" ? "Adaugă la story" : "Add to story"}</h2>
               <div className="w-7" />
             </div>
-            <div className="flex items-center px-4 py-3 shrink-0">
-              <span className="text-sm font-semibold text-foreground font-body">
+            <div className="flex items-center px-4 py-3 shrink-0 bg-white">
+              <span className="text-sm font-semibold text-gray-900 font-body">
                 {lang === "ro" ? "Recente" : "Recents"}
               </span>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto bg-white">
               <div className="grid grid-cols-3 gap-0.5">
-                <button onClick={() => fileInputRef.current?.click()} className="aspect-square bg-muted/40 flex items-center justify-center hover:bg-muted/60 transition-colors">
-                  <Camera className="h-7 w-7 text-muted-foreground" />
+                <button onClick={() => fileInputRef.current?.click()} className="aspect-square bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                  <Camera className="h-7 w-7 text-gray-500" />
                 </button>
                 {loadingImages
-                  ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="aspect-square bg-muted animate-pulse" />)
+                  ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="aspect-square bg-gray-100 animate-pulse" />)
                   : recentImages.map((img) => (
                       <button key={img.id} onClick={() => selectImage(img.url)} className="aspect-square overflow-hidden">
                         <SignedImg src={img.url} alt="" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
                       </button>
                     ))}
                 {!loadingImages && recentImages.length === 0 && (
-                  <div className="col-span-2 aspect-[2/1] bg-muted/20 flex items-center justify-center">
-                    <p className="text-xs text-muted-foreground font-body text-center px-4">{lang === "ro" ? "Nicio imagine postată încă" : "No posted images yet"}</p>
+                  <div className="col-span-2 aspect-[2/1] bg-gray-50 flex items-center justify-center">
+                    <p className="text-xs text-gray-400 font-body text-center px-4">{lang === "ro" ? "Nicio imagine postată încă" : "No posted images yet"}</p>
                   </div>
                 )}
               </div>

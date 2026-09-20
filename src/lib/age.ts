@@ -1,4 +1,12 @@
-export const MINIMUM_AGE = 16;
+// Absolute floor: no account can be created below this age, with or
+// without parental consent.
+export const MINIMUM_AGE = 13;
+
+// Below this age (and at or above MINIMUM_AGE), registration requires a
+// self-declared parental consent checkbox — see PARENTAL_CONSENT_AGE usage
+// in Auth.tsx. There is no independent verification of the parent's
+// identity, only the minor's own confirmation at signup.
+export const PARENTAL_CONSENT_AGE = 16;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
