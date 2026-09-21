@@ -58,41 +58,48 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send email notification to the admin inbox
-    const emailTo = "scoutingapp1502@gmail.com";
+    // Email notification to the admin inbox. Best-effort: a delivery
+    // problem never fails the submission, it only gets logged.
+    const escapeHtml = (s: string) =>
+      String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+    const emailTo = Deno.env.get("CONTACT_NOTIFY_EMAIL") || "scoutingapp1502@gmail.com";
+    const safeName = escapeHtml(player_name || "Jucător");
     const subject = `🎥 Video nou de verificat: ${test_key} — ${player_name || "Jucător"}`;
     const htmlBody = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; background: #1a1a2e; color: #eee;">
-        <h2 style="color: #3B82F6;">🎥 Video Nou de Verificat</h2>
-        <p><strong>Jucător:</strong> ${player_name || "Necunoscut"}</p>
-        <p><strong>Test:</strong> ${test_key}</p>
-        <p><strong>Video URL:</strong> <a href="${video_url}" style="color: #3B82F6;">${video_url}</a></p>
-        <p><strong>Data:</strong> ${new Date().toLocaleString("ro-RO")}</p>
-        <hr style="border-color: #333;" />
-        <p>Accesează panoul de administrare din aplicație pentru a verifica și acorda nota.</p>
+      <div style="font-family: Arial, sans-serif; padding: 20px; background: #fafafa; color: #222;">
+        <h2 style="color: #f97316; margin-bottom: 4px;">Video nou de verificat</h2>
+        <p style="color: #888; margin-top: 0; font-size: 13px;">${new Date().toLocaleString("ro-RO")}</p>
+        <table style="border-collapse: collapse; margin: 16px 0;">
+          <tr><td style="padding: 4px 12px 4px 0; color: #666;"><strong>Jucător:</strong></td><td>${safeName}</td></tr>
+          <tr><td style="padding: 4px 12px 4px 0; color: #666;"><strong>Test:</strong></td><td>${escapeHtml(test_key)}</td></tr>
+          <tr><td style="padding: 4px 12px 4px 0; color: #666;"><strong>Video:</strong></td><td><a href="${escapeHtml(video_url)}" style="color:#f97316;">Deschide videoclipul</a></td></tr>
+        </table>
+        <p style="color: #888; font-size: 13px;">
+          Accesează panoul de administrare din aplicație pentru a verifica și acorda nota.
+        </p>
       </div>
     `;
 
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      console.error("RESEND_API_KEY not configured — email not sent. Submission:", submission.id);
+    const sendgridApiKey = Deno.env.get("SENDGRID_API_KEY");
+    if (!sendgridApiKey) {
+      console.error("SENDGRID_API_KEY not configured — email not sent. Submission:", submission.id);
     } else {
-      const emailRes = await fetch("https://api.resend.com/emails", {
+      const emailRes = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${resendApiKey}`,
+          Authorization: `Bearer ${sendgridApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "SportRise <onboarding@resend.dev>",
-          to: [emailTo],
+          personalizations: [{ to: [{ email: emailTo }] }],
+          from: { email: "suport@sportrise.ro", name: "SportRise" },
           subject,
-          html: htmlBody,
+          content: [{ type: "text/html", value: htmlBody }],
         }),
       });
       if (!emailRes.ok) {
-        // Don't fail the submission over an email delivery problem — just log it.
-        console.error("Resend error:", await emailRes.text());
+        console.error("SendGrid error:", await emailRes.text());
       }
     }
 

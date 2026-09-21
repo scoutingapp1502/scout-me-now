@@ -13,10 +13,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Altceva",
 };
 
-// Called from HelpSection.tsx (and PostCard.tsx's "report post" flow) right
-// after a row is inserted into support_tickets, so the admin gets an email
-// instead of having to check the admin panel. Best-effort: a failure here
-// never fails the ticket submission for the user, it only gets logged.
+// Called from HelpSection.tsx right after a row is inserted into
+// support_tickets, so the admin gets an email. Only "report_user" tickets
+// are also shown in the admin panel; the other categories are handled by
+// email alone. Best-effort: a failure here never fails the ticket
+// submission for the user, it only gets logged.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -87,7 +88,9 @@ Deno.serve(async (req) => {
         </table>
         <div style="background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 16px; white-space: pre-wrap;">${escapeHtml(ticket.message)}</div>
         <p style="color: #888; font-size: 13px; margin-top: 20px;">
-          Vezi și gestionează raportul din panoul de admin al aplicației (Rapoarte utilizatori).
+          ${ticket.category === "report_user"
+            ? "Vezi și gestionează raportul din panoul de admin al aplicației (Tichete Suport)."
+            : "Acest raport nu apare în panoul de admin. Răspunde direct utilizatorului (Reply merge la adresa lui), de preferat din adresa suport@sportrise.ro."}
         </p>
       </div>
     `;
