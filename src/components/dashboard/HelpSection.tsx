@@ -35,17 +35,27 @@ function ReportProblemPage({ userId, lang, onBack }: { userId: string; lang: str
       return;
     }
     setSubmitting(true);
-    const { error } = await (supabase as any).from("support_tickets").insert({
-      user_id: userId,
-      category,
-      message: message.trim(),
-    });
+    const { data, error } = await (supabase as any)
+      .from("support_tickets")
+      .insert({
+        user_id: userId,
+        category,
+        message: message.trim(),
+      })
+      .select("id")
+      .single();
     setSubmitting(false);
     if (error) {
       toast({ title: lang === "ro" ? "Nu s-a putut trimite raportul." : "Could not send your report.", variant: "destructive" });
       return;
     }
     setSubmitted(true);
+    // Best-effort admin notification — the success screen above doesn't
+    // depend on this, so we don't await/handle it beyond logging.
+    if (data?.id) {
+      supabase.functions.invoke("notify-support-ticket", { body: { id: data.id } })
+        .catch((err) => console.error("notify-support-ticket failed:", err));
+    }
   };
 
   if (submitted) {
