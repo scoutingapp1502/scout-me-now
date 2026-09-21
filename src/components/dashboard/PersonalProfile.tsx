@@ -1672,6 +1672,35 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
 }
 
 /* ======================== STATS TAB ======================== */
+// Shown in the inline test editors between "file uploaded" and "Salvați".
+// An upload only stages the URL in the form; without this nothing in the
+// panel tells the player a video is attached but not yet submitted.
+// A picked file is previewed from the local File (the storage bucket is
+// private, so its public URL would not load in a <video>).
+function StagedVideoNotice({ url, file, text }: { url: string; file?: File; text: string }) {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) { setObjectUrl(null); return; }
+    const u = URL.createObjectURL(file);
+    setObjectUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+  const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
+  return (
+    <div className="rounded-lg border border-green-300 bg-green-50 p-2 space-y-2">
+      {objectUrl ? (
+        <video src={objectUrl} controls playsInline preload="metadata" className="w-full rounded-md bg-black aspect-video" />
+      ) : isYouTube ? (
+        <iframe src={`https://www.youtube.com/embed/${extractYouTubeId(url)}`} className="w-full aspect-video rounded-md" allowFullScreen />
+      ) : null}
+      <div className="flex items-start gap-2">
+        <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+        <p className="text-xs text-green-800 font-body">{text}</p>
+      </div>
+    </div>
+  );
+}
+
 function StatsTab({ form, profile, editingSection, setEditingSection, updateForm, photoSrc, userId, viewerUserId, SectionEditButton, SectionSaveButton, uploadedVideoMetaRef, readOnly = false }: {
   form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; setEditingSection: (s: EditingSection) => void; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; viewerUserId: string | null; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
   // Owned by PersonalProfile (its save handler reads it too); StatsTab's video
@@ -1918,6 +1947,11 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                   }}
                                 />
                               </div>
+                              {(() => {
+                                const stagedUrl = (form as any)[test.videoKey] as string | undefined;
+                                if (!stagedUrl || stagedUrl === (profile as any)?.[test.videoKey]) return null;
+                                return <StagedVideoNotice url={stagedUrl} file={uploadedVideoMetaRef.current.get(stagedUrl)?.file} text={tt.videoStagedNotice} />;
+                              })()}
                               <div className="flex justify-end">
                                 <Button
                                   type="button"
@@ -2376,6 +2410,11 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                           }}
                         />
                       </div>
+                      {(() => {
+                        const stagedUrl = (form as any)[test.key] as string | undefined;
+                        if (!stagedUrl || stagedUrl === (profile as any)?.[test.key]) return null;
+                        return <StagedVideoNotice url={stagedUrl} file={uploadedVideoMetaRef.current.get(stagedUrl)?.file} text={tt.videoStagedNotice} />;
+                      })()}
                       <div className="flex justify-end">
                         <Button
                           type="button"
@@ -2400,10 +2439,15 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                               // Submit for verification
                               if (videoUrl) {
                                 const meta = uploadedVideoMetaRef.current.get(videoUrl);
-                                await submitVideo(
+                                const result = await submitVideo(
                                   test.key, videoUrl, userId,
                                   meta ? { videoFile: meta.file, storagePath: meta.storagePath } : undefined
                                 );
+                                if (result.error) {
+                                  toast({ title: tt.videoSavedButSubmitFailed, variant: "destructive" });
+                                  setInlineEditTest(null);
+                                  return;
+                                }
                               }
                               toast({ title: tt.videoSavedPendingReview });
                               setInlineEditTest(null);
