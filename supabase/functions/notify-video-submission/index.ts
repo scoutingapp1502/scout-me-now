@@ -1,10 +1,24 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2/cors";
 
+// Called from submitVideoSubmission() (useVideoSubmissions.ts) AFTER the
+// client has already upserted the video_submissions row. This function only
+// notifies the admin by email — it must not insert the row itself: the table
+// has a unique index on (user_id, test_key), so a second insert always failed
+// with a duplicate-key error before the email was ever sent.
+//
+// Best-effort with respect to email: a delivery problem is logged and never
+// turns into an error for the player.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -12,112 +26,94 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No auth" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return json({ error: "No auth" }, 401);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace("Bearer ", "")
     );
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
-    const { test_key, video_url, player_name } = await req.json();
+    const { test_key } = await req.json();
+    if (typeof test_key !== "string" || !test_key) return json({ error: "Missing fields" }, 400);
 
-    if (!test_key || !video_url) {
-      return new Response(JSON.stringify({ error: "Missing fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Insert into video_submissions
-    const { data: submission, error: insertError } = await supabase
+    // Read what was actually saved rather than trusting the request body for
+    // the content of an email that lands in the admin's inbox.
+    const { data: submission, error: fetchError } = await supabase
       .from("video_submissions")
-      .insert({
-        user_id: user.id,
-        test_key,
-        video_url,
-        status: "pending",
-      })
-      .select()
-      .single();
+      .select("id, video_url")
+      .eq("user_id", user.id)
+      .eq("test_key", test_key)
+      .maybeSingle();
 
-    if (insertError) {
-      console.error("Insert error:", insertError);
-      return new Response(JSON.stringify({ error: insertError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (fetchError || !submission) {
+      console.error("Submission not found for notification:", fetchError, user.id, test_key);
+      return json({ error: "Submission not found" }, 404);
     }
 
-    // Email notification to the admin inbox. Best-effort: a delivery
-    // problem never fails the submission, it only gets logged.
+    const { data: profile } = await supabase
+      .from("player_profiles")
+      .select("first_name, last_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const playerName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : "";
+
+    const sendgridApiKey = Deno.env.get("SENDGRID_API_KEY");
+    if (!sendgridApiKey) {
+      console.error("SENDGRID_API_KEY not configured — email not sent. Submission:", submission.id);
+      return json({ success: true, emailed: false });
+    }
+
     const escapeHtml = (s: string) =>
       String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
     const emailTo = Deno.env.get("CONTACT_NOTIFY_EMAIL") || "scoutingapp1502@gmail.com";
-    const safeName = escapeHtml(player_name || "Jucător");
-    const subject = `🎥 Video nou de verificat: ${test_key} — ${player_name || "Jucător"}`;
+    const displayName = playerName || "Jucător";
+    const subject = `🎥 Video nou de verificat: ${test_key} — ${displayName}`;
+
+    // Uploaded videos live in a private bucket, so a raw URL may not open
+    // for the admin — only link http(s) URLs, and always point to the panel.
+    const videoUrl = String(submission.video_url || "");
+    const videoRow = /^https?:\/\//i.test(videoUrl)
+      ? `<tr><td style="padding: 4px 12px 4px 0; color: #666;"><strong>Video:</strong></td><td><a href="${escapeHtml(videoUrl)}" style="color:#f97316;">Deschide linkul videoclipului</a></td></tr>`
+      : "";
+
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; padding: 20px; background: #fafafa; color: #222;">
         <h2 style="color: #f97316; margin-bottom: 4px;">Video nou de verificat</h2>
         <p style="color: #888; margin-top: 0; font-size: 13px;">${new Date().toLocaleString("ro-RO")}</p>
         <table style="border-collapse: collapse; margin: 16px 0;">
-          <tr><td style="padding: 4px 12px 4px 0; color: #666;"><strong>Jucător:</strong></td><td>${safeName}</td></tr>
+          <tr><td style="padding: 4px 12px 4px 0; color: #666;"><strong>Jucător:</strong></td><td>${escapeHtml(displayName)}</td></tr>
           <tr><td style="padding: 4px 12px 4px 0; color: #666;"><strong>Test:</strong></td><td>${escapeHtml(test_key)}</td></tr>
-          <tr><td style="padding: 4px 12px 4px 0; color: #666;"><strong>Video:</strong></td><td><a href="${escapeHtml(video_url)}" style="color:#f97316;">Deschide videoclipul</a></td></tr>
+          ${videoRow}
         </table>
         <p style="color: #888; font-size: 13px;">
-          Accesează panoul de administrare din aplicație pentru a verifica și acorda nota.
+          Deschide panoul de administrare din aplicație (Verificare Videouri) pentru a verifica și acorda nota.
         </p>
       </div>
     `;
 
-    const sendgridApiKey = Deno.env.get("SENDGRID_API_KEY");
-    if (!sendgridApiKey) {
-      console.error("SENDGRID_API_KEY not configured — email not sent. Submission:", submission.id);
-    } else {
-      const emailRes = await fetch("https://api.sendgrid.com/v3/mail/send", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${sendgridApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: emailTo }] }],
-          from: { email: "suport@sportrise.ro", name: "SportRise" },
-          subject,
-          content: [{ type: "text/html", value: htmlBody }],
-        }),
-      });
-      if (!emailRes.ok) {
-        console.error("SendGrid error:", await emailRes.text());
-      }
+    const emailRes = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${sendgridApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: emailTo }] }],
+        from: { email: "suport@sportrise.ro", name: "SportRise" },
+        subject,
+        content: [{ type: "text/html", value: htmlBody }],
+      }),
+    });
+
+    if (!emailRes.ok) {
+      console.error("SendGrid error:", await emailRes.text());
+      return json({ success: true, emailed: false });
     }
 
-    return new Response(
-      JSON.stringify({ success: true, submission }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return json({ success: true, emailed: true });
   } catch (err) {
     console.error("Error:", err);
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
   }
 });
