@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import SportriseWordmark from "@/components/SportriseWordmark";
 
-const CONTACT_EMAIL = "scoutingapp1502@gmail.com";
+const CONTACT_EMAIL = "suport@sportrise.ro";
 
 const PublicContact = () => {
   const { lang } = useLanguage();
@@ -31,7 +31,12 @@ const PublicContact = () => {
       return;
     }
     setSubmitting(true);
+    // Generated client-side (instead of relying on the DB default) so we
+    // have the id for the notification call below without needing a
+    // follow-up SELECT — the table's RLS only lets admins read rows back.
+    const messageId = crypto.randomUUID();
     const { error } = await (supabase as any).from("public_contact_messages").insert({
+      id: messageId,
       full_name: fullName.trim(),
       phone: phone.trim() || null,
       email: email.trim(),
@@ -47,6 +52,10 @@ const PublicContact = () => {
       return;
     }
     setSubmitted(true);
+    // Best-effort admin notification — the visitor's success message above
+    // doesn't depend on this, so we don't await/handle it beyond logging.
+    supabase.functions.invoke("notify-public-contact", { body: { id: messageId } })
+      .catch((err) => console.error("notify-public-contact failed:", err));
   };
 
   return (
