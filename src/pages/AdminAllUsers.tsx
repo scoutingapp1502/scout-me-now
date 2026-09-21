@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, ShieldAlert, Ban, ShieldOff, ShieldCheck, XCircle, Search, Users } from "lucide-react";
+import { Loader2, ShieldAlert, Ban, ShieldOff, ShieldCheck, XCircle, Search, Users, MessageSquare, Download, FileCheck } from "lucide-react";
+import jsPDF from "jspdf";
 
 const PAGE_SIZE = 30;
 
@@ -28,6 +29,14 @@ interface DirectoryUser {
 
 const ROLE_LABEL: Record<string, string> = { player: "Jucător", cauta_jucator: "Scouter" };
 
+interface ConversationRow {
+  conversation_id: string;
+  other_user_id: string;
+  other_name: string;
+  message_count: number;
+  last_message_at: string | null;
+}
+
 export default function AdminAllUsers({ embedded }: { embedded?: boolean } = {}) {
   const { toast } = useToast();
   const [users, setUsers] = useState<DirectoryUser[]>([]);
@@ -40,6 +49,14 @@ export default function AdminAllUsers({ embedded }: { embedded?: boolean } = {})
   const [closingUser, setClosingUser] = useState<DirectoryUser | null>(null);
   const [closeReason, setCloseReason] = useState("");
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Conversation export (legal evidence) — see
+  // 20261017090000_minor_safety_messaging_and_activity.sql. Kept entirely
+  // separate from the warn/ban/close actions above.
+  const [conversationsUser, setConversationsUser] = useState<DirectoryUser | null>(null);
+  const [conversationsList, setConversationsList] = useState<ConversationRow[]>([]);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [exportingConversationId, setExportingConversationId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 350);
@@ -128,6 +145,131 @@ export default function AdminAllUsers({ embedded }: { embedded?: boolean } = {})
     setUsers((prev) => prev.map((x) => x.user_id === closingUser.user_id ? { ...x, account_status: "closed" } : x));
     setClosingUser(null);
     setCloseReason("");
+  };
+
+  const handleOpenConversations = async (u: DirectoryUser) => {
+    setConversationsUser(u);
+    setConversationsList([]);
+    setLoadingConversations(true);
+    const { data, error } = await (supabase as any).rpc("get_user_conversations_for_admin", { _user_id: u.user_id });
+    if (error) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+      setLoadingConversations(false);
+      return;
+    }
+    const rows = (data || []) as { conversation_id: string; other_user_id: string; message_count: number; last_message_at: string | null }[];
+    const otherIds = [...new Set(rows.map((r) => r.other_user_id))];
+    const [playerRes, scoutRes] = otherIds.length
+      ? await Promise.all([
+          supabase.from("player_profiles").select("user_id, first_name, last_name").in("user_id", otherIds),
+          supabase.from("scout_profiles").select("user_id, first_name, last_name").in("user_id", otherIds),
+        ])
+      : [{ data: [] }, { data: [] }];
+    const nameByUser = new Map<string, string>();
+    (playerRes.data || []).forEach((p: any) => nameByUser.set(p.user_id, `${p.first_name} ${p.last_name}`.trim()));
+    (scoutRes.data || []).forEach((s: any) => { if (!nameByUser.has(s.user_id)) nameByUser.set(s.user_id, `${s.first_name} ${s.last_name}`.trim()); });
+    setConversationsList(rows.map((r) => ({ ...r, other_name: nameByUser.get(r.other_user_id) || "Utilizator" })));
+    setLoadingConversations(false);
+  };
+
+  // Exports one conversation as a PDF (messages + every parental-presence
+  // confirmation on record, with timestamps) and computes a SHA-256 hash of
+  // the EXACT JSON snapshot the PDF was built from — using the browser's
+  // native Web Crypto API, no extra dependency. The hash is recorded
+  // server-side (conversation_export_log, append-only, admin-readable only)
+  // alongside who exported it and when, so a later dispute can verify a
+  // given export was genuinely produced from real data: recomputing
+  // get_conversation_export for the same conversation and re-hashing it
+  // should reproduce a hash already on file, and any mismatch is itself
+  // evidence that something changed. This does NOT prove the PDF file
+  // itself wasn't altered after being saved — only that the data it was
+  // built from, at export time, is on record and reproducible.
+  const handleExportConversation = async (conv: ConversationRow) => {
+    if (!conversationsUser) return;
+    setExportingConversationId(conv.conversation_id);
+    try {
+      const { data: snapshot, error } = await (supabase as any).rpc("get_conversation_export", {
+        _conversation_id: conv.conversation_id,
+      });
+      if (error) throw error;
+
+      // Canonical JSON string — the exact bytes that get hashed. Must match
+      // 1:1 with what's re-hashed later for verification, so this string is
+      // never reformatted/re-serialized after this point.
+      const canonicalJson = JSON.stringify(snapshot);
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalJson));
+      const hashHex = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+      const { error: logError } = await (supabase as any).from("conversation_export_log").insert({
+        conversation_id: conv.conversation_id,
+        exported_by: (await supabase.auth.getUser()).data.user?.id,
+        content_sha256: hashHex,
+      });
+      if (logError) throw logError;
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const marginX = 14;
+      let y = 18;
+
+      doc.setFontSize(16);
+      doc.text("Export conversație — dovadă legală", marginX, y);
+      y += 8;
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text(`Conversație: ${conv.conversation_id}`, marginX, y); y += 5;
+      doc.text(`Participanți: ${conversationsUser.first_name} ${conversationsUser.last_name} (${conversationsUser.user_id}) și ${conv.other_name} (${conv.other_user_id})`, marginX, y); y += 5;
+      doc.text(`Exportat la: ${new Date(snapshot.exported_at).toLocaleString("ro-RO")}`, marginX, y); y += 5;
+      doc.text(`Hash SHA-256 al conținutului exportat: ${hashHex}`, marginX, y); y += 8;
+      doc.setDrawColor(200);
+      doc.line(marginX, y, pageWidth - marginX, y); y += 8;
+
+      const confirmations = (snapshot.parental_presence_confirmations || []) as { confirmed_by: string; confirmed_at: string }[];
+      if (confirmations.length > 0) {
+        doc.setFontSize(11);
+        doc.setTextColor(0);
+        doc.text("Confirmări prezență părinte/tutore:", marginX, y); y += 6;
+        doc.setFontSize(9);
+        doc.setTextColor(80);
+        for (const c of confirmations) {
+          doc.text(`• ${new Date(c.confirmed_at).toLocaleString("ro-RO")} — confirmat de ${c.confirmed_by}`, marginX, y);
+          y += 5;
+        }
+        y += 4;
+        doc.setDrawColor(200);
+        doc.line(marginX, y, pageWidth - marginX, y); y += 8;
+      }
+
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+      doc.text("Mesaje:", marginX, y); y += 6;
+      doc.setFontSize(9);
+
+      const messages = (snapshot.messages || []) as { sender_id: string; content: string; created_at: string; deleted_at: string | null }[];
+      for (const m of messages) {
+        if (y > pageHeight - 20) { doc.addPage(); y = 18; }
+        const senderLabel = m.sender_id === conversationsUser.user_id ? conversationsUser.first_name : conv.other_name;
+        const timestamp = new Date(m.created_at).toLocaleString("ro-RO");
+        const status = m.deleted_at ? " [ȘTERS]" : "";
+        doc.setTextColor(0);
+        doc.text(`${senderLabel} — ${timestamp}${status}`, marginX, y); y += 5;
+        doc.setTextColor(60);
+        const lines = doc.splitTextToSize(m.content || "(fără conținut)", pageWidth - marginX * 2);
+        for (const line of lines) {
+          if (y > pageHeight - 20) { doc.addPage(); y = 18; }
+          doc.text(line, marginX, y); y += 5;
+        }
+        y += 3;
+      }
+
+      doc.save(`conversatie-${conv.conversation_id}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast({ title: "Conversație exportată.", description: "Hash-ul de integritate a fost înregistrat." });
+    } catch (err: any) {
+      toast({ title: "Eroare la export", description: err.message, variant: "destructive" });
+    } finally {
+      setExportingConversationId(null);
+    }
   };
 
   const content = (
@@ -227,6 +369,13 @@ export default function AdminAllUsers({ embedded }: { embedded?: boolean } = {})
                     Închide definitiv
                   </Button>
                 )}
+                <Button
+                  size="sm" variant="outline" className="gap-2"
+                  onClick={() => handleOpenConversations(u)}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Conversații
+                </Button>
               </div>
             </div>
           ))}
@@ -270,6 +419,52 @@ export default function AdminAllUsers({ embedded }: { embedded?: boolean } = {})
               Confirm închiderea definitivă
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!conversationsUser} onOpenChange={(open) => { if (!open) { setConversationsUser(null); setConversationsList([]); } }}>
+        <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" /> Conversații — {conversationsUser?.first_name} {conversationsUser?.last_name}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-gray-500 font-body -mt-2">
+            Exportul generează un PDF cu toate mesajele și confirmările de prezență părinte/tutore, plus un hash SHA-256
+            al conținutului, înregistrat separat pentru a putea dovedi ulterior integritatea datelor exportate.
+          </p>
+          {loadingConversations ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-orange-500" /></div>
+          ) : conversationsList.length === 0 ? (
+            <p className="text-center text-gray-500 py-8 font-body text-sm">Nicio conversație găsită.</p>
+          ) : (
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {conversationsList.map((c) => (
+                <div key={c.conversation_id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3">
+                  <div className="min-w-0">
+                    <p className="font-body font-medium text-sm truncate">{c.other_name}</p>
+                    <p className="text-xs text-gray-500 font-body">
+                      {c.message_count} {c.message_count === 1 ? "mesaj" : "mesaje"}
+                      {c.last_message_at && ` · ultimul: ${new Date(c.last_message_at).toLocaleDateString("ro-RO")}`}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm" variant="outline" className="gap-2 shrink-0"
+                    disabled={exportingConversationId === c.conversation_id}
+                    onClick={() => handleExportConversation(c)}
+                  >
+                    {exportingConversationId === c.conversation_id
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Download className="h-4 w-4" />}
+                    Exportă
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-[11px] text-gray-400 font-body flex items-center gap-1.5">
+            <FileCheck className="h-3.5 w-3.5 shrink-0" /> Fiecare export este înregistrat definitiv (conversation_export_log) și nu poate fi modificat sau șters.
+          </p>
         </DialogContent>
       </Dialog>
     </div>

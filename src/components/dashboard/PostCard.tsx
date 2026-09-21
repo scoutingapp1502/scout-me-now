@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { isLikelyUnwantedComment, type HideUnwantedLevel } from "@/lib/commentModeration";
 import { useAccountLock } from "@/hooks/useAccountLock";
+import { useRestrictedMinor } from "@/hooks/useRestrictedMinor";
 import { moderateUploadedPost } from "@/lib/videoModeration";
 import { moderationBadgeLabel } from "@/lib/moderationBadge";
 
@@ -127,7 +128,7 @@ function requestEngagement(postId: string, viewerId: string | null): Promise<Eng
   });
 }
 
-function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, onToggleLike, onReport, reportedIds, timeAgo }: {
+function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, onToggleLike, onReport, reportedIds, timeAgo, viewerRestrictedMinor }: {
   comment: Comment;
   currentUserId: string | null;
   lang: string;
@@ -137,6 +138,7 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
   onReport: (commentId: string, commentOwnerId: string) => void;
   reportedIds: Set<string>;
   timeAgo: (dateStr: string) => string;
+  viewerRestrictedMinor?: boolean;
 }) {
   const isOwnComment = c.user_id === currentUserId;
   return (
@@ -193,7 +195,8 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
           <span className="text-[10px] text-gray-400">{timeAgo(c.created_at)}</span>
           <button
             onClick={() => onToggleLike(c.id)}
-            className={`flex items-center gap-0.5 text-[10px] transition-colors ${c.liked_by_me ? "text-red-500" : "text-gray-400 hover:text-gray-900"}`}
+            disabled={viewerRestrictedMinor}
+            className={`flex items-center gap-0.5 text-[10px] transition-colors disabled:opacity-60 ${c.liked_by_me ? "text-red-500" : "text-gray-400 hover:text-gray-900"}`}
           >
             <Heart className={`h-3 w-3 ${c.liked_by_me ? "fill-red-500" : ""}`} />
             {c.likes_count > 0 && <span>{c.likes_count}</span>}
@@ -214,6 +217,10 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
       .catch((err) => console.error("Failed to load current user role:", err));
   }, [currentUserId]);
   const { isLocked: viewerLocked } = useAccountLock(currentUserId, currentUserRole);
+  // 13-15 year old viewers can see everything but can't like/comment — see
+  // is_restricted_minor() in 20261017090000_minor_safety_messaging_and_activity.sql.
+  // RLS is the real backstop; this only drives the disabled buttons below.
+  const { isRestrictedMinor: viewerRestrictedMinor } = useRestrictedMinor(currentUserId);
   const [liked, setLiked] = useState(false);
   const [likingPending, setLikingPending] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
@@ -320,7 +327,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   }, [post.id, currentUserId]);
 
   const toggleLike = async () => {
-    if (!currentUserId || likingPending) return;
+    if (!currentUserId || likingPending || viewerRestrictedMinor) return;
     setLikingPending(true);
     if (liked) {
       setLiked(false);
@@ -420,7 +427,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   };
 
   const submitComment = async () => {
-    if (!commentText.trim() || !currentUserId) return;
+    if (!commentText.trim() || !currentUserId || viewerRestrictedMinor) return;
     const text = commentText.trim();
     const { error } = await supabase.from("post_comments").insert({
       post_id: post.id,
@@ -437,7 +444,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   };
 
   const toggleCommentLike = async (commentId: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId || viewerRestrictedMinor) return;
     const comment = comments.find(c => c.id === commentId);
     if (!comment) return;
     if (comment.liked_by_me) {
@@ -988,7 +995,8 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
       <div className="px-4 py-2 border-t border-gray-200 flex items-center gap-4 flex-wrap">
         <button
           onClick={toggleLike}
-          disabled={likingPending || viewerLocked}
+          disabled={likingPending || viewerLocked || viewerRestrictedMinor}
+          title={viewerRestrictedMinor ? (lang === "ro" ? "Aprecierile nu sunt disponibile pentru contul tău." : "Likes aren't available for your account.") : undefined}
           className={`flex items-center gap-1.5 text-sm transition-colors disabled:opacity-60 ${liked ? "text-red-500" : "text-gray-500 hover:text-gray-900"}`}
         >
           <Heart className={`h-4 w-4 ${liked ? "fill-red-500" : ""}`} />
@@ -1226,6 +1234,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                   onReport={handleReportComment}
                   reportedIds={reportedCommentIds}
                   timeAgo={timeAgo}
+                  viewerRestrictedMinor={viewerRestrictedMinor}
                 />
               ))}
               {hiddenComments.length > 0 && (
@@ -1252,6 +1261,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                           onReport={handleReportComment}
                           reportedIds={reportedCommentIds}
                           timeAgo={timeAgo}
+                          viewerRestrictedMinor={viewerRestrictedMinor}
                         />
                       ))}
                     </div>
@@ -1267,6 +1277,10 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
           {commentsDisabled ? (
             <p className="text-[11px] text-gray-500">
               {lang === "ro" ? "Ai dezactivat comentariile pentru această postare." : "You've turned off commenting for this post."}
+            </p>
+          ) : viewerRestrictedMinor ? (
+            <p className="text-[11px] text-gray-500">
+              {lang === "ro" ? "Comentariile nu sunt disponibile pentru contul tău." : "Commenting isn't available for your account."}
             </p>
           ) : (
             <div className="flex items-center gap-2">

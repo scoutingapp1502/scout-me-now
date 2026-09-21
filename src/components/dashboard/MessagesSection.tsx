@@ -402,6 +402,14 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   const [canMessageSelected, setCanMessageSelected] = useState(true);
   const [restrictedByOther, setRestrictedByOther] = useState(false);
   const [iRestrictedOther, setIRestrictedOther] = useState(false);
+  // Parent/guardian-presence gate — see TermsSection.tsx's "Siguranță și
+  // comportament" clause and 20261017090000_minor_safety_messaging_and_activity.sql.
+  // True only when I'm a player under 16 replying to a Scout, and I haven't
+  // confirmed presence for this conversation yet. Re-checked every time the
+  // selected conversation changes; confirming clears it for that
+  // conversation for good (not time-limited).
+  const [needsParentalPresenceConfirmation, setNeedsParentalPresenceConfirmation] = useState(false);
+  const [confirmingParentalPresence, setConfirmingParentalPresence] = useState(false);
   const [showConversationInfo, setShowConversationInfo] = useState(false);
   const [showConversationMedia, setShowConversationMedia] = useState(false);
   const [conversationMediaTab, setConversationMediaTab] = useState<"media" | "links" | "docs">("media");
@@ -745,6 +753,12 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
       const { data: allowed } = await supabase.rpc("can_message_user", { _other_user_id: selectedConversation.other_user_id });
       if (cancelled) return;
       setCanMessageSelected(!!allowed);
+
+      const { data: needsConfirmation } = await (supabase as any).rpc("requires_parental_presence_confirmation", {
+        _conversation_id: selectedConversation.conversation_id,
+      });
+      if (cancelled) return;
+      setNeedsParentalPresenceConfirmation(!!needsConfirmation);
 
       // If the other person restricted me, don't show their online status to me.
       const { data: restricted } = await (supabase as any).rpc("am_i_restricted_by", {
@@ -1176,8 +1190,22 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
     </div>
   );
 
+  const handleConfirmParentalPresence = async () => {
+    if (!selectedConversation || confirmingParentalPresence) return;
+    setConfirmingParentalPresence(true);
+    const { error } = await (supabase as any).rpc("confirm_parental_presence", {
+      _conversation_id: selectedConversation.conversation_id,
+    });
+    setConfirmingParentalPresence(false);
+    if (error) {
+      toast({ title: lang === "ro" ? "Eroare" : "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNeedsParentalPresenceConfirmation(false);
+  };
+
   const handleSend = async () => {
-    if (!newMessage.trim() || !selectedConversation || !currentUserId || !canMessageSelected) return;
+    if (!newMessage.trim() || !selectedConversation || !currentUserId || !canMessageSelected || needsParentalPresenceConfirmation) return;
     const content = censorMessageText(newMessage.trim());
     setNewMessage("");
     // Clear draft on send
@@ -1215,7 +1243,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
   };
 
   const handleSendAttachment = async (file: File) => {
-    if (!selectedConversation || !currentUserId || !canMessageSelected) return;
+    if (!selectedConversation || !currentUserId || !canMessageSelected || needsParentalPresenceConfirmation) return;
     if (!isAllowedAttachment(file)) {
       toast({ title: lang === "ro" ? "Tip de fișier neacceptat. Poți trimite doar imagini (JPG, PNG, HEIC) sau documente (PDF, DOC, DOCX, TXT)." : "File type not allowed. You can only send images (JPG, PNG, HEIC) or documents (PDF, DOC, DOCX, TXT).", variant: "destructive" });
       return;
@@ -2932,6 +2960,29 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
         </div>
 
         <div className="border-t border-gray-200 pt-3 shrink-0">
+          {/* Parent/guardian-presence gate — see TermsSection.tsx's
+              "Siguranță și comportament" clause. Shown instead of the
+              regular input while it applies; sending stays blocked
+              server-side too (messages INSERT policy), this is just the
+              UI for it. */}
+          {needsParentalPresenceConfirmation && (
+            <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2">
+              <p className="text-sm text-amber-900 font-body">
+                {lang === "ro"
+                  ? "Pentru siguranța ta, înainte de a răspunde unui Descoperitor trebuie să confirmi că un părinte sau tutore legal este la curent și prezent în timpul acestei conversații."
+                  : "For your safety, before replying to a Scout you need to confirm that a parent or legal guardian is aware of and present during this conversation."}
+              </p>
+              <Button
+                size="sm"
+                onClick={handleConfirmParentalPresence}
+                disabled={confirmingParentalPresence}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {confirmingParentalPresence && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {lang === "ro" ? "Confirm că un părinte/tutore este prezent" : "I confirm a parent/guardian is present"}
+              </Button>
+            </div>
+          )}
           {/* Emoji picker */}
           {showEmojiPicker && (
             <div className="mb-2 p-2 bg-white border border-gray-200 rounded-lg flex flex-wrap gap-1 max-h-36 overflow-y-auto">
@@ -2962,7 +3013,7 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               variant="ghost"
               size="icon"
               type="button"
-              disabled={!canMessageSelected || uploadingAttachment}
+              disabled={!canMessageSelected || uploadingAttachment || needsParentalPresenceConfirmation}
               onClick={() => dmFileInputRef.current?.click()}
               className="shrink-0"
             >
@@ -2982,12 +3033,18 @@ const MessagesSection = ({ initialChatUserId, onInitialChatHandled, onNavigateTo
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={canMessageSelected ? (lang === "ro" ? "Scrie un mesaj..." : "Type a message...") : (lang === "ro" ? "Trebuie să ai o urmărire acceptată" : "Accepted follow required")}
+              placeholder={
+                needsParentalPresenceConfirmation
+                  ? (lang === "ro" ? "Confirmă mai sus înainte de a răspunde" : "Confirm above before replying")
+                  : canMessageSelected
+                  ? (lang === "ro" ? "Scrie un mesaj..." : "Type a message...")
+                  : (lang === "ro" ? "Trebuie să ai o urmărire acceptată" : "Accepted follow required")
+              }
               className="flex-1 bg-gray-100 border-gray-300 text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-900"
               autoFocus
-              disabled={!canMessageSelected}
+              disabled={!canMessageSelected || needsParentalPresenceConfirmation}
             />
-            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessageSelected} size="icon" className="shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
+            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessageSelected || needsParentalPresenceConfirmation} size="icon" className="shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
               <Send className="h-4 w-4" />
             </Button>
           </div>

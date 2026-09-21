@@ -8,6 +8,14 @@ export const MINIMUM_AGE = 13;
 // identity, only the minor's own confirmation at signup.
 export const PARENTAL_CONSENT_AGE = 16;
 
+// A Descoperitor (cauta_jucator) account requires being a legal adult —
+// separate, stricter floor than MINIMUM_AGE, since Scouts interact directly
+// with minor players (see TermsSection.tsx's "Siguranță și comportament"
+// clause). Enforced both here (Auth.tsx) and server-side by
+// enforce_minimum_age() on scout_profiles (see
+// 20261018090000_scout_minimum_age_18.sql).
+export const SCOUT_MINIMUM_AGE = 18;
+
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function toLocalIsoDate(d: Date): string {

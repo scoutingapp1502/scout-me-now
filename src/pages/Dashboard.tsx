@@ -52,6 +52,7 @@ import AccountBlockedPage from "@/pages/AccountBlockedPage";
 import { useLegalConsent } from "@/hooks/useLegalConsent";
 import LegalConsentDialog from "@/components/dashboard/LegalConsentDialog";
 import { Wrench, X } from "lucide-react";
+import { isAtLeastAge, MINIMUM_AGE, PARENTAL_CONSENT_AGE } from "@/lib/age";
 
 function maintenanceBannerText(maintenance: ReturnType<typeof useMaintenanceMode>, lang: string, compact: boolean): string {
   const fmt = (iso: string) =>
@@ -89,6 +90,13 @@ const Dashboard = () => {
   };
   const [playerName, setPlayerName] = useState("");
   const [playerSport, setPlayerSport] = useState("");
+  // 13-15 year old players (per TermsSection.tsx's "Siguranță și
+  // comportament" clause) don't get the Activity tab at all — see
+  // 20261017090000_minor_safety_messaging_and_activity.sql, which enforces
+  // the matching server-side restriction on get_activity_feed/posts RLS as
+  // a backstop. Only ever true for role "player" — cauta_jucator accounts
+  // have no equivalent restriction.
+  const [isRestrictedMinor, setIsRestrictedMinor] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<"player" | "cauta_jucator" | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
@@ -222,7 +230,7 @@ const Dashboard = () => {
     } else {
       supabase
         .from("player_profiles")
-        .select("first_name, last_name, sport, has_seen_tour")
+        .select("first_name, last_name, sport, has_seen_tour, date_of_birth")
         .eq("user_id", userId)
         .maybeSingle()
         .then(
@@ -231,6 +239,10 @@ const Dashboard = () => {
               setPlayerName(`${data.first_name} ${data.last_name}`.trim());
               if (data.sport) setPlayerSport(data.sport);
               if (!(data as any).has_seen_tour && !tourResolvedRef.current) setShowTour(true);
+              const dob = (data as any).date_of_birth as string | null;
+              setIsRestrictedMinor(
+                !!dob && isAtLeastAge(dob, MINIMUM_AGE) && !isAtLeastAge(dob, PARENTAL_CONSENT_AGE)
+              );
             }
           },
           (err) => console.error("Failed to load player display name:", err)
@@ -398,7 +410,12 @@ const Dashboard = () => {
           ? <ScoutActionsSection scoutUserId={user.id} userRole={userRole} onNavigateToChat={handleNavigateToChat} />
           : null;
       case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
-      case "activity": return <ActivitySection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
+      // Revised product decision: a 13-15 year old DOES get the normal
+      // Activity feed — see isRestrictedMinor's doc comment above. They just
+      // can't like/comment (PostCard.tsx + RLS), and their own posts stay
+      // Scout-only (unchanged, enforced in posts' RLS SELECT policy).
+      case "activity":
+        return <ActivitySection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
       case "settings": return <SettingsSection userId={user.id} userRole={userRole} onNavigate={navigateTo} />;
       case "saved": return <SavedSection userId={user.id} onBack={() => setActiveSection("settings")} />;
       case "archive": return <ArchiveSection userId={user.id} onBack={() => setActiveSection(prevSection)} />;
@@ -512,6 +529,7 @@ const Dashboard = () => {
                 profileLabel={sidebarFirstLabel}
                 userRole={userRole}
                 userId={user?.id}
+                isRestrictedMinor={isRestrictedMinor}
               />
             </SheetContent>
           </Sheet>
@@ -537,6 +555,7 @@ const Dashboard = () => {
             profileLabel={sidebarFirstLabel}
             userRole={userRole}
             userId={user?.id}
+            isRestrictedMinor={isRestrictedMinor}
           />
           <main className={`flex-1 p-8 overflow-y-auto ${showLightMain ? "bg-gray-200" : "bg-background"}`}>
             {renderSection()}

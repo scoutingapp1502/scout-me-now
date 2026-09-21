@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import SportriseWordmark from "@/components/SportriseWordmark";
-import { MINIMUM_AGE, PARENTAL_CONSENT_AGE, isAtLeastAge, latestDateOfBirthForAge } from "@/lib/age";
+import { MINIMUM_AGE, PARENTAL_CONSENT_AGE, SCOUT_MINIMUM_AGE, isAtLeastAge, latestDateOfBirthForAge } from "@/lib/age";
 import { TERMS_VERSION, PRIVACY_VERSION } from "@/lib/legalVersions";
 
 // Roles that must upload a verification document at signup and stay
@@ -52,8 +52,12 @@ const Auth = () => {
 
   // 13 and 14 are old enough to register but still need a parent/guardian
   // to confirm they know about it — a self-declared checkbox, not a
-  // verified adult signature.
+  // verified adult signature. Never applies to a Descoperitor account —
+  // that role requires being an adult outright (SCOUT_MINIMUM_AGE), so
+  // there's no minor range to gate with a consent checkbox in the first
+  // place.
   const needsParentalConsent =
+    role !== "cauta_jucator" &&
     !!dateOfBirth &&
     isAtLeastAge(dateOfBirth, MINIMUM_AGE) &&
     !isAtLeastAge(dateOfBirth, PARENTAL_CONSENT_AGE);
@@ -96,6 +100,10 @@ const Auth = () => {
     }
     if (!isAtLeastAge(dateOfBirth, MINIMUM_AGE)) {
       toast({ title: t.auth.errorRegister, description: t.auth.minAgeError, variant: "destructive" });
+      return;
+    }
+    if (role === "cauta_jucator" && !isAtLeastAge(dateOfBirth, SCOUT_MINIMUM_AGE)) {
+      toast({ title: t.auth.errorRegister, description: (t as any).auth?.minAgeErrorScout ?? "You must be at least 18 years old to create a Scout account.", variant: "destructive" });
       return;
     }
     if (needsParentalConsent && !parentalConsent) {
@@ -350,10 +358,14 @@ const Auth = () => {
                           type="date"
                           value={dateOfBirth}
                           onChange={(e) => setDateOfBirth(e.target.value)}
-                          max={latestDateOfBirthForAge(MINIMUM_AGE)}
+                          max={latestDateOfBirthForAge(role === "cauta_jucator" ? SCOUT_MINIMUM_AGE : MINIMUM_AGE)}
                           required
                         />
-                        <p className="text-xs text-gray-500 font-body">{t.auth.dateOfBirthHint}</p>
+                        <p className="text-xs text-gray-500 font-body">
+                          {role === "cauta_jucator"
+                            ? ((t as any).auth?.dateOfBirthHintScout ?? "You must be at least 18 years old to create a Scout account.")
+                            : t.auth.dateOfBirthHint}
+                        </p>
                       </div>
                       {needsParentalConsent && (
                         <div className="flex items-start gap-2 bg-orange-50 border border-orange-200 rounded-lg p-3">
