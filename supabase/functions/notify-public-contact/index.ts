@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: adminInbox }] }],
-        from: { email: "noreply@sportrise.ro", name: "SportRise" },
+        from: { email: "suport@sportrise.ro", name: "SportRise" },
         reply_to: { email: msg.email, name: msg.full_name },
         subject,
         content: [{ type: "text/html", value: html }],
