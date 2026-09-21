@@ -49,7 +49,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const adminInbox = Deno.env.get("CONTACT_NOTIFY_EMAIL") || "scoutingapp1502@gmail.com";
+    // Sent to suport@ (which forwards to the same inbox via ImprovMX)
+    // rather than straight to the personal Gmail, so that Gmail's default
+    // "Reply" picks the suport@ send-as identity instead of the personal one.
+    const adminInbox = Deno.env.get("CONTACT_NOTIFY_EMAIL") || "suport@sportrise.ro";
     const escapeHtml = (s: string) =>
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
