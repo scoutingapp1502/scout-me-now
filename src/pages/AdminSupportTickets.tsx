@@ -39,9 +39,14 @@ export default function AdminSupportTickets() {
 
   const fetchTickets = async () => {
     setLoading(true);
+    // Only "report a user" tickets belong here — everything else (bug,
+    // account, payment, other) is a general support request that now goes
+    // straight to suport@sportrise.ro by email (see notify-support-ticket),
+    // not into this admin queue.
     const { data, error } = await (supabase as any)
       .from("support_tickets")
       .select("*")
+      .eq("category", "report_user")
       .order("created_at", { ascending: false });
 
     if (error) {
