@@ -49,10 +49,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Sent to suport@ (which forwards to the same inbox via ImprovMX)
-    // rather than straight to the personal Gmail, so that Gmail's default
-    // "Reply" picks the suport@ send-as identity instead of the personal one.
-    const adminInbox = Deno.env.get("CONTACT_NOTIFY_EMAIL") || "suport@sportrise.ro";
+    // Sent straight to the admin Gmail, NOT to suport@sportrise.ro: mail to
+    // suport@ goes SendGrid -> ImprovMX -> Gmail, and ImprovMX rejects it
+    // whenever the SendGrid shared IP in use is on SpamCop's blocklist
+    // ("551 5.7.1 Your IP is black listed by SpamCop.org"), which happens
+    // intermittently. Skipping the ImprovMX hop avoids that. Reply-To is the
+    // visitor's own address, so replying still reaches them.
+    const adminInbox = Deno.env.get("CONTACT_NOTIFY_EMAIL") || "scoutingapp1502@gmail.com";
     const escapeHtml = (s: string) =>
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 

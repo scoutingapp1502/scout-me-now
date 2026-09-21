@@ -67,7 +67,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const adminInbox = Deno.env.get("CONTACT_NOTIFY_EMAIL") || "suport@sportrise.ro";
+    // Straight to the admin Gmail rather than suport@sportrise.ro, so the
+    // mail doesn't pass through ImprovMX, which rejects SendGrid shared IPs
+    // that are on SpamCop's blocklist (see notify-public-contact).
+    const adminInbox = Deno.env.get("CONTACT_NOTIFY_EMAIL") || "scoutingapp1502@gmail.com";
     const escapeHtml = (s: string) =>
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
