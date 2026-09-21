@@ -1303,7 +1303,7 @@ const PersonalProfile = ({ userId, readOnly = false, onNavigateToChat, forceActi
 
       {/* SECTION 2: Tab content */}
       <div className={`mt-6 pb-8 ${activeTab === "stats" || activeTab === "profile" || activeTab === "video" ? "" : "px-2 sm:px-6"}`}>
-        {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} setEditingSection={setEditingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} viewerUserId={viewerUserId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} readOnly={readOnly} />}
+        {activeTab === "stats" && <StatsTab form={form} profile={profile} editingSection={editingSection} setEditingSection={setEditingSection} updateForm={updateForm} photoSrc={photoSrc} userId={userId} viewerUserId={viewerUserId} SectionEditButton={SectionEditButton} SectionSaveButton={SectionSaveButton} uploadedVideoMetaRef={uploadedVideoMetaRef} readOnly={readOnly} />}
         {activeTab === "profile" && <ProfileTab form={form} profile={profile} editingSection={editingSection} updateForm={updateForm} userId={userId} readOnly={readOnly} SectionEditButton={SectionEditButton} careerEntries={careerEntries} setCareerEntries={setCareerEntries} SectionSaveButton={SectionSaveButton} sport={currentSport} agentSuggestions={agentSuggestions} showAgentSuggestions={showAgentSuggestions} setShowAgentSuggestions={setShowAgentSuggestions} selectedRegisteredAgent={selectedRegisteredAgent} handleAgentNameChange={handleAgentNameChange} selectAgent={selectAgent} collaborationStatus={collaborationStatus} collaborationLoading={collaborationLoading} cancelCollaborationRequest={cancelCollaborationRequest} acceptedAgent={acceptedAgent} photoSrc={photoSrc} teamNameSuggestions={teamNameSuggestions} />}
         {activeTab === "profile" && (
           <div className="mt-6">
@@ -1672,8 +1672,12 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
 }
 
 /* ======================== STATS TAB ======================== */
-function StatsTab({ form, profile, editingSection, setEditingSection, updateForm, photoSrc, userId, viewerUserId, SectionEditButton, SectionSaveButton, readOnly = false }: {
-  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; setEditingSection: (s: EditingSection) => void; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; viewerUserId: string | null; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC; readOnly?: boolean;
+function StatsTab({ form, profile, editingSection, setEditingSection, updateForm, photoSrc, userId, viewerUserId, SectionEditButton, SectionSaveButton, uploadedVideoMetaRef, readOnly = false }: {
+  form: Partial<PlayerProfile>; profile: PlayerProfile | null; editingSection: EditingSection; setEditingSection: (s: EditingSection) => void; updateForm: (k: string, v: any) => void; photoSrc?: string | null; userId: string; viewerUserId: string | null; SectionEditButton: React.FC<{ section: EditingSection }>; SectionSaveButton: React.FC;
+  // Owned by PersonalProfile (its save handler reads it too); StatsTab's video
+  // uploads record the picked File/path here so the moderation pipeline can run.
+  uploadedVideoMetaRef: React.MutableRefObject<Map<string, { file: File; storagePath: string }>>;
+  readOnly?: boolean;
 }) {
   const editing = editingSection === "stats";
   const editingMatchStats = editingSection === "match_stats";
