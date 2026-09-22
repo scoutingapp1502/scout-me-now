@@ -92,7 +92,12 @@ export function useMaintenanceMode() {
         }
       )
       .subscribe((status, err) => {
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        // CLOSED fires on every normal cleanup (unmount, tab backgrounding,
+        // a brief network blip before reconnect) — it's not a failure, just
+        // the expected terminal status, and correctness never depends on it
+        // (see the polling comment above). Only CHANNEL_ERROR/TIMED_OUT
+        // indicate the subscribe itself actually failed.
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           console.error("maintenance_mode realtime subscription issue:", status, err);
         }
       });
