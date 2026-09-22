@@ -81,6 +81,12 @@ interface StoryLikeNotification {
 interface WarningNotification {
   id: string;
   type: "warning";
+  // Which kind of content the warning was issued about, when it came from
+  // approving a specific user report on AdminUserReports.tsx — null for a
+  // general/account-level warning (AdminAllUsers.tsx/AdminUsersAtRisk.tsx)
+  // that isn't tied to one piece of content. See
+  // 20261021090000_user_warning_content_context.sql.
+  contentType: "post" | "comment" | "avatar" | "video_highlight" | null;
   created_at: string;
   isRead: boolean;
 }
@@ -95,7 +101,7 @@ interface WarningNotification {
 interface ContentRejectionNotification {
   id: string;
   type: "content_rejection";
-  contentType: "post" | "comment" | "avatar";
+  contentType: "post" | "comment" | "avatar" | "video_highlight";
   created_at: string;
   isRead: boolean;
 }
@@ -176,6 +182,9 @@ function mapNotifRow(row: any, userId: string): Notification | null {
       return {
         id: row.notif_id,
         type: "warning",
+        // Same player_sport-slot reuse as content_rejection below — null
+        // for a general warning not tied to a specific report.
+        contentType: row.player_sport || null,
         created_at: row.created_at,
         isRead: isNotificationRead(userId, row.notif_id),
       };
@@ -741,6 +750,16 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
 
             if (n.type === "warning") {
               const wn = n as WarningNotification;
+              // Own-cause wording when the warning came from a specific
+              // report (post/comment/avatar/video_highlight); the original,
+              // generic "postare" wording only for a general/account-level
+              // warning with no specific content behind it (contentType null).
+              const warningCauseLabel = wn.contentType && {
+                post: lang === "ro" ? "o postare de-a ta" : "one of your posts",
+                comment: lang === "ro" ? "un comentariu de-al tău" : "one of your comments",
+                avatar: lang === "ro" ? "poza ta de profil" : "your profile photo",
+                video_highlight: lang === "ro" ? "un video de-al tău" : "one of your videos",
+              }[wn.contentType];
               return (
                 <button
                   key={wn.id}
@@ -755,14 +774,18 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm ${wn.isRead ? "text-gray-900" : "text-gray-900 font-semibold"}`}>
-                      {lang === "ro"
-                        ? "Ai primit un avertisment pentru încălcarea regulilor comunității."
-                        : "You've received a warning for violating community guidelines."}
+                      {warningCauseLabel
+                        ? (lang === "ro"
+                            ? `Ai primit un avertisment pentru ${warningCauseLabel}, care a încălcat regulile comunității.`
+                            : `You've received a warning for ${warningCauseLabel}, which violated community guidelines.`)
+                        : (lang === "ro"
+                            ? "Ai primit un avertisment pentru încălcarea regulilor comunității."
+                            : "You've received a warning for violating community guidelines.")}
                     </p>
                     <p className={`text-sm mt-0.5 ${wn.isRead ? "text-gray-500" : "text-gray-900/80"}`}>
                       {lang === "ro"
-                        ? "Dacă o postare viitoare este respinsă, contul tău poate fi blocat sau închis definitiv."
-                        : "If a future post is rejected, your account may be suspended or permanently closed."}
+                        ? "Dacă un conținut viitor este respins, contul tău poate fi blocat sau închis definitiv."
+                        : "If future content is rejected, your account may be suspended or permanently closed."}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">{timeAgo(wn.created_at)}</p>
                   </div>
@@ -776,6 +799,7 @@ const NotificationsSection = ({ onNavigateToChat, onNavigateToProfile }: { onNav
                 post: lang === "ro" ? "O postare de-a ta" : "One of your posts",
                 comment: lang === "ro" ? "Un comentariu de-al tău" : "One of your comments",
                 avatar: lang === "ro" ? "Poza ta de profil" : "Your profile photo",
+                video_highlight: lang === "ro" ? "Un video de-al tău" : "One of your videos",
               }[rn.contentType];
               return (
                 <button

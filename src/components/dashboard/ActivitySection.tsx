@@ -283,6 +283,7 @@ const ActivitySection = ({ onNavigateToChat, onNavigateToProfile }: { onNavigate
       user_id: "sportrise",
       content: p.content,
       image_url: p.image_url,
+      video_url: p.video_url,
       post_type: "sportrise",
       created_at: p.created_at,
       author_name: "SportRise",

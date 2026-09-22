@@ -43,6 +43,11 @@ interface Comment {
   author_role: string;
   likes_count: number;
   liked_by_me: boolean;
+  // True when this comment is an admin account replying on the platform's
+  // own SportRise post — shown as "SportRise" (name + Rocket avatar, no
+  // profile to click into), not the admin's real identity, matching how
+  // the post itself is attributed. Never true on any other post.
+  isSportriseReply?: boolean;
 }
 
 interface PostCardProps {
@@ -128,32 +133,57 @@ function requestEngagement(postId: string, viewerId: string | null): Promise<Eng
   });
 }
 
-function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, onToggleLike, onReport, reportedIds, timeAgo, viewerRestrictedMinor }: {
+function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, onToggleLike, onOpenLikers, onReport, reportedIds, timeAgo, viewerRestrictedMinor }: {
   comment: Comment;
   currentUserId: string | null;
   lang: string;
   onViewProfile: (userId: string, role: string) => void;
   onDelete: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
+  onOpenLikers: (commentId: string) => void;
   onReport: (commentId: string, commentOwnerId: string) => void;
   reportedIds: Set<string>;
   timeAgo: (dateStr: string) => string;
   viewerRestrictedMinor?: boolean;
 }) {
   const isOwnComment = c.user_id === currentUserId;
+  // SportRise's own reply on its own post — no profile to view (there is
+  // no real "SportRise" account, it's an admin acting on the platform's
+  // behalf), so both the avatar and the name are inert here, unlike every
+  // other commenter's.
+  const avatar = (
+    <div className={`w-7 h-7 rounded-full flex items-center justify-center overflow-hidden shrink-0 ${c.isSportriseReply ? "bg-gradient-to-br from-orange-500 to-orange-600" : "bg-gray-100"}`}>
+      {c.isSportriseReply ? (
+        <Rocket className="h-3.5 w-3.5 text-white" />
+      ) : c.author_photo ? (
+        <img src={c.author_photo} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <User className="h-3.5 w-3.5 text-gray-500" />
+      )}
+    </div>
+  );
   return (
     <div className="flex items-start gap-2 group">
-      <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
-        {c.author_photo ? (
-          <img src={c.author_photo} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <User className="h-3.5 w-3.5 text-gray-500" />
-        )}
-      </button>
+      {c.isSportriseReply ? avatar : (
+        <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="cursor-pointer hover:ring-2 hover:ring-primary/50 rounded-full transition-all shrink-0">
+          {avatar}
+        </button>
+      )}
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-1">
-          <div className="flex-1 bg-gray-100 rounded-lg px-3 py-1.5">
-            <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="text-xs font-medium text-gray-900 hover:underline cursor-pointer text-left">{c.author_name}</button>
+          <div className={`flex-1 rounded-lg px-3 py-1.5 ${c.isSportriseReply ? "bg-orange-50 border border-orange-200" : "bg-gray-100"}`}>
+            <div className="flex items-center gap-1.5">
+              {c.isSportriseReply ? (
+                <span className="text-xs font-medium text-orange-700 text-left">{c.author_name}</span>
+              ) : (
+                <button onClick={() => onViewProfile(c.user_id, c.author_role)} className="text-xs font-medium text-gray-900 hover:underline cursor-pointer text-left">{c.author_name}</button>
+              )}
+              {c.isSportriseReply && (
+                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gradient-to-r from-orange-500 to-orange-600 text-white shrink-0">
+                  SportRise
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-700">{c.content}</p>
           </div>
           {isOwnComment ? (
@@ -199,8 +229,20 @@ function CommentRow({ comment: c, currentUserId, lang, onViewProfile, onDelete, 
             className={`flex items-center gap-0.5 text-[10px] transition-colors disabled:opacity-60 ${c.liked_by_me ? "text-red-500" : "text-gray-400 hover:text-gray-900"}`}
           >
             <Heart className={`h-3 w-3 ${c.liked_by_me ? "fill-red-500" : ""}`} />
-            {c.likes_count > 0 && <span>{c.likes_count}</span>}
           </button>
+          {/* Count is a separate control from the like toggle above so it
+              can be clickable (opens the who-liked-this list) only for the
+              comment's own author — anyone else just sees the number,
+              never who's behind it (owner-only, same as post likes). */}
+          {c.likes_count > 0 && (
+            isOwnComment ? (
+              <button onClick={() => onOpenLikers(c.id)} className="text-[10px] text-gray-400 hover:text-gray-900 hover:underline transition-colors -ml-1">
+                {c.likes_count}
+              </button>
+            ) : (
+              <span className="text-[10px] text-gray-400 -ml-1">{c.likes_count}</span>
+            )
+          )}
         </div>
       </div>
     </div>
@@ -227,11 +269,16 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
   const [otherLikerName, setOtherLikerName] = useState<string | null>(null);
   const likerFetchedForRef = useRef<number>(-1);
 
-  // Likes list dialog
+  // Likes list dialog — shared between the post's own likes and a single
+  // comment's likes (likersForCommentId null means "the post"). Owner-only
+  // for both: PostCard never opens this for a post that isn't isOwnPost,
+  // and never for a comment whose author isn't the current user (see
+  // CommentRow's own gating on its likes-count button below).
   const [showLikesList, setShowLikesList] = useState(false);
   const [loadingLikers, setLoadingLikers] = useState(false);
-  const [likersList, setLikersList] = useState<{ userId: string; name: string; photo: string | null; role: string; followStatus: "none" | "pending" | "accepted" | "self" }[]>([]);
+  const [likersList, setLikersList] = useState<{ userId: string; name: string; photo: string | null; role: string; followStatus: "none" | "pending" | "accepted" | "self"; isSportrise: boolean }[]>([]);
   const [likersSearch, setLikersSearch] = useState("");
+  const [likersForCommentId, setLikersForCommentId] = useState<string | null>(null);
   const [followBusyId, setFollowBusyId] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
   const showCommentsRef = useRef(false);
@@ -326,6 +373,40 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id, currentUserId]);
 
+  // Live-update likes on individual comments too. comment_likes has no
+  // post_id column to filter on server-side like post_likes/post_comments
+  // above, so this listens unfiltered but only while the comments panel is
+  // actually open (showComments) — no cost the rest of the time — and
+  // discards any event for a comment_id not currently rendered by this
+  // card, which is a cheap check against a small in-memory array rather
+  // than a second round trip. Own actions are skipped for the same
+  // double-count reason as the other engagement events above.
+  useEffect(() => {
+    if (!showComments || comments.length === 0) return;
+    const commentIds = new Set(comments.map((c) => c.id));
+    const channel = supabase
+      .channel(`comment-likes-${post.id}-${Date.now()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comment_likes" },
+        (payload: any) => {
+          const row = payload.new ?? payload.old;
+          if (!row || !commentIds.has(row.comment_id)) return;
+          if (payload.eventType === "INSERT") {
+            if (row.user_id === currentUserId) return;
+            setComments((prev) => prev.map((c) => c.id === row.comment_id ? { ...c, likes_count: c.likes_count + 1 } : c));
+          } else if (payload.eventType === "DELETE") {
+            if (row.user_id === currentUserId) return;
+            setComments((prev) => prev.map((c) => c.id === row.comment_id ? { ...c, likes_count: Math.max(0, c.likes_count - 1) } : c));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showComments, comments.length, post.id, currentUserId]);
+
   const toggleLike = async () => {
     if (!currentUserId || likingPending || viewerRestrictedMinor) return;
     setLikingPending(true);
@@ -396,13 +477,19 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
     setComments(rawComments.map((c: any) => {
       const profile = profileMap.get(c.user_id);
+      // Attributed to "SportRise" only when the post itself is SportRise's
+      // own AND this particular comment's author is an admin account —
+      // an admin commenting on someone ELSE's post still shows as
+      // themselves, only replies on the platform's own posts are masked.
+      const isSportriseReply = isSportriseAuthor && roleMap.get(c.user_id) === "admin";
       return {
         ...c,
-        author_name: profile?.name || (lang === "ro" ? "Utilizator" : "User"),
+        author_name: isSportriseReply ? "SportRise" : (profile?.name || (lang === "ro" ? "Utilizator" : "User")),
         author_photo: profile?.photo || null,
         author_role: roleMap.get(c.user_id) || "player",
         likes_count: likesCountMap.get(c.id) || 0,
         liked_by_me: myLikedSet.has(c.id),
+        isSportriseReply,
       };
     }));
     commentsLoadedRef.current = true;
@@ -492,19 +579,31 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     return new Date(dateStr).toLocaleDateString(lang === "ro" ? "ro-RO" : "en-US", { day: "numeric", month: "short" });
   };
 
-  const openLikesList = () => {
+  const openLikesList = (commentId: string | null = null) => {
     setShowLikesList(true);
+    setLikersForCommentId(commentId);
     setLikersSearch("");
-    loadLikers();
+    loadLikers(commentId);
   };
 
-  const loadLikers = async () => {
+  const loadLikers = async (commentId: string | null = null) => {
     setLoadingLikers(true);
-    const { data: likeRows } = await supabase
-      .from("post_likes")
-      .select("user_id, created_at")
-      .eq("post_id", post.id)
-      .order("created_at", { ascending: false });
+    // Post likes: direct SELECT, gated by post_likes' own RLS policy
+    // (owner + own row only, see 20261022090000_likers_list_owner_only.sql)
+    // — never actually reached for a non-owner since the button that calls
+    // this is only rendered for isOwnPost, but the policy is the real
+    // backstop either way. Comment likes: no equivalent narrow RLS policy
+    // exists (comment_likes stays open for the count everyone sees), so
+    // ownership is enforced entirely by this RPC instead.
+    const { data: likeRows, error: likeError } = commentId
+      ? await (supabase as any).rpc("get_comment_likers", { p_comment_id: commentId })
+      : await supabase.from("post_likes").select("user_id, created_at").eq("post_id", post.id).order("created_at", { ascending: false });
+    if (likeError) {
+      console.error("Failed to load likers:", likeError);
+      setLikersList([]);
+      setLoadingLikers(false);
+      return;
+    }
     const userIds = (likeRows ?? []).map((r: any) => r.user_id);
     if (userIds.length === 0) { setLikersList([]); setLoadingLikers(false); return; }
 
@@ -525,13 +624,21 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
     const followMap = new Map<string, string>();
     (followRes.data || []).forEach((f: any) => followMap.set(f.following_id, f.status));
 
-    setLikersList(userIds.map((uid: string) => ({
-      userId: uid,
-      name: profileMap.get(uid)?.name || (lang === "ro" ? "Utilizator" : "User"),
-      photo: profileMap.get(uid)?.photo || null,
-      role: roleMap.get(uid) || "player",
-      followStatus: uid === currentUserId ? "self" : ((followMap.get(uid) as any) || "none"),
-    })));
+    setLikersList(userIds.map((uid: string) => {
+      // Same masking rule as comments: an admin's like counts as
+      // "SportRise" only when it's on the platform's own SportRise post
+      // (isSportriseAuthor) — an admin liking someone else's content still
+      // shows as themselves.
+      const isSportrise = isSportriseAuthor && roleMap.get(uid) === "admin";
+      return {
+        userId: uid,
+        name: isSportrise ? "SportRise" : (profileMap.get(uid)?.name || (lang === "ro" ? "Utilizator" : "User")),
+        photo: profileMap.get(uid)?.photo || null,
+        role: roleMap.get(uid) || "player",
+        followStatus: uid === currentUserId ? "self" : ((followMap.get(uid) as any) || "none"),
+        isSportrise,
+      };
+    }));
     setLoadingLikers(false);
   };
 
@@ -550,21 +657,29 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
 
   const filteredLikers = likersList.filter(l => l.name.toLowerCase().includes(likersSearch.toLowerCase()));
 
+  // Who liked a post is now private to its author — anyone else sees only
+  // the count, never a clickable list. Explicit product decision: this
+  // used to be Instagram-style (visible to everyone), changed to
+  // owner-only.
   const likedByContent = () => {
     if (hideLikeCounts || likesCount <= 0) return null;
-    const others = (
-      <button onClick={openLikesList} className="hover:underline">
+    const others = isOwnPost ? (
+      <button onClick={() => openLikesList()} className="hover:underline">
         {lang === "ro" ? `alți ${likesCount - 1}` : `${likesCount - 1} others`}
       </button>
+    ) : (
+      <span>{lang === "ro" ? `alți ${likesCount - 1}` : `${likesCount - 1} others`}</span>
     );
     if (liked && likesCount === 1) return lang === "ro" ? "Apreciat de tine" : "Liked by you";
     if (liked) return <>{lang === "ro" ? "Apreciat de tine și " : "Liked by you and "}{others}</>;
     if (otherLikerName && likesCount === 1) return lang === "ro" ? `Apreciat de ${otherLikerName}` : `Liked by ${otherLikerName}`;
     if (otherLikerName) return <>{lang === "ro" ? `Apreciat de ${otherLikerName} și ` : `Liked by ${otherLikerName} and `}{others}</>;
-    return (
-      <button onClick={openLikesList} className="hover:underline">
+    return isOwnPost ? (
+      <button onClick={() => openLikesList()} className="hover:underline">
         {lang === "ro" ? `${likesCount} aprecieri` : `${likesCount} likes`}
       </button>
+    ) : (
+      <span>{lang === "ro" ? `${likesCount} aprecieri` : `${likesCount} likes`}</span>
     );
   };
 
@@ -1139,8 +1254,9 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
         </DialogContent>
       </Dialog>
 
-      {/* Likes list dialog */}
-      <Dialog open={showLikesList} onOpenChange={setShowLikesList}>
+      {/* Likes list dialog — shared for the post's own likes and a single
+          comment's likes (see likersForCommentId), always owner-only. */}
+      <Dialog open={showLikesList} onOpenChange={(open) => { setShowLikesList(open); if (!open) setLikersForCommentId(null); }}>
         <DialogContent className="max-w-sm p-0 gap-0 max-h-[80vh] flex flex-col bg-white text-gray-900 border-gray-200">
           <DialogHeader className="px-4 pt-4 pb-2">
             <DialogTitle className="font-heading text-base text-center text-gray-900">
@@ -1168,41 +1284,62 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                 {lang === "ro" ? "Niciun rezultat." : "No results."}
               </p>
             ) : (
-              filteredLikers.map((l) => (
-                <div key={l.userId} className="flex items-center gap-3 px-2 py-2.5">
-                  <button
-                    onClick={() => { setShowLikesList(false); onViewProfile(l.userId, l.role); }}
-                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                      {l.photo ? <img src={l.photo} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5 text-gray-500" />}
+              filteredLikers.map((l) => {
+                const identity = (
+                  <>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0 ${l.isSportrise ? "bg-gradient-to-br from-orange-500 to-orange-600" : "bg-gray-100"}`}>
+                      {l.isSportrise ? (
+                        <Rocket className="h-5 w-5 text-white" />
+                      ) : l.photo ? (
+                        <img src={l.photo} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="h-5 w-5 text-gray-500" />
+                      )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{l.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{getRoleLabel(l.role)}</p>
+                      <p className={`text-sm font-semibold truncate ${l.isSportrise ? "text-orange-700" : "text-gray-900"}`}>{l.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{l.isSportrise ? "SportRise" : getRoleLabel(l.role)}</p>
                     </div>
-                  </button>
-                  {l.followStatus !== "self" && (
-                    <Button
-                      size="sm"
-                      variant={l.followStatus === "accepted" || l.followStatus === "pending" ? "secondary" : "default"}
-                      disabled={followBusyId === l.userId}
-                      onClick={() => toggleLikerFollow(l.userId, l.followStatus)}
-                      className={`shrink-0 ${l.followStatus === "accepted" || l.followStatus === "pending" ? "" : "bg-orange-500 text-white hover:bg-orange-600"}`}
-                    >
-                      {followBusyId === l.userId ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : l.followStatus === "accepted" ? (
-                        lang === "ro" ? "Urmărit" : "Following"
-                      ) : l.followStatus === "pending" ? (
-                        lang === "ro" ? "În așteptare" : "Requested"
-                      ) : (
-                        lang === "ro" ? "Urmărește" : "Follow"
-                      )}
-                    </Button>
-                  )}
-                </div>
-              ))
+                  </>
+                );
+                return (
+                  <div key={l.userId} className="flex items-center gap-3 px-2 py-2.5">
+                    {/* SportRise has no real account/profile to open — the
+                        row is informational only, same as its posts/comments. */}
+                    {l.isSportrise ? (
+                      <div className="flex items-center gap-3 flex-1 min-w-0 text-left">{identity}</div>
+                    ) : (
+                      <button
+                        onClick={() => { setShowLikesList(false); onViewProfile(l.userId, l.role); }}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                      >
+                        {identity}
+                      </button>
+                    )}
+                    {/* No follow action for SportRise (nothing to follow),
+                        and none once already following — the button only
+                        ever appears when there's an actual action to take
+                        (start following, or cancel a pending request). */}
+                    {!l.isSportrise && l.followStatus !== "self" && l.followStatus !== "accepted" && (
+                      <Button
+                        size="sm"
+                        variant={l.followStatus === "pending" ? "secondary" : "default"}
+                        disabled={followBusyId === l.userId}
+                        onClick={() => toggleLikerFollow(l.userId, l.followStatus)}
+                        className={`shrink-0 ${l.followStatus === "pending" ? "" : "bg-orange-500 text-white hover:bg-orange-600"}`}
+                      >
+                        {followBusyId === l.userId ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : l.followStatus === "pending" ? (
+                          lang === "ro" ? "În așteptare" : "Requested"
+                        ) : (
+                          lang === "ro" ? "Urmărește" : "Follow"
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </DialogContent>
@@ -1231,6 +1368,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                   onViewProfile={onViewProfile}
                   onDelete={deleteComment}
                   onToggleLike={toggleCommentLike}
+                  onOpenLikers={(commentId) => openLikesList(commentId)}
                   onReport={handleReportComment}
                   reportedIds={reportedCommentIds}
                   timeAgo={timeAgo}
@@ -1258,6 +1396,7 @@ const PostCard = ({ post, author, currentUserId, onDelete, onViewProfile, hideLi
                           onViewProfile={onViewProfile}
                           onDelete={deleteComment}
                           onToggleLike={toggleCommentLike}
+                          onOpenLikers={(commentId) => openLikesList(commentId)}
                           onReport={handleReportComment}
                           reportedIds={reportedCommentIds}
                           timeAgo={timeAgo}
