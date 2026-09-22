@@ -333,7 +333,7 @@ const Auth = () => {
                       <div className="space-y-2">
                         <Label className="font-body text-sm">{t.auth.accountType}</Label>
                         <Select value={role} onValueChange={(v) => setRole(v as "player" | "cauta_jucator")}>
-                          <SelectTrigger className="w-full [&>span]:flex-1">
+                          <SelectTrigger className="w-full [&>span]:flex-1 [&>span]:line-clamp-none">
                             <SelectValue placeholder={t.auth.selectAccountType} />
                           </SelectTrigger>
                           <SelectContent>
