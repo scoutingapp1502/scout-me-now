@@ -24,9 +24,13 @@ interface DashboardSidebarProps {
   profileLabel?: string;
   userRole?: "player" | "cauta_jucator" | null;
   userId?: string | null;
+  // 13-15 year old player accounts — Activity (other people's feed) is not
+  // available to them at all, per TermsSection.tsx's "Siguranță și
+  // comportament" clause. See 20261017090000_minor_safety_messaging_and_activity.sql.
+  isRestrictedMinor?: boolean;
 }
 
-const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole, userId }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSport, profileLabel, userRole, userId, isRestrictedMinor }: DashboardSidebarProps) => {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -121,6 +125,12 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
     { id: "messages", label: (t as any).dashboard?.sidebar?.messages ?? "Messages", icon: MessageCircle },
     { id: "notifications", label: (t as any).dashboard?.sidebar?.notifications ?? "Notifications", icon: Bell },
+    // Revised product decision: 13-15 year olds DO get the Activity tab and
+    // the normal feed — they just can't like/comment (enforced in
+    // PostCard.tsx + RLS, see is_restricted_minor() in
+    // 20261017090000_minor_safety_messaging_and_activity.sql). isRestrictedMinor
+    // is threaded through Dashboard.tsx still, kept for any future use, but
+    // no longer removes this tab.
     { id: "activity", label: (t as any).dashboard?.sidebar?.activity ?? "Activity", icon: Newspaper },
     ...(showPlayerNotes ? [{ id: "player-notes", label: (t as any).dashboard?.sidebar?.scoutActions ?? "Actions", icon: ClipboardList }] : []),
   ];

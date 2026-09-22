@@ -146,7 +146,15 @@ export default function AdminDashboard() {
         <p className="text-xs text-gray-500 font-body mt-1">SportRise Admin Panel</p>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      {/* overflow-y-auto + min-h-0: without min-h-0, this flex-1 child never
+          shrinks below its content's natural height inside a flex column,
+          so with 14 sections it silently grew past the sheet/sidebar's own
+          height instead of scrolling — the bottom entries (Mentenanță,
+          Logo-uri, etc.) and the "Deconectare" button became completely
+          unreachable on a phone or portrait tablet (<1024px, isMobile
+          branch below). Matches the pattern DashboardSidebar.tsx (the
+          regular, non-admin sidebar) already uses. */}
+      <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1">
         {adminSections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -241,7 +249,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex flex-col h-screen bg-gray-200 overflow-hidden">
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="left" className="p-0 w-64 bg-white border-gray-200 flex flex-col">
+          <SheetContent side="left" className="p-0 w-64 bg-white border-gray-200 flex flex-col overflow-hidden">
             {sidebarContent}
           </SheetContent>
         </Sheet>
@@ -264,7 +272,7 @@ export default function AdminDashboard() {
   return (
     <div className="flex h-screen bg-gray-200 overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 min-h-screen bg-white border-r border-gray-200 flex flex-col">
+      <aside className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col overflow-hidden shrink-0">
         {sidebarContent}
       </aside>
 
