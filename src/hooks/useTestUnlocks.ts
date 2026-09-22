@@ -40,6 +40,11 @@ export function useTestUnlocks(
   const isOwner = enabled && viewerUserId === userId;
 
   const fetchState = useCallback(async () => {
+    // userId can be briefly empty while auth is still resolving (e.g. on
+    // first mount, before the parent has the real id). Querying with an
+    // empty string fails server-side: user_id is a uuid column, and
+    // "user_id=eq." isn't a valid uuid, so PostgREST rejects it with 400.
+    if (!userId) return;
     const { data } = await supabase
       .from("player_test_unlocks" as any)
       .select("current_streak, unlocked_tests, last_visit_date, next_test_preview, best_streak, login_streak, best_login_streak")
