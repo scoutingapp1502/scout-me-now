@@ -64,11 +64,9 @@ const Auth = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[DEBUG onAuthStateChange]", event, !!session);
       if (event === "SIGNED_IN" && session) navigate("/dashboard");
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("[DEBUG initial getSession]", !!session);
       if (session) navigate("/dashboard");
     }).catch((err) => console.error("Failed to get session:", err));
     return () => subscription.unsubscribe();
@@ -138,28 +136,31 @@ const Auth = () => {
         email, password,
         options: { emailRedirectTo: window.location.origin, data: metadata },
       });
-      console.log("[DEBUG signUp result]", { data, error });
       if (error) throw error;
-      if (data.user) {
-        console.log("[DEBUG about to setRegisteredEmail]", email);
-        // Upload verification document if provided
-        if (REQUIRES_VERIFICATION.includes(role) && scoutDocument && data.user) {
-          try {
-            const fileBase64 = await toBase64(scoutDocument);
-            const { error: fnError } = await supabase.functions.invoke("submit-scout-document", {
-              body: {
-                fileName: scoutDocument.name,
-                fileBase64,
-                mimeType: scoutDocument.type,
-              },
-            });
-            if (fnError) console.error("Document upload failed:", fnError);
-          } catch (docErr) {
-            console.error("Document upload failed:", docErr);
-          }
+      // NOTE: not gated on `data.user` — with email confirmation enabled,
+      // Supabase's /signup response has no session, and the installed
+      // @supabase/supabase-js (2.106.1) only reads a nested `data.user`
+      // key from the raw response, with no fallback for the case where
+      // GoTrue returns the user fields unwrapped (which is what it does
+      // whenever no session is issued). That makes data.user always null
+      // here, even on a successful signup. A null `error` after signUp is
+      // otherwise a reliable enough success signal on its own.
+      if (REQUIRES_VERIFICATION.includes(role) && scoutDocument) {
+        try {
+          const fileBase64 = await toBase64(scoutDocument);
+          const { error: fnError } = await supabase.functions.invoke("submit-scout-document", {
+            body: {
+              fileName: scoutDocument.name,
+              fileBase64,
+              mimeType: scoutDocument.type,
+            },
+          });
+          if (fnError) console.error("Document upload failed:", fnError);
+        } catch (docErr) {
+          console.error("Document upload failed:", docErr);
         }
-        setRegisteredEmail(email);
       }
+      setRegisteredEmail(email);
     } catch (error: any) {
       toast({ title: t.auth.errorRegister, description: error.message, variant: "destructive" });
     } finally {
@@ -198,8 +199,6 @@ const Auth = () => {
       setLoading(false);
     }
   };
-
-  console.log("[DEBUG render]", { registeredEmail, loading });
 
   if (registeredEmail) {
     const isScout = REQUIRES_VERIFICATION.includes(role);
