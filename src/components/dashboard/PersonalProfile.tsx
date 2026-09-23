@@ -1511,8 +1511,10 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
         className="relative w-full transition-transform duration-700 ease-out"
         style={{
           transformStyle: "preserve-3d",
+          WebkitTransformStyle: "preserve-3d",
           transform: isFlipped ? "rotateY(180deg) translateZ(0.01px)" : "rotateY(0deg) translateZ(0.01px)",
-        }}
+          WebkitTransform: isFlipped ? "rotateY(180deg) translateZ(0.01px)" : "rotateY(0deg) translateZ(0.01px)",
+        } as React.CSSProperties}
       >
         {/* FRONT */}
         <div
