@@ -1555,12 +1555,16 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             <span className={`font-display leading-none ${mini ? "text-[20px]" : "text-[38px] sm:text-[42px]"}`}>0</span>
           </div>
         </div>
-        {/* Never rendered while flipped — a belt-and-suspenders guarantee
-            that the photo can't bleed through onto the back, regardless of
-            whether backface-visibility is actually honored (it wasn't on
-            iOS Safari; see the FRONT/BACK overflow comment below). */}
-        {!isFlipped && (
-        <div className={mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-4 sm:px-5"}>
+        {/* invisible (not unmounted) while flipped — a belt-and-suspenders
+            guarantee that the photo can't bleed through onto the back,
+            regardless of whether backface-visibility is actually honored
+            (it wasn't on iOS Safari; see the FRONT/BACK overflow comment
+            below). It has to stay in the layout: FRONT is always mounted
+            (only rotated away, never removed), so its content height is
+            what sizes the whole card via normal flow — unmounting this
+            section while flipped shrank FRONT's height and, with it, the
+            whole card (BACK is absolute/inset-0 against that same box). */}
+        <div className={`${mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-4 sm:px-5"} ${isFlipped ? "invisible" : ""}`}>
           <div className="relative group">
             {hasStory && (
               <div className="absolute inset-[-4px] rounded-[14px] z-0 overflow-hidden">
@@ -1619,7 +1623,6 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             )}
           </div>
         </div>
-        )}
         <div className={mini ? "text-center mt-1 pb-2 mx-2" : "text-center mt-1.5 sm:mt-2 pb-2 mx-3.5 sm:mx-4"}>
           <div className="border-t border-primary-foreground/20 pt-2">
             <p className={`font-display text-primary-foreground uppercase tracking-[0.15em] ${mini ? "text-[10px]" : "text-[13px] sm:text-sm"}`}>{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
