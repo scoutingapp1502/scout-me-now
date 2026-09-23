@@ -35,15 +35,15 @@
 -- updated/deleted by the client. A fresh row is inserted every time it's
 -- confirmed; the export in part (C) reads the full history, not just the
 -- latest, precisely so the timestamped evidence trail is never overwritten.
-CREATE TABLE public.parental_presence_confirmations (
+CREATE TABLE IF NOT EXISTS public.parental_presence_confirmations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id uuid NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
   confirmed_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   confirmed_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_parental_presence_confirmations_conversation ON public.parental_presence_confirmations (conversation_id);
-CREATE INDEX idx_parental_presence_confirmations_user ON public.parental_presence_confirmations (confirmed_by);
+CREATE INDEX IF NOT EXISTS idx_parental_presence_confirmations_conversation ON public.parental_presence_confirmations (conversation_id);
+CREATE INDEX IF NOT EXISTS idx_parental_presence_confirmations_user ON public.parental_presence_confirmations (confirmed_by);
 
 ALTER TABLE public.parental_presence_confirmations ENABLE ROW LEVEL SECURITY;
 
@@ -51,6 +51,7 @@ ALTER TABLE public.parental_presence_confirmations ENABLE ROW LEVEL SECURITY;
 -- happened (the Scout on the other end also needs to know the gate is
 -- cleared, so their own client can stop showing "waiting for the minor to
 -- confirm"). Admins see everything, for the export in part (C).
+DROP POLICY IF EXISTS "Conversation participants can view presence confirmations" ON public.parental_presence_confirmations;
 CREATE POLICY "Conversation participants can view presence confirmations" ON public.parental_presence_confirmations
   FOR SELECT TO authenticated USING (
     EXISTS (
@@ -58,6 +59,7 @@ CREATE POLICY "Conversation participants can view presence confirmations" ON pub
       WHERE c.id = conversation_id AND (c.user1_id = auth.uid() OR c.user2_id = auth.uid())
     )
   );
+DROP POLICY IF EXISTS "Admins can view all presence confirmations" ON public.parental_presence_confirmations;
 CREATE POLICY "Admins can view all presence confirmations" ON public.parental_presence_confirmations
   FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'::app_role));
 
@@ -65,6 +67,7 @@ CREATE POLICY "Admins can view all presence confirmations" ON public.parental_pr
 -- actually part of — checked again, redundantly, inside
 -- confirm_parental_presence() below (SECURITY DEFINER), so this INSERT
 -- policy is a second, independent layer, not the only one.
+DROP POLICY IF EXISTS "Users can confirm their own presence" ON public.parental_presence_confirmations;
 CREATE POLICY "Users can confirm their own presence" ON public.parental_presence_confirmations
   FOR INSERT TO authenticated WITH CHECK (
     auth.uid() = confirmed_by
@@ -341,9 +344,17 @@ CREATE POLICY "Users can like comments"
   WITH CHECK (auth.uid() = user_id AND NOT public.is_restricted_minor(auth.uid()));
 
 -- can_comment_on_post() is the single choke point every comment INSERT
--- already goes through (see 20260811096000_scout_posts_comments_disabled.sql)
--- — adding the check here covers post_comments without touching its INSERT
--- policy at all.
+-- already goes through. IMPORTANT: this function has been rewritten across
+-- several migrations (20260811096000_scout_posts_comments_disabled.sql for
+-- scout_posts, 20260910090000_sportrise_official_posts.sql for
+-- sportrise_posts, this one for is_restricted_minor) — each CREATE OR
+-- REPLACE must carry forward every earlier branch, or the previous one
+-- silently regresses. A prior version of THIS migration copied the
+-- scout_posts-only body without the sportrise_posts branch or the
+-- is_blocked_between check added in 20260910090000, which broke commenting
+-- on official SportRise posts entirely (can_comment_on_post returned false
+-- for any sportrise_posts id, since neither posts nor scout_posts had a
+-- matching row) — fixed here by merging all three sources back together.
 CREATE OR REPLACE FUNCTION public.can_comment_on_post(_post_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
@@ -359,9 +370,20 @@ BEGIN
   IF _owner IS NULL THEN
     SELECT user_id, comments_disabled INTO _owner, _comments_disabled FROM public.scout_posts WHERE id = _post_id;
   END IF;
-  IF _owner IS NULL THEN RETURN false; END IF;
+  IF _owner IS NULL THEN
+    -- No user_id owner at all — official SportRise content. Visible/
+    -- commentable by everyone (no follow/block gate, there's no single
+    -- account to check that against), just the comments_disabled flag
+    -- applies.
+    SELECT comments_disabled INTO _comments_disabled FROM public.sportrise_posts WHERE id = _post_id;
+    IF FOUND THEN
+      RETURN NOT COALESCE(_comments_disabled, false);
+    END IF;
+    RETURN false;
+  END IF;
   IF _comments_disabled THEN RETURN false; END IF;
   IF _owner = auth.uid() THEN RETURN true; END IF;
+  IF public.is_blocked_between(auth.uid(), _owner) THEN RETURN false; END IF;
 
   SELECT posts_comments_visibility INTO _visibility
   FROM public.user_privacy_settings WHERE user_id = _owner;
@@ -491,7 +513,7 @@ GRANT EXECUTE ON FUNCTION public.get_user_conversations_for_admin(uuid) TO authe
 -- call at a later date (if the underlying rows haven't changed) should match
 -- what's stored here for that export event, and any mismatch is itself
 -- evidence of tampering. Never updated/deleted by the client.
-CREATE TABLE public.conversation_export_log (
+CREATE TABLE IF NOT EXISTS public.conversation_export_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id uuid NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
   exported_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -499,12 +521,14 @@ CREATE TABLE public.conversation_export_log (
   exported_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_conversation_export_log_conversation ON public.conversation_export_log (conversation_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_export_log_conversation ON public.conversation_export_log (conversation_id);
 
 ALTER TABLE public.conversation_export_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can view export log" ON public.conversation_export_log;
 CREATE POLICY "Admins can view export log" ON public.conversation_export_log
   FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'::app_role));
+DROP POLICY IF EXISTS "Admins can record exports" ON public.conversation_export_log;
 CREATE POLICY "Admins can record exports" ON public.conversation_export_log
   FOR INSERT TO authenticated WITH CHECK (
     auth.uid() = exported_by AND public.has_role(auth.uid(), 'admin'::app_role)

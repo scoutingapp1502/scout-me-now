@@ -197,7 +197,11 @@ export default function AdminUserReports({ embedded }: { embedded?: boolean } = 
   // — per explicit product decision.
   const handleWarn = async (item: ReportItem) => {
     setProcessing(item.id);
-    const { error } = await (supabase as any).rpc("issue_user_warning", { p_user_id: item.content_owner_id });
+    // Carries the report's own content_type through, so the warning
+    // notification the user sees says "comentariu"/"poză"/"video" instead
+    // of always saying "postare" regardless of what was actually reported
+    // (see 20261021090000_user_warning_content_context.sql).
+    const { error } = await (supabase as any).rpc("issue_user_warning", { p_user_id: item.content_owner_id, p_content_type: item.content_type });
     setProcessing(null);
     if (error) {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
