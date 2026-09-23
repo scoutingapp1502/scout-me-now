@@ -3802,7 +3802,7 @@ function VideoSection({
 
   return (
     <div className="space-y-4">
-      <div className={`flex items-center justify-between ${videos.length === 1 ? "sm:max-w-[calc(50%-0.5rem)]" : ""}`}>
+      <div className={`flex items-center justify-between px-4 sm:px-0 ${videos.length === 1 ? "sm:max-w-[calc(50%-0.5rem)]" : ""}`}>
         <h4 className="font-display text-lg text-gray-900 uppercase tracking-wide">{title}</h4>
         <SectionEditButton section={section} />
       </div>
