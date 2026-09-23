@@ -534,7 +534,10 @@ const Dashboard = () => {
             </SheetContent>
           </Sheet>
           <div className="flex-1 min-w-0 flex flex-col">
-            <header className="flex items-center gap-3 p-4 border-b border-border bg-white">
+            <header
+              className="flex items-center gap-3 px-4 pb-4 border-b border-border bg-white"
+              style={{ paddingTop: "calc(env(safe-area-inset-top) + 1.75rem)" }}
+            >
               <button onClick={() => setSidebarOpen(true)} className="text-gray-900">
                 <Menu className="h-6 w-6" />
               </button>
