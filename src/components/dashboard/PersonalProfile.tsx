@@ -4113,10 +4113,10 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
               className="relative aspect-[4/5] overflow-hidden rounded-md bg-gray-100 group"
             >
               {post.image_url ? (
-                <SignedImg src={post.image_url} alt="" loading="lazy" className="w-full h-full object-contain transition-transform group-hover:scale-105" />
+                <SignedImg src={post.image_url} alt="" loading="lazy" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
               ) : post.video_url ? (
                 <>
-                  <SignedVideo src={post.video_url} className="w-full h-full object-contain" muted preload="metadata" />
+                  <SignedVideo src={post.video_url} className="w-full h-full object-cover" muted preload="metadata" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                     <Play className="h-6 w-6 text-white fill-white drop-shadow" />
                   </div>
