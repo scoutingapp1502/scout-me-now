@@ -1533,7 +1533,7 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             WebkitBackfaceVisibility: "hidden",
           } as React.CSSProperties}
         >
-      <div className="absolute inset-0 rounded-2xl overflow-hidden" style={{
+      <div className="relative rounded-2xl overflow-hidden" style={{
         background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
         WebkitFontSmoothing: "antialiased",
       } as React.CSSProperties}>
