@@ -4110,7 +4110,7 @@ function PostsTab({ userId, readOnly = false }: { userId: string; readOnly?: boo
               key={post.id}
               type="button"
               onClick={() => setSelectedPostId(post.id)}
-              className="relative aspect-square overflow-hidden rounded-md bg-gray-100 group"
+              className="relative aspect-[4/5] overflow-hidden rounded-md bg-gray-100 group"
             >
               {post.image_url ? (
                 <SignedImg src={post.image_url} alt="" loading="lazy" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
