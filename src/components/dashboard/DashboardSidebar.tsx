@@ -145,7 +145,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   };
 
   return (
-    <aside className="w-64 min-h-screen bg-white border-r border-gray-200 flex flex-col">
+    <aside className="w-64 h-full bg-white border-r border-gray-200 flex flex-col">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-1.5">
           {userRole !== "cauta_jucator" && <span className="text-lg">{playerSport === "basketball" ? "🏀" : "⚽"}</span>}
