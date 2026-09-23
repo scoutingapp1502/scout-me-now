@@ -1460,7 +1460,25 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
   const posX = avatarPosX ?? 50;
   const posY = avatarPosY ?? 50;
   const [isFlipped, setIsFlipped] = useState(false);
+  // Drives the photo's "invisible" class below, but on a delay from
+  // isFlipped rather than matching it exactly. Hiding the photo has to
+  // happen the instant we flip away (isFlipped -> true) so it never shows
+  // through the back. Revealing it again on the way back has to wait for
+  // the 700ms rotation to actually finish — react to isFlipped -> false
+  // immediately and the photo pops back in before the card has visually
+  // turned to face front, flashing for a frame while still edge-on/reversed.
+  const [photoHidden, setPhotoHidden] = useState(false);
   const jerseyNumber = (profile as any)?.jersey_number;
+  const CARD_FLIP_MS = 700;
+
+  useEffect(() => {
+    if (isFlipped) {
+      setPhotoHidden(true);
+      return;
+    }
+    const t = setTimeout(() => setPhotoHidden(false), CARD_FLIP_MS);
+    return () => clearTimeout(t);
+  }, [isFlipped]);
 
   useEffect(() => {
     if (isEditingHeader) setIsFlipped(false);
@@ -1555,7 +1573,7 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             <span className={`font-display leading-none ${mini ? "text-[20px]" : "text-[38px] sm:text-[42px]"}`}>0</span>
           </div>
         </div>
-        {/* invisible (not unmounted) while flipped — a belt-and-suspenders
+        {/* invisible (not unmounted) while photoHidden — a belt-and-suspenders
             guarantee that the photo can't bleed through onto the back,
             regardless of whether backface-visibility is actually honored
             (it wasn't on iOS Safari; see the FRONT/BACK overflow comment
@@ -1563,8 +1581,12 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             (only rotated away, never removed), so its content height is
             what sizes the whole card via normal flow — unmounting this
             section while flipped shrank FRONT's height and, with it, the
-            whole card (BACK is absolute/inset-0 against that same box). */}
-        <div className={`${mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-4 sm:px-5"} ${isFlipped ? "invisible" : ""}`}>
+            whole card (BACK is absolute/inset-0 against that same box).
+            photoHidden (not isFlipped directly) drives the class so the
+            reveal on flipping back to front waits out the rotation instead
+            of popping the photo back in the instant isFlipped flips, which
+            flashed it for a frame while the card was still edge-on. */}
+        <div className={`${mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-4 sm:px-5"} ${photoHidden ? "invisible" : ""}`}>
           <div className="relative group">
             {hasStory && (
               <div className="absolute inset-[-4px] rounded-[14px] z-0 overflow-hidden">
