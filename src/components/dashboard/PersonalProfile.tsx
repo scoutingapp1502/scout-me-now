@@ -1516,20 +1516,27 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
           WebkitTransform: isFlipped ? "rotateY(180deg) translateZ(0.01px)" : "rotateY(0deg) translateZ(0.01px)",
         } as React.CSSProperties}
       >
-        {/* FRONT */}
+        {/* FRONT
+            overflow-hidden lives on an inner, non-transformed wrapper —
+            not here. Safari on iOS flattens the 3D space (breaking
+            backface-visibility) when an element has both overflow:hidden
+            and backface-visibility:hidden at once, which is exactly what
+            was showing the front face through the back after a flip. */}
         <div
           role="button"
           tabIndex={0}
           onClick={() => !isEditingHeader && setIsFlipped(true)}
           onKeyDown={(e) => { if (!isEditingHeader && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setIsFlipped(true); } }}
-          className={`relative rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)] ${isEditingHeader ? "" : "cursor-pointer"}`}
+          className={`relative rounded-2xl shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)] ${isEditingHeader ? "" : "cursor-pointer"}`}
           style={{
-            background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden",
-            WebkitFontSmoothing: "antialiased",
-          }}
+          } as React.CSSProperties}
         >
+      <div className="absolute inset-0 rounded-2xl overflow-hidden" style={{
+        background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
+        WebkitFontSmoothing: "antialiased",
+      } as React.CSSProperties}>
       <div className="absolute inset-0" style={{
         backgroundImage: `
           radial-gradient(circle at 18% 12%, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 26%),
@@ -1548,6 +1555,11 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             <span className={`font-display leading-none ${mini ? "text-[20px]" : "text-[38px] sm:text-[42px]"}`}>0</span>
           </div>
         </div>
+        {/* Never rendered while flipped — a belt-and-suspenders guarantee
+            that the photo can't bleed through onto the back, regardless of
+            whether backface-visibility is actually honored (it wasn't on
+            iOS Safari; see the FRONT/BACK overflow comment below). */}
+        {!isFlipped && (
         <div className={mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-4 sm:px-5"}>
           <div className="relative group">
             {hasStory && (
@@ -1607,6 +1619,7 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             )}
           </div>
         </div>
+        )}
         <div className={mini ? "text-center mt-1 pb-2 mx-2" : "text-center mt-1.5 sm:mt-2 pb-2 mx-3.5 sm:mx-4"}>
           <div className="border-t border-primary-foreground/20 pt-2">
             <p className={`font-display text-primary-foreground uppercase tracking-[0.15em] ${mini ? "text-[10px]" : "text-[13px] sm:text-sm"}`}>{profile?.first_name || ""} {profile?.last_name || "PLAYER"}</p>
@@ -1639,34 +1652,42 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
           })}
         </div>
       </div>
+      </div>
         </div>
 
-        {/* BACK */}
+        {/* BACK — same overflow/backface split as FRONT, see comment above. */}
         <div
           role="button"
           tabIndex={0}
           onClick={() => setIsFlipped(false)}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsFlipped(false); } }}
-          className="absolute inset-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)] cursor-pointer flex flex-col items-center justify-center gap-2"
+          className="absolute inset-0 rounded-2xl shadow-[0_20px_60px_-15px_rgba(249,115,22,0.5)] cursor-pointer"
           style={{
-            background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden",
-            WebkitFontSmoothing: "antialiased",
             transform: "rotateY(180deg)",
-          }}
+            WebkitTransform: "rotateY(180deg)",
+          } as React.CSSProperties}
         >
-          <div className="absolute inset-0 opacity-[0.06]" style={{
-            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
-          }} />
-          <p className={`relative font-display text-primary-foreground uppercase tracking-[0.15em] text-center px-3 ${mini ? "text-xs" : "text-base sm:text-lg"}`}>
-            {profile?.first_name || ""} {profile?.last_name || "PLAYER"}
-          </p>
-          {jerseyNumber != null && (
-            <span className={`relative font-display text-primary-foreground leading-none drop-shadow-lg ${mini ? "text-3xl" : "text-5xl sm:text-6xl"}`}>
-              {jerseyNumber}
-            </span>
-          )}
+          <div
+            className="absolute inset-0 rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2"
+            style={{
+              background: 'linear-gradient(155deg, #ea580c 0%, #f97316 45%, #fb923c 100%)',
+              WebkitFontSmoothing: "antialiased",
+            } as React.CSSProperties}
+          >
+            <div className="absolute inset-0 opacity-[0.06]" style={{
+              backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
+            }} />
+            <p className={`relative font-display text-primary-foreground uppercase tracking-[0.15em] text-center px-3 ${mini ? "text-xs" : "text-base sm:text-lg"}`}>
+              {profile?.first_name || ""} {profile?.last_name || "PLAYER"}
+            </p>
+            {jerseyNumber != null && (
+              <span className={`relative font-display text-primary-foreground leading-none drop-shadow-lg ${mini ? "text-3xl" : "text-5xl sm:text-6xl"}`}>
+                {jerseyNumber}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
