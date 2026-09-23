@@ -1460,25 +1460,7 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
   const posX = avatarPosX ?? 50;
   const posY = avatarPosY ?? 50;
   const [isFlipped, setIsFlipped] = useState(false);
-  // Drives the photo's "invisible" class below, but on a delay from
-  // isFlipped rather than matching it exactly. Hiding the photo has to
-  // happen the instant we flip away (isFlipped -> true) so it never shows
-  // through the back. Revealing it again on the way back has to wait for
-  // the 700ms rotation to actually finish — react to isFlipped -> false
-  // immediately and the photo pops back in before the card has visually
-  // turned to face front, flashing for a frame while still edge-on/reversed.
-  const [photoHidden, setPhotoHidden] = useState(false);
   const jerseyNumber = (profile as any)?.jersey_number;
-  const CARD_FLIP_MS = 700;
-
-  useEffect(() => {
-    if (isFlipped) {
-      setPhotoHidden(true);
-      return;
-    }
-    const t = setTimeout(() => setPhotoHidden(false), CARD_FLIP_MS);
-    return () => clearTimeout(t);
-  }, [isFlipped]);
 
   useEffect(() => {
     if (isEditingHeader) setIsFlipped(false);
@@ -1573,20 +1555,25 @@ export function FifaPlayerCard({ form, profile, photoSrc, userId, hasStory, onOp
             <span className={`font-display leading-none ${mini ? "text-[20px]" : "text-[38px] sm:text-[42px]"}`}>0</span>
           </div>
         </div>
-        {/* invisible (not unmounted) while photoHidden — a belt-and-suspenders
-            guarantee that the photo can't bleed through onto the back,
-            regardless of whether backface-visibility is actually honored
-            (it wasn't on iOS Safari; see the FRONT/BACK overflow comment
-            below). It has to stay in the layout: FRONT is always mounted
-            (only rotated away, never removed), so its content height is
-            what sizes the whole card via normal flow — unmounting this
-            section while flipped shrank FRONT's height and, with it, the
-            whole card (BACK is absolute/inset-0 against that same box).
-            photoHidden (not isFlipped directly) drives the class so the
-            reveal on flipping back to front waits out the rotation instead
-            of popping the photo back in the instant isFlipped flips, which
-            flashed it for a frame while the card was still edge-on. */}
-        <div className={`${mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-4 sm:px-5"} ${photoHidden ? "invisible" : ""}`}>
+        {/* Faded out (not unmounted) rather than shown/hidden outright — a
+            belt-and-suspenders guarantee that the photo can't bleed through
+            onto the back, regardless of whether backface-visibility is
+            actually honored (it wasn't on iOS Safari; see the FRONT/BACK
+            overflow comment below). It has to stay in the layout: FRONT is
+            always mounted (only rotated away, never removed), so its
+            content height is what sizes the whole card via normal flow —
+            unmounting this section while flipped shrank FRONT's height and,
+            with it, the whole card (BACK is absolute/inset-0 against that
+            same box). Fading out is near-instant (nothing should linger
+            visible while turning toward the back); fading back in is
+            delayed to land near the end of the card's own 700ms rotation
+            (duration-700 on the wrapper above) instead of popping in the
+            moment isFlipped flips, which either flashed it early or, with
+            a flat delay and no transition, made it pop in abruptly after a
+            dead pause once the delay had passed. */}
+        <div
+          className={`${mini ? "flex justify-center mt-0.5 px-3" : "flex justify-center mt-1 px-4 sm:px-5"} transition-opacity ${isFlipped ? "opacity-0 duration-150 pointer-events-none" : "opacity-100 duration-300 delay-[420ms]"}`}
+        >
           <div className="relative group">
             {hasStory && (
               <div className="absolute inset-[-4px] rounded-[14px] z-0 overflow-hidden">
