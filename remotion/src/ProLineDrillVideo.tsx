@@ -25,7 +25,6 @@ const FT_X = BASELINE_X + KEY_DEPTH_PX;
 const TRACK_Y = 240;
 const Y_TOP = TRACK_Y - KEY_HALF_W;
 const Y_BOTTOM = TRACK_Y + KEY_HALF_W;
-const Y_MID = TRACK_Y;
 
 // "Primul semn de jos al careului" — the rebound hash mark closest to the baseline.
 const FIRST_MARK_F = 0.32;
@@ -37,14 +36,12 @@ const P0 = { x: X_START, y: Y_TOP }; // start, at the first mark
 const P1 = { x: FT_X, y: Y_TOP }; // forward run -> edge of the free-throw circle
 const P2 = { x: FT_X, y: Y_BOTTOM }; // lateral slide across, level with the free-throw line
 const P3 = { x: X_START, y: Y_BOTTOM }; // backpedal to the first mark, other side
-const P4 = { x: X_START, y: Y_MID }; // lateral slide, touching the line with the foot
-const P5 = P0; // lateral slide back — exact return to start
+const P4 = P0; // lateral slide straight back — exact return to start, no stop midway
 
 const RUN1_START = 45;
 const RUN1_END = 95;
 const SLIDE1_END = 140;
 const BACK_END = 190;
-const TOUCH_END = 212;
 const SLIDE2_END = 252;
 
 const SEGMENTS = [
@@ -52,9 +49,8 @@ const SEGMENTS = [
   { start: RUN1_START, end: RUN1_END, from: P0, to: P1, kind: "run" as const, label: "① Alergare înainte → căciulă" },
   { start: RUN1_END, end: SLIDE1_END, from: P1, to: P2, kind: "slide" as const, label: "② Slide lateral" },
   { start: SLIDE1_END, end: BACK_END, from: P2, to: P3, kind: "run" as const, label: "③ Alergare cu spatele" },
-  { start: BACK_END, end: TOUCH_END, from: P3, to: P4, kind: "slide" as const, label: "④ Atinge linia cu piciorul" },
-  { start: TOUCH_END, end: SLIDE2_END, from: P4, to: P5, kind: "slide" as const, label: "⑤ Slide lateral — retur la start" },
-  { start: SLIDE2_END, end: Infinity, from: P5, to: P5, kind: "idle" as const, label: "✔ Test finalizat" },
+  { start: BACK_END, end: SLIDE2_END, from: P3, to: P4, kind: "slide" as const, label: "④ Slide lateral — retur la start" },
+  { start: SLIDE2_END, end: Infinity, from: P4, to: P4, kind: "idle" as const, label: "✔ Test finalizat" },
 ];
 
 const getSegment = (frame: number) => SEGMENTS.find((s) => frame < s.end) ?? SEGMENTS[SEGMENTS.length - 1];
@@ -67,7 +63,7 @@ const getPlayerPos = (frame: number) => {
   return { x: lerp(seg.from.x, seg.to.x, eased), y: lerp(seg.from.y, seg.to.y, eased) };
 };
 
-const PATH_D = `M ${P0.x},${P0.y} L ${P1.x},${P1.y} L ${P2.x},${P2.y} L ${P3.x},${P3.y} L ${P4.x},${P4.y} L ${P5.x},${P5.y}`;
+const PATH_D = `M ${P0.x},${P0.y} L ${P1.x},${P1.y} L ${P2.x},${P2.y} L ${P3.x},${P3.y} L ${P4.x},${P4.y}`;
 
 const Waypoint = ({ x, y, n }: { x: number; y: number; n: string }) => (
   <g>
@@ -166,7 +162,6 @@ export const ProLineDrillVideo: React.FC = () => {
         <Waypoint x={P1.x} y={P1.y} n="1" />
         <Waypoint x={P2.x} y={P2.y} n="2" />
         <Waypoint x={P3.x} y={P3.y} n="3" />
-        <Waypoint x={P4.x} y={P4.y} n="4" />
         <circle cx={P0.x} cy={P0.y} r={11} fill="none" stroke={ACCENT} strokeWidth={2} opacity={0.9} />
         <text x={P0.x} y={Y_TOP - 44} textAnchor="middle" fill={ACCENT} fontSize={10} fontWeight="bold" fontFamily="sans-serif">START / FINISH</text>
 
