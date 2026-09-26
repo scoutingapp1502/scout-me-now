@@ -37,23 +37,29 @@ const P1 = { x: FT_X, y: Y_TOP }; // forward run -> edge of the free-throw circl
 const P2 = { x: FT_X, y: Y_BOTTOM }; // lateral slide across, level with the free-throw line
 const P3 = { x: X_START, y: Y_BOTTOM }; // backpedal to the first mark, other side
 
+// Full route: start-1-2-3-start-3-2-1-start (out, direct return, then the
+// same box retraced a second time in reverse).
 const RUN1_START = 45;
-const RUN1_END = 95;
-const SLIDE1_END = 140;
-const BACK_END = 190;
-const RET_RUN_END = 240;
-const RET_SLIDE_END = 285;
-const RET_FINISH_END = 335;
+const RUN1_END = 95; // start -> 1
+const SLIDE1_END = 140; // 1 -> 2
+const BACK_END = 190; // 2 -> 3
+const TO_START_END = 235; // 3 -> start
+const TO_3_END = 280; // start -> 3
+const RUN_BACK_END = 330; // 3 -> 2
+const SLIDE_BACK_END = 375; // 2 -> 1
+const FINISH_END = 425; // 1 -> start
 
 const SEGMENTS = [
   { start: 0, end: RUN1_START, from: P0, to: P0, kind: "idle" as const, label: "Poziție de start" },
   { start: RUN1_START, end: RUN1_END, from: P0, to: P1, kind: "run" as const, label: "① Alergare înainte → căciulă" },
   { start: RUN1_END, end: SLIDE1_END, from: P1, to: P2, kind: "slide" as const, label: "② Slide lateral" },
   { start: SLIDE1_END, end: BACK_END, from: P2, to: P3, kind: "run" as const, label: "③ Alergare cu spatele" },
-  { start: BACK_END, end: RET_RUN_END, from: P3, to: P2, kind: "run" as const, label: "④ Alergare înainte — retur" },
-  { start: RET_RUN_END, end: RET_SLIDE_END, from: P2, to: P1, kind: "slide" as const, label: "⑤ Slide lateral — retur" },
-  { start: RET_SLIDE_END, end: RET_FINISH_END, from: P1, to: P0, kind: "run" as const, label: "⑥ Retur la poziția de start" },
-  { start: RET_FINISH_END, end: Infinity, from: P0, to: P0, kind: "idle" as const, label: "✔ Test finalizat" },
+  { start: BACK_END, end: TO_START_END, from: P3, to: P0, kind: "slide" as const, label: "④ Slide lateral — retur la start" },
+  { start: TO_START_END, end: TO_3_END, from: P0, to: P3, kind: "slide" as const, label: "⑤ Slide lateral — spre punctul 3" },
+  { start: TO_3_END, end: RUN_BACK_END, from: P3, to: P2, kind: "run" as const, label: "⑥ Alergare înainte — retur" },
+  { start: RUN_BACK_END, end: SLIDE_BACK_END, from: P2, to: P1, kind: "slide" as const, label: "⑦ Slide lateral — retur" },
+  { start: SLIDE_BACK_END, end: FINISH_END, from: P1, to: P0, kind: "run" as const, label: "⑧ Retur la poziția de start" },
+  { start: FINISH_END, end: Infinity, from: P0, to: P0, kind: "idle" as const, label: "✔ Test finalizat" },
 ];
 
 const getSegment = (frame: number) => SEGMENTS.find((s) => frame < s.end) ?? SEGMENTS[SEGMENTS.length - 1];
@@ -66,7 +72,7 @@ const getPlayerPos = (frame: number) => {
   return { x: lerp(seg.from.x, seg.to.x, eased), y: lerp(seg.from.y, seg.to.y, eased) };
 };
 
-const PATH_D = `M ${P0.x},${P0.y} L ${P1.x},${P1.y} L ${P2.x},${P2.y} L ${P3.x},${P3.y} L ${P2.x},${P2.y} L ${P1.x},${P1.y} L ${P0.x},${P0.y}`;
+const PATH_D = `M ${P0.x},${P0.y} L ${P1.x},${P1.y} L ${P2.x},${P2.y} L ${P3.x},${P3.y} L ${P0.x},${P0.y} L ${P3.x},${P3.y} L ${P2.x},${P2.y} L ${P1.x},${P1.y} L ${P0.x},${P0.y}`;
 
 const Waypoint = ({ x, y, n }: { x: number; y: number; n: string }) => (
   <g>
@@ -90,9 +96,9 @@ export const ProLineDrillVideo: React.FC = () => {
   const bounce = seg.kind === "run" ? Math.abs(Math.sin(frame * 0.9)) * 6 : 0;
   const crouch = seg.kind === "slide" ? 0.55 : 0;
 
-  const elapsedSeconds = frame < RUN1_START ? 0 : Math.min((Math.min(frame, RET_FINISH_END) - RUN1_START) / fps, (RET_FINISH_END - RUN1_START) / fps);
-  const finished = frame >= RET_FINISH_END;
-  const finalOpacity = interpolate(frame, [340, 355], [0, 1], { extrapolateRight: "clamp" });
+  const elapsedSeconds = frame < RUN1_START ? 0 : Math.min((Math.min(frame, FINISH_END) - RUN1_START) / fps, (FINISH_END - RUN1_START) / fps);
+  const finished = frame >= FINISH_END;
+  const finalOpacity = interpolate(frame, [430, 445], [0, 1], { extrapolateRight: "clamp" });
 
   const ftLabelPt = { x: FT_X, y: Y_TOP - 14 };
 
@@ -199,7 +205,7 @@ export const ProLineDrillVideo: React.FC = () => {
 
       <FinalOverlay
         opacity={finalOpacity}
-        mainText="Traseu dus-întors: alergare → slide → alergare cu spatele → retur complet"
+        mainText="Traseu complet dus-întors, executat de doua ori (tur si retur)"
         subText="Se cronometrează timpul total de execuție"
       />
     </AbsoluteFill>
