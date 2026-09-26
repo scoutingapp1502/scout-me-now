@@ -1,23 +1,82 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from "remotion";
 import {
-  FIELD_GREEN,
-  FIELD_LINE,
+  COURT_COLOR,
+  COURT_LINE,
   PLAYER_COLOR,
   ACCENT,
   Player,
-  Cone,
-  FieldBackground,
   TimerBadge,
   TitleBar,
   FinalOverlay,
   smoothstep,
+  lerp,
 } from "./shared";
 
-const START_X = 60;
-const FINISH_X = 580;
-const TRACK_Y = 300;
-const RUN_START = 40;
-const RUN_END = 210;
+// Zoomed-in view of a single free-throw lane ("careul de 3 secunde"), viewed from an
+// elevated side angle — same visual grammar as StraightLineSpeedBasketballVideo's
+// CourtEnd, just scaled up since only one key needs to fit the frame.
+const SCALE = 40; // px per meter
+const KEY_DEPTH_PX = 5.8 * SCALE; // baseline -> free-throw line
+const KEY_HALF_W = 2.45 * SCALE; // half width of the lane
+const FT_CIRCLE_R = 1.8 * SCALE; // free-throw circle ("căciulă") radius
+
+const BASELINE_X = 110;
+const FT_X = BASELINE_X + KEY_DEPTH_PX;
+const TRACK_Y = 240;
+const Y_TOP = TRACK_Y - KEY_HALF_W;
+const Y_BOTTOM = TRACK_Y + KEY_HALF_W;
+const Y_MID = TRACK_Y;
+
+// "Primul semn de jos al careului" — the rebound hash mark closest to the baseline.
+const FIRST_MARK_F = 0.32;
+const HASH_MARKS_F = [0.32, 0.52, 0.72];
+const X_START = BASELINE_X + KEY_DEPTH_PX * FIRST_MARK_F;
+
+// Route waypoints, in order.
+const P0 = { x: X_START, y: Y_TOP }; // start, at the first mark
+const P1 = { x: FT_X, y: Y_TOP }; // forward run -> edge of the free-throw circle
+const P2 = { x: FT_X, y: Y_BOTTOM }; // lateral slide across, level with the free-throw line
+const P3 = { x: X_START, y: Y_BOTTOM }; // backpedal to the first mark, other side
+const P4 = { x: X_START, y: Y_MID }; // lateral slide, touching the line with the foot
+const P5 = P0; // lateral slide back — exact return to start
+
+const RUN1_START = 45;
+const RUN1_END = 95;
+const SLIDE1_END = 140;
+const BACK_END = 190;
+const TOUCH_END = 212;
+const SLIDE2_END = 252;
+
+const SEGMENTS = [
+  { start: 0, end: RUN1_START, from: P0, to: P0, kind: "idle" as const, label: "Poziție de start" },
+  { start: RUN1_START, end: RUN1_END, from: P0, to: P1, kind: "run" as const, label: "① Alergare înainte → căciulă" },
+  { start: RUN1_END, end: SLIDE1_END, from: P1, to: P2, kind: "slide" as const, label: "② Slide lateral" },
+  { start: SLIDE1_END, end: BACK_END, from: P2, to: P3, kind: "run" as const, label: "③ Alergare cu spatele" },
+  { start: BACK_END, end: TOUCH_END, from: P3, to: P4, kind: "slide" as const, label: "④ Atinge linia cu piciorul" },
+  { start: TOUCH_END, end: SLIDE2_END, from: P4, to: P5, kind: "slide" as const, label: "⑤ Slide lateral — retur la start" },
+  { start: SLIDE2_END, end: Infinity, from: P5, to: P5, kind: "idle" as const, label: "✔ Test finalizat" },
+];
+
+const getSegment = (frame: number) => SEGMENTS.find((s) => frame < s.end) ?? SEGMENTS[SEGMENTS.length - 1];
+
+const getPlayerPos = (frame: number) => {
+  const seg = getSegment(frame);
+  const dur = seg.end - seg.start;
+  const t = dur > 0 && Number.isFinite(dur) ? Math.min(1, Math.max(0, (frame - seg.start) / dur)) : 1;
+  const eased = smoothstep(t);
+  return { x: lerp(seg.from.x, seg.to.x, eased), y: lerp(seg.from.y, seg.to.y, eased) };
+};
+
+const PATH_D = `M ${P0.x},${P0.y} L ${P1.x},${P1.y} L ${P2.x},${P2.y} L ${P3.x},${P3.y} L ${P4.x},${P4.y} L ${P5.x},${P5.y}`;
+
+const Waypoint = ({ x, y, n }: { x: number; y: number; n: string }) => (
+  <g>
+    <circle cx={x} cy={y} r={10} fill="rgba(0,0,0,0.7)" stroke={ACCENT} strokeWidth={1.5} />
+    <text x={x} y={y + 4} textAnchor="middle" fill={ACCENT} fontSize={11} fontWeight="bold" fontFamily="sans-serif">
+      {n}
+    </text>
+  </g>
+);
 
 export const ProLineDrillVideo: React.FC = () => {
   const frame = useCurrentFrame();
@@ -25,53 +84,125 @@ export const ProLineDrillVideo: React.FC = () => {
 
   const setupOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
   const timerOpacity = interpolate(frame, [30, 40], [0, 1], { extrapolateRight: "clamp" });
+  const captionOpacity = interpolate(frame, [40, 50], [0, 1], { extrapolateRight: "clamp" });
 
-  const runT = interpolate(frame, [RUN_START, RUN_END], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const eased = smoothstep(runT);
-  const playerX = interpolate(eased, [0, 1], [START_X, FINISH_X]);
-  const bounce = frame >= RUN_START && frame < RUN_END ? Math.abs(Math.sin(frame * 0.9)) * 6 : 0;
+  const seg = getSegment(frame);
+  const { x: playerX, y: playerY } = getPlayerPos(frame);
+  const bounce = seg.kind === "run" ? Math.abs(Math.sin(frame * 0.9)) * 6 : 0;
+  const crouch = seg.kind === "slide" ? 0.55 : 0;
 
-  const elapsedSeconds = frame < RUN_START ? 0 : Math.min((Math.min(frame, RUN_END) - RUN_START) / fps, (RUN_END - RUN_START) / fps);
-  const finished = frame >= RUN_END;
+  const elapsedSeconds = frame < RUN1_START ? 0 : Math.min((Math.min(frame, SLIDE2_END) - RUN1_START) / fps, (SLIDE2_END - RUN1_START) / fps);
+  const finished = frame >= SLIDE2_END;
+  const finalOpacity = interpolate(frame, [257, 272], [0, 1], { extrapolateRight: "clamp" });
 
-  const finalOpacity = interpolate(frame, [225, 245], [0, 1], { extrapolateRight: "clamp" });
-
-  const cones = [1, 2, 3, 4, 5].map((i) => START_X + 40 + i * ((FINISH_X - START_X - 80) / 5));
+  const ftLabelPt = { x: FT_X, y: Y_TOP - 14 };
 
   return (
-    <AbsoluteFill style={{ backgroundColor: FIELD_GREEN }}>
-      <FieldBackground />
-      <svg width="640" height="480" style={{ position: "absolute", top: 0, left: 0, opacity: setupOpacity }}>
-        <line x1={START_X} y1={TRACK_Y + 20} x2={FINISH_X} y2={TRACK_Y + 20} stroke={FIELD_LINE} strokeWidth={2} strokeDasharray="6,6" opacity={0.5} />
-        <line x1={START_X} y1={TRACK_Y - 40} x2={START_X} y2={TRACK_Y + 30} stroke={ACCENT} strokeWidth={3} />
-        <text x={START_X} y={TRACK_Y - 46} textAnchor="middle" fill={ACCENT} fontSize={12} fontWeight="bold" fontFamily="sans-serif">START</text>
-        <line x1={FINISH_X} y1={TRACK_Y - 40} x2={FINISH_X} y2={TRACK_Y + 30} stroke={ACCENT} strokeWidth={3} />
-        <text x={FINISH_X} y={TRACK_Y - 46} textAnchor="middle" fill={ACCENT} fontSize={12} fontWeight="bold" fontFamily="sans-serif">FINISH</text>
-
-        {cones.map((cx, i) => (
-          <Cone key={i} x={cx} y={TRACK_Y + 22} scale={0.9} />
+    <AbsoluteFill style={{ backgroundColor: COURT_COLOR }}>
+      <svg width="640" height="480" style={{ position: "absolute", top: 0, left: 0 }}>
+        <rect x={0} y={0} width={640} height={480} fill={COURT_COLOR} />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <rect key={i} x={0} y={i * 60} width={640} height={30} fill="rgba(255,255,255,0.03)" />
         ))}
-        {cones.map((cx, i) => (
-          <text key={`l${i}`} x={cx} y={TRACK_Y + 45} textAnchor="middle" fill={FIELD_LINE} fontSize={9} fontFamily="sans-serif" opacity={0.7}>5m</text>
-        ))}
-
-        <Player x={playerX} y={TRACK_Y - bounce} color={PLAYER_COLOR} />
       </svg>
+
+      <svg width="640" height="480" style={{ position: "absolute", top: 0, left: 0, opacity: setupOpacity }}>
+        {/* Baseline */}
+        <line x1={BASELINE_X} y1={Y_TOP - 30} x2={BASELINE_X} y2={Y_BOTTOM + 30} stroke={COURT_LINE} strokeWidth={3} />
+        <text x={BASELINE_X} y={Y_TOP - 38} textAnchor="middle" fill={COURT_LINE} fontSize={10} fontFamily="sans-serif" opacity={0.75}>Baseline</text>
+
+        {/* Backboard + rim */}
+        <line x1={BASELINE_X + 5} y1={TRACK_Y - 16} x2={BASELINE_X + 5} y2={TRACK_Y + 16} stroke={COURT_LINE} strokeWidth={2} opacity={0.9} />
+        <line x1={BASELINE_X + 9} y1={TRACK_Y - 16} x2={BASELINE_X + 9} y2={TRACK_Y + 16} stroke={COURT_LINE} strokeWidth={2} opacity={0.9} />
+        <line x1={BASELINE_X + 10} y1={TRACK_Y} x2={BASELINE_X + 21} y2={TRACK_Y} stroke={ACCENT} strokeWidth={2.5} />
+        <circle cx={BASELINE_X + 21} cy={TRACK_Y} r={6} fill="none" stroke={ACCENT} strokeWidth={2.5} />
+
+        {/* 3-second key (paint) */}
+        <rect
+          x={BASELINE_X}
+          y={Y_TOP}
+          width={KEY_DEPTH_PX}
+          height={KEY_HALF_W * 2}
+          fill="rgba(255,255,255,0.06)"
+          stroke={COURT_LINE}
+          strokeWidth={2}
+          opacity={0.9}
+        />
+
+        {/* Rebound hash marks — first one is the drill's start/return mark */}
+        {HASH_MARKS_F.map((f) => {
+          const hx = BASELINE_X + KEY_DEPTH_PX * f;
+          const isFirst = f === FIRST_MARK_F;
+          return (
+            <g key={f}>
+              <line x1={hx} y1={Y_TOP} x2={hx} y2={Y_TOP - 8} stroke={isFirst ? ACCENT : COURT_LINE} strokeWidth={isFirst ? 3 : 2} opacity={isFirst ? 1 : 0.85} />
+              <line x1={hx} y1={Y_BOTTOM} x2={hx} y2={Y_BOTTOM + 8} stroke={isFirst ? ACCENT : COURT_LINE} strokeWidth={isFirst ? 3 : 2} opacity={isFirst ? 1 : 0.85} />
+            </g>
+          );
+        })}
+
+        {/* Free-throw line + circle ("căciula") */}
+        <line x1={FT_X} y1={Y_TOP - 20} x2={FT_X} y2={Y_BOTTOM + 20} stroke={COURT_LINE} strokeWidth={2.5} opacity={0.9} />
+        <text x={ftLabelPt.x} y={ftLabelPt.y} textAnchor="middle" fill={COURT_LINE} fontSize={10} fontFamily="sans-serif" opacity={0.75}>Linia careului</text>
+        <path
+          d={`M ${FT_X},${TRACK_Y - FT_CIRCLE_R} A ${FT_CIRCLE_R} ${FT_CIRCLE_R} 0 0 0 ${FT_X},${TRACK_Y + FT_CIRCLE_R}`}
+          fill="none"
+          stroke={COURT_LINE}
+          strokeWidth={2}
+          opacity={0.9}
+        />
+        <path
+          d={`M ${FT_X},${TRACK_Y - FT_CIRCLE_R} A ${FT_CIRCLE_R} ${FT_CIRCLE_R} 0 0 1 ${FT_X},${TRACK_Y + FT_CIRCLE_R}`}
+          fill="none"
+          stroke={COURT_LINE}
+          strokeWidth={2}
+          strokeDasharray="4,4"
+          opacity={0.8}
+        />
+        <text x={FT_X - FT_CIRCLE_R - 8} y={TRACK_Y + 4} textAnchor="end" fill="#fff" fontSize={11} fontWeight="bold" fontFamily="sans-serif" opacity={0.85}>Căciula</text>
+
+        {/* Ghost route + numbered waypoints */}
+        <path d={PATH_D} fill="none" stroke={ACCENT} strokeWidth={2} strokeDasharray="6,6" opacity={0.55} />
+        <Waypoint x={P1.x} y={P1.y} n="1" />
+        <Waypoint x={P2.x} y={P2.y} n="2" />
+        <Waypoint x={P3.x} y={P3.y} n="3" />
+        <Waypoint x={P4.x} y={P4.y} n="4" />
+        <circle cx={P0.x} cy={P0.y} r={11} fill="none" stroke={ACCENT} strokeWidth={2} opacity={0.9} />
+        <text x={P0.x} y={Y_TOP - 44} textAnchor="middle" fill={ACCENT} fontSize={10} fontWeight="bold" fontFamily="sans-serif">START / FINISH</text>
+
+        <Player x={playerX} y={playerY - bounce} color={PLAYER_COLOR} crouch={crouch} />
+      </svg>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 16,
+          left: 0,
+          right: 0,
+          display: "flex",
+          justifyContent: "center",
+          opacity: captionOpacity,
+        }}
+      >
+        <div style={{ backgroundColor: "rgba(0,0,0,0.75)", borderRadius: 8, padding: "6px 18px" }}>
+          <span style={{ color: "white", fontSize: 14, fontWeight: "bold", fontFamily: "sans-serif" }}>{seg.label}</span>
+        </div>
+      </div>
 
       <TimerBadge seconds={elapsedSeconds} opacity={timerOpacity} />
 
       {finished && (
-        <div style={{ position: "absolute", top: 16, left: 16, backgroundColor: "rgba(0,0,0,0.75)", borderRadius: 8, padding: "8px 16px" }}>
-          <span style={{ color: ACCENT, fontSize: 14, fontWeight: "bold", fontFamily: "sans-serif" }}>✔ Distanță parcursă</span>
+        <div style={{ position: "absolute", top: 60, right: 16, backgroundColor: "rgba(0,0,0,0.75)", borderRadius: 8, padding: "8px 16px" }}>
+          <span style={{ color: ACCENT, fontSize: 14, fontWeight: "bold", fontFamily: "sans-serif" }}>✔ Traseu complet</span>
         </div>
       )}
 
-      <TitleBar text="⚡ Pro Line Drill — sprint cronometrat" />
+      <TitleBar text="⚡ Pro Line Drill — agilitate în careu" />
 
       <FinalOverlay
         opacity={finalOpacity}
-        mainText="Se cronometrează timpul de execuție"
-        subText="pe toată distanța, la viteză maximă"
+        mainText="Alergare → slide → alergare cu spatele → atingere → slide retur"
+        subText="Se cronometrează timpul total de execuție"
       />
     </AbsoluteFill>
   );
