@@ -36,21 +36,24 @@ const P0 = { x: X_START, y: Y_TOP }; // start, at the first mark
 const P1 = { x: FT_X, y: Y_TOP }; // forward run -> edge of the free-throw circle
 const P2 = { x: FT_X, y: Y_BOTTOM }; // lateral slide across, level with the free-throw line
 const P3 = { x: X_START, y: Y_BOTTOM }; // backpedal to the first mark, other side
-const P4 = P0; // lateral slide straight back — exact return to start, no stop midway
 
 const RUN1_START = 45;
 const RUN1_END = 95;
 const SLIDE1_END = 140;
 const BACK_END = 190;
-const SLIDE2_END = 252;
+const RET_RUN_END = 240;
+const RET_SLIDE_END = 285;
+const RET_FINISH_END = 335;
 
 const SEGMENTS = [
   { start: 0, end: RUN1_START, from: P0, to: P0, kind: "idle" as const, label: "Poziție de start" },
   { start: RUN1_START, end: RUN1_END, from: P0, to: P1, kind: "run" as const, label: "① Alergare înainte → căciulă" },
   { start: RUN1_END, end: SLIDE1_END, from: P1, to: P2, kind: "slide" as const, label: "② Slide lateral" },
   { start: SLIDE1_END, end: BACK_END, from: P2, to: P3, kind: "run" as const, label: "③ Alergare cu spatele" },
-  { start: BACK_END, end: SLIDE2_END, from: P3, to: P4, kind: "slide" as const, label: "④ Slide lateral — retur la start" },
-  { start: SLIDE2_END, end: Infinity, from: P4, to: P4, kind: "idle" as const, label: "✔ Test finalizat" },
+  { start: BACK_END, end: RET_RUN_END, from: P3, to: P2, kind: "run" as const, label: "④ Alergare înainte — retur" },
+  { start: RET_RUN_END, end: RET_SLIDE_END, from: P2, to: P1, kind: "slide" as const, label: "⑤ Slide lateral — retur" },
+  { start: RET_SLIDE_END, end: RET_FINISH_END, from: P1, to: P0, kind: "run" as const, label: "⑥ Retur la poziția de start" },
+  { start: RET_FINISH_END, end: Infinity, from: P0, to: P0, kind: "idle" as const, label: "✔ Test finalizat" },
 ];
 
 const getSegment = (frame: number) => SEGMENTS.find((s) => frame < s.end) ?? SEGMENTS[SEGMENTS.length - 1];
@@ -63,7 +66,7 @@ const getPlayerPos = (frame: number) => {
   return { x: lerp(seg.from.x, seg.to.x, eased), y: lerp(seg.from.y, seg.to.y, eased) };
 };
 
-const PATH_D = `M ${P0.x},${P0.y} L ${P1.x},${P1.y} L ${P2.x},${P2.y} L ${P3.x},${P3.y} L ${P4.x},${P4.y}`;
+const PATH_D = `M ${P0.x},${P0.y} L ${P1.x},${P1.y} L ${P2.x},${P2.y} L ${P3.x},${P3.y} L ${P2.x},${P2.y} L ${P1.x},${P1.y} L ${P0.x},${P0.y}`;
 
 const Waypoint = ({ x, y, n }: { x: number; y: number; n: string }) => (
   <g>
@@ -87,9 +90,9 @@ export const ProLineDrillVideo: React.FC = () => {
   const bounce = seg.kind === "run" ? Math.abs(Math.sin(frame * 0.9)) * 6 : 0;
   const crouch = seg.kind === "slide" ? 0.55 : 0;
 
-  const elapsedSeconds = frame < RUN1_START ? 0 : Math.min((Math.min(frame, SLIDE2_END) - RUN1_START) / fps, (SLIDE2_END - RUN1_START) / fps);
-  const finished = frame >= SLIDE2_END;
-  const finalOpacity = interpolate(frame, [257, 272], [0, 1], { extrapolateRight: "clamp" });
+  const elapsedSeconds = frame < RUN1_START ? 0 : Math.min((Math.min(frame, RET_FINISH_END) - RUN1_START) / fps, (RET_FINISH_END - RUN1_START) / fps);
+  const finished = frame >= RET_FINISH_END;
+  const finalOpacity = interpolate(frame, [340, 355], [0, 1], { extrapolateRight: "clamp" });
 
   const ftLabelPt = { x: FT_X, y: Y_TOP - 14 };
 
@@ -196,7 +199,7 @@ export const ProLineDrillVideo: React.FC = () => {
 
       <FinalOverlay
         opacity={finalOpacity}
-        mainText="Alergare → slide → alergare cu spatele → atingere → slide retur"
+        mainText="Traseu dus-întors: alergare → slide → alergare cu spatele → retur complet"
         subText="Se cronometrează timpul total de execuție"
       />
     </AbsoluteFill>

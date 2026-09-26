@@ -22,7 +22,7 @@ const base = { fps: 30, width: 640, height: 480 };
 export const RemotionRoot = () => (
   <>
     <Composition id="control-pass" component={ControlPassVideo} durationInFrames={300} {...base} />
-    <Composition id="pro-line-drill" component={ProLineDrillVideo} durationInFrames={275} {...base} />
+    <Composition id="pro-line-drill" component={ProLineDrillVideo} durationInFrames={360} {...base} />
     <Composition id="vertical-jump" component={VerticalJumpVideo} durationInFrames={260} {...base} />
     <Composition id="shuttle-run" component={ShuttleRunVideo} durationInFrames={275} {...base} />
     <Composition id="vertical-jump-action" component={VerticalJumpActionVideo} durationInFrames={240} {...base} />
