@@ -164,7 +164,6 @@ export const ProLineDrillVideo: React.FC = () => {
           strokeWidth={2}
           opacity={0.9}
         />
-        <text x={FT_X - FT_CIRCLE_R - 8} y={TRACK_Y + 4} textAnchor="end" fill="#fff" fontSize={11} fontWeight="bold" fontFamily="sans-serif" opacity={0.85}>Căciula</text>
 
         {/* Ghost route + numbered waypoints */}
         <path d={PATH_D} fill="none" stroke={ACCENT} strokeWidth={2} strokeDasharray="6,6" opacity={0.55} />
