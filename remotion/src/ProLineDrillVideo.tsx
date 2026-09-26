@@ -33,8 +33,8 @@ const X_START = BASELINE_X + KEY_DEPTH_PX * FIRST_MARK_F;
 
 // Route waypoints, in order.
 const P0 = { x: X_START, y: Y_TOP }; // start, at the first mark
-const P1 = { x: FT_X, y: Y_TOP }; // forward run -> edge of the free-throw circle
-const P2 = { x: FT_X, y: Y_BOTTOM }; // lateral slide across, level with the free-throw line
+const P1 = { x: FT_X, y: TRACK_Y - FT_CIRCLE_R }; // forward run -> edge of the free-throw circle (exterior, where the arc meets the line)
+const P2 = { x: FT_X, y: TRACK_Y + FT_CIRCLE_R }; // lateral slide across, level with the free-throw line
 const P3 = { x: X_START, y: Y_BOTTOM }; // backpedal to the first mark, other side
 
 // Full route: start-1-2-3-start-3-2-1-start (out, direct return, then the
