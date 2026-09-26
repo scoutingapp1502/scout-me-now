@@ -24,7 +24,7 @@ export const RemotionRoot = () => (
     <Composition id="control-pass" component={ControlPassVideo} durationInFrames={300} {...base} />
     <Composition id="pro-line-drill" component={ProLineDrillVideo} durationInFrames={455} {...base} />
     <Composition id="vertical-jump" component={VerticalJumpVideo} durationInFrames={260} {...base} />
-    <Composition id="shuttle-run" component={ShuttleRunVideo} durationInFrames={275} {...base} />
+    <Composition id="shuttle-run" component={ShuttleRunVideo} durationInFrames={185} {...base} />
     <Composition id="vertical-jump-action" component={VerticalJumpActionVideo} durationInFrames={240} {...base} />
     <Composition id="free-throw-shooting" component={FreeThrowVideo} durationInFrames={310} {...base} />
     <Composition id="star-shooting-drill" component={StarShootingDrillVideo} durationInFrames={315} {...base} />

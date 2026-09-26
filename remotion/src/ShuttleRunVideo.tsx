@@ -27,17 +27,13 @@ const Y_BOTTOM = TRACK_Y + KEY_HALF_W;
 
 const START_FRAME = 45;
 const LEG0_END = 90; // start (middle) -> top line, lateral slide, touch
-const LEG1_END = 140; // top -> bottom line, run
-const LEG2_END = 190; // bottom -> top line, run
-const LEG3_END = 240; // top -> bottom line, run
+const LEG1_END = 140; // top -> bottom line, run, touch — exercise ends
 
 const SEGMENTS = [
   { start: 0, end: START_FRAME, from: TRACK_Y, to: TRACK_Y, kind: "idle" as const, label: "Poziție de start — mijlocul careului" },
   { start: START_FRAME, end: LEG0_END, from: TRACK_Y, to: Y_TOP, kind: "slide" as const, label: "① Deplasare laterală — atinge linia" },
-  { start: LEG0_END, end: LEG1_END, from: Y_TOP, to: Y_BOTTOM, kind: "run" as const, label: "② Alergare — schimbă direcția" },
-  { start: LEG1_END, end: LEG2_END, from: Y_BOTTOM, to: Y_TOP, kind: "run" as const, label: "③ Alergare — schimbă direcția" },
-  { start: LEG2_END, end: LEG3_END, from: Y_TOP, to: Y_BOTTOM, kind: "run" as const, label: "④ Alergare — linie finală" },
-  { start: LEG3_END, end: Infinity, from: Y_BOTTOM, to: Y_BOTTOM, kind: "idle" as const, label: "✔ Test finalizat" },
+  { start: LEG0_END, end: LEG1_END, from: Y_TOP, to: Y_BOTTOM, kind: "run" as const, label: "② Alergare — atinge cealaltă linie" },
+  { start: LEG1_END, end: Infinity, from: Y_BOTTOM, to: Y_BOTTOM, kind: "idle" as const, label: "✔ Test finalizat" },
 ];
 
 const getSegment = (frame: number) => SEGMENTS.find((s) => frame < s.end) ?? SEGMENTS[SEGMENTS.length - 1];
@@ -49,7 +45,7 @@ const getPlayerY = (frame: number) => {
   return lerp(seg.from, seg.to, smoothstep(t));
 };
 
-const LEG_ENDS = [LEG0_END, LEG1_END, LEG2_END, LEG3_END];
+const LEG_ENDS = [LEG0_END, LEG1_END];
 
 export const ShuttleRunVideo: React.FC = () => {
   const frame = useCurrentFrame();
@@ -65,10 +61,10 @@ export const ShuttleRunVideo: React.FC = () => {
   const bounce = seg.kind === "run" ? Math.abs(Math.sin(frame * 0.9)) * 6 : 0;
   const crouch = seg.kind === "slide" ? 0.55 : 0;
 
-  const legsDone = LEG_ENDS.filter((e) => frame >= e).length;
-  const elapsedSeconds = frame < START_FRAME ? 0 : Math.min((Math.min(frame, LEG3_END) - START_FRAME) / fps, (LEG3_END - START_FRAME) / fps);
-  const finished = frame >= LEG3_END;
-  const finalOpacity = interpolate(frame, [250, 265], [0, 1], { extrapolateRight: "clamp" });
+  const touchesDone = LEG_ENDS.filter((e) => frame >= e).length;
+  const elapsedSeconds = frame < START_FRAME ? 0 : Math.min((Math.min(frame, LEG1_END) - START_FRAME) / fps, (LEG1_END - START_FRAME) / fps);
+  const finished = frame >= LEG1_END;
+  const finalOpacity = interpolate(frame, [150, 165], [0, 1], { extrapolateRight: "clamp" });
 
   return (
     <AbsoluteFill style={{ backgroundColor: COURT_COLOR }}>
@@ -143,7 +139,7 @@ export const ShuttleRunVideo: React.FC = () => {
       </div>
 
       <TimerBadge seconds={elapsedSeconds} opacity={timerOpacity} />
-      <CounterBadge label="Curse:" value={legsDone} opacity={timerOpacity} />
+      <CounterBadge label="Linii atinse:" value={touchesDone} opacity={timerOpacity} />
 
       {finished && (
         <div style={{ position: "absolute", top: 60, right: 16, backgroundColor: "rgba(0,0,0,0.75)", borderRadius: 8, padding: "8px 16px" }}>
@@ -155,7 +151,7 @@ export const ShuttleRunVideo: React.FC = () => {
 
       <FinalOverlay
         opacity={finalOpacity}
-        mainText="Deplasare laterală + alergare dus-întors între liniile careului"
+        mainText="Ambele linii ale careului atinse — exercițiul s-a încheiat"
         subText="Se cronometrează timpul total"
       />
     </AbsoluteFill>
