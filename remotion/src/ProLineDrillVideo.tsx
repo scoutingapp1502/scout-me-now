@@ -149,15 +149,15 @@ export const ProLineDrillVideo: React.FC = () => {
           fill="none"
           stroke={COURT_LINE}
           strokeWidth={2}
-          opacity={0.9}
+          strokeDasharray="4,4"
+          opacity={0.8}
         />
         <path
           d={`M ${FT_X},${TRACK_Y - FT_CIRCLE_R} A ${FT_CIRCLE_R} ${FT_CIRCLE_R} 0 0 1 ${FT_X},${TRACK_Y + FT_CIRCLE_R}`}
           fill="none"
           stroke={COURT_LINE}
           strokeWidth={2}
-          strokeDasharray="4,4"
-          opacity={0.8}
+          opacity={0.9}
         />
         <text x={FT_X - FT_CIRCLE_R - 8} y={TRACK_Y + 4} textAnchor="end" fill="#fff" fontSize={11} fontWeight="bold" fontFamily="sans-serif" opacity={0.85}>Căciula</text>
 
