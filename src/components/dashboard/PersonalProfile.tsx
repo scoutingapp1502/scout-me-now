@@ -46,6 +46,7 @@ import { ClipboardList, ChevronDown, ChevronUp, FileBarChart, RotateCcw, Flag } 
 import InviteFriendsModal from "./InviteFriendsModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useVideoSubmissions, submitVideoSubmission } from "@/hooks/useVideoSubmissions";
+import { getRankTestConfig, toRankTestKey } from "@/lib/testRankingConfig";
 import { useTestReferenceVideos } from "@/hooks/useTestReferenceVideos";
 import { useVideoConsent } from "@/hooks/useVideoConsent";
 import VideoConsentDialog from "./VideoConsentDialog";
@@ -2352,12 +2353,23 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                      }
                      if (sub.status === "verified" && sub.grade !== null) {
                        const daysLeft = getVerifiedCooldownDaysLeft(sub);
+                       const rankConfig = getRankTestConfig(toRankTestKey(sub.test_key));
                        return (
                          <div className="mt-2 bg-green-100 border border-green-300 rounded-lg px-3 py-2 space-y-1">
                            <div className="flex items-center gap-2">
                              <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
                              <span className="text-xs text-green-800 font-body">
-                               {tt.videoVerifiedNotePrefix} <strong className="text-green-900">{sub.grade}</strong>
+                               {rankConfig.metricType === "made_attempted" && sub.made_count !== null && sub.attempted_count !== null ? (
+                                 <>
+                                   {tt.videoVerifiedNotePrefix}{" "}
+                                   <strong className="text-green-900">
+                                     {sub.made_count}/{sub.attempted_count}
+                                     {sub.attempted_count > 0 && ` (${Math.round((sub.made_count / sub.attempted_count) * 100)}%)`}
+                                   </strong>
+                                 </>
+                               ) : (
+                                 <>{tt.videoVerifiedNotePrefix} <strong className="text-green-900">{sub.grade}</strong></>
+                               )}
                              </span>
                            </div>
                            {sub.reviewer_notes && (

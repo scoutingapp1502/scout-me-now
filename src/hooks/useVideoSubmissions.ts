@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { moderateUploadedVideo } from "@/lib/videoModeration";
+import { getRankTestConfig, toRankTestKey } from "@/lib/testRankingConfig";
 
 export interface VideoSubmission {
   id: string;
@@ -10,11 +11,14 @@ export interface VideoSubmission {
   status: string;
   moderation_status?: string;
   grade: number | null;
+  made_count: number | null;
+  attempted_count: number | null;
   reviewer_notes: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   created_at: string;
   player_name?: string;
+  sport?: string;
 }
 
 // Standalone so callers that don't need the hook's reactive submissions
@@ -31,7 +35,7 @@ export async function submitVideoSubmission(
   const { data, error } = await supabase
     .from("video_submissions")
     .upsert(
-      { user_id: currentUserId, test_key: testKey, video_url: videoUrl, status: "pending", grade: null, reviewer_notes: null, reviewed_by: null, reviewed_at: null },
+      { user_id: currentUserId, test_key: testKey, video_url: videoUrl, status: "pending", grade: null, made_count: null, attempted_count: null, reviewer_notes: null, reviewed_by: null, reviewed_at: null },
       { onConflict: "user_id,test_key" }
     )
     .select()
@@ -111,21 +115,22 @@ export function useAdminVideoSubmissions() {
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      // Fetch player names
+      // Fetch player names + sport (sport needed to mirror a review's result into test_rankings)
       const userIds = [...new Set(data.map((s: any) => s.user_id))];
       const { data: profiles } = await supabase
         .from("player_profiles")
-        .select("user_id, first_name, last_name")
+        .select("user_id, first_name, last_name, sport")
         .in("user_id", userIds);
 
       const profileMap = new Map(
-        (profiles || []).map((p: any) => [p.user_id, `${p.first_name} ${p.last_name}`])
+        (profiles || []).map((p: any) => [p.user_id, { name: `${p.first_name} ${p.last_name}`, sport: p.sport as string }])
       );
 
       setSubmissions(
         (data as VideoSubmission[]).map((s) => ({
           ...s,
-          player_name: profileMap.get(s.user_id) || "Necunoscut",
+          player_name: profileMap.get(s.user_id)?.name || "Necunoscut",
+          sport: profileMap.get(s.user_id)?.sport,
         }))
       );
     }
@@ -145,18 +150,42 @@ export function useAdminVideoSubmissions() {
     submissionId: string,
     grade: number,
     reviewerNotes: string,
-    reviewerId: string
+    reviewerId: string,
+    madeAttempted?: { madeCount: number; attemptedCount: number }
   ) => {
+    const submission = submissions.find((s) => s.id === submissionId);
     const { error } = await supabase
       .from("video_submissions")
       .update({
         status: "verified",
         grade,
+        made_count: madeAttempted?.madeCount ?? null,
+        attempted_count: madeAttempted?.attemptedCount ?? null,
         reviewer_notes: reviewerNotes,
         reviewed_by: reviewerId,
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", submissionId);
+
+    // Mirror the result into test_rankings so it shows up in the player's
+    // Rank leaderboard automatically, without a separate admin step.
+    if (!error && submission?.sport) {
+      const rankKey = toRankTestKey(submission.test_key);
+      const config = getRankTestConfig(rankKey);
+      await (supabase as any).from("test_rankings").upsert(
+        {
+          player_id: submission.user_id,
+          sport: submission.sport,
+          test_key: rankKey,
+          time_seconds: config.metricType === "time" ? grade : null,
+          made_count: config.metricType === "made_attempted" ? madeAttempted?.madeCount ?? null : null,
+          attempted_count: config.metricType === "made_attempted" ? madeAttempted?.attemptedCount ?? null : null,
+          value: config.metricType === "count" ? grade : null,
+          created_by: reviewerId,
+        },
+        { onConflict: "player_id,test_key" }
+      );
+    }
 
     if (!error) {
       await fetchAll();

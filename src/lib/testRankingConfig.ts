@@ -37,6 +37,23 @@ export const testRankingConfig: Record<string, RankTestConfig> = {
 export const getRankTestConfig = (testKey: string): RankTestConfig =>
   testRankingConfig[testKey] ?? { metricType: "time" };
 
+/**
+ * video_submissions.test_key uses AthleticTest.videoKey for the 5 shared
+ * athletic tests (e.g. "speed_video"), while testRankingConfig keys them by
+ * the bare AthleticTest.key ("speed") to match test_rankings.test_key.
+ * Technical (basketball/football) test keys already match 1:1 either way.
+ */
+const ATHLETIC_SUBMISSION_KEY_TO_RANK_KEY: Record<string, string> = {
+  speed_video: "speed",
+  jumping_video: "jumping",
+  endurance_video: "endurance",
+  acceleration_video: "acceleration",
+  straight_line_speed_video: "straight_line_speed",
+};
+
+export const toRankTestKey = (submissionTestKey: string): string =>
+  ATHLETIC_SUBMISSION_KEY_TO_RANK_KEY[submissionTestKey] ?? submissionTestKey;
+
 export interface RankResultRow {
   id: string;
   playerId: string;

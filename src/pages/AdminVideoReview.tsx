@@ -8,13 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle, XCircle, Clock, Video, Star } from "lucide-react";
 import { SignedVideo, SignedLink } from "@/components/SignedSrc";
-
-const athleticTestUnits: Record<string, { unit: "secunde" | "cm"; label: string }> = {
-  speed_video: { unit: "secunde", label: "Timp (secunde)" },
-  jumping_video: { unit: "cm", label: "Înălțime (cm)" },
-  endurance_video: { unit: "secunde", label: "Timp (secunde)" },
-  acceleration_video: { unit: "cm", label: "Înălțime (cm)" },
-};
+import { getRankTestConfig, toRankTestKey } from "@/lib/testRankingConfig";
 
 const testLabelMap: Record<string, string> = {
   speed_video: "Pro Line Drill",
@@ -43,6 +37,8 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [grade, setGrade] = useState("");
+  const [madeCount, setMadeCount] = useState("");
+  const [attemptedCount, setAttemptedCount] = useState("");
   const [notes, setNotes] = useState("");
   const [filter, setFilter] = useState<"all" | "pending" | "verified" | "rejected">("pending");
 
@@ -90,11 +86,32 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
   const filtered = submissions.filter((s) => filter === "all" || s.status === filter);
 
   const handleReview = async (submissionId: string, testKey: string) => {
+    const config = getRankTestConfig(toRankTestKey(testKey));
+
+    if (config.metricType === "made_attempted") {
+      const made = parseInt(madeCount, 10);
+      const attempted = parseInt(attemptedCount, 10);
+      if (isNaN(made) || isNaN(attempted) || attempted <= 0 || made < 0 || made > attempted) {
+        toast({ title: "Completează corect reușitele și totalul încercărilor", variant: "destructive" });
+        return;
+      }
+      const { error } = await reviewVideo(submissionId, made, notes, currentUserId!, { madeCount: made, attemptedCount: attempted });
+      if (error) {
+        toast({ title: "Eroare la verificare", variant: "destructive" });
+      } else {
+        toast({ title: "Video verificat cu succes!" });
+        setReviewingId(null);
+        setMadeCount("");
+        setAttemptedCount("");
+        setNotes("");
+      }
+      return;
+    }
+
     const gradeNum = parseFloat(grade);
-    const athleticUnit = athleticTestUnits[testKey];
-    if (isNaN(gradeNum) || gradeNum <= 0 || (!athleticUnit && (gradeNum < 1 || gradeNum > 10))) {
+    if (isNaN(gradeNum) || gradeNum <= 0) {
       toast({
-        title: athleticUnit ? `Valoarea trebuie să fie un număr pozitiv (${athleticUnit.unit})` : "Nota trebuie să fie între 1 și 10",
+        title: `Valoarea trebuie să fie un număr pozitiv${config.unit ? ` (${config.unit})` : ""}`,
         variant: "destructive",
       });
       return;
@@ -122,6 +139,8 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
       toast({ title: "Video respins." });
       setReviewingId(null);
       setGrade("");
+      setMadeCount("");
+      setAttemptedCount("");
       setNotes("");
     }
   };
@@ -197,16 +216,28 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                     <p className="text-xs text-gray-500">
                       {testLabelMap[sub.test_key] || sub.test_key} • {new Date(sub.created_at).toLocaleDateString("ro-RO")}
                     </p>
-                    {sub.grade !== null && (
-                      <p className="text-sm mt-1 flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-400" />
-                        {athleticTestUnits[sub.test_key] ? (
-                          <>Rezultat: <strong>{sub.grade} {athleticTestUnits[sub.test_key].unit}</strong></>
-                        ) : (
-                          <>Nota: <strong>{sub.grade}</strong></>
-                        )}
-                      </p>
-                    )}
+                    {sub.grade !== null && (() => {
+                      const config = getRankTestConfig(toRankTestKey(sub.test_key));
+                      return (
+                        <p className="text-sm mt-1 flex items-center gap-1">
+                          <Star className="h-4 w-4 text-yellow-400" />
+                          {config.metricType === "made_attempted" && sub.made_count !== null && sub.attempted_count !== null ? (
+                            <>
+                              Rezultat: <strong>{sub.made_count}/{sub.attempted_count}</strong>
+                              {sub.attempted_count > 0 && (
+                                <span className="text-gray-500">({Math.round((sub.made_count / sub.attempted_count) * 100)}%)</span>
+                              )}
+                            </>
+                          ) : config.metricType === "time" ? (
+                            <>Rezultat: <strong>{sub.grade} s</strong></>
+                          ) : config.metricType === "count" ? (
+                            <>Rezultat: <strong>{sub.grade}{config.unit ? ` ${config.unit}` : ""}</strong></>
+                          ) : (
+                            <>Nota: <strong>{sub.grade}</strong></>
+                          )}
+                        </p>
+                      );
+                    })()}
                     {sub.reviewer_notes && (
                       <p className="text-xs text-gray-500 mt-1">Note: {sub.reviewer_notes}</p>
                     )}
@@ -240,23 +271,53 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                 {/* Review actions for pending */}
                 {sub.status === "pending" && (
                   <>
-                    {reviewingId === sub.id ? (
+                    {reviewingId === sub.id ? (() => {
+                      const config = getRankTestConfig(toRankTestKey(sub.test_key));
+                      return (
                       <div className="mt-4 space-y-3 border-t border-gray-200 pt-3">
-                        <div>
-                          <label className="text-xs text-gray-500">
-                            {athleticTestUnits[sub.test_key]?.label || "Nota (1-10)"}
-                          </label>
-                          <Input
-                            type="number"
-                            min={athleticTestUnits[sub.test_key] ? "0" : "1"}
-                            max={athleticTestUnits[sub.test_key] ? undefined : "10"}
-                            step="0.1"
-                            value={grade}
-                            onChange={(e) => setGrade(e.target.value)}
-                            placeholder={athleticTestUnits[sub.test_key] ? (athleticTestUnits[sub.test_key].unit === "secunde" ? "ex: 4.2" : "ex: 45.5") : "ex: 8.5"}
-                            className="mt-1"
-                          />
-                        </div>
+                        {config.metricType === "made_attempted" ? (
+                          <div className="flex gap-3">
+                            <div className="flex-1">
+                              <label className="text-xs text-gray-500">Reușite (ex: coșuri marcate)</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={madeCount}
+                                onChange={(e) => setMadeCount(e.target.value)}
+                                placeholder="ex: 18"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-xs text-gray-500">Total încercări</label>
+                              <Input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={attemptedCount}
+                                onChange={(e) => setAttemptedCount(e.target.value)}
+                                placeholder="ex: 25"
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="text-xs text-gray-500">
+                              {config.metricType === "time" ? "Timp (secunde)" : `Rezultat${config.unit ? ` (${config.unit})` : ""}`}
+                            </label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              value={grade}
+                              onChange={(e) => setGrade(e.target.value)}
+                              placeholder={config.metricType === "time" ? "ex: 4.2" : "ex: 45.5"}
+                              className="mt-1"
+                            />
+                          </div>
+                        )}
                         <div>
                           <label className="text-xs text-gray-500">
                             Note / Observații <span className="text-red-500">*</span>
@@ -276,7 +337,7 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                             className="bg-green-600 hover:bg-green-700 text-white"
                             onClick={() => handleReview(sub.id, sub.test_key)}
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" /> {athleticTestUnits[sub.test_key] ? "Verifică & Salvează Rezultat" : "Verifică & Acordă Notă"}
+                            <CheckCircle className="h-4 w-4 mr-1" /> Verifică & Salvează Rezultat
                           </Button>
                           <Button
                             size="sm"
@@ -288,18 +349,19 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => { setReviewingId(null); setGrade(""); setNotes(""); }}
+                            onClick={() => { setReviewingId(null); setGrade(""); setMadeCount(""); setAttemptedCount(""); setNotes(""); }}
                           >
                             Anulează
                           </Button>
                         </div>
                       </div>
-                    ) : (
+                      );
+                    })() : (
                       <Button
                         size="sm"
                         variant="outline"
                         className="mt-3"
-                        onClick={() => { setReviewingId(sub.id); setGrade(""); setNotes(""); }}
+                        onClick={() => { setReviewingId(sub.id); setGrade(""); setMadeCount(""); setAttemptedCount(""); setNotes(""); }}
                       >
                         Verifică acest video
                       </Button>
