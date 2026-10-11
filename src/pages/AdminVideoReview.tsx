@@ -92,15 +92,21 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
       const made = parseInt(madeCount, 10);
       const attempted = parseInt(attemptedCount, 10);
       if (isNaN(made) || isNaN(attempted) || attempted <= 0 || made < 0 || made > attempted) {
-        toast({ title: "Completează corect reușitele și totalul încercărilor", variant: "destructive" });
+        toast({ title: "Completează corect reușitele și totalul aruncărilor", variant: "destructive" });
         return;
       }
-      const { error } = await reviewVideo(submissionId, made, notes, currentUserId!, { madeCount: made, attemptedCount: attempted });
+      const timeNum = grade.trim() ? parseFloat(grade) : null;
+      if (grade.trim() && (isNaN(timeNum!) || timeNum! <= 0)) {
+        toast({ title: "Timpul trebuie să fie un număr pozitiv", variant: "destructive" });
+        return;
+      }
+      const { error } = await reviewVideo(submissionId, made, notes, currentUserId!, { madeCount: made, attemptedCount: attempted, timeSeconds: timeNum });
       if (error) {
         toast({ title: "Eroare la verificare", variant: "destructive" });
       } else {
         toast({ title: "Video verificat cu succes!" });
         setReviewingId(null);
+        setGrade("");
         setMadeCount("");
         setAttemptedCount("");
         setNotes("");
@@ -227,6 +233,7 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                               {sub.attempted_count > 0 && (
                                 <span className="text-gray-500">({Math.round((sub.made_count / sub.attempted_count) * 100)}%)</span>
                               )}
+                              {sub.time_seconds !== null && <span className="text-gray-500">· {sub.time_seconds}s</span>}
                             </>
                           ) : config.metricType === "time" ? (
                             <>Rezultat: <strong>{sub.grade} s</strong></>
@@ -278,9 +285,9 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                       return (
                       <div className="mt-4 space-y-3 border-t border-gray-200 pt-3">
                         {config.metricType === "made_attempted" ? (
-                          <div className="flex gap-3">
-                            <div className="flex-1">
-                              <label className="text-xs text-gray-500">Reușite (ex: coșuri marcate)</label>
+                          <div className="flex flex-wrap gap-3">
+                            <div className="flex-1 min-w-[100px]">
+                              <label className="text-xs text-gray-500">Coșuri marcate</label>
                               <Input
                                 type="number"
                                 min="0"
@@ -291,8 +298,8 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                                 className="mt-1"
                               />
                             </div>
-                            <div className="flex-1">
-                              <label className="text-xs text-gray-500">Total încercări</label>
+                            <div className="flex-1 min-w-[100px]">
+                              <label className="text-xs text-gray-500">Total aruncări</label>
                               <Input
                                 type="number"
                                 min="1"
@@ -302,6 +309,29 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                                 placeholder="ex: 25"
                                 className="mt-1"
                               />
+                            </div>
+                            <div className="flex-1 min-w-[100px]">
+                              <label className="text-xs text-gray-500">Timp (secunde)</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                value={grade}
+                                onChange={(e) => setGrade(e.target.value)}
+                                placeholder="ex: 60"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-[100px]">
+                              <label className="text-xs text-gray-500">Procent reușite</label>
+                              <div className="mt-1 h-9 flex items-center px-3 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700">
+                                {(() => {
+                                  const made = parseInt(madeCount, 10);
+                                  const attempted = parseInt(attemptedCount, 10);
+                                  if (isNaN(made) || isNaN(attempted) || attempted <= 0) return "—";
+                                  return `${Math.round((made / attempted) * 100)}%`;
+                                })()}
+                              </div>
                             </div>
                           </div>
                         ) : (
@@ -366,8 +396,13 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                         variant="outline"
                         className="mt-3"
                         onClick={() => {
+                          const config = getRankTestConfig(toRankTestKey(sub.test_key));
                           setReviewingId(sub.id);
-                          setGrade(sub.grade !== null ? String(sub.grade) : "");
+                          setGrade(
+                            config.metricType === "made_attempted"
+                              ? sub.time_seconds !== null ? String(sub.time_seconds) : ""
+                              : sub.grade !== null ? String(sub.grade) : ""
+                          );
                           setMadeCount(sub.made_count !== null ? String(sub.made_count) : "");
                           setAttemptedCount(sub.attempted_count !== null ? String(sub.attempted_count) : "");
                           setNotes(sub.reviewer_notes || "");

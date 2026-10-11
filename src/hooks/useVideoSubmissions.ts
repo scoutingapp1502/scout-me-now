@@ -13,6 +13,7 @@ export interface VideoSubmission {
   grade: number | null;
   made_count: number | null;
   attempted_count: number | null;
+  time_seconds: number | null;
   reviewer_notes: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
@@ -35,7 +36,7 @@ export async function submitVideoSubmission(
   const { data, error } = await supabase
     .from("video_submissions")
     .upsert(
-      { user_id: currentUserId, test_key: testKey, video_url: videoUrl, status: "pending", grade: null, made_count: null, attempted_count: null, reviewer_notes: null, reviewed_by: null, reviewed_at: null },
+      { user_id: currentUserId, test_key: testKey, video_url: videoUrl, status: "pending", grade: null, made_count: null, attempted_count: null, time_seconds: null, reviewer_notes: null, reviewed_by: null, reviewed_at: null },
       { onConflict: "user_id,test_key" }
     )
     .select()
@@ -151,7 +152,7 @@ export function useAdminVideoSubmissions() {
     grade: number,
     reviewerNotes: string,
     reviewerId: string,
-    madeAttempted?: { madeCount: number; attemptedCount: number }
+    madeAttempted?: { madeCount: number; attemptedCount: number; timeSeconds?: number | null }
   ) => {
     const submission = submissions.find((s) => s.id === submissionId);
     const { error } = await supabase
@@ -161,6 +162,7 @@ export function useAdminVideoSubmissions() {
         grade,
         made_count: madeAttempted?.madeCount ?? null,
         attempted_count: madeAttempted?.attemptedCount ?? null,
+        time_seconds: madeAttempted?.timeSeconds ?? null,
         reviewer_notes: reviewerNotes,
         reviewed_by: reviewerId,
         reviewed_at: new Date().toISOString(),
@@ -177,7 +179,7 @@ export function useAdminVideoSubmissions() {
           player_id: submission.user_id,
           sport: submission.sport,
           test_key: rankKey,
-          time_seconds: config.metricType === "time" ? grade : null,
+          time_seconds: config.metricType === "time" ? grade : config.metricType === "made_attempted" ? madeAttempted?.timeSeconds ?? null : null,
           made_count: config.metricType === "made_attempted" ? madeAttempted?.madeCount ?? null : null,
           attempted_count: config.metricType === "made_attempted" ? madeAttempted?.attemptedCount ?? null : null,
           value: config.metricType === "count" ? grade : null,

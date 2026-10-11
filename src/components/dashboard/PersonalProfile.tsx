@@ -2365,6 +2365,7 @@ function StatsTab({ form, profile, editingSection, setEditingSection, updateForm
                                    <strong className="text-green-900">
                                      {sub.made_count}/{sub.attempted_count}
                                      {sub.attempted_count > 0 && ` (${Math.round((sub.made_count / sub.attempted_count) * 100)}%)`}
+                                     {sub.time_seconds !== null && ` · ${sub.time_seconds}s`}
                                    </strong>
                                  </>
                                ) : (
