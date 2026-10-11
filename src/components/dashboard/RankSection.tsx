@@ -1,12 +1,16 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, Trophy } from "lucide-react";
 import { useTestRankings } from "@/hooks/useTestRankings";
 import { athleticTests, getTechnicalTestsBySport, TechnicalTest } from "@/components/dashboard/PersonalProfile";
 import { RankResultRow, getRankTestConfig, computePercent, sortRankRows, formatRankValue } from "@/lib/testRankingConfig";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface RankSectionProps {
   playerSport: string;
 }
+
+type Category = "athletic" | "technical";
 
 const medalForRank = (rank: number) => {
   if (rank === 1) return "🥇";
@@ -85,11 +89,21 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
 
 const RankSection = ({ playerSport }: RankSectionProps) => {
   const { rows, loading } = useTestRankings(playerSport || null);
+  const [category, setCategory] = useState<Category>("athletic");
 
-  const tests = useMemo(
-    () => [...athleticTests, ...getTechnicalTestsBySport(playerSport)],
-    [playerSport]
-  );
+  const technicalTests = useMemo(() => getTechnicalTestsBySport(playerSport), [playerSport]);
+  const testsForCategory = category === "athletic" ? athleticTests : technicalTests;
+
+  const [selectedTestKey, setSelectedTestKey] = useState<string>(athleticTests[0]?.key ?? "");
+
+  useEffect(() => {
+    if (!testsForCategory.some((t) => t.key === selectedTestKey)) {
+      setSelectedTestKey(testsForCategory[0]?.key ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, playerSport]);
+
+  const selectedTest = testsForCategory.find((t) => t.key === selectedTestKey) ?? testsForCategory[0];
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 pb-10">
@@ -98,15 +112,48 @@ const RankSection = ({ playerSport }: RankSectionProps) => {
         <h1 className="font-display text-xl sm:text-2xl text-gray-900">Rank</h1>
       </div>
       <p className="text-sm text-gray-500 font-body -mt-2">
-        Top 10 cele mai bune rezultate la fiecare test, pentru {playerSport === "basketball" ? "baschet" : "fotbal"}.
+        Top 10 cele mai bune rezultate, pentru {playerSport === "basketball" ? "baschet" : "fotbal"}.
       </p>
+
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={category === "athletic" ? "default" : "outline"}
+          onClick={() => setCategory("athletic")}
+        >
+          Teste Atletice
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={category === "technical" ? "default" : "outline"}
+          onClick={() => setCategory("technical")}
+        >
+          Teste Specifice
+        </Button>
+      </div>
+
+      <Select value={selectedTestKey} onValueChange={setSelectedTestKey}>
+        <SelectTrigger className="bg-white">
+          <SelectValue placeholder="Alege testul" />
+        </SelectTrigger>
+        <SelectContent>
+          {testsForCategory.map((test) => (
+            <SelectItem key={test.key} value={test.key}>
+              {test.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       {loading && rows.length === 0 ? (
         <div className="flex justify-center py-10">
           <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         </div>
-      ) : (
-        tests.map((test) => <RankTable key={test.key} test={test} rows={rows} loading={loading} />)
-      )}
+      ) : selectedTest ? (
+        <RankTable key={selectedTest.key} test={selectedTest} rows={rows} loading={loading} />
+      ) : null}
     </div>
   );
 };
