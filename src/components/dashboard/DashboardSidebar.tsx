@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles, ClipboardList, Settings } from "lucide-react";
+import { User, LogOut, MessageCircle, Newspaper, Bell, Sparkles, ClipboardList, Settings, Trophy } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useActivityNotifications } from "@/hooks/useActivityNotifications";
@@ -121,6 +121,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
   }, [activeSection]);
 
   const showPlayerNotes = userRole === "cauta_jucator";
+  const showRank = userRole === "player";
   const mySpaceSections = [
     { id: "profile", label: profileLabel || t.dashboard.sidebar.personalProfile, icon: User },
     { id: "messages", label: (t as any).dashboard?.sidebar?.messages ?? "Messages", icon: MessageCircle },
@@ -133,6 +134,7 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
     // no longer removes this tab.
     { id: "activity", label: (t as any).dashboard?.sidebar?.activity ?? "Activity", icon: Newspaper },
     ...(showPlayerNotes ? [{ id: "player-notes", label: (t as any).dashboard?.sidebar?.scoutActions ?? "Actions", icon: ClipboardList }] : []),
+    ...(showRank ? [{ id: "rank", label: (t as any).dashboard?.sidebar?.rank ?? "Rank", icon: Trophy }] : []),
   ];
   const discoverSections = [
     { id: "community", label: (t as any).dashboard?.sidebar?.community ?? "Community", icon: Sparkles },

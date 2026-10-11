@@ -1,0 +1,115 @@
+import { useMemo } from "react";
+import { Loader2, Trophy } from "lucide-react";
+import { useTestRankings } from "@/hooks/useTestRankings";
+import { athleticTests, getTechnicalTestsBySport, TechnicalTest } from "@/components/dashboard/PersonalProfile";
+import { RankResultRow, getRankTestConfig, computePercent, sortRankRows, formatRankValue } from "@/lib/testRankingConfig";
+
+interface RankSectionProps {
+  playerSport: string;
+}
+
+const medalForRank = (rank: number) => {
+  if (rank === 1) return "🥇";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return null;
+};
+
+const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankResultRow[]; loading: boolean }) => {
+  const testRows = useMemo(
+    () => sortRankRows(rows.filter((r) => r.testKey === test.key), test.key).slice(0, 10),
+    [rows, test.key]
+  );
+  const config = getRankTestConfig(test.key);
+
+  const columns =
+    config.metricType === "made_attempted"
+      ? ["Timp", "Reușite", "Total", "%"]
+      : config.metricType === "time"
+      ? ["Timp"]
+      : ["Rezultat"];
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-orange-500 px-4 py-3 flex items-center gap-2">
+        <span className="text-lg">{test.icon}</span>
+        <span className="text-white font-display font-semibold text-sm sm:text-base">{test.label}</span>
+      </div>
+      {testRows.length === 0 ? (
+        <div className="px-4 py-6 text-center text-gray-400 text-sm font-body">Niciun rezultat înregistrat încă</div>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-gray-400 text-[11px] font-body uppercase tracking-wide border-b border-gray-100">
+              <th className="px-4 py-2 w-10">#</th>
+              <th className="px-2 py-2">Jucător</th>
+              {columns.map((c) => (
+                <th key={c} className="px-2 py-2 text-right whitespace-nowrap">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {testRows.map((row, i) => {
+              const rank = i + 1;
+              const medal = medalForRank(rank);
+              const pct = computePercent(row);
+              return (
+                <tr key={row.id} className={rank <= 3 ? "bg-orange-50/60" : ""}>
+                  <td className="px-4 py-2 font-display font-semibold text-gray-700">{medal ?? rank}</td>
+                  <td className="px-2 py-2 font-body text-gray-800 truncate max-w-[160px]">{row.playerName}</td>
+                  {config.metricType === "made_attempted" ? (
+                    <>
+                      <td className="px-2 py-2 text-right font-body text-gray-600">{row.timeSeconds != null ? `${row.timeSeconds}s` : "—"}</td>
+                      <td className="px-2 py-2 text-right font-body text-gray-600">{row.madeCount ?? "—"}</td>
+                      <td className="px-2 py-2 text-right font-body text-gray-600">{row.attemptedCount ?? "—"}</td>
+                      <td className="px-2 py-2 text-right font-display font-semibold text-orange-600">{pct != null ? `${pct.toFixed(0)}%` : "—"}</td>
+                    </>
+                  ) : (
+                    <td className="px-2 py-2 text-right font-display font-semibold text-orange-600">{formatRankValue(row, test.key)}</td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+      {loading && (
+        <div className="px-4 py-3 flex justify-center">
+          <Loader2 className="h-4 w-4 animate-spin text-orange-400" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const RankSection = ({ playerSport }: RankSectionProps) => {
+  const { rows, loading } = useTestRankings(playerSport || null);
+
+  const tests = useMemo(
+    () => [...athleticTests, ...getTechnicalTestsBySport(playerSport)],
+    [playerSport]
+  );
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-4 pb-10">
+      <div className="flex items-center gap-2 mb-2">
+        <Trophy className="h-6 w-6 text-orange-500" />
+        <h1 className="font-display text-xl sm:text-2xl text-gray-900">Rank</h1>
+      </div>
+      <p className="text-sm text-gray-500 font-body -mt-2">
+        Top 10 cele mai bune rezultate la fiecare test, pentru {playerSport === "basketball" ? "baschet" : "fotbal"}.
+      </p>
+      {loading && rows.length === 0 ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
+        </div>
+      ) : (
+        tests.map((test) => <RankTable key={test.key} test={test} rows={rows} loading={loading} />)
+      )}
+    </div>
+  );
+};
+
+export default RankSection;

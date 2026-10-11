@@ -10,6 +10,7 @@ import ScoutPersonalProfile from "@/components/dashboard/ScoutPersonalProfile";
 import PlaceholderSection from "@/components/dashboard/PlaceholderSection";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import CommunitySection from "@/components/dashboard/CommunitySection";
+import RankSection from "@/components/dashboard/RankSection";
 import ScoutActionsSection from "@/components/dashboard/ScoutActionsSection";
 import SettingsSection from "@/components/dashboard/SettingsSection";
 import SavedSection from "@/components/dashboard/SavedSection";
@@ -409,6 +410,8 @@ const Dashboard = () => {
         return (userRole === "cauta_jucator")
           ? <ScoutActionsSection scoutUserId={user.id} userRole={userRole} onNavigateToChat={handleNavigateToChat} />
           : null;
+      case "rank":
+        return (userRole === "player") ? <RankSection playerSport={playerSport} /> : null;
       case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
       // Revised product decision: a 13-15 year old DOES get the normal
       // Activity feed — see isRestrictedMinor's doc comment above. They just
@@ -465,7 +468,7 @@ const Dashboard = () => {
     "blocked", "messages-replies", "comments", "sharing-reuse", "follow-invite", "favourites",
     "like-share-counts", "language", "help", "about", "terms", "privacy-policy",
   ];
-  const showLightMain = activeSection === "profile" || activeSection === "messages" || activeSection === "notifications" || activeSection === "activity" || activeSection === "player-notes" || communitySections.includes(activeSection) || settingsSections.includes(activeSection);
+  const showLightMain = activeSection === "profile" || activeSection === "messages" || activeSection === "notifications" || activeSection === "activity" || activeSection === "player-notes" || activeSection === "rank" || communitySections.includes(activeSection) || settingsSections.includes(activeSection);
 
   const showMaintenanceBanner = maintenance.isScheduled && !maintenance.isActive && !maintenance.windowPassed && !maintenanceBannerDismissed;
 
