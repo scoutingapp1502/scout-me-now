@@ -268,8 +268,10 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                   </div>
                 )}
 
-                {/* Review actions for pending */}
-                {sub.status === "pending" && (
+                {/* Review actions — pending submissions get the full approve/reject form;
+                    already-verified ones can still be re-opened to correct the result
+                    (e.g. backfilling made/attempted on an older grade-only entry). */}
+                {(sub.status === "pending" || sub.status === "verified") && (
                   <>
                     {reviewingId === sub.id ? (() => {
                       const config = getRankTestConfig(toRankTestKey(sub.test_key));
@@ -320,7 +322,7 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                         )}
                         <div>
                           <label className="text-xs text-gray-500">
-                            Note / Observații <span className="text-red-500">*</span>
+                            Note / Observații {sub.status === "pending" && <span className="text-red-500">*</span>}
                             <span className="ml-1 text-gray-400">(obligatoriu la respingere)</span>
                           </label>
                           <Textarea
@@ -337,15 +339,17 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                             className="bg-green-600 hover:bg-green-700 text-white"
                             onClick={() => handleReview(sub.id, sub.test_key)}
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" /> Verifică & Salvează Rezultat
+                            <CheckCircle className="h-4 w-4 mr-1" /> {sub.status === "verified" ? "Salvează rezultatul" : "Verifică & Salvează Rezultat"}
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleReject(sub.id)}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" /> Respinge
-                          </Button>
+                          {sub.status === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleReject(sub.id)}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" /> Respinge
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -361,9 +365,15 @@ export default function AdminVideoReview({ embedded }: { embedded?: boolean } = 
                         size="sm"
                         variant="outline"
                         className="mt-3"
-                        onClick={() => { setReviewingId(sub.id); setGrade(""); setMadeCount(""); setAttemptedCount(""); setNotes(""); }}
+                        onClick={() => {
+                          setReviewingId(sub.id);
+                          setGrade(sub.grade !== null ? String(sub.grade) : "");
+                          setMadeCount(sub.made_count !== null ? String(sub.made_count) : "");
+                          setAttemptedCount(sub.attempted_count !== null ? String(sub.attempted_count) : "");
+                          setNotes(sub.reviewer_notes || "");
+                        }}
                       >
-                        Verifică acest video
+                        {sub.status === "verified" ? "Editează rezultatul" : "Verifică acest video"}
                       </Button>
                     )}
                   </>
