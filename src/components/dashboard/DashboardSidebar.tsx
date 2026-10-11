@@ -134,9 +134,9 @@ const DashboardSidebar = ({ activeSection, onSectionChange, playerName, playerSp
     // no longer removes this tab.
     { id: "activity", label: (t as any).dashboard?.sidebar?.activity ?? "Activity", icon: Newspaper },
     ...(showPlayerNotes ? [{ id: "player-notes", label: (t as any).dashboard?.sidebar?.scoutActions ?? "Actions", icon: ClipboardList }] : []),
-    ...(showRank ? [{ id: "rank", label: (t as any).dashboard?.sidebar?.rank ?? "Rank", icon: Trophy }] : []),
   ];
   const discoverSections = [
+    ...(showRank ? [{ id: "rank", label: (t as any).dashboard?.sidebar?.rank ?? "Rank", icon: Trophy }] : []),
     { id: "community", label: (t as any).dashboard?.sidebar?.community ?? "Community", icon: Sparkles },
   ];
   const sections = [...mySpaceSections, ...discoverSections];
