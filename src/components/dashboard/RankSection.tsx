@@ -31,9 +31,8 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-      <div className="bg-purple-600 px-4 py-3 flex items-center gap-2.5">
-        <span className="text-base shrink-0">{test.icon}</span>
-        <span className="font-display font-bold text-sm sm:text-base text-white tracking-wide">{test.label}</span>
+      <div className="px-4 py-3 flex items-center border-b border-gray-100">
+        <span className="font-display font-bold text-sm sm:text-base text-gray-900 tracking-wide">{test.label}</span>
       </div>
       {testRows.length === 0 ? (
         <div className="px-4 py-6 text-center text-gray-400 text-sm font-body">Niciun rezultat înregistrat încă</div>
