@@ -31,12 +31,14 @@ export function useTestRankings(sport: string | null) {
 
     const playerIds = Array.from(new Set((resultRows || []).map((r: any) => r.player_id)));
     let names: Record<string, string> = {};
+    let photos: Record<string, string | null> = {};
     if (playerIds.length > 0) {
       const { data: players } = await supabase
         .from("player_profiles")
-        .select("user_id, first_name, last_name")
+        .select("user_id, first_name, last_name, photo_url")
         .in("user_id", playerIds);
       names = Object.fromEntries((players || []).map((p: any) => [p.user_id, `${p.first_name} ${p.last_name}`.trim()]));
+      photos = Object.fromEntries((players || []).map((p: any) => [p.user_id, p.photo_url]));
     }
 
     setRows(
@@ -44,6 +46,7 @@ export function useTestRankings(sport: string | null) {
         id: r.id,
         playerId: r.player_id,
         playerName: names[r.player_id] || "—",
+        playerPhotoUrl: photos[r.player_id] ?? null,
         sport: r.sport,
         testKey: r.test_key,
         timeSeconds: r.time_seconds,

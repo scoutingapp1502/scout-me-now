@@ -44,13 +44,14 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-400 text-[11px] font-body uppercase tracking-wide border-b border-gray-100">
-              <th className="px-4 py-2 w-10">#</th>
-              <th className="px-2 py-2">Jucător</th>
+              <th className="pl-4 pr-3 py-2 w-10">#</th>
+              <th className="px-3 py-2">Jucător</th>
               {columns.map((c) => (
-                <th key={c} className="px-2 py-2 text-right whitespace-nowrap">
+                <th key={c} className="px-4 sm:px-6 py-2 text-right whitespace-nowrap">
                   {c}
                 </th>
               ))}
+              <th className="w-4" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -60,18 +61,30 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
               const pct = computePercent(row);
               return (
                 <tr key={row.id} className={rank <= 3 ? "bg-orange-50/60" : ""}>
-                  <td className="px-4 py-2 font-display font-semibold text-gray-700">{medal ?? rank}</td>
-                  <td className="px-2 py-2 font-body text-gray-800 truncate max-w-[160px]">{row.playerName}</td>
+                  <td className="pl-4 pr-3 py-3 font-display font-semibold text-gray-700">{medal ?? rank}</td>
+                  <td className="px-3 py-3 font-body text-gray-800">
+                    <div className="flex items-center gap-3">
+                      {row.playerPhotoUrl ? (
+                        <img src={row.playerPhotoUrl} alt={row.playerName} className="h-9 w-9 rounded-full object-cover shrink-0 border border-gray-200" />
+                      ) : (
+                        <div className="h-9 w-9 rounded-full bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center text-gray-400 text-xs font-display font-semibold">
+                          {row.playerName.charAt(0)}
+                        </div>
+                      )}
+                      <span className="truncate max-w-[140px]">{row.playerName}</span>
+                    </div>
+                  </td>
                   {config.metricType === "made_attempted" ? (
                     <>
-                      <td className="px-2 py-2 text-right font-body text-gray-600">{row.timeSeconds != null ? `${row.timeSeconds}s` : "—"}</td>
-                      <td className="px-2 py-2 text-right font-body text-gray-600">{row.madeCount ?? "—"}</td>
-                      <td className="px-2 py-2 text-right font-body text-gray-600">{row.attemptedCount ?? "—"}</td>
-                      <td className="px-2 py-2 text-right font-display font-semibold text-orange-600">{pct != null ? `${pct.toFixed(0)}%` : "—"}</td>
+                      <td className="px-4 sm:px-6 py-3 text-right font-body text-gray-600">{row.timeSeconds != null ? `${row.timeSeconds}s` : "—"}</td>
+                      <td className="px-4 sm:px-6 py-3 text-right font-body text-gray-600">{row.madeCount ?? "—"}</td>
+                      <td className="px-4 sm:px-6 py-3 text-right font-body text-gray-600">{row.attemptedCount ?? "—"}</td>
+                      <td className="px-4 sm:px-6 py-3 text-right font-display font-semibold text-orange-600">{pct != null ? `${pct.toFixed(0)}%` : "—"}</td>
                     </>
                   ) : (
-                    <td className="px-2 py-2 text-right font-display font-semibold text-orange-600">{formatRankValue(row, test.key)}</td>
+                    <td className="px-4 sm:px-6 py-3 text-right font-display font-semibold text-orange-600">{formatRankValue(row, test.key)}</td>
                   )}
+                  <td className="w-4" />
                 </tr>
               );
             })}

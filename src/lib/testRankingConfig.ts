@@ -58,6 +58,7 @@ export interface RankResultRow {
   id: string;
   playerId: string;
   playerName: string;
+  playerPhotoUrl: string | null;
   sport: string;
   testKey: string;
   timeSeconds: number | null;
