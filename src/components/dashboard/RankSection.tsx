@@ -12,12 +12,21 @@ interface RankSectionProps {
 
 type Category = "athletic" | "technical";
 
-const medalForRank = (rank: number) => {
-  if (rank === 1) return "🥇";
-  if (rank === 2) return "🥈";
-  if (rank === 3) return "🥉";
-  return null;
+const RANK_BADGE_STYLE: Record<number, string> = {
+  1: "bg-yellow-400 text-yellow-900 border-yellow-500",
+  2: "bg-gray-300 text-gray-700 border-gray-400",
+  3: "bg-amber-600 text-white border-amber-700",
 };
+
+const RankBadge = ({ rank }: { rank: number }) => (
+  <div
+    className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-display font-bold border shrink-0 ${
+      RANK_BADGE_STYLE[rank] ?? "bg-gray-100 text-gray-600 border-gray-200"
+    }`}
+  >
+    {rank}
+  </div>
+);
 
 const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankResultRow[]; loading: boolean }) => {
   const testRows = useMemo(
@@ -49,7 +58,7 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-400 text-[10px] sm:text-[11px] font-body uppercase tracking-normal sm:tracking-wide border-b border-gray-100">
-              <th className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-2.5 w-6 sm:w-10">#</th>
+              <th className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-2.5 w-8 sm:w-10">#</th>
               <th className="px-1 sm:px-3 py-2.5">Jucător</th>
               {columns.map((c) => (
                 <th key={c.full} className="px-1 sm:px-6 py-2.5 text-right whitespace-nowrap">
@@ -63,11 +72,12 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
           <tbody className="divide-y divide-gray-100">
             {testRows.map((row, i) => {
               const rank = i + 1;
-              const medal = medalForRank(rank);
               const pct = computePercent(row);
               return (
                 <tr key={row.id} className={rank <= 3 ? "bg-orange-50/60" : ""}>
-                  <td className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-3.5 font-display font-bold text-gray-800">{medal ?? rank}</td>
+                  <td className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-3.5">
+                    <RankBadge rank={rank} />
+                  </td>
                   <td className="px-1 sm:px-3 py-3.5 font-body text-gray-900">
                     <div className="flex items-center gap-2 sm:gap-3">
                       {row.playerPhotoUrl ? (
@@ -80,10 +90,10 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
                       {/* Mobile: last name on top, first name below — more legible
                           than one truncated line in a narrow column. Desktop keeps
                           the combined name on a single line. */}
-                      <div className="sm:hidden leading-tight">
-                        <span className="block truncate max-w-[70px] font-semibold">{row.playerLastName || row.playerName}</span>
+                      <div className="sm:hidden leading-tight min-w-0">
+                        <span className="block font-semibold break-words">{row.playerLastName || row.playerName}</span>
                         {row.playerFirstName && (
-                          <span className="block truncate max-w-[70px] text-gray-500 font-normal text-[11px]">{row.playerFirstName}</span>
+                          <span className="block text-gray-500 font-normal text-[11px] break-words">{row.playerFirstName}</span>
                         )}
                       </div>
                       <span className="hidden sm:inline truncate max-w-[140px] font-semibold">{row.playerName}</span>
