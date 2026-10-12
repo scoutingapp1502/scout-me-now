@@ -110,16 +110,14 @@ const RankTable = ({
                           {row.playerName.charAt(0)}
                         </div>
                       )}
-                      {/* Mobile: last name on top, first name below — more legible
-                          than one truncated line in a narrow column. Desktop keeps
-                          the combined name on a single line. */}
-                      <div className="sm:hidden leading-tight min-w-0">
-                        <span className="block font-semibold break-words">{row.playerLastName || row.playerName}</span>
+                      {/* Last name on top, first name below, on both mobile and
+                          desktop — more legible than one truncated/combined line. */}
+                      <div className="leading-tight min-w-0">
+                        <span className="block font-semibold break-words text-sm sm:text-base">{row.playerLastName || row.playerName}</span>
                         {row.playerFirstName && (
-                          <span className="block text-gray-500 font-normal text-[11px] break-words">{row.playerFirstName}</span>
+                          <span className="block text-gray-500 font-normal text-[11px] sm:text-xs break-words">{row.playerFirstName}</span>
                         )}
                       </div>
-                      <span className="hidden sm:inline truncate max-w-[140px] font-semibold">{row.playerName}</span>
                     </div>
                   </td>
                   {config.metricType === "made_attempted" ? (
