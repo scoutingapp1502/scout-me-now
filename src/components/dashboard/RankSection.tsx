@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Trophy } from "lucide-react";
+import { Loader2, Trophy, Crown, Medal } from "lucide-react";
 import { useTestRankings } from "@/hooks/useTestRankings";
 import { athleticTests, getTechnicalTestsBySport, TechnicalTest } from "@/components/dashboard/PersonalProfile";
 import { RankResultRow, getRankTestConfig, computePercent, sortRankRows, formatRankValue } from "@/lib/testRankingConfig";
@@ -12,21 +12,29 @@ interface RankSectionProps {
 
 type Category = "athletic" | "technical";
 
-const RANK_BADGE_STYLE: Record<number, string> = {
-  1: "bg-yellow-400 text-yellow-900 border-yellow-500",
-  2: "bg-gray-300 text-gray-700 border-gray-400",
-  3: "bg-amber-600 text-white border-amber-700",
+const PODIUM_BADGE_STYLE: Record<number, string> = {
+  1: "bg-gradient-to-br from-yellow-300 to-amber-500 ring-2 ring-yellow-200 shadow-md shadow-yellow-300/50",
+  2: "bg-gradient-to-br from-gray-200 to-gray-400 ring-2 ring-gray-100 shadow-md shadow-gray-300/50",
+  3: "bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-300 shadow-md shadow-amber-400/50",
 };
 
-const RankBadge = ({ rank }: { rank: number }) => (
-  <div
-    className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-display font-bold border shrink-0 ${
-      RANK_BADGE_STYLE[rank] ?? "bg-gray-100 text-gray-600 border-gray-200"
-    }`}
-  >
-    {rank}
-  </div>
-);
+const RankBadge = ({ rank }: { rank: number }) => {
+  if (rank <= 3) {
+    const Icon = rank === 1 ? Crown : Medal;
+    return (
+      <div
+        className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center shrink-0 ${PODIUM_BADGE_STYLE[rank]}`}
+      >
+        <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-white drop-shadow-sm" strokeWidth={2.25} fill="currentColor" fillOpacity={0.15} />
+      </div>
+    );
+  }
+  return (
+    <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-display font-bold border border-gray-200 bg-gray-50 text-gray-500 shrink-0">
+      {rank}
+    </div>
+  );
+};
 
 const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankResultRow[]; loading: boolean }) => {
   const testRows = useMemo(
@@ -61,7 +69,7 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
               <th className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-2.5 w-8 sm:w-10">#</th>
               <th className="px-1 sm:px-3 py-2.5">Jucător</th>
               {columns.map((c) => (
-                <th key={c.full} className="px-1 sm:px-6 py-2.5 text-right whitespace-nowrap">
+                <th key={c.full} className="px-1 sm:px-6 py-2.5 text-center whitespace-nowrap">
                   <span className="sm:hidden">{c.short}</span>
                   <span className="hidden sm:inline">{c.full}</span>
                 </th>
@@ -101,13 +109,13 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
                   </td>
                   {config.metricType === "made_attempted" ? (
                     <>
-                      <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-gray-900">{row.timeSeconds != null ? `${row.timeSeconds}s` : "—"}</td>
-                      <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-gray-900">{row.madeCount ?? "—"}</td>
-                      <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-gray-900">{row.attemptedCount ?? "—"}</td>
-                      <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-orange-600">{pct != null ? `${pct.toFixed(0)}%` : "—"}</td>
+                      <td className="px-1 sm:px-6 py-3.5 text-center font-display font-bold text-gray-900">{row.timeSeconds != null ? `${row.timeSeconds}s` : "—"}</td>
+                      <td className="px-1 sm:px-6 py-3.5 text-center font-display font-bold text-gray-900">{row.madeCount ?? "—"}</td>
+                      <td className="px-1 sm:px-6 py-3.5 text-center font-display font-bold text-gray-900">{row.attemptedCount ?? "—"}</td>
+                      <td className="px-1 sm:px-6 py-3.5 text-center font-display font-bold text-orange-600">{pct != null ? `${pct.toFixed(0)}%` : "—"}</td>
                     </>
                   ) : (
-                    <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-orange-600">{formatRankValue(row, test.key)}</td>
+                    <td className="px-1 sm:px-6 py-3.5 text-center font-display font-bold text-orange-600">{formatRankValue(row, test.key)}</td>
                   )}
                   <td className="w-1 sm:w-4" />
                 </tr>
