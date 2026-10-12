@@ -411,7 +411,7 @@ const Dashboard = () => {
           ? <ScoutActionsSection scoutUserId={user.id} userRole={userRole} onNavigateToChat={handleNavigateToChat} />
           : null;
       case "rank":
-        return (userRole === "player") ? <RankSection playerSport={playerSport} /> : null;
+        return (userRole === "player") ? <RankSection playerSport={playerSport} onNavigateToChat={handleNavigateToChat} /> : null;
       case "notifications": return <NotificationsSection onNavigateToChat={handleNavigateToChat} onNavigateToProfile={() => setActiveSection("profile")} />;
       // Revised product decision: a 13-15 year old DOES get the normal
       // Activity feed — see isRestrictedMinor's doc comment above. They just

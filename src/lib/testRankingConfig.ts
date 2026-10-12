@@ -85,7 +85,9 @@ const rankSortValue = (row: RankResultRow, config: RankTestConfig): number => {
   }
   const pct = computePercent(row);
   if (pct == null) return Number.POSITIVE_INFINITY;
-  return -(pct * 1000 + (row.madeCount ?? 0));
+  // Tiebreak: equal percentage, more total attempts ranks better (harder to
+  // sustain the same accuracy over more shots).
+  return -(pct * 100000 + (row.attemptedCount ?? 0));
 };
 
 export const sortRankRows = (rows: RankResultRow[], testKey: string): RankResultRow[] => {

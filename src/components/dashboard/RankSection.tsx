@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Trophy, Crown, Medal } from "lucide-react";
+import { ArrowLeft, Loader2, Trophy, Crown, Medal } from "lucide-react";
 import { useTestRankings } from "@/hooks/useTestRankings";
-import { athleticTests, getTechnicalTestsBySport, TechnicalTest } from "@/components/dashboard/PersonalProfile";
+import PersonalProfile, { athleticTests, getTechnicalTestsBySport, TechnicalTest } from "@/components/dashboard/PersonalProfile";
 import { RankResultRow, getRankTestConfig, computePercent, sortRankRows, formatRankValue } from "@/lib/testRankingConfig";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface RankSectionProps {
   playerSport: string;
+  onNavigateToChat?: (userId: string) => void;
 }
 
 type Category = "athletic" | "technical";
@@ -36,7 +37,17 @@ const RankBadge = ({ rank }: { rank: number }) => {
   );
 };
 
-const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankResultRow[]; loading: boolean }) => {
+const RankTable = ({
+  test,
+  rows,
+  loading,
+  onSelectPlayer,
+}: {
+  test: TechnicalTest;
+  rows: RankResultRow[];
+  loading: boolean;
+  onSelectPlayer: (playerId: string) => void;
+}) => {
   const testRows = useMemo(
     () => sortRankRows(rows.filter((r) => r.testKey === test.key), test.key).slice(0, 10),
     [rows, test.key]
@@ -82,7 +93,11 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
               const rank = i + 1;
               const pct = computePercent(row);
               return (
-                <tr key={row.id} className={rank <= 3 ? "bg-orange-50/60" : ""}>
+                <tr
+                  key={row.id}
+                  onClick={() => onSelectPlayer(row.playerId)}
+                  className={`cursor-pointer hover:bg-orange-50 transition-colors ${rank <= 3 ? "bg-orange-50/60" : ""}`}
+                >
                   <td className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-3.5">
                     <RankBadge rank={rank} />
                   </td>
@@ -133,9 +148,10 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
   );
 };
 
-const RankSection = ({ playerSport }: RankSectionProps) => {
+const RankSection = ({ playerSport, onNavigateToChat }: RankSectionProps) => {
   const { rows, loading } = useTestRankings(playerSport || null);
   const [category, setCategory] = useState<Category>("athletic");
+  const [viewingPlayerId, setViewingPlayerId] = useState<string | null>(null);
 
   const technicalTests = useMemo(() => getTechnicalTestsBySport(playerSport), [playerSport]);
   const testsForCategory = category === "athletic" ? athleticTests : technicalTests;
@@ -150,6 +166,23 @@ const RankSection = ({ playerSport }: RankSectionProps) => {
   }, [category, playerSport]);
 
   const selectedTest = testsForCategory.find((t) => t.key === selectedTestKey) ?? testsForCategory[0];
+
+  if (viewingPlayerId) {
+    return (
+      <div className="space-y-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setViewingPlayerId(null)}
+          className="mb-4 gap-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 font-body"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Înapoi
+        </Button>
+        <PersonalProfile userId={viewingPlayerId} readOnly onNavigateToChat={onNavigateToChat} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 pb-10">
@@ -198,7 +231,7 @@ const RankSection = ({ playerSport }: RankSectionProps) => {
           <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         </div>
       ) : selectedTest ? (
-        <RankTable key={selectedTest.key} test={selectedTest} rows={rows} loading={loading} />
+        <RankTable key={selectedTest.key} test={selectedTest} rows={rows} loading={loading} onSelectPlayer={setViewingPlayerId} />
       ) : null}
     </div>
   );
