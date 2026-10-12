@@ -46,13 +46,13 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
       {testRows.length === 0 ? (
         <div className="px-4 py-6 text-center text-gray-400 text-sm font-body">Niciun rezultat înregistrat încă</div>
       ) : (
-        <table className="w-full text-[11px] sm:text-sm">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-400 text-[9px] sm:text-[11px] font-body uppercase tracking-normal sm:tracking-wide border-b border-gray-100">
-              <th className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-2 w-6 sm:w-10">#</th>
-              <th className="px-1 sm:px-3 py-2">Jucător</th>
+            <tr className="text-left text-gray-400 text-[10px] sm:text-[11px] font-body uppercase tracking-normal sm:tracking-wide border-b border-gray-100">
+              <th className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-2.5 w-6 sm:w-10">#</th>
+              <th className="px-1 sm:px-3 py-2.5">Jucător</th>
               {columns.map((c) => (
-                <th key={c.full} className="px-1 sm:px-6 py-2 text-right whitespace-nowrap">
+                <th key={c.full} className="px-1 sm:px-6 py-2.5 text-right whitespace-nowrap">
                   <span className="sm:hidden">{c.short}</span>
                   <span className="hidden sm:inline">{c.full}</span>
                 </th>
@@ -67,28 +67,28 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
               const pct = computePercent(row);
               return (
                 <tr key={row.id} className={rank <= 3 ? "bg-orange-50/60" : ""}>
-                  <td className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-2 sm:py-3 font-display font-semibold text-gray-700">{medal ?? rank}</td>
-                  <td className="px-1 sm:px-3 py-2 sm:py-3 font-body text-gray-800">
-                    <div className="flex items-center gap-1.5 sm:gap-3">
+                  <td className="pl-2 pr-1 sm:pl-4 sm:pr-3 py-3.5 font-display font-bold text-gray-800">{medal ?? rank}</td>
+                  <td className="px-1 sm:px-3 py-3.5 font-body text-gray-900">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       {row.playerPhotoUrl ? (
-                        <img src={row.playerPhotoUrl} alt={row.playerName} className="h-6 w-6 sm:h-9 sm:w-9 rounded-full object-cover shrink-0 border border-gray-200" />
+                        <img src={row.playerPhotoUrl} alt={row.playerName} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover shrink-0 border border-gray-200" />
                       ) : (
-                        <div className="h-6 w-6 sm:h-9 sm:w-9 rounded-full bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center text-gray-400 text-[9px] sm:text-xs font-display font-semibold">
+                        <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center text-gray-400 text-xs font-display font-semibold">
                           {row.playerName.charAt(0)}
                         </div>
                       )}
-                      <span className="truncate max-w-[52px] sm:max-w-[140px]">{row.playerName}</span>
+                      <span className="truncate max-w-[60px] sm:max-w-[140px] font-semibold">{row.playerName}</span>
                     </div>
                   </td>
                   {config.metricType === "made_attempted" ? (
                     <>
-                      <td className="px-1 sm:px-6 py-2 sm:py-3 text-right font-body text-gray-600">{row.timeSeconds != null ? `${row.timeSeconds}s` : "—"}</td>
-                      <td className="px-1 sm:px-6 py-2 sm:py-3 text-right font-body text-gray-600">{row.madeCount ?? "—"}</td>
-                      <td className="px-1 sm:px-6 py-2 sm:py-3 text-right font-body text-gray-600">{row.attemptedCount ?? "—"}</td>
-                      <td className="px-1 sm:px-6 py-2 sm:py-3 text-right font-display font-semibold text-orange-600">{pct != null ? `${pct.toFixed(0)}%` : "—"}</td>
+                      <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-gray-900">{row.timeSeconds != null ? `${row.timeSeconds}s` : "—"}</td>
+                      <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-gray-900">{row.madeCount ?? "—"}</td>
+                      <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-gray-900">{row.attemptedCount ?? "—"}</td>
+                      <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-orange-600">{pct != null ? `${pct.toFixed(0)}%` : "—"}</td>
                     </>
                   ) : (
-                    <td className="px-1 sm:px-6 py-2 sm:py-3 text-right font-display font-semibold text-orange-600">{formatRankValue(row, test.key)}</td>
+                    <td className="px-1 sm:px-6 py-3.5 text-right font-display font-bold text-orange-600">{formatRankValue(row, test.key)}</td>
                   )}
                   <td className="w-1 sm:w-4" />
                 </tr>
