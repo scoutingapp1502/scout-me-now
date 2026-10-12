@@ -2,7 +2,7 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone, Menu, Rocket, Wrench, ShieldAlert, FlaskConical, Ban, Flag, Users, Trophy } from "lucide-react";
+import { LogOut, Video, LayoutDashboard, Shield, UserCheck, Film, MessageSquareWarning, Image, Megaphone, Menu, Rocket, Wrench, ShieldAlert, FlaskConical, Ban, Flag, Users } from "lucide-react";
 import AdminVideoReview from "@/pages/AdminVideoReview";
 import AdminContentModeration from "@/pages/AdminContentModeration";
 import AdminUsersAtRisk from "@/pages/AdminUsersAtRisk";
@@ -10,7 +10,6 @@ import AdminUserReports from "@/pages/AdminUserReports";
 import AdminAllUsers from "@/pages/AdminAllUsers";
 import AdminScoutVerification from "@/pages/AdminScoutVerification";
 import AdminTestVideos from "@/pages/AdminTestVideos";
-import AdminRankResults from "@/pages/AdminRankResults";
 import AdminSupportTickets from "@/pages/AdminSupportTickets";
 import AdminClubLogos from "@/pages/AdminClubLogos";
 import AdminAnnouncements from "@/pages/AdminAnnouncements";
@@ -47,7 +46,6 @@ const adminSections = [
   { id: "video-review", label: "Verificare Videouri", icon: Video },
   { id: "scout-verification", label: "Verificare Documente Înregistrate", icon: UserCheck },
   { id: "test-videos", label: "Video-uri Exemplu Teste", icon: Film },
-  { id: "rank-results", label: "Rezultate Rank", icon: Trophy },
 
   // Platformă
   { id: "announcements", label: "Știri și Anunțuri", icon: Megaphone },
@@ -225,9 +223,6 @@ export default function AdminDashboard() {
       )}
       {activeSection === "test-videos" && (
         <AdminTestVideos embedded />
-      )}
-      {activeSection === "rank-results" && (
-        <AdminRankResults embedded />
       )}
       {activeSection === "club-logos" && (
         <AdminClubLogos embedded />
