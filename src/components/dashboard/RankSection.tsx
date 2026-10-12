@@ -71,13 +71,22 @@ const RankTable = ({ test, rows, loading }: { test: TechnicalTest; rows: RankRes
                   <td className="px-1 sm:px-3 py-3.5 font-body text-gray-900">
                     <div className="flex items-center gap-2 sm:gap-3">
                       {row.playerPhotoUrl ? (
-                        <img src={row.playerPhotoUrl} alt={row.playerName} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover shrink-0 border border-gray-200" />
+                        <img src={row.playerPhotoUrl} alt={row.playerName} className="h-11 w-11 sm:h-12 sm:w-12 rounded-full object-cover shrink-0 border border-gray-200" />
                       ) : (
-                        <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center text-gray-400 text-xs font-display font-semibold">
+                        <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center text-gray-400 text-sm font-display font-semibold">
                           {row.playerName.charAt(0)}
                         </div>
                       )}
-                      <span className="truncate max-w-[60px] sm:max-w-[140px] font-semibold">{row.playerName}</span>
+                      {/* Mobile: last name on top, first name below — more legible
+                          than one truncated line in a narrow column. Desktop keeps
+                          the combined name on a single line. */}
+                      <div className="sm:hidden leading-tight">
+                        <span className="block truncate max-w-[70px] font-semibold">{row.playerLastName || row.playerName}</span>
+                        {row.playerFirstName && (
+                          <span className="block truncate max-w-[70px] text-gray-500 font-normal text-[11px]">{row.playerFirstName}</span>
+                        )}
+                      </div>
+                      <span className="hidden sm:inline truncate max-w-[140px] font-semibold">{row.playerName}</span>
                     </div>
                   </td>
                   {config.metricType === "made_attempted" ? (

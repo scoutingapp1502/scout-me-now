@@ -30,14 +30,16 @@ export function useTestRankings(sport: string | null) {
       .eq("sport", sport);
 
     const playerIds = Array.from(new Set((resultRows || []).map((r: any) => r.player_id)));
-    let names: Record<string, string> = {};
+    let firstNames: Record<string, string> = {};
+    let lastNames: Record<string, string> = {};
     let photos: Record<string, string | null> = {};
     if (playerIds.length > 0) {
       const { data: players } = await supabase
         .from("player_profiles")
         .select("user_id, first_name, last_name, photo_url")
         .in("user_id", playerIds);
-      names = Object.fromEntries((players || []).map((p: any) => [p.user_id, `${p.first_name} ${p.last_name}`.trim()]));
+      firstNames = Object.fromEntries((players || []).map((p: any) => [p.user_id, p.first_name || ""]));
+      lastNames = Object.fromEntries((players || []).map((p: any) => [p.user_id, p.last_name || ""]));
       photos = Object.fromEntries((players || []).map((p: any) => [p.user_id, p.photo_url]));
     }
 
@@ -45,7 +47,9 @@ export function useTestRankings(sport: string | null) {
       (resultRows || []).map((r: any) => ({
         id: r.id,
         playerId: r.player_id,
-        playerName: names[r.player_id] || "—",
+        playerName: `${firstNames[r.player_id] || ""} ${lastNames[r.player_id] || ""}`.trim() || "—",
+        playerFirstName: firstNames[r.player_id] || "",
+        playerLastName: lastNames[r.player_id] || "",
         playerPhotoUrl: photos[r.player_id] ?? null,
         sport: r.sport,
         testKey: r.test_key,
